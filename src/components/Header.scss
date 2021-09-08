@@ -1,0 +1,80 @@
+.header {
+    display: block;
+    padding: 30px;
+    z-index: 1;
+    $header: ".header";
+
+    &#{$header} {
+        &--fixed {
+            position: fixed;
+            top: 0;
+            left: 30px;
+            right: 30px;
+            border-top: 30px solid #222831;
+            background-color: #ffffff;
+            z-index: 10;
+
+            + .hero {
+                margin-top: 100px;
+            }
+        }
+    }
+
+    #{$header} {
+        &__wrapper {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        &__logo {
+            height: 60px;
+            width: 60px;
+            flex: 0 0 60px;
+            position: relative;
+
+            &:hover {
+                #{$header}__box {
+                    transform: rotate(90deg);
+                }
+            }
+        }
+
+        &__link {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            color: #222831;
+            text-decoration: none;
+        }
+
+        &__text {
+            font-size: 16px;
+            font-weight: 700;
+            position: relative;
+            z-index: -2;
+        }
+
+        &__box {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            border: 3px solid #222831;
+            transition: all 1s cubic-bezier(0.2, 0, 0, 1);
+            z-index: -1;
+        }
+
+        &__navigation {
+            flex: 0 0 auto;
+        }
+
+        &__hamburger {
+            display: none;
+        }
+    }
+}

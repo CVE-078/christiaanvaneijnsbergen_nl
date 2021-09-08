@@ -1,25 +1,48 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect } from 'react'
+import Header from './components/Header'
+import Hero from './components/Hero'
+import About from './components/About'
+import Projects from './components/Projects'
+import Contact from './components/Contact'
+import Footer from './components/Footer'
 
 function App() {
+  const initSmoothScroll = () => {
+    const anchors = document.querySelectorAll('.link.link--anchor');
+
+    anchors.forEach((anchor) => {
+      anchor.addEventListener('click', (e) => {
+        const elementId = e.target.hash;
+        const element = document.querySelector(elementId);
+
+        e.preventDefault();
+
+        element.scrollIntoView({
+          block: 'start',
+          behavior: 'smooth'
+        });
+      })
+    })
+  }
+
+  useEffect(() => {
+    initSmoothScroll();
+  });
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    <>
+      <Header />
+      <Hero />
+
+      <main className="main">
+        <About />
+        <Projects />
+        <Contact />
+      </main>
+
+      <Footer />
+    </>
+  )
 }
 
-export default App;
+export default App

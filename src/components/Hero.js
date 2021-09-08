@@ -1,0 +1,61 @@
+import React, { useEffect } from 'react'
+import './Hero.scss'
+
+function Hero() {
+    let titles = ['a 27-year-old', 'an avid gamer', 'a problem solver', 'a father-of-one', 'a tv series binger', 'a web developer'];
+
+    const slideTitles = () => {
+        const sliderText = document.getElementsByClassName('hero__sliderText')[0];
+        let i = 0
+
+        setInterval(() => {
+            sliderText.classList.add('hero__sliderText--hide');
+
+            setTimeout(() => {
+                sliderText.innerHTML = titles[i];
+                sliderText.classList.remove('hero__sliderText--hide');
+            }, 1500);
+
+            i = (i + 1) % titles.length
+        }, 3000);
+
+    }
+
+    useEffect(() => {
+        slideTitles();
+    });
+
+    return (
+        <section className="hero hero--fullscreen">
+            <div className="container">
+                <span id="top" className="is-visually-hidden" style={{ top: '-100px' }}>&nbsp;</span>
+
+                <div className="hero__wrapper fade-in">
+                    <span className="hero__prefix">Hello, my name is</span>
+
+                    <h1 className="hero__title">Christiaan van Eijnsbergen</h1>
+
+                    <span className="hero__description">
+                        I am
+                        <span className="hero__slider">
+                            <span className="hero__sliderText">{titles[0]}</span>
+                        </span>
+                        located in Dordrecht, The Netherlands
+                    </span>
+                </div>
+
+                <div className="hero__learnMore">
+
+                    <a href="/#about" className="hero__button link link--anchor">
+                        <span className="hero__buttonText">curious? find out more</span>
+                        <i className="fas fa-fw fa-arrow-down hero__buttonIcon"></i>
+                    </a>
+
+                </div>
+
+            </div>
+        </section>
+    )
+}
+
+export default Hero

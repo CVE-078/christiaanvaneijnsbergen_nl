@@ -1,0 +1,70 @@
+* {
+    &,
+    &::before,
+    &::after {
+        box-sizing: border-box;
+    }
+}
+
+body,
+html {
+    color: #222831;
+    background-color: #222831;
+    font-family: "Poppins", sans-serif;
+    scroll-behavior: smooth;
+    line-height: initial;
+}
+
+:target:before {
+    content: "";
+    display: block;
+    height: 100px;
+    margin: -100px 0 0;
+}
+
+.page {
+    margin: 30px;
+    background-color: #fff;
+    $page: ".page";
+}
+
+.container {
+    max-width: rem-calc(1440);
+    margin: 0 auto;
+}
+
+.main {
+    flex: 1;
+}
+
+.is-visually-hidden {
+    border: 0;
+    clip-path: inset(100%);
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #aaa;
+    border-radius: 30px;
+
+    &:hover {
+        background: #999;
+    }
+}
+
+::-webkit-scrollbar-track {
+    background: #fff;
+    border-radius: 0px;
+}
