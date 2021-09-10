@@ -84,4 +84,48 @@ const jobs = [
     }
 ]
 
-export { projects, jobs }
+const menu = [
+    {
+        id: 0,
+        name: 'about',
+        link: '#about',
+        type: 'link'
+    },
+    {
+        id: 1,
+        name: 'jobs',
+        link: '#jobs',
+        type: 'link'
+    },
+    {
+        id: 2,
+        name: 'projects',
+        link: '#projects',
+        type: 'link'
+    },
+    {
+        id: 3,
+        name: 'say hello!',
+        link: '#contact',
+        type: 'button'
+    },
+]
+
+const socials = [
+    {
+        id: 0,
+        name: 'LinkedIn',
+        url: 'https://www.linkedin.com/in/christiaan-van-eijnsbergen/',
+        icon: 'fab fa-fw fa-linkedin-in'
+    },
+    {
+        id: 1,
+        name: 'Github',
+        url: 'https://github.com/CVE-078',
+        icon: 'fab fa-fw fa-github'
+    }
+]
+
+const titles = ['a 27-year-old', 'an avid gamer', 'a problem solver', 'a father-of-one', 'a tv series binger', 'a web developer']
+
+export { projects, jobs, menu, socials, titles }

@@ -1,4 +1,5 @@
 import React from 'react'
+import { menu } from '../lib/data'
 import './Navigation.scss'
 
 const Navigation = () => {
@@ -6,21 +7,11 @@ const Navigation = () => {
         <nav className="navigation">
             <ul className="navigation__list">
 
-                <li className="navigation__item">
-                    <a href="/#about" className="navigation__link link link--anchor">about</a>
-                </li>
-
-                <li className="navigation__item">
-                    <a href="/#jobs" className="navigation__link link link--anchor">jobs</a>
-                </li>
-
-                <li className="navigation__item">
-                    <a href="/#projects" className="navigation__link link link--anchor">projects</a>
-                </li>
-
-                <li className="navigation__item">
-                    <a href="/#contact" className="navigation__button link link--anchor">say hello!</a>
-                </li>
+                {menu && menu.map((item) => (
+                    <li className="navigation__item">
+                        <a href={item.link} className={'navigation__' + item.type + ' link link--anchor'}>{item.name}</a>
+                    </li>
+                ))}
 
             </ul>
         </nav>

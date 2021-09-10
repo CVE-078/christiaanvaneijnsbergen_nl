@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react'
+import { titles } from '../lib/data'
 import './Hero.scss'
 
 const Hero = () => {
-    let titles = ['a 27-year-old', 'an avid gamer', 'a problem solver', 'a father-of-one', 'a tv series binger', 'a web developer'];
-
     const slideTitles = () => {
         const sliderText = document.getElementsByClassName('hero__sliderText')[0];
         let i = 0

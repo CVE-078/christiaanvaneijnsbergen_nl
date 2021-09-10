@@ -36,10 +36,7 @@ const Project = ({ project }) => {
                     <ul className="project__stackList">
                         {project.stack.map((stack, index) => (
 
-                            <li
-                                key={index}
-                                className="project__stackItem"
-                            >
+                            <li key={index} className="project__stackItem">
                                 {stack}
                             </li>
 

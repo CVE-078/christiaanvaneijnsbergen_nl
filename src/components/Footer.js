@@ -1,4 +1,5 @@
 import React from 'react'
+import { socials } from '../lib/data'
 import './Footer.scss'
 
 const Footer = () => {
@@ -31,13 +32,13 @@ const Footer = () => {
                     <div className="footer__bottom">
 
                         <div className="footer__socials">
-                            <a href="https://www.linkedin.com/in/christiaan-van-eijnsbergen/" rel="noreferrer" target="_blank" className="footer__link">
-                                <i className="fab fa-fw fa-linkedin-in"></i>
-                            </a>
 
-                            <a href="https://github.com/CVE-078" rel="noreferrer" target="_blank" className="footer__link">
-                                <i className="fab fa-fw fa-github"></i>
-                            </a>
+                            {socials && socials.map((item) => (
+                                <a href={item.url} rel="noreferrer" target="_blank" className="footer__link">
+                                    <i className={item.icon}></i>
+                                </a>
+                            ))}
+
                         </div>
 
                     </div>

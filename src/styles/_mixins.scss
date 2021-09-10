@@ -1,4 +1,4 @@
-@mixin breakpoint($val: small) {
+@mixin breakpoint($val: sm) {
     $bp: nth($val, 1);
     $bpMax: 0;
     $dir: if(length($val) > 1, nth($val, 2), up);
