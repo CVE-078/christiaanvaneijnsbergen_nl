@@ -2,11 +2,11 @@ import React, { useEffect } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import About from './components/About'
+import Work from './components/Work'
 import Projects from './components/Projects'
-import Contact from './components/Contact'
 import Footer from './components/Footer'
 
-function App() {
+const App = () => {
   const initSmoothScroll = () => {
     const anchors = document.querySelectorAll('.link.link--anchor');
 
@@ -36,8 +36,8 @@ function App() {
 
       <main className="main">
         <About />
+        <Work />
         <Projects />
-        <Contact />
       </main>
 
       <Footer />

@@ -1,13 +1,17 @@
 import React from 'react'
 import './Navigation.scss'
 
-function Navigation() {
+const Navigation = () => {
     return (
         <nav className="navigation">
             <ul className="navigation__list">
 
                 <li className="navigation__item">
                     <a href="/#about" className="navigation__link link link--anchor">about</a>
+                </li>
+
+                <li className="navigation__item">
+                    <a href="/#work" className="navigation__link link link--anchor">work</a>
                 </li>
 
                 <li className="navigation__item">

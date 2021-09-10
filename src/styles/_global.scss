@@ -1,9 +1,7 @@
-* {
-    &,
-    &::before,
-    &::after {
-        box-sizing: border-box;
-    }
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
 }
 
 body,
@@ -13,13 +11,6 @@ html {
     font-family: "Poppins", sans-serif;
     scroll-behavior: smooth;
     line-height: initial;
-}
-
-:target:before {
-    content: "";
-    display: block;
-    height: 100px;
-    margin: -100px 0 0;
 }
 
 .page {
@@ -49,6 +40,39 @@ html {
     white-space: nowrap;
     width: 1px;
 }
+
+.link {
+    $link: ".link";
+
+    &#{$link} {
+        &--external {
+            color: #00adb5;
+            text-decoration: none;
+            position: relative;
+
+            &::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                bottom: 0;
+                transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                width: 0;
+                height: 2px;
+                background-color: #00adb5;
+            }
+
+            &:hover {
+                &::after {
+                    width: 100%;
+                }
+            }
+        }
+    }
+}
+
+//
+// Scrollbar
+//
 
 ::-webkit-scrollbar {
     width: 10px;

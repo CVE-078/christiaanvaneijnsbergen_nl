@@ -3,7 +3,7 @@ import './About.scss'
 import './Section.scss'
 import me from '../images/me-small.png'
 
-function About() {
+const About = () => {
     return (
         <section className="section section--about">
 

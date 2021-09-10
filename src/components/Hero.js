@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import './Hero.scss'
 
-function Hero() {
+const Hero = () => {
     let titles = ['a 27-year-old', 'an avid gamer', 'a problem solver', 'a father-of-one', 'a tv series binger', 'a web developer'];
 
     const slideTitles = () => {
