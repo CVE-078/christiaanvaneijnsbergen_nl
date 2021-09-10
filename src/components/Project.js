@@ -19,13 +19,13 @@ const Project = ({ project }) => {
                 <div className="project__links">
                     {project.github &&
                         <a href={project.github} rel="noreferrer" target="_blank" className="project__link">
-                            <i className="fas fa-fw fa-external-link-alt project__icon"></i>
+                            <i className="fab fa-fw fa-github project__icon"></i>
                         </a>
                     }
 
                     {project.preview &&
                         <a href={project.preview} rel="noreferrer" target="_blank" className="project__link">
-                            <i className="fab fa-fw fa-github project__icon"></i>
+                            <i className="fas fa-fw fa-external-link-alt project__icon"></i>
                         </a>
                     }
                 </div>
