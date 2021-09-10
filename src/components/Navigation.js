@@ -11,7 +11,7 @@ const Navigation = () => {
                 </li>
 
                 <li className="navigation__item">
-                    <a href="/#work" className="navigation__link link link--anchor">work</a>
+                    <a href="/#jobs" className="navigation__link link link--anchor">jobs</a>
                 </li>
 
                 <li className="navigation__item">

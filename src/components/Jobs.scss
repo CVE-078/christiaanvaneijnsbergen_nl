@@ -1,0 +1,23 @@
+.jobs {
+    $jobs: ".jobs";
+
+    #{$jobs} {
+        &__timeline {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+
+            &::before {
+                content: "";
+                width: 2px;
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                top: 52px;
+                bottom: 52px;
+                background: #222831;
+            }
+        }
+    }
+}

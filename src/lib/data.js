@@ -7,7 +7,7 @@ const projects = [
         github: 'https://github.com/CVE-078/personal-website',
         type: 'Website',
         stack: ['React', 'SCSS', 'BEM'],
-        picture: 'http://placehold.it/500x400'
+        picture: 'https://via.placeholder.com/500x400.png'
     },
     {
         id: 1,
@@ -17,7 +17,7 @@ const projects = [
         github: 'https://github.com/CVE-078/airbnb-clone-react',
         type: 'Clone',
         stack: ['Next.js', 'Tailwind CSS', 'API'],
-        picture: 'http://placehold.it/500x400'
+        picture: 'https://via.placeholder.com/500x400.png'
     },
     {
         id: 2,
@@ -27,28 +27,61 @@ const projects = [
         github: 'https://github.com/CVE-078/f1-leaderboard',
         type: 'Application',
         stack: ['Vue.js', 'Firebase', 'Tailwind CSS', 'SCSS', 'BEM'],
-        picture: 'http://placehold.it/500x400'
-    },
-    {
-        id: 3,
-        name: 'Spense Landing Page',
-        description: 'Nostrud et ad laborum reprehenderit magna exercitation laborum exercitation eu sunt. Incididunt amet est aute labore sint do irure excepteur esse eu id. Excepteur ea enim eu consectetur irure duis consectetur tempor consectetur adipisicing. Tempor irure pariatur excepteur commodo cupidatat proident ea esse. Eiusmod laboris ipsum exercitation velit sunt dolor nulla amet. Culpa aliqua tempor sint proident officia tempor. Voluptate officia sint pariatur nulla fugiat.\r\n',
-        preview: 'https://spense-landing-page.vercel.app/',
-        github: 'https://github.com/CVE-078/spense-landing-page',
-        type: 'Challenge',
-        stack: ['Next.js', 'SCSS', 'BEM'],
-        picture: 'http://placehold.it/500x400'
-    },
-    {
-        id: 4,
-        name: 'Weather App',
-        description: 'Consectetur ullamco qui Lorem ad culpa sit do cupidatat nostrud duis ad et. Exercitation cupidatat consequat deserunt amet commodo sit velit labore amet mollit officia. Esse et quis irure sunt voluptate quis. Exercitation sunt eiusmod aute cillum proident sunt cillum. Labore adipisicing deserunt cillum dolor anim cupidatat in velit quis sunt esse id.\r\n',
-        preview: 'https://spense-landing-page.vercel.app/',
-        github: 'https://github.com/CVE-078/spense-landing-page',
-        type: 'Application',
-        stack: ['Vue.js', 'REST API', 'SCSS', 'BEM'],
-        picture: 'http://placehold.it/500x400'
+        picture: 'https://via.placeholder.com/500x400.png'
     }
 ]
 
-export { projects }
+const jobs = [
+    {
+        id: 0,
+        company: 'Intermix Management B.V.',
+        url: 'https://www.intermix.nl/',
+        title: 'Web Developer',
+        location: 'Sliedrecht, Netherlands',
+        startDate: 'September 2019',
+        endDate: 'Present',
+        description: ''
+    },
+    {
+        id: 1,
+        company: 'Dutch Blue',
+        url: 'https://www.dutchblue.nl/',
+        title: 'Full Stack Developer',
+        location: 'Dordrecht, Netherlands',
+        startDate: 'March 2019',
+        endDate: 'August 2019',
+        description: ''
+    },
+    {
+        id: 2,
+        company: 'B.made',
+        url: 'https://www.bmade.nl/',
+        title: 'Service Developer',
+        location: 'Rotterdam, Netherlands',
+        startDate: 'August 2018',
+        endDate: 'February 2019',
+        description: ''
+    },
+    {
+        id: 3,
+        company: 'Intermix Management B.V.',
+        url: 'https://www.intermix.nl/',
+        title: 'Web Developer',
+        location: 'Sliedrecht, Netherlands',
+        startDate: 'March 2015',
+        endDate: 'July 2018',
+        description: ''
+    },
+    {
+        id: 4,
+        company: 'Intermix Management B.V.',
+        url: 'https://www.intermix.nl/',
+        title: 'Internship',
+        location: 'Sliedrecht, Netherlands',
+        startDate: 'September 2014',
+        endDate: 'February 2015',
+        description: ''
+    }
+]
+
+export { projects, jobs }

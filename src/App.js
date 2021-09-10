@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import About from './components/About'
-import Work from './components/Work'
+import Jobs from './components/Jobs'
 import Projects from './components/Projects'
 import Footer from './components/Footer'
 
@@ -36,7 +36,7 @@ const App = () => {
 
       <main className="main">
         <About />
-        <Work />
+        <Jobs />
         <Projects />
       </main>
 
