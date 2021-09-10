@@ -34,7 +34,7 @@ const projects = [
 const jobs = [
     {
         id: 0,
-        company: 'Intermix Management B.V.',
+        company: 'Intermix',
         url: 'https://www.intermix.nl/',
         title: 'Web Developer',
         location: 'Sliedrecht, Netherlands',
@@ -64,7 +64,7 @@ const jobs = [
     },
     {
         id: 3,
-        company: 'Intermix Management B.V.',
+        company: 'Intermix',
         url: 'https://www.intermix.nl/',
         title: 'Web Developer',
         location: 'Sliedrecht, Netherlands',
@@ -74,7 +74,7 @@ const jobs = [
     },
     {
         id: 4,
-        company: 'Intermix Management B.V.',
+        company: 'Intermix',
         url: 'https://www.intermix.nl/',
         title: 'Internship',
         location: 'Sliedrecht, Netherlands',

@@ -1,15 +1,25 @@
+@import '../styles/main';
+
 .section {
-    padding: 100px 25px;
+    padding: 50px 0;
     position: relative;
     $section: ".section";
+
+    @include breakpoint(lg) {
+        padding: 100px 25px;
+    }
 
     #{$section} {
         &__title {
             display: inline-block;
-            font-size: 30px;
+            font-size: 20px;
             font-weight: 600;
             position: relative;
             margin-bottom: 40px;
+
+            @include breakpoint(lg) {
+                font-size: 30px;
+            }
 
             &::before {
                 content: "";
@@ -25,7 +35,11 @@
 
         &__columns {
             display: flex;
-            flex-direction: row;
+            flex-direction: column-reverse;
+
+            @include breakpoint(lg) {
+                flex-direction: row;
+            }
         }
 
         &__column {
@@ -38,7 +52,12 @@
 
                 &--3\/5 {
                     flex-basis: 60%;
-                    margin-right: 100px;
+                    margin-top: 40px;
+
+                    @include breakpoint(lg) {
+                        margin-top: 0;
+                        margin-right: 100px;
+                    }
                 }
             }
         }
@@ -48,7 +67,15 @@
             width: 100%;
 
             p {
-                font-size: 18px;
+                font-size: 14px;
+
+                @include breakpoint(md) {
+                    font-size: 16px;
+                }
+
+                @include breakpoint(lg) {
+                    font-size: 18px;
+                }
 
                 &:not(:nth-last-of-type(1)) {
                     margin-bottom: 15px;

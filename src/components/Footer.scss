@@ -1,21 +1,35 @@
+@import '../styles/main';
+
 .footer {
     background-color: #eeeeee;
-    padding: 150px 25px;
+    padding: 50px 0;
     position: relative;
     $footer: ".footer";
+
+    @include breakpoint(lg) {
+        padding: 150px 25px;
+    }
 
     #{$footer} {
         &__top {
             display: block;
-            margin-bottom: 60px;
+            margin-bottom: 40px;
+
+            @include breakpoint(lg) {
+                margin-bottom: 60px;
+            }
         }
 
         &__title {
             display: inline-block;
-            font-size: 30px;
+            font-size: 20px;
             font-weight: 600;
             position: relative;
             margin-bottom: 40px;
+
+            @include breakpoint(lg) {
+                font-size: 30px;
+            }
 
             &::before {
                 content: "";
@@ -31,7 +45,17 @@
 
         &__text {
             display: block;
-            font-size: 18px;
+            font-size: 16px;
+
+            @include breakpoint(lg) {
+                font-size: 18px;
+            }
+
+            p {
+                &:not(:nth-last-of-type(1)) {
+                    margin-bottom: 15px;
+                }
+            }
         }
 
         &__socials {
@@ -40,8 +64,12 @@
 
         &__link {
             color: #00adb5;
-            font-size: 30px;
+            font-size: 24px;
             position: relative;
+
+            @include breakpoint(lg) {
+                font-size: 30px;
+            }
 
             &:not(:nth-last-of-type(1)) {
                 margin-right: 10px;

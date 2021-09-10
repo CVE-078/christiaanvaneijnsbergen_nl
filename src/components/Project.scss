@@ -1,21 +1,35 @@
+@import '../styles/main';
+
 .project {
     flex: 0 0 50%;
     display: flex;
     justify-content: center;
-    margin-bottom: 100px;
+    flex-direction: column;
+    margin-bottom: 40px;
     $project: ".project";
 
+    @include breakpoint(lg) {
+        flex-direction: row;
+        margin-bottom: 100px;
+    }
+
     &:nth-of-type(even) {
-        flex-direction: row-reverse;
+        @include breakpoint(lg) {
+            flex-direction: row-reverse;
+        }
 
         #{$project} {
             &__right {
-                transform: translate(50px, 75px);
+                @include breakpoint(lg) {
+                    transform: translate(50px, 75px);
+                }
             }
 
             &__label {
-                left: unset;
-                right: 0;
+                @include breakpoint(lg) {
+                    left: unset;
+                    right: 0;
+                }
             }
         }
     }
@@ -24,24 +38,34 @@
         &__left {
             display: flex;
             flex: 0;
-            flex-basis: 500px;
+
+            @include breakpoint(lg) {
+                flex-basis: 500px;
+            }
         }
 
         &__right {
             display: flex;
             flex-direction: column;
-            flex-basis: 400px;
-            height: 250px;
             background: #eeeeee;
             padding: 25px 40px;
-            transform: translate(-50px, 75px);
+
+            @include breakpoint(lg) {
+                flex-basis: 400px;
+                height: 250px;
+                transform: translate(-50px, 75px);
+            }
         }
 
         &__title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             text-transform: lowercase;
             margin-bottom: 20px;
+
+            @include breakpoint(lg) {
+                font-size: 20px;
+            }
         }
 
         &__imageHolder {
@@ -50,6 +74,8 @@
 
         &__image {
             display: block;
+            max-width: 100%;
+            height: auto;
         }
 
         &__label {
@@ -57,11 +83,15 @@
             position: absolute;
             top: 0;
             left: 0;
-            font-size: 14px;
+            font-size: 12px;
             background-color: #222831;
             color: #fff;
             padding: 8px 25px;
             cursor: default;
+
+            @include breakpoint(lg) {
+                font-size: 14px;
+            }
         }
 
         &__stackList {

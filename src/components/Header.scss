@@ -1,8 +1,14 @@
+@import '../styles/main';
+
 .header {
     display: block;
-    padding: 30px;
+    padding: 20px 0;
     z-index: 1;
     $header: ".header";
+
+    @include breakpoint(lg) {
+        padding: 30px;
+    }
 
     &#{$header} {
         &--fixed {
@@ -14,8 +20,12 @@
             background-color: #ffffff;
             z-index: 10;
 
-            + .hero {
-                margin-top: 100px;
+            +.hero {
+                margin-top: 0;
+
+                @include breakpoint(lg) {
+                    margin-top: 100px;
+                }
             }
         }
     }
@@ -29,10 +39,16 @@
         }
 
         &__logo {
-            height: 60px;
-            width: 60px;
-            flex: 0 0 60px;
+            height: 50px;
+            width: 50px;
+            flex: 0 0 50px;
             position: relative;
+
+            @include breakpoint(lg) {
+                height: 60px;
+                width: 60px;
+                flex-basis: 60px;
+            }
 
             &:hover {
                 #{$header}__box {
@@ -52,10 +68,14 @@
         }
 
         &__text {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             position: relative;
             z-index: -2;
+
+            @include breakpoint(lg) {
+                font-size: 16px;
+            }
         }
 
         &__box {
@@ -70,11 +90,21 @@
         }
 
         &__navigation {
+            display: none;
             flex: 0 0 auto;
+
+            @include breakpoint(lg) {
+                display: block;
+            }
         }
 
         &__hamburger {
-            display: none;
+            display: block;
+            cursor: pointer;
+
+            @include breakpoint(lg) {
+                display: none;
+            }
         }
     }
 }

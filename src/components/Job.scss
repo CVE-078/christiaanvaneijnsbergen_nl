@@ -1,22 +1,35 @@
+@import '../styles/main';
+
 .job {
     background-color: #eeeeee;
     padding: 25px;
     text-align: left;
-    transform: translateX(50%);
     position: relative;
     flex: 1;
-    margin-left: 50px;
+    width: 100%;
     $job: ".job";
 
+    @include breakpoint(lg) {
+        margin-left: 50px;
+        transform: translateX(50%);
+        width: auto;
+    }
+
     &:not(:nth-last-of-type(1)) {
-        margin-bottom: 60px;
+        margin-bottom: 40px;
+
+        @include breakpoint(lg) {
+            margin-bottom: 60px;
+        }
     }
 
     &:nth-of-type(even) {
-        text-align: right;
-        transform: translateX(-50%);
-        margin-left: 0;
-        margin-right: 50px;
+        @include breakpoint(lg) {
+            margin-left: 0;
+            margin-right: 50px;
+            transform: translateX(-50%);
+            text-align: right;
+        }
 
         &::after {
             right: unset;
@@ -33,16 +46,27 @@
         top: 50%;
         transform: translateY(-50%);
         background-color: #222831;
+        display: none;
+
+        @include breakpoint(lg) {
+            display: block;
+        }
+
     }
 
     #{$job} {
         &__title {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             text-transform: lowercase;
+
+            @include breakpoint(lg) {
+                font-size: 20px;
+            }
         }
 
         &__link {
+            display: inline-block;
             color: #00adb5;
             text-decoration: none;
             position: relative;
@@ -67,6 +91,11 @@
 
         &__range {
             text-transform: lowercase;
+            font-size: 14px;
+
+            @include breakpoint(lg) {
+                font-size: 16px;
+            }
         }
     }
 }
