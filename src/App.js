@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import About from './components/About'
@@ -7,6 +7,8 @@ import Projects from './components/Projects'
 import Footer from './components/Footer'
 
 const App = () => {
+  const [open, setOpen] = useState(false);
+
   const initSmoothScroll = () => {
     const anchors = document.querySelectorAll('.link.link--anchor');
 
@@ -31,7 +33,7 @@ const App = () => {
 
   return (
     <>
-      <Header />
+      <Header open={open} setOpen={setOpen} />
       <Hero />
 
       <main className="main">

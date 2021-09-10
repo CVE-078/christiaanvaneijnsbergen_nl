@@ -8,7 +8,7 @@ const About = () => {
         <section className="section section--about">
 
             <div className="container">
-                <span id="about" className="is-visually-hidden" style={{ top: '-100px' }}>&nbsp;</span>
+                <span id="about" className="is-visually-hidden" style={{ top: '-80px' }}>&nbsp;</span>
 
                 <div className="section__wrapper">
 

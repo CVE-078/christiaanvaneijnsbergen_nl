@@ -37,7 +37,7 @@ const Project = ({ project }) => {
                         {project.stack.map((stack, index) => (
 
                             <li key={index} className="project__stackItem">
-                                {stack}
+                                <span className="project__stackText">{stack}</span>
                             </li>
 
                         ))}

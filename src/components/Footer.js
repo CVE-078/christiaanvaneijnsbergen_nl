@@ -6,7 +6,7 @@ const Footer = () => {
     return (
         <footer className="footer">
             <div className="container">
-                <span id="contact" className="is-visually-hidden" style={{ top: '-100px' }}>&nbsp;</span>
+                <span id="contact" className="is-visually-hidden" style={{ top: '-80px' }}>&nbsp;</span>
 
                 <div className="footer__wrapper fade-in">
 
@@ -33,8 +33,8 @@ const Footer = () => {
 
                         <div className="footer__socials">
 
-                            {socials && socials.map((item) => (
-                                <a href={item.url} rel="noreferrer" target="_blank" className="footer__link">
+                            {socials && socials.map((item, index) => (
+                                <a key={index} href={item.url} rel="noreferrer" target="_blank" className="footer__link">
                                     <i className={item.icon}></i>
                                 </a>
                             ))}

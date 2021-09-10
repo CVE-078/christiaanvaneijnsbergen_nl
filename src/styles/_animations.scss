@@ -1,4 +1,5 @@
 .fade-in {
+    -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     perspective: 1000px;
@@ -8,11 +9,15 @@
 @keyframes fadeInUp {
     0% {
         opacity: 0;
-        transform: translateY(50px);
+        -webkit-transform: translateY(30px);
+        -ms-transform: translateY(30px);
+        transform: translateY(30px);
     }
 
     100% {
         opacity: 1;
+        -webkit-transform: translateY(0);
+        -ms-transform: translateY(0);
         transform: translateY(0);
     }
 }

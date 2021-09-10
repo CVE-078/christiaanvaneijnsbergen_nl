@@ -2,7 +2,8 @@ import React from 'react'
 import Navigation from './Navigation'
 import './Header.scss'
 
-const Header = (props) => {
+const Header = ({ open, setOpen }) => {
+
     return (
         <header className="header header--fixed">
             <div className="container">
@@ -16,10 +17,10 @@ const Header = (props) => {
                     </div>
 
                     <div className="header__navigation">
-                        <Navigation />
+                        <Navigation open={open} setOpen={setOpen} />
                     </div>
 
-                    <div className="header__hamburger">
+                    <div className="header__hamburger" onClick={() => setOpen(!open)}>
                         <i className="fas fa-fw fa-2x fa-bars"></i>
                     </div>
                 </div>
@@ -27,6 +28,7 @@ const Header = (props) => {
             </div>
         </header>
     )
+
 }
 
 export default Header

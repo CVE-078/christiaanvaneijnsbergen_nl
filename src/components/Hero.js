@@ -27,7 +27,7 @@ const Hero = () => {
     return (
         <section className="hero hero--fullscreen">
             <div className="container">
-                <span id="top" className="is-visually-hidden" style={{ top: '-100px' }}>&nbsp;</span>
+                <span id="top" className="is-visually-hidden" style={{ top: '-80px' }}>&nbsp;</span>
 
                 <div className="hero__wrapper fade-in">
                     <span className="hero__prefix">Hello, my name is</span>

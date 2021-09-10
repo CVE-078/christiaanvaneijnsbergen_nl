@@ -1,4 +1,4 @@
-@import '../styles/main';
+@import "../styles/essentials";
 
 .job {
     background-color: #eeeeee;
@@ -7,12 +7,20 @@
     position: relative;
     flex: 1;
     width: 100%;
+    -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+    -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
     $job: ".job";
+
+    @include breakpoint(sm) {
+        width: auto;
+    }
 
     @include breakpoint(lg) {
         margin-left: 50px;
+        -webkit-transform: translateX(50%);
+        -ms-transform: translateX(50%);
         transform: translateX(50%);
-        width: auto;
     }
 
     &:not(:nth-last-of-type(1)) {
@@ -27,6 +35,8 @@
         @include breakpoint(lg) {
             margin-left: 0;
             margin-right: 50px;
+            -webkit-transform: translateX(-50%);
+            -ms-transform: translateX(-50%);
             transform: translateX(-50%);
             text-align: right;
         }
@@ -44,21 +54,26 @@
         position: absolute;
         right: 100%;
         top: 50%;
-        transform: translateY(-50%);
+        -webkit-transform: translateX(-50%);
+        -ms-transform: translateX(-50%);
+        transform: translateX(-50%);
         background-color: #222831;
         display: none;
 
         @include breakpoint(lg) {
             display: block;
         }
-
     }
 
     #{$job} {
         &__title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             text-transform: lowercase;
+
+            @include breakpoint(md) {
+                font-size: 16px;
+            }
 
             @include breakpoint(lg) {
                 font-size: 20px;
@@ -79,6 +94,8 @@
                 width: 0;
                 background-color: #00adb5;
                 height: 2px;
+                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
                 transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
             }
 
@@ -91,7 +108,11 @@
 
         &__range {
             text-transform: lowercase;
-            font-size: 14px;
+            font-size: 13px;
+
+            @include breakpoint(sm) {
+                font-size: 14px;
+            }
 
             @include breakpoint(lg) {
                 font-size: 16px;

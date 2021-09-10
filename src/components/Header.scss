@@ -1,10 +1,14 @@
-@import '../styles/main';
+@import "../styles/essentials";
 
 .header {
     display: block;
-    padding: 20px 0;
+    padding: 15px 0;
     z-index: 1;
     $header: ".header";
+
+    @include breakpoint(md) {
+        padding: 20px 0;
+    }
 
     @include breakpoint(lg) {
         padding: 30px;
@@ -14,13 +18,19 @@
         &--fixed {
             position: fixed;
             top: 0;
-            left: 30px;
-            right: 30px;
-            border-top: 30px solid #222831;
+            left: 20px;
+            right: 20px;
+            border-top: 20px solid #222831;
             background-color: #ffffff;
             z-index: 10;
 
-            +.hero {
+            @include breakpoint(md) {
+                left: 30px;
+                right: 30px;
+                border-top: 30px solid #222831;
+            }
+
+            + .hero {
                 margin-top: 0;
 
                 @include breakpoint(lg) {
@@ -52,6 +62,8 @@
 
             &:hover {
                 #{$header}__box {
+                    -webkit-transform: rotate(90deg);
+                    -ms-transform: rotate(90deg);
                     transform: rotate(90deg);
                 }
             }
@@ -90,11 +102,10 @@
         }
 
         &__navigation {
-            display: none;
             flex: 0 0 auto;
 
-            @include breakpoint(lg) {
-                display: block;
+            @include breakpoint(md) {
+                position: relative;
             }
         }
 
@@ -102,7 +113,7 @@
             display: block;
             cursor: pointer;
 
-            @include breakpoint(lg) {
+            @include breakpoint(md) {
                 display: none;
             }
         }

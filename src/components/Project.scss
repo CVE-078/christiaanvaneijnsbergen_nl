@@ -1,32 +1,46 @@
-@import '../styles/main';
+@import "../styles/essentials";
 
 .project {
-    flex: 0 0 50%;
     display: flex;
     justify-content: center;
+    align-items: center;
     flex-direction: column;
     margin-bottom: 40px;
     $project: ".project";
 
-    @include breakpoint(lg) {
+    @include breakpoint(md) {
         flex-direction: row;
         margin-bottom: 100px;
     }
 
+    @include breakpoint(lg) {
+        align-items: flex-start;
+        flex: 0 0 50%;
+        margin-bottom: 150px;
+    }
+
     &:nth-of-type(even) {
-        @include breakpoint(lg) {
+        @include breakpoint(md) {
             flex-direction: row-reverse;
         }
 
         #{$project} {
             &__right {
+                @include breakpoint(md) {
+                    -webkit-transform: translateX(50px);
+                    -ms-transform: translateX(50px);
+                    transform: translateX(50px);
+                }
+
                 @include breakpoint(lg) {
+                    -webkit-transform: translate(50px, 75px);
+                    -ms-transform: translate(50px, 75px);
                     transform: translate(50px, 75px);
                 }
             }
 
             &__label {
-                @include breakpoint(lg) {
+                @include breakpoint(md) {
                     left: unset;
                     right: 0;
                 }
@@ -39,7 +53,7 @@
             display: flex;
             flex: 0;
 
-            @include breakpoint(lg) {
+            @include breakpoint(md) {
                 flex-basis: 500px;
             }
         }
@@ -48,23 +62,43 @@
             display: flex;
             flex-direction: column;
             background: #eeeeee;
-            padding: 25px 40px;
+            padding: 10px 25px;
+            max-width: 500px;
+            width: 100%;
+
+            @include breakpoint(md) {
+                padding: 15px 25px;
+                flex-basis: 400px;
+                height: 200px;
+                -webkit-transform: translateX(-50px);
+                -ms-transform: translateX(-50px);
+                transform: translateX(-50px);
+                max-width: unset;
+            }
 
             @include breakpoint(lg) {
+                padding: 25px 40px;
                 flex-basis: 400px;
                 height: 250px;
+                -webkit-transform: translate(-50px, 75px);
+                -ms-transform: translate(-50px, 75px);
                 transform: translate(-50px, 75px);
             }
         }
 
         &__title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             text-transform: lowercase;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+
+            @include breakpoint(md) {
+                font-size: 18px;
+            }
 
             @include breakpoint(lg) {
                 font-size: 20px;
+                margin-bottom: 25px;
             }
         }
 
@@ -108,10 +142,20 @@
             padding: 3px 10px;
             margin-right: 10px;
             margin-bottom: 10px;
-            font-size: 14px;
+            font-size: 11px;
             position: relative;
+            -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+            -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
             transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
             cursor: default;
+
+            @include breakpoint(sm) {
+                font-size: 12px;
+            }
+
+            @include breakpoint(lg) {
+                font-size: 14px;
+            }
 
             &:nth-last-of-type(1) {
                 margin-right: 0;
@@ -125,8 +169,10 @@
                 top: 0;
                 bottom: 0;
                 width: 0;
+                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
                 transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                z-index: -1;
+                z-index: 1;
             }
 
             &:hover {
@@ -138,15 +184,32 @@
             }
         }
 
+        &__stackText {
+            position: relative;
+            z-index: 2;
+        }
+
         &__links {
             display: inline-flex;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
+
+            @include breakpoint(lg) {
+                margin-bottom: 25px;
+            }
         }
 
         &__link {
             color: #00adb5;
-            font-size: 24px;
+            font-size: 18px;
             position: relative;
+
+            @include breakpoint(md) {
+                font-size: 20px;
+            }
+
+            @include breakpoint(lg) {
+                font-size: 24px;
+            }
 
             &:not(:nth-last-of-type(1)) {
                 margin-right: 10px;
@@ -166,6 +229,8 @@
                 width: 0;
                 background-color: #00adb5;
                 height: 2px;
+                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
                 transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
             }
         }

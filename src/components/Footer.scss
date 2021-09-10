@@ -1,4 +1,4 @@
-@import '../styles/main';
+@import "../styles/essentials";
 
 .footer {
     background-color: #eeeeee;
@@ -89,6 +89,8 @@
                 width: 0;
                 background-color: #00adb5;
                 height: 2px;
+                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
                 transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
             }
         }

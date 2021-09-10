@@ -14,18 +14,29 @@ html {
 }
 
 .page {
-    margin: 30px;
+    margin: 20px;
     background-color: #fff;
     $page: ".page";
+
+    @include breakpoint(md) {
+        margin: 30px;
+    }
 }
 
 .container {
-    width: 100%;
-    max-width: 80%;
+    width: calc(100% - 50px);
     margin: 0 auto;
+    -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+    -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
 
-    @include breakpoint(lg) {
-        max-width: rem-calc(1440);
+    @include breakpoint(md) {
+        max-width: 90%;
+        width: 100%;
+    }
+
+    @include breakpoint(xl) {
+        max-width: rem-calc(1240);
     }
 }
 
@@ -60,6 +71,8 @@ html {
                 position: absolute;
                 left: 0;
                 bottom: 0;
+                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
                 transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
                 width: 0;
                 height: 2px;

@@ -1,29 +1,90 @@
-@import '../styles/main';
+@import "../styles/essentials";
 
 .navigation {
     $navigation: ".navigation";
 
+    @include breakpoint(md down) {
+        position: fixed;
+        left: -45px;
+        right: -45px;
+        top: -35px;
+        height: 100vh;
+        background-color: rgba(34, 40, 49, 0.995);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        -webkit-transform: translateX(100%);
+        -ms-transform: translateX(100%);
+        transform: translateX(100%);
+        -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+        -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+        transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+        overflow: hidden;
+        opacity: 0;
+    }
+
+    &#{$navigation} {
+        &--show {
+            @include breakpoint(md down) {
+                opacity: 1;
+                -webkit-transform: translateX(0);
+                -ms-transform: translateX(0);
+                transform: translateX(0);
+            }
+        }
+    }
+
     #{$navigation} {
+        &__close {
+            @include breakpoint(md down) {
+                position: absolute;
+                top: 40px;
+                right: 40px;
+                z-index: 1;
+                color: #fff;
+                cursor: pointer;
+            }
+
+            @include breakpoint(md) {
+                display: none;
+            }
+        }
+
         &__list {
             display: flex;
-            flex-direction: row;
-            align-items: center;
+            flex-direction: column;
+
+            @include breakpoint(md) {
+                flex-direction: row;
+                align-items: center;
+            }
         }
 
         &__item {
             flex: 1 1 auto;
-            text-align: center;
+
+            @include breakpoint(md) {
+                text-align: center;
+            }
+
+            &:not(:nth-last-of-type(1)) {
+                margin-bottom: 30px;
+
+                @include breakpoint(md) {
+                    margin-bottom: 0;
+                }
+            }
         }
 
         &__link {
-            display: block;
-            padding: 5px 0;
-            margin: 0 25px;
-            color: #222831;
+            color: #fff;
             text-decoration: none;
+            font-size: 20px;
             position: relative;
 
             &:hover {
+                color: #00adb5;
+
                 &::before {
                     width: 100%;
                 }
@@ -32,48 +93,102 @@
             &::before {
                 content: "";
                 height: 2px;
-                background-color: #222831;
+                background-color: #00adb5;
                 width: 0;
                 position: absolute;
                 bottom: 0;
                 left: 0;
+                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
                 transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+            }
+
+            @include breakpoint(md) {
+                display: block;
+                padding: 5px 0;
+                margin: 0 25px;
+                font-size: 16px;
+                color: #222831;
+
+                &:hover {
+                    color: #222831;
+                }
+
+                &::before {
+                    background-color: #222831;
+                }
             }
         }
 
         &__button {
-            display: block;
-            padding: 10px 25px;
-            margin-left: 25px;
             color: #fff;
-            border: 1px solid #222831;
-            border-radius: 100px;
             text-decoration: none;
+            font-size: 20px;
             position: relative;
-            overflow: hidden;
 
-            &:hover {
-                color: #222831;
+            @include breakpoint(md down) {
+                &:hover {
+                    color: #00adb5;
 
-                &::before {
-                    opacity: 0;
-                    transform: scale(1.02);
+                    &::before {
+                        width: 100%;
+                    }
                 }
             }
 
-            &::before {
-                content: "";
-                z-index: -1;
-                position: absolute;
-                left: 0;
-                top: 0;
-                bottom: 0;
-                right: 0;
+            @include breakpoint(md down) {
+                &::before {
+                    content: "";
+                    height: 2px;
+                    background-color: #00adb5;
+                    width: 0;
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                    -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                }
+            }
+
+            @include breakpoint(md) {
+                display: block;
+                padding: 10px 25px;
+                margin-left: 25px;
+                border: 1px solid #222831;
                 border-radius: 100px;
-                background-color: #222831;
-                transform: scale(1.02);
-                opacity: 1;
-                transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                overflow: hidden;
+                font-size: 16px;
+
+                &:hover {
+                    color: #222831;
+
+                    &::before {
+                        opacity: 0;
+                        -webkit-transform: scale(1.02);
+                        -ms-transform: scale(1.02);
+                        transform: scale(1.02);
+                    }
+                }
+
+                &::before {
+                    content: "";
+                    z-index: -1;
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    right: 0;
+                    border-radius: 100px;
+                    background-color: #222831;
+                    -webkit-transform: scale(1.02);
+                    -ms-transform: scale(1.02);
+                    transform: scale(1.02);
+                    opacity: 1;
+                    -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                    -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                }
             }
         }
     }
