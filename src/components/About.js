@@ -1,7 +1,7 @@
 import React from 'react'
-import './About.scss'
+import { about } from '../lib/data'
 import './Section.scss'
-import me from '../images/me-small.png'
+import me from '../images/me.png'
 
 const About = () => {
     return (
@@ -17,22 +17,7 @@ const About = () => {
                     <div className="section__columns">
 
                         <div className="section__column section__column--3/5">
-                            <div className="section__richText">
-                                <p>Hello, nice to meet you!</p>
-
-                                <p>I am Christiaan van Eijnsbergen, a 27-year-old, Web Developer with a passion for Front-End development.</p>
-
-                                <p>
-                                    My interest for programming began after being on my dad's computer (perhaps too often..) back in the day - can't lie, mainly to play games.
-                                    Choosing to study computer science came quite natural due to the amount of time spent on the computer, only to realise in high school that I was actually thoroughly enjoying it.
-                                </p>
-
-                                <p>My goals are to bring ideas and designs to life and build websites and applications the users will have a great experience using.</p>
-
-                                <p>
-                                    Currently working as a Full-Stack Web Developer at <a href="https://www.intermix.nl/" target="_blank" rel="noopener noreferrer" className="link link--external">Intermix</a>, developing and maintaining their custom-built Content Management System and also creating awesome new websites for customers.
-                                </p>
-                            </div>
+                            <div className="section__richText" dangerouslySetInnerHTML={{ __html: about }}></div>
                         </div>
 
                         <div className="section__column section__column--2/5">

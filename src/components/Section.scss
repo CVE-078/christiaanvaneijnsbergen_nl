@@ -1,33 +1,33 @@
 @import "../styles/essentials";
 
 .section {
-    padding: 50px 0;
+    padding: rem-calc(50) 0;
     position: relative;
     $section: ".section";
 
     @include breakpoint(lg) {
-        padding: 100px 25px;
+        padding: rem-calc(100) rem-calc(25);
     }
 
     #{$section} {
         &__title {
             display: inline-block;
-            font-size: 20px;
-            font-weight: 600;
+            font-size: rem-calc(20);
+            font-weight: bold;
             position: relative;
-            margin-bottom: 40px;
+            margin-bottom: rem-calc(40);
 
             @include breakpoint(sm) {
-                font-size: 26px;
+                font-size: rem-calc(26);
             }
 
             @include breakpoint(lg) {
-                font-size: 30px;
+                font-size: rem-calc(30);
             }
 
             &::before {
                 content: "";
-                background-color: #00adb5;
+                background-color: map-get($colors, "secondary");
                 height: 3px;
                 position: absolute;
                 top: -10px;
@@ -57,16 +57,15 @@
 
                 &--3\/5 {
                     flex-basis: 60%;
-                    margin-top: 40px;
+                    margin-top: rem-calc(40);
 
                     @include breakpoint(md) {
                         margin-top: 0;
-                        margin-right: 50px;
+                        margin-right: rem-calc(50);
                     }
 
                     @include breakpoint(lg) {
-                        margin-top: 0;
-                        margin-right: 100px;
+                        margin-right: rem-calc(100);
                     }
                 }
             }
@@ -77,18 +76,18 @@
             width: 100%;
 
             p {
-                font-size: 14px;
+                font-size: rem-calc(14);
 
                 @include breakpoint(sm) {
-                    font-size: 16px;
+                    font-size: rem-calc(16);
                 }
 
-                @include breakpoint(lg) {
-                    font-size: 18px;
+                @include breakpoint(xl) {
+                    font-size: rem-calc(18);
                 }
 
                 &:not(:nth-last-of-type(1)) {
-                    margin-bottom: 15px;
+                    margin-bottom: rem-calc(15);
                 }
             }
         }
@@ -96,7 +95,7 @@
         &__image {
             display: block;
             max-width: 100%;
-            max-height: 250px;
+            max-height: rem-calc(250);
             object-fit: contain;
 
             @include breakpoint(md) {

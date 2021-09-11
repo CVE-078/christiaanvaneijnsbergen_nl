@@ -16,9 +16,9 @@
         -webkit-transform: translateX(100%);
         -ms-transform: translateX(100%);
         transform: translateX(100%);
-        -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-        -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-        transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+        -webkit-transition: map-get($transitions, "cubic-bezier");
+        -o-transition: map-get($transitions, "cubic-bezier");
+        transition: map-get($transitions, "cubic-bezier");
         overflow: hidden;
         opacity: 0;
     }
@@ -41,7 +41,7 @@
                 top: 40px;
                 right: 40px;
                 z-index: 1;
-                color: #fff;
+                color: map-get($colors, "white");
                 cursor: pointer;
             }
 
@@ -68,7 +68,7 @@
             }
 
             &:not(:nth-last-of-type(1)) {
-                margin-bottom: 30px;
+                margin-bottom: rem-calc(30);
 
                 @include breakpoint(md) {
                     margin-bottom: 0;
@@ -77,13 +77,13 @@
         }
 
         &__link {
-            color: #fff;
+            color: map-get($colors, "white");
             text-decoration: none;
-            font-size: 20px;
+            font-size: rem-calc(20);
             position: relative;
 
             &:hover {
-                color: #00adb5;
+                color: map-get($colors, "secondary");
 
                 &::before {
                     width: 100%;
@@ -93,42 +93,46 @@
             &::before {
                 content: "";
                 height: 2px;
-                background-color: #00adb5;
+                background-color: map-get($colors, "secondary");
                 width: 0;
                 position: absolute;
                 bottom: 0;
                 left: 0;
-                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -webkit-transition: map-get($transitions, "cubic-bezier");
+                -o-transition: map-get($transitions, "cubic-bezier");
+                transition: map-get($transitions, "cubic-bezier");
             }
 
             @include breakpoint(md) {
                 display: block;
-                padding: 5px 0;
-                margin: 0 25px;
-                font-size: 16px;
-                color: #222831;
+                padding: rem-calc(5) 0;
+                margin: 0 rem-calc(25);
+                font-size: rem-calc(14);
+                color: map-get($colors, "primary");
 
                 &:hover {
-                    color: #222831;
+                    color: map-get($colors, "primary");
                 }
 
                 &::before {
-                    background-color: #222831;
+                    background-color: map-get($colors, "primary");
                 }
+            }
+
+            @include breakpoint(lg) {
+                font-size: rem-calc(16);
             }
         }
 
         &__button {
-            color: #fff;
+            color: map-get($colors, "white");
             text-decoration: none;
-            font-size: 20px;
+            font-size: rem-calc(20);
             position: relative;
 
             @include breakpoint(md down) {
                 &:hover {
-                    color: #00adb5;
+                    color: map-get($colors, "secondary");
 
                     &::before {
                         width: 100%;
@@ -140,28 +144,28 @@
                 &::before {
                     content: "";
                     height: 2px;
-                    background-color: #00adb5;
+                    background-color: map-get($colors, "secondary");
                     width: 0;
                     position: absolute;
                     bottom: 0;
                     left: 0;
-                    -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                    -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                    -webkit-transition: map-get($transitions, "cubic-bezier");
+                    -o-transition: map-get($transitions, "cubic-bezier");
+                    transition: map-get($transitions, "cubic-bezier");
                 }
             }
 
             @include breakpoint(md) {
                 display: block;
-                padding: 10px 25px;
-                margin-left: 25px;
-                border: 1px solid #222831;
+                padding: rem-calc(10) rem-calc(25);
+                margin-left: rem-calc(25);
+                border: 1px solid map-get($colors, "primary");
                 border-radius: 100px;
                 overflow: hidden;
-                font-size: 16px;
+                font-size: rem-calc(14);
 
                 &:hover {
-                    color: #222831;
+                    color: map-get($colors, "primary");
 
                     &::before {
                         opacity: 0;
@@ -180,15 +184,19 @@
                     bottom: 0;
                     right: 0;
                     border-radius: 100px;
-                    background-color: #222831;
+                    background-color: map-get($colors, "primary");
                     -webkit-transform: scale(1.02);
                     -ms-transform: scale(1.02);
                     transform: scale(1.02);
                     opacity: 1;
-                    -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                    -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                    -webkit-transition: map-get($transitions, "cubic-bezier");
+                    -o-transition: map-get($transitions, "cubic-bezier");
+                    transition: map-get($transitions, "cubic-bezier");
                 }
+            }
+
+            @include breakpoint(lg) {
+                font-size: rem-calc(16);
             }
         }
     }

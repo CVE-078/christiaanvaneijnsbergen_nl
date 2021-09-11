@@ -6,37 +6,33 @@
 
 body,
 html {
-    color: #222831;
-    background-color: #222831;
+    color: map-get($colors, "primary");
+    background-color: map-get($colors, "primary");
     font-family: "Poppins", sans-serif;
     scroll-behavior: smooth;
     line-height: initial;
 }
 
 .page {
-    margin: 20px;
-    background-color: #fff;
+    margin: rem-calc(20);
+    background-color: map-get($colors, "white");
     $page: ".page";
 
     @include breakpoint(md) {
-        margin: 30px;
+        margin: rem-calc(30);
     }
 }
 
 .container {
     width: calc(100% - 50px);
     margin: 0 auto;
-    -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-    -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-
-    @include breakpoint(md) {
-        max-width: 90%;
-        width: 100%;
-    }
+    -webkit-transition: map-get($transitions, 'cubic-bezier');
+    -o-transition: map-get($transitions, 'cubic-bezier');
+    transition: map-get($transitions, 'cubic-bezier');
 
     @include breakpoint(xl) {
         max-width: rem-calc(1240);
+        width: 100%;
     }
 }
 
@@ -62,7 +58,7 @@ html {
 
     &#{$link} {
         &--external {
-            color: #00adb5;
+            color: map-get($colors, "secondary");
             text-decoration: none;
             position: relative;
 
@@ -71,12 +67,12 @@ html {
                 position: absolute;
                 left: 0;
                 bottom: 0;
-                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -webkit-transition: map-get($transitions, 'cubic-bezier');
+                -o-transition: map-get($transitions, 'cubic-bezier');
+                transition: map-get($transitions, 'cubic-bezier');
                 width: 0;
                 height: 2px;
-                background-color: #00adb5;
+                background-color: map-get($colors, "secondary");
             }
 
             &:hover {
@@ -93,8 +89,8 @@ html {
 //
 
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: rem-calc(10);
+    height: rem-calc(10);
 }
 
 ::-webkit-scrollbar-thumb {

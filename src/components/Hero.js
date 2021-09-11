@@ -13,7 +13,7 @@ const Hero = () => {
             setTimeout(() => {
                 sliderText.innerHTML = titles[i];
                 sliderText.classList.remove('hero__sliderText--hide');
-            }, 1500);
+            }, 750);
 
             i = (i + 1) % titles.length
         }, 3000);
@@ -22,14 +22,14 @@ const Hero = () => {
 
     useEffect(() => {
         slideTitles();
-    });
+    }, []);
 
     return (
-        <section className="hero hero--fullscreen">
+        <section className="hero hero--fullscreen fade-in">
             <div className="container">
                 <span id="top" className="is-visually-hidden" style={{ top: '-80px' }}>&nbsp;</span>
 
-                <div className="hero__wrapper fade-in">
+                <div className="hero__wrapper">
                     <span className="hero__prefix">Hello, my name is</span>
 
                     <h1 className="hero__title">Christiaan van Eijnsbergen</h1>

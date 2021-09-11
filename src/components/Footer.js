@@ -16,7 +16,7 @@ const Footer = () => {
                         <div className="footer__text">
                             <p>
                                 fancy a collaboration?
-                                have a question you really want to ask?
+                                have a question you really need to ask?
                                 or perhaps just want to say hi?
                             </p>
 

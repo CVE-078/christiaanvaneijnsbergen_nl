@@ -1,6 +1,9 @@
 $colors: (
     "black": #000,
     "white": #fff,
+    "primary": #222831,
+    "secondary": #00adb5,
+    "grey": #eeeeee,
 );
 
 $breakpoints: (
@@ -10,3 +13,7 @@ $breakpoints: (
     "lg": 1024px,
     "xl": 1440px,
 );
+
+$transitions: (
+    'cubic-bezier': all .4s cubic-bezier(0.2, 0, 0, 1)
+)

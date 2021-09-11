@@ -8,49 +8,53 @@
     height: calc(100vh - 60px);
     width: 100%;
     position: relative;
-    -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-    -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+    -webkit-transition: map-get($transitions, "cubic-bezier");
+    -o-transition: map-get($transitions, "cubic-bezier");
+    transition: map-get($transitions, "cubic-bezier");
     $hero: ".hero";
 
-    @include breakpoint(md) {
-        height: calc(100vh - 30px);
+    @include breakpoint(lg) {
+        height: calc(100vh - 150px);
     }
 
-    @include breakpoint(lg) {
-        height: calc(100vh - 100px);
+    @include breakpoint(xl) {
+        height: calc(100vh - 60px);
     }
 
     #{$hero} {
         &__prefix {
-            font-size: 16px;
-            -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+            font-size: rem-calc(16);
+            -webkit-transition: map-get($transitions, "cubic-bezier");
+            -o-transition: map-get($transitions, "cubic-bezier");
+            transition: map-get($transitions, "cubic-bezier");
 
             @include breakpoint(md) {
-                font-size: 20px;
+                font-size: rem-calc(20);
             }
 
             @include breakpoint(lg) {
-                font-size: 24px;
+                font-size: rem-calc(24);
             }
         }
 
         &__title {
             font-weight: bold;
-            font-size: 28px;
+            font-size: rem-calc(28);
             line-height: initial;
-            -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+            -webkit-transition: map-get($transitions, "cubic-bezier");
+            -o-transition: map-get($transitions, "cubic-bezier");
+            transition: map-get($transitions, "cubic-bezier");
 
             @include breakpoint(md) {
-                font-size: 50px;
+                font-size: rem-calc(40);
             }
 
             @include breakpoint(lg) {
-                font-size: 80px;
+                font-size: rem-calc(60);
+            }
+
+            @include breakpoint(xl) {
+                font-size: rem-calc(80);
             }
         }
 
@@ -58,63 +62,62 @@
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            font-size: 16px;
-            -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+            font-size: rem-calc(16);
+            -webkit-transition: map-get($transitions, "cubic-bezier");
+            -o-transition: map-get($transitions, "cubic-bezier");
+            transition: map-get($transitions, "cubic-bezier");
 
             @include breakpoint(md) {
-                font-size: 20px;
+                font-size: rem-calc(20);
             }
 
             @include breakpoint(lg) {
                 flex-direction: row;
                 align-items: center;
-                font-size: 24px;
+                font-size: rem-calc(24);
             }
         }
 
         &__slider {
             display: inline-flex;
-            border: 2px solid #222831;
-            padding: 0 1px;
-            margin: 5px 0;
-            color: #fff;
-            background-color: #222831;
-            -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+            border: 2px solid map-get($colors, "primary");
+            padding: 0 rem-calc(1);
+            margin: rem-calc(5) 0;
+            color: map-get($colors, "white");
+            background-color: map-get($colors, "primary");
+            -webkit-transition: map-get($transitions, "cubic-bezier");
+            -o-transition: map-get($transitions, "cubic-bezier");
+            transition: map-get($transitions, "cubic-bezier");
 
             @include breakpoint(lg) {
-                margin: 0 10px;
+                margin: 0 rem-calc(10);
             }
         }
 
         &__sliderText {
-            transition: all 1s cubic-bezier(0.2, 0, 0, 1);
             opacity: 1;
-            padding: 5px 10px;
-            font-size: 14px;
+            padding: rem-calc(5) rem-calc(10);
+            font-size: rem-calc(14);
             text-transform: lowercase;
             overflow: hidden;
             white-space: nowrap;
-            -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+            -webkit-transition: map-get($transitions, "cubic-bezier");
+            -o-transition: map-get($transitions, "cubic-bezier");
+            transition: map-get($transitions, "cubic-bezier");
 
             @include breakpoint(md) {
-                font-size: 16px;
+                font-size: rem-calc(16);
             }
 
             @include breakpoint(lg) {
-                font-size: 20px;
+                font-size: rem-calc(20);
             }
 
             &#{$hero}__sliderText {
                 &--hide {
                     opacity: 0;
                     width: 0;
-                    padding: 5px 0;
+                    padding: rem-calc(5) 0;
                 }
             }
         }
@@ -122,13 +125,13 @@
         &__learnMore {
             position: absolute;
             left: 50%;
-            bottom: 100px;
+            bottom: rem-calc(100);
             -webkit-transform: translateX(-50%);
             -ms-transform: translateX(-50%);
             transform: translateX(-50%);
 
-            @include breakpoint(md) {
-                bottom: 50px;
+            @include breakpoint(lg) {
+                bottom: rem-calc(50);
             }
         }
 
@@ -137,22 +140,22 @@
             flex-direction: row;
             align-items: center;
             text-decoration: none;
-            color: #222831;
-            border: 1px solid #222831;
+            color: map-get($colors, "primary");
+            border: 1px solid map-get($colors, "primary");
             border-radius: 100px;
-            padding: 10px 25px;
+            padding: rem-calc(10) rem-calc(25);
             position: relative;
             white-space: nowrap;
-            -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+            -webkit-transition: map-get($transitions, "cubic-bezier");
+            -o-transition: map-get($transitions, "cubic-bezier");
+            transition: map-get($transitions, "cubic-bezier");
 
             @include breakpoint(lg) {
-                padding: 15px 25px;
+                padding: rem-calc(15) rem-calc(25);
             }
 
             &:hover {
-                color: #fff;
+                color: map-get($colors, "white");
 
                 &::before {
                     opacity: 1;
@@ -171,32 +174,32 @@
                 bottom: 0;
                 right: 0;
                 border-radius: 100px;
-                background-color: #222831;
+                background-color: map-get($colors, "primary");
                 -webkit-transform: scale(0.8);
                 -ms-transform: scale(0.8);
                 transform: scale(0.8);
                 opacity: 0;
-                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -webkit-transition: map-get($transitions, "cubic-bezier");
+                -o-transition: map-get($transitions, "cubic-bezier");
+                transition: map-get($transitions, "cubic-bezier");
             }
         }
 
         &__buttonText {
-            font-size: 14px;
+            font-size: rem-calc(14);
             z-index: -1;
 
             @include breakpoint(lg) {
-                font-size: 18px;
+                font-size: rem-calc(18);
             }
         }
 
         &__buttonIcon {
-            font-size: 20px;
-            margin-left: 10px;
+            font-size: rem-calc(20);
+            margin-left: rem-calc(10);
 
             @include breakpoint(lg) {
-                font-size: 24px;
+                font-size: rem-calc(24);
             }
         }
     }

@@ -1,39 +1,39 @@
 @import "../styles/essentials";
 
 .footer {
-    background-color: #eeeeee;
-    padding: 50px 0;
+    background-color: map-get($colors, "grey");
+    padding: rem-calc(50) 0;
     position: relative;
     $footer: ".footer";
 
     @include breakpoint(lg) {
-        padding: 150px 25px;
+        padding: rem-calc(150) rem-calc(25);
     }
 
     #{$footer} {
         &__top {
             display: block;
-            margin-bottom: 40px;
+            margin-bottom: rem-calc(40);
 
             @include breakpoint(lg) {
-                margin-bottom: 60px;
+                margin-bottom: rem-calc(60);
             }
         }
 
         &__title {
             display: inline-block;
-            font-size: 20px;
-            font-weight: 600;
+            font-size: rem-calc(20);
+            font-weight: bold;
             position: relative;
-            margin-bottom: 40px;
+            margin-bottom: rem-calc(40);
 
             @include breakpoint(lg) {
-                font-size: 30px;
+                font-size: rem-calc(30);
             }
 
             &::before {
                 content: "";
-                background-color: #00adb5;
+                background-color: map-get($colors, "secondary");
                 height: 3px;
                 position: absolute;
                 top: -10px;
@@ -45,15 +45,15 @@
 
         &__text {
             display: block;
-            font-size: 16px;
+            font-size: rem-calc(16);
 
             @include breakpoint(lg) {
-                font-size: 18px;
+                font-size: rem-calc(18);
             }
 
             p {
                 &:not(:nth-last-of-type(1)) {
-                    margin-bottom: 15px;
+                    margin-bottom: rem-calc(15);
                 }
             }
         }
@@ -63,16 +63,16 @@
         }
 
         &__link {
-            color: #00adb5;
-            font-size: 24px;
+            color: map-get($colors, "secondary");
+            font-size: rem-calc(24);
             position: relative;
 
             @include breakpoint(lg) {
-                font-size: 30px;
+                font-size: rem-calc(30);
             }
 
             &:not(:nth-last-of-type(1)) {
-                margin-right: 10px;
+                margin-right: rem-calc(13);
             }
 
             &:hover {
@@ -87,11 +87,11 @@
                 bottom: -2px;
                 left: 0;
                 width: 0;
-                background-color: #00adb5;
+                background-color: map-get($colors, "secondary");
                 height: 2px;
-                -webkit-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                -o-transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-                transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+                -webkit-transition: map-get($transitions, 'cubic-bezier');
+                -o-transition: map-get($transitions, 'cubic-bezier');
+                transition: map-get($transitions, 'cubic-bezier');
             }
         }
     }
