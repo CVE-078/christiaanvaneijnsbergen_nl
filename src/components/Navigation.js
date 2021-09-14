@@ -15,7 +15,14 @@ const Navigation = ({ open, setOpen }) => {
 
                     {menu && menu.map((item, index) => (
                         <li key={index} className="navigation__item" onClick={() => setOpen(!open)}>
-                            <a href={item.link} className={'navigation__' + item.type + ' link link--anchor'}>{item.name}</a>
+                            <a
+                                href={item.link}
+                                className={'navigation__' + item.type + ' link link--anchor'}
+                                alt={item.name}
+                                title={item.name}
+                            >
+                                {item.name}
+                            </a>
                         </li>
                     ))}
 

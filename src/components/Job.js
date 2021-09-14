@@ -5,8 +5,19 @@ const Job = ({ job }) => {
     return (
         <div className="job">
             <h3 className="job__title">
+                
                 {job.title} @&nbsp;
-                <a href={job.url} className="job__link" rel="noreferrer" target="_blank">{job.company}</a>
+                <a
+                    href={job.url}
+                    className="job__link"
+                    rel="noreferrer"
+                    target="_blank"
+                    title={job.company}
+                    alt={job.company}
+                >
+                    {job.company}
+                </a>
+                
             </h3>
 
             <span className="job__range">{job.startDate} - {job.endDate}</span>

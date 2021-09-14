@@ -17,9 +17,6 @@ const App = () => {
         const elementId = e.target.hash;
         const element = document.querySelector(elementId);
 
-        console.log(elementId);
-        console.log(element);
-
         e.preventDefault();
 
         element.scrollIntoView({

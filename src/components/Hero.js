@@ -45,7 +45,7 @@ const Hero = () => {
 
                 <div className="hero__learnMore">
 
-                    <a href="/#about" className="hero__button link link--anchor">
+                    <a href="/#about" className="hero__button link link--anchor" title="Find out more" alt="Find out more">
                         <span className="hero__buttonText">curious? find out more</span>
                         <i className="fas fa-fw fa-arrow-down hero__buttonIcon"></i>
                     </a>

@@ -7,7 +7,7 @@ const projects = [
         github: 'https://github.com/CVE-078/personal-website',
         type: 'Website',
         stack: ['React', 'SCSS', 'BEM'],
-        picture: '/assets/images/projects/v7RfA1q.png'
+        picture: '/assets/v7RfA1q.webp'
     },
     {
         id: 1,
@@ -17,7 +17,7 @@ const projects = [
         github: 'https://github.com/CVE-078/airbnb-clone-react',
         type: 'Clone',
         stack: ['Next.js', 'Tailwind CSS', 'API'],
-        picture: '/assets/images/projects/Wg58djZ.jpg'
+        picture: '/assets/Wg58djZ.webp'
     },
     {
         id: 2,
@@ -27,7 +27,7 @@ const projects = [
         github: 'https://github.com/CVE-078/f1-leaderboard',
         type: 'Application',
         stack: ['Vue.js', 'Firebase', 'Tailwind CSS', 'SCSS', 'BEM'],
-        picture: '/assets/images/projects/hDC6DoO.jpg'
+        picture: '/assets/hDC6DoO.webp'
     }
 ]
 
@@ -141,7 +141,7 @@ const about = `
     <p>My goals are to bring ideas and designs to life and create websites and applications users will have a great experience using.</p>
 
     <p>
-        I am currently employed at <a href="https://www.intermix.nl/" target="_blank" rel="noopener noreferrer" class="link link--external">Intermix</a> as a Full-Stack Web Developer, developing and maintaining their custom-built Content Management System and also creating awesome new websites for customers.
+        I am currently employed at <a href="https://www.intermix.nl/" target="_blank" rel="noopener noreferrer" class="link link--external" alt="Intermix" title="Intermix">Intermix</a> as a Full-Stack Web Developer, developing and maintaining their custom-built Content Management System and also creating awesome new websites for customers.
     </p>
 `
 

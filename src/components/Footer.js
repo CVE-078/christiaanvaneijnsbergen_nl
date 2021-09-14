@@ -22,9 +22,26 @@ const Footer = () => {
 
                             <p>
                                 feel free to shoot me a message on&nbsp;
-                                <a href="https://www.linkedin.com/in/christiaan-van-eijnsbergen/" rel="noreferrer" target="_blank" className="link link--external">LinkedIn</a>
+                                <a
+                                    href="https://www.linkedin.com/in/christiaan-van-eijnsbergen/"
+                                    rel="noreferrer"
+                                    target="_blank"
+                                    className="link link--external"
+                                    title="Connect on LinkedIn"
+                                    alt="Connect on LinkedIn"
+                                >
+                                    LinkedIn
+                                </a>
                                 &nbsp;or by sending me a&nbsp;
-                                <a href="mailto:christiaanvaneijnsbergen@gmail.com" rel="noreferrer" className="link link--external">mail</a>.
+                                <a
+                                    href="mailto:christiaanvaneijnsbergen@gmail.com"
+                                    rel="noreferrer"
+                                    className="link link--external"
+                                    title="Send me a mail"
+                                    alt="Send me a mail"
+                                >
+                                    mail
+                                </a>.
                             </p>
                         </div>
                     </div>
@@ -34,7 +51,14 @@ const Footer = () => {
                         <div className="footer__socials">
 
                             {socials && socials.map((item, index) => (
-                                <a key={index} href={item.url} rel="noreferrer" target="_blank" className="footer__link">
+                                <a
+                                    key={index} href={item.url}
+                                    rel="noreferrer"
+                                    target="_blank"
+                                    className="footer__link"
+                                    alt={item.name}
+                                    title={item.name}
+                                >
                                     <i className={item.icon}></i>
                                 </a>
                             ))}
