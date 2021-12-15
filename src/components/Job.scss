@@ -7,9 +7,9 @@
     position: relative;
     flex: 1;
     width: 100%;
-    -webkit-transition: map-get($transitions, 'cubic-bezier');
-    -o-transition: map-get($transitions, 'cubic-bezier');
-    transition: map-get($transitions, 'cubic-bezier');
+    -webkit-transition: map-get($transitions, "cubic-bezier");
+    -o-transition: map-get($transitions, "cubic-bezier");
+    transition: map-get($transitions, "cubic-bezier");
     $job: ".job";
 
     @include breakpoint(sm) {
@@ -91,9 +91,9 @@
                 width: 0;
                 background-color: map-get($colors, "secondary");
                 height: 2px;
-                -webkit-transition: map-get($transitions, 'cubic-bezier');
-                -o-transition: map-get($transitions, 'cubic-bezier');
-                transition: map-get($transitions, 'cubic-bezier');
+                -webkit-transition: map-get($transitions, "cubic-bezier");
+                -o-transition: map-get($transitions, "cubic-bezier");
+                transition: map-get($transitions, "cubic-bezier");
             }
 
             &:hover {
