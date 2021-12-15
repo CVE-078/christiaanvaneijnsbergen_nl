@@ -151,7 +151,7 @@ const about = `
     <p>My goals are to bring ideas and designs to life and create websites and applications users will have a great experience using.</p>
 
     <p>
-        I am currently employed at <a href="https://softwarebastards.nl/" target="_blank" rel="noopener noreferrer" class="link link--external" alt="Software Bastards" title="Software Bastards">Intermix</a> as a Front End Developer.
+        I am currently employed at <a href="https://softwarebastards.nl/" target="_blank" rel="noopener noreferrer" class="link link--external" alt="Software Bastards" title="Software Bastards">Software Bastards</a> as a Front End Developer.
     </p>
 `
 
