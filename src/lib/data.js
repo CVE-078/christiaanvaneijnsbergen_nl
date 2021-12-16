@@ -133,6 +133,12 @@ const socials = [
     name: 'Github',
     url: 'https://github.com/CVE-078',
     icon: 'fab fa-fw fa-github'
+  },
+  {
+    id: 2,
+    name: 'Resume',
+    url: '/cv',
+    icon: 'fas fa-fw fa-file-alt'
   }
 ]
 
