@@ -1,7 +1,7 @@
 import React from 'react'
 import { about } from '../lib/data'
-import './Section.scss'
 import me from '../images/me.png'
+import './Section.scss'
 
 const About = () => {
     return (

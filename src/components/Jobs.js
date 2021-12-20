@@ -1,6 +1,6 @@
 import React from 'react'
-import { jobs } from '../lib/data'
 import Job from './Job'
+import { jobs } from '../lib/data'
 import './Jobs.scss'
 
 const Jobs = () => {
