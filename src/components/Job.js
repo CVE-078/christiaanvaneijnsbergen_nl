@@ -2,25 +2,27 @@ import React from 'react'
 import './Job.scss'
 
 const Job = ({ job }) => {
+  const { title, url, company, startDate, endDate } = job;
+
   return (
     <div className="job">
       <h3 className="job__title">
 
-        {job.title} @&nbsp;
+        {title} @&nbsp;
         <a
-          href={job.url}
+          href={url}
           className="job__link"
           rel="noreferrer"
           target="_blank"
-          title={job.company}
-          alt={job.company}
+          title={company}
+          alt={company}
         >
-          {job.company}
+          {company}
         </a>
 
       </h3>
 
-      <span className="job__range">{job.startDate} - {job.endDate}</span>
+      <span className="job__range">{startDate} - {endDate}</span>
     </div>
   )
 }

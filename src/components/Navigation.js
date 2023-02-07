@@ -3,6 +3,7 @@ import { menu } from '../lib/data'
 import './Navigation.scss'
 
 const Navigation = ({ open, setOpen }) => {
+    const filteredMenu = menu.filter(i => i.show);
 
     return (
         <>
@@ -13,7 +14,7 @@ const Navigation = ({ open, setOpen }) => {
 
                 <ul className="navigation__list">
 
-                    {menu && menu.map((item, index) => (
+                    {filteredMenu.map((item, index) => (
                         <li key={index} className="navigation__item" onClick={() => setOpen(!open)}>
                             <a
                                 href={item.link}

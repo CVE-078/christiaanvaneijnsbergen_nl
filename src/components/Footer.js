@@ -14,11 +14,7 @@ const Footer = () => {
                         <h2 className="footer__title">get in touch</h2>
 
                         <div className="footer__text">
-                            <p>
-                                fancy a collaboration?
-                                have a question you really need to ask?
-                                or perhaps just want to say hi?
-                            </p>
+                            <p>have a question you really want to ask or perhaps just want to say hi?</p>
 
                             <p>
                                 feel free to shoot me a message on&nbsp;
@@ -50,9 +46,10 @@ const Footer = () => {
 
                         <div className="footer__socials">
 
-                            {socials && socials.map((item, index) => (
+                            {socials ? socials.map((item, index) => (
                                 <a
-                                    key={index} href={item.url}
+                                    key={index}
+                                    href={item.url}
                                     rel="noreferrer"
                                     target="_blank"
                                     className="footer__link"
@@ -61,7 +58,7 @@ const Footer = () => {
                                 >
                                     <i className={item.icon}></i>
                                 </a>
-                            ))}
+                            )) : null}
 
                         </div>
 

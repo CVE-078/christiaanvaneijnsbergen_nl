@@ -9,8 +9,11 @@ import Footer from './components/Footer'
 const App = () => {
   const [open, setOpen] = useState(false);
 
+  const showJobs = true;
+  const showProjects = false;
+
   const initSmoothScroll = () => {
-    const anchors = document.querySelectorAll('.link.link--anchor');
+    const anchors = document.querySelectorAll('.link--anchor');
 
     anchors.forEach((anchor) => {
       anchor.addEventListener('click', (e) => {
@@ -38,8 +41,9 @@ const App = () => {
 
       <main className="main">
         <About />
-        <Jobs />
-        <Projects />
+
+        {showJobs ? <Jobs /> : null}
+        {showProjects ? <Projects /> : null}
       </main>
 
       <Footer />

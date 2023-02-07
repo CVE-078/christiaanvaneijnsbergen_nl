@@ -16,9 +16,9 @@ const Jobs = () => {
                     <div className="jobs">
                         <div className="jobs__timeline">
 
-                            {jobs && jobs.map((job, index) => (
+                            {jobs ? jobs.map((job, index) => (
                                 <Job key={index} job={job} />
-                            ))}
+                            )) : null}
 
                         </div>
                     </div>

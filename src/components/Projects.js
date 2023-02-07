@@ -14,9 +14,9 @@ const Projects = () => {
                     <h2 className="section__title">projects</h2>
 
                     <div className="section__projects">
-                        {projects.length > 0 && projects.map((project, index) => (
+                        {projects ? projects.map((project, index) => (
                             <Project key={index} project={project} />
-                        ))}
+                        )) : null}
                     </div>
 
                 </div>
