@@ -24,7 +24,7 @@ const projects = [{
   picture: '/assets/hDC6DoO.webp'
 }];
 
-const jobs = [{
+const experience = [{
   id: 0,
   company: 'B.made',
   url: 'https://www.bmade.nl/',
@@ -106,8 +106,8 @@ const menu = [{
   show: true
 }, {
   id: 1,
-  name: 'jobs',
-  link: '#jobs',
+  name: 'experience',
+  link: '#experience',
   type: 'link',
   show: true
 }, {
@@ -156,4 +156,4 @@ const about = `
     <p>I am currently employed at <a href="https://www.bmade.nl/" target="_blank" rel="noopener noreferrer" class="link link--external" alt="B.made" title="B.made">B.made</a> as a Front End Developer.</p>
 `
 
-export { projects, jobs, menu, socials, titles, about }
+export { projects, experience, menu, socials, titles, about }

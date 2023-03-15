@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import About from './components/About'
-import Jobs from './components/Jobs'
+import Experience from './components/Experience'
 import Projects from './components/Projects'
 import Footer from './components/Footer'
 
 const App = () => {
   const [open, setOpen] = useState(false);
 
-  const showJobs = true;
+  const showExperience = true;
   const showProjects = false;
 
   const initSmoothScroll = () => {
@@ -42,7 +42,7 @@ const App = () => {
       <main className="main">
         <About />
 
-        {showJobs ? <Jobs /> : null}
+        {showExperience ? <Experience /> : null}
         {showProjects ? <Projects /> : null}
       </main>
 

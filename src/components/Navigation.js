@@ -18,7 +18,7 @@ const Navigation = ({ open, setOpen }) => {
                         <li key={index} className="navigation__item" onClick={() => setOpen(!open)}>
                             <a
                                 href={item.link}
-                                className={'navigation__' + item.type + ' link link--anchor'}
+                                className={`navigation__${item.type} link link--anchor`}
                                 alt={item.name}
                                 title={item.name}
                             >

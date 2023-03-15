@@ -14,7 +14,7 @@ const Footer = () => {
                         <h2 className="footer__title">get in touch</h2>
 
                         <div className="footer__text">
-                            <p>have a question you really want to ask or perhaps just want to say hi?</p>
+                            <p>have any question you want to ask or perhaps just want to say hi?</p>
 
                             <p>
                                 feel free to shoot me a message on&nbsp;

@@ -1,6 +1,6 @@
 @import "../styles/essentials";
 
-.job {
+.experience-item {
     background-color: map-get($colors, "grey");
     padding: rem-calc(25);
     text-align: left;
@@ -10,7 +10,7 @@
     -webkit-transition: map-get($transitions, "cubic-bezier");
     -o-transition: map-get($transitions, "cubic-bezier");
     transition: map-get($transitions, "cubic-bezier");
-    $job: ".job";
+    $experienceItem: ".experience-item";
 
     @include breakpoint(sm) {
         width: auto;
@@ -58,7 +58,7 @@
         }
     }
 
-    #{$job} {
+    #{$experienceItem} {
         &__title {
             font-size: rem-calc(15);
             font-weight: bold;

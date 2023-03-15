@@ -9,7 +9,7 @@ const Project = ({ project }) => {
 
             <div className="project__left">
                 <div className="project__imageHolder">
-                    <span className={'project__label project__label--' + type.toLowerCase()}>{type}</span>
+                    <span className={`project__label project__label--${type.toLowerCase()}`}>{type}</span>
 
                     <img className="project__image" src={picture} alt={name} />
                 </div>
@@ -37,8 +37,8 @@ const Project = ({ project }) => {
                             rel="noreferrer"
                             target="_blank"
                             className="project__link"
-                            alt={'Check out the source code of ' + name + ' on GitHub'}
-                            title={'Check out the source code of ' + name + ' on GitHub'}
+                            alt={`Check out the source code of ${name} on GitHub`}
+                            title={`Check out the source code of ${name} on GitHub`}
                         >
                             <i className="fab fa-fw fa-github project__icon"></i>
                         </a>
@@ -50,8 +50,8 @@ const Project = ({ project }) => {
                             rel="noreferrer"
                             target="_blank"
                             className="project__link"
-                            alt={'Check out the live preview of ' + name}
-                            title={'Check out the live preview of ' + name}
+                            alt={`Check out the live preview of ${name}`}
+                            title={`Check out the live preview of ${name}`}
                         >
                             <i className="fas fa-fw fa-external-link-alt project__icon"></i>
                         </a>

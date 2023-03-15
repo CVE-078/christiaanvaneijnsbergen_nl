@@ -1,9 +1,9 @@
 @import "../styles/essentials";
 
-.jobs {
-    $jobs: ".jobs";
+.experience {
+    $experience: ".experience";
 
-    #{$jobs} {
+    #{$experience} {
         &__timeline {
             display: flex;
             flex-direction: column;
