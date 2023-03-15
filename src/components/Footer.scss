@@ -1,7 +1,7 @@
 @import "../styles/essentials";
 
 .footer {
-    background-color: map-get($colors, "grey");
+    background-color: var(--color-grey);
     padding: rem-calc(50) 0;
     position: relative;
     $footer: ".footer";
@@ -33,7 +33,7 @@
 
             &::before {
                 content: "";
-                background-color: map-get($colors, "secondary");
+                background-color: var(--color-secondary);
                 height: 3px;
                 position: absolute;
                 top: -10px;
@@ -63,7 +63,7 @@
         }
 
         &__link {
-            color: map-get($colors, "secondary");
+            color: var(--color-secondary);
             font-size: rem-calc(24);
             position: relative;
 
@@ -87,7 +87,7 @@
                 bottom: -2px;
                 left: 0;
                 width: 0;
-                background-color: map-get($colors, "secondary");
+                background-color: var(--color-secondary);
                 height: 2px;
                 -webkit-transition: map-get($transitions, 'cubic-bezier');
                 -o-transition: map-get($transitions, 'cubic-bezier');

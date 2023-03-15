@@ -1,7 +1,7 @@
 @import "../styles/essentials";
 
 .experience-item {
-    background-color: map-get($colors, "grey");
+    background-color: var(--color-grey);
     padding: rem-calc(25);
     text-align: left;
     position: relative;
@@ -50,7 +50,7 @@
         position: absolute;
         right: 100%;
         top: 50%;
-        background-color: map-get($colors, "primary");
+        background-color: var(--color-primary);
         display: none;
 
         @include breakpoint(lg) {
@@ -79,7 +79,7 @@
 
         &__link {
             display: inline-block;
-            color: map-get($colors, "secondary");
+            color: var(--color-secondary);
             text-decoration: none;
             position: relative;
 
@@ -89,7 +89,7 @@
                 bottom: 0;
                 left: 0;
                 width: 0;
-                background-color: map-get($colors, "secondary");
+                background-color: var(--color-secondary);
                 height: 2px;
                 -webkit-transition: map-get($transitions, "cubic-bezier");
                 -o-transition: map-get($transitions, "cubic-bezier");

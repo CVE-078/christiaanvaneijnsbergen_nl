@@ -20,7 +20,7 @@
                 transform: translateX(-50%);
                 top: 52px;
                 bottom: 52px;
-                background: map-get($colors, "primary");
+                background-color: var(--color-primary);
             }
         }
     }

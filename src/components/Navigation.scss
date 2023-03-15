@@ -41,7 +41,7 @@
                 top: 40px;
                 right: 40px;
                 z-index: 1;
-                color: map-get($colors, "white");
+                color: var(--color-white);
                 cursor: pointer;
             }
 
@@ -77,13 +77,13 @@
         }
 
         &__link {
-            color: map-get($colors, "white");
+            color: var(--color-white);
             text-decoration: none;
             font-size: rem-calc(20);
             position: relative;
 
             &:hover {
-                color: map-get($colors, "secondary");
+                color: var(--color-secondary);
 
                 &::before {
                     width: 100%;
@@ -93,7 +93,7 @@
             &::before {
                 content: "";
                 height: 2px;
-                background-color: map-get($colors, "secondary");
+                background-color: var(--color-secondary);
                 width: 0;
                 position: absolute;
                 bottom: 0;
@@ -108,14 +108,14 @@
                 padding: rem-calc(5) 0;
                 margin: 0 rem-calc(25);
                 font-size: rem-calc(14);
-                color: map-get($colors, "primary");
+                color: var(--color-primary);
 
                 &:hover {
-                    color: map-get($colors, "primary");
+                    color: var(--color-primary);
                 }
 
                 &::before {
-                    background-color: map-get($colors, "primary");
+                    background-color: var(--color-primary);
                 }
             }
 
@@ -125,14 +125,14 @@
         }
 
         &__button {
-            color: map-get($colors, "white");
+            color: var(--color-white);
             text-decoration: none;
             font-size: rem-calc(20);
             position: relative;
 
             @include breakpoint(md down) {
                 &:hover {
-                    color: map-get($colors, "secondary");
+                    color: var(--color-secondary);
 
                     &::before {
                         width: 100%;
@@ -144,7 +144,7 @@
                 &::before {
                     content: "";
                     height: 2px;
-                    background-color: map-get($colors, "secondary");
+                    background-color: var(--color-secondary);
                     width: 0;
                     position: absolute;
                     bottom: 0;
@@ -159,13 +159,13 @@
                 display: block;
                 padding: rem-calc(10) rem-calc(25);
                 margin-left: rem-calc(25);
-                border: 1px solid map-get($colors, "primary");
+                border: 1px solid var(--color-primary);
                 border-radius: 100px;
                 overflow: hidden;
                 font-size: rem-calc(14);
 
                 &:hover {
-                    color: map-get($colors, "primary");
+                    color: var(--color-primary);
 
                     &::before {
                         opacity: 0;
@@ -184,7 +184,7 @@
                     bottom: 0;
                     right: 0;
                     border-radius: 100px;
-                    background-color: map-get($colors, "primary");
+                    background-color: var(--color-primary);
                     -webkit-transform: scale(1.02);
                     -ms-transform: scale(1.02);
                     transform: scale(1.02);

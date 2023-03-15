@@ -27,7 +27,7 @@
 
             &::before {
                 content: "";
-                background-color: map-get($colors, "secondary");
+                background-color: var(--color-secondary);
                 height: 3px;
                 position: absolute;
                 top: -10px;
