@@ -13,6 +13,10 @@ html {
     line-height: initial;
 }
 
+iframe { 
+    display: none;
+}
+
 .page {
     margin: rem-calc(20);
     background-color: var(--color-white);
