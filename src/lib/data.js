@@ -32,7 +32,8 @@ const experience = [{
   location: 'Rotterdam, Netherlands',
   startDate: 'September 2022',
   endDate: 'Present',
-  description: ''
+  description: '',
+  stack: ['HTML5', 'SCSS', 'JavaScript', 'TypeScript', 'Vue.js', 'Agile']
 }, {
   id: 1,
   company: '123inkt',
@@ -41,7 +42,8 @@ const experience = [{
   location: 'Nederhorst den Berg, Netherlands',
   startDate: 'Febuary 2022',
   endDate: 'August 2022',
-  description: ''
+  description: '',
+  stack: ['HTML5', 'SCSS', 'JavaScript', 'TypeScript', 'Cypress', 'Agile']
 }, {
   id: 2,
   company: 'Software Bastards',
@@ -50,7 +52,8 @@ const experience = [{
   location: 'Abcoude, Netherlands',
   startDate: 'November 2021',
   endDate: 'December 2021',
-  description: ''
+  description: '',
+  stack: ['HTML5', 'SCSS', 'TypeScript', 'React', 'Agile']
 }, {
   id: 3,
   company: 'Intermix',
@@ -59,7 +62,8 @@ const experience = [{
   location: 'Sliedrecht, Netherlands',
   startDate: 'September 2019',
   endDate: 'October 2021',
-  description: ''
+  description: '',
+  stack: ['HTML5', 'SCSS', 'JavaScript', 'jQuery', 'Vue.js', 'PHP', 'ASP']
 }, {
   id: 4,
   company: 'Dutch Blue',
@@ -68,7 +72,8 @@ const experience = [{
   location: 'Dordrecht, Netherlands',
   startDate: 'March 2019',
   endDate: 'August 2019',
-  description: ''
+  description: '',
+  stack: ['HTML5', 'SCSS', 'JavaScript', 'Vue.js', 'Wordpress']
 }, {
   id: 5,
   company: 'B.made',
@@ -77,7 +82,8 @@ const experience = [{
   location: 'Rotterdam, Netherlands',
   startDate: 'August 2018',
   endDate: 'February 2019',
-  description: ''
+  description: '',
+  stack: ['HTML5', 'SCSS', 'JavaScript', 'Wordpress']
 }, {
   id: 6,
   company: 'Intermix',
@@ -86,7 +92,8 @@ const experience = [{
   location: 'Sliedrecht, Netherlands',
   startDate: 'March 2015',
   endDate: 'July 2018',
-  description: ''
+  description: '',
+  stack: ['HTML5', 'SCSS', 'JavaScript', 'jQuery', 'PHP', 'ASP']
 }, {
   id: 7,
   company: 'Intermix',
@@ -95,7 +102,8 @@ const experience = [{
   location: 'Sliedrecht, Netherlands',
   startDate: 'September 2014',
   endDate: 'February 2015',
-  description: ''
+  description: '',
+  stack: ['HTML5', 'SCSS', 'JavaScript', 'jQuery', 'ASP']
 }];
 
 const menu = [{

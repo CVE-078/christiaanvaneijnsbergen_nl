@@ -1,5 +1,5 @@
 import React from 'react'
-import { menu } from '../lib/data'
+import { menu } from './../../lib/data'
 import './Navigation.scss'
 
 const Navigation = ({ open, setOpen }) => {

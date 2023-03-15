@@ -1,4 +1,4 @@
-@import "../styles/essentials";
+@import "./../../styles/essentials";
 
 .experience-item {
     background-color: var(--color-grey);
@@ -21,6 +21,7 @@
         -webkit-transform: translateX(50%);
         -ms-transform: translateX(50%);
         transform: translateX(50%);
+        max-width: calc(50% - 25px);
     }
 
     &:not(:nth-last-of-type(1)) {
@@ -40,6 +41,12 @@
         &::after {
             right: unset;
             left: 100%;
+        }
+
+        #{$experienceItem}__stackList {
+            @include breakpoint(lg) {
+                justify-content: flex-end;
+            }
         }
     }
 
@@ -118,6 +125,72 @@
             @include breakpoint(xl) {
                 font-size: rem-calc(16);
             }
+        }
+
+
+        &__stackList {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: flex-start;
+            margin-top: rem-calc(10);
+            gap: rem-calc(5);
+
+            @include breakpoint(lg) {
+                gap: rem-calc(10);
+            }
+        }
+
+        &__stackItem {
+            display: inline-block;
+            border: 1px solid var(--color-primary);
+            padding: rem-calc(3) rem-calc(10);
+            font-size: rem-calc(10);
+            position: relative;
+            -webkit-transition: map-get($transitions, "cubic-bezier");
+            -o-transition: map-get($transitions, "cubic-bezier");
+            transition: map-get($transitions, "cubic-bezier");
+            cursor: default;
+
+            @include breakpoint(lg) {
+                font-size: rem-calc(11);
+            }
+
+            @include breakpoint(xl) {
+                font-size: rem-calc(12);
+            }
+
+            &:nth-last-of-type(1) {
+                margin-right: 0;
+            }
+
+            &::after {
+                content: "";
+                background-color: var(--color-primary);
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 0;
+                -webkit-transition: map-get($transitions, "cubic-bezier");
+                -o-transition: map-get($transitions, "cubic-bezier");
+                transition: map-get($transitions, "cubic-bezier");
+                z-index: 1;
+            }
+
+            &:hover {
+                color: var(--color-white);
+
+                &::after {
+                    width: 100%;
+                }
+            }
+        }
+
+        &__stackText {
+            position: relative;
+            z-index: 2;
         }
     }
 }

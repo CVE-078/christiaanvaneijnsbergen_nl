@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import Header from './components/Header'
-import Hero from './components/Hero'
-import About from './components/About'
-import Experience from './components/Experience'
-import Projects from './components/Projects'
-import Footer from './components/Footer'
+import Header from './components/Header/Header'
+import Footer from './components/Footer/Footer'
+
+import Hero from './components/Hero/Hero'
+import About from './components/About/About'
+import Experience from './components/Experience/Experience'
+import Projects from './components/Projects/Projects'
 
 const App = () => {
   const [open, setOpen] = useState(false);

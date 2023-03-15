@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { titles } from '../lib/data'
+import { titles } from './../../lib/data'
 import './Hero.scss'
 
 const Hero = () => {

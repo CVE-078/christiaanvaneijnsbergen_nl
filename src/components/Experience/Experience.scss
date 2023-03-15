@@ -1,4 +1,4 @@
-@import "../styles/essentials";
+@import "./../../styles/essentials";
 
 .experience {
     $experience: ".experience";
@@ -18,9 +18,14 @@
                 -webkit-transform: translateX(-50%);
                 -ms-transform: translateX(-50%);
                 transform: translateX(-50%);
-                top: 52px;
-                bottom: 52px;
+                top: 69px;
+                bottom: 66px;
                 background-color: var(--color-primary);
+
+                @include breakpoint(xl) {
+                    top: 71px;
+                    bottom: 68px;
+                }
             }
         }
     }

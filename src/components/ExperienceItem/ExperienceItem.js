@@ -2,7 +2,7 @@ import React from 'react'
 import './ExperienceItem.scss'
 
 const ExperienceItem = ({ item }) => {
-    const { title, url, company, startDate, endDate } = item;
+    const { title, url, company, startDate, endDate, stack } = item;
 
     return (
         <div className="experience-item">
@@ -23,6 +23,18 @@ const ExperienceItem = ({ item }) => {
             </h3>
 
             <span className="experience-item__range">{startDate} - {endDate}</span>
+
+            {stack ? (
+                    <ul className="experience-item__stackList">
+                        {stack.map((stack, index) => (
+
+                            <li key={index} className="experience-item__stackItem">
+                                <span className="experience-item__stackText">{stack}</span>
+                            </li>
+
+                        ))}
+                    </ul>
+                ) : null}
         </div>
     )
 }
