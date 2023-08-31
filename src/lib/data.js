@@ -28,7 +28,7 @@ const experience = [{
   id: 0,
   company: 'B.made',
   url: 'https://www.bmade.nl/',
-  title: 'Front End Developer',
+  title: 'Front-end Developer',
   location: 'Rotterdam, Netherlands',
   startDate: 'September 2022',
   endDate: 'Present',
@@ -38,7 +38,7 @@ const experience = [{
   id: 1,
   company: '123inkt',
   url: 'https://www.123inkt.nl/',
-  title: 'Front End Developer',
+  title: 'Front-end Developer',
   location: 'Nederhorst den Berg, Netherlands',
   startDate: 'Febuary 2022',
   endDate: 'August 2022',
@@ -48,7 +48,7 @@ const experience = [{
   id: 2,
   company: 'Software Bastards',
   url: 'https://softwarebastards.nl/',
-  title: 'Front End Developer',
+  title: 'Front-end Developer',
   location: 'Abcoude, Netherlands',
   startDate: 'November 2021',
   endDate: 'December 2021',
@@ -149,19 +149,19 @@ const socials = [{
   icon: 'fas fa-fw fa-file-alt'
 }];
 
-const titles = ['28 years old', 'an avid gamer', 'a problem solver', 'a father-of-one', 'a weight-pusher', 'a tv series binger', 'a web developer', 'a Formula 1 watcher']
+const titles = ['29 years old', 'an avid gamer', 'a problem solver', 'a father of two', 'a weight-pusher', 'a tv series binger', 'a web developer', 'a Formula 1 watcher']
 
 const about = `
     <p>Hello, nice to meet you!</p>
 
-    <p>I am Christiaan van Eijnsbergen, a 28-year-old, Web Developer with a passion for Front-End development.</p>
+    <p>I am Christiaan van Eijnsbergen, a 29-year-old, web developer with a passion for front-end development.</p>
 
     <p>My interest for programming began after being on my dad's computer (perhaps too often..) back in the day - in all honesty, mainly to play games. 
     Choosing to study computer science came quite natural due to the amount of time spent on the computer, only to realise in high school that I was actually thoroughly enjoying it.</p>
 
     <p>My goals are to bring ideas and designs to life and create websites and applications users will have a great experience using.</p>
 
-    <p>I am currently employed at <a href="https://www.bmade.nl/" target="_blank" rel="noopener noreferrer" class="link link--external" alt="B.made" title="B.made">B.made</a> as a Front End Developer.</p>
+    <p>I am currently employed at <a href="https://www.bmade.nl/" target="_blank" rel="noopener noreferrer" class="link link--external" alt="B.made" title="B.made">B.made</a> as a front-end developer.</p>
 `
 
 export { projects, experience, menu, socials, titles, about }
