@@ -1,15 +1,24 @@
+'use client';
+
+import * as React from 'react';
 import Logo from './logo';
 import Navigation from './navigation';
+import Hamburger from './hamburger';
 
-const Header = () => (
-    <div className="py-4 md:py-5 lg:p-8 fixed top-0 bg-white z-10 border-t-primary w-full md:border-t-30 border-t-20">
-        <div className="md:container mx-auto">
-            <div className="flex flex-row items-center justify-between">
-                <Logo />
-                <Navigation />
+const Header = () => {
+    const [openMenu, setOpenMenu] = React.useState<boolean>(false);
+
+    return (
+        <header className="py-4 md:py-5 px-6 lg:py-8 fixed inset-x-5 md:inset-x-8 top-0 bg-white z-10 border-t-primary sm:border-t-32 border-t-20 transition-all duration-400">
+            <div className="md:container mx-auto transition-all duration-400">
+                <div className="flex flex-row items-center justify-between">
+                    <Logo />
+                    <Navigation openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                    <Hamburger openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                </div>
             </div>
-        </div>
-    </div>
-);
+        </header>
+    );
+};
 
 export default Header;

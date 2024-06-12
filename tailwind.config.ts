@@ -33,10 +33,13 @@ const config: Config = {
             width: {
                 15: '15',
             },
+            fontSize: {
+                xxs: '10px',
+            },
             borderWidth: {
                 3: '3px',
                 20: '20px',
-                30: '30px',
+                32: '32px',
             },
             boxShadow: {
                 DEFAULT: '0 4px 5px 0 rgba(0,0,0,.07), 0 1px 10px 0 rgba(0,0,0,.06), 0 2px 4px -1px rgba(0,0,0,.1)',
