@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { scrollToElement } from '@/utils';
 
 interface Navigation {
     openMenu: boolean;
@@ -15,17 +15,17 @@ const Navigation = ({ openMenu, setOpenMenu }: Navigation) => {
     const items: NavigationItem[] = [
         {
             name: 'about',
-            link: '#about',
+            link: 'about',
             type: 'link',
         },
         {
             name: 'experience',
-            link: '#experience',
+            link: 'experience',
             type: 'link',
         },
         {
             name: 'say hello!',
-            link: '#contact',
+            link: 'contact',
             type: 'button',
         },
     ];
@@ -38,14 +38,16 @@ const Navigation = ({ openMenu, setOpenMenu }: Navigation) => {
             <ul className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-8 transition-all duration-400">
                 {items.map((item: NavigationItem, index: number) => (
                     <li className="flex-1 basis-auto sm:text-center" key={index}>
-                        <Link
-                            className={`text-white text-xl relative sm:block sm:text-sm md:text-base group hover:text-secondary hover:sm:text-primary transition-all duration-400 ${
+                        <a
+                            className={`text-white text-xl relative sm:block sm:text-sm md:text-base group hover:text-secondary hover:sm:text-primary transition-all duration-400 cursor-pointer ${
                                 item.type === 'button'
                                     ? 'sm:py-2.5 sm:px-6 sm:border sm:border-primary sm:rounded-full overflow-hidden'
                                     : 'sm:py-1.5 sm:text-primary'
                             }`}
-                            href={item.link}
-                            onClick={() => setOpenMenu(false)}>
+                            onClick={() => {
+                                scrollToElement(item.link);
+                                setOpenMenu(false);
+                            }}>
                             <span
                                 className={`before:content-[''] before:absolute before:transition-all before:duration-400 before:sm:bg-primary group-hover:before:!w-full ${
                                     item.type === 'button'
@@ -54,7 +56,7 @@ const Navigation = ({ openMenu, setOpenMenu }: Navigation) => {
                                 }`}>
                                 {item.name}
                             </span>
-                        </Link>
+                        </a>
                     </li>
                 ))}
             </ul>

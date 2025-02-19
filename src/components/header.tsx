@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import Logo from './logo';
-import Navigation from './navigation';
-import Hamburger from './hamburger';
+import Logo from '@/components/logo';
+import Navigation from '@/components/navigation';
+import Hamburger from '@/components/hamburger';
 
 const Header = () => {
     const [openMenu, setOpenMenu] = React.useState<boolean>(false);

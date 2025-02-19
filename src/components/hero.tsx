@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
-import IconArrowDown from './icons/icon-arrow-down';
+import IconArrowDown from '@/components/icons/icon-arrow-down';
+import { scrollToElement } from '@/utils';
 
 const Hero = () => {
     const [currentItemIndex, setCurrentItemIndex] = React.useState<number>(0);
@@ -58,17 +58,17 @@ const Hero = () => {
                 </div>
 
                 <div className="absolute left-1/2 bottom-14 md:bottom-20 -translate-x-1/2">
-                    <Link
-                        href="#contact"
+                    <a
+                        onClick={() => scrollToElement('about')}
                         title="Find out more"
-                        className="inline-flex flex-row items-center text-primary border border-primary rounded-full relative whitespace-nowrap transition-all duration-400 py-2.5 px-6 md:py-4 hover:text-white group gap-4">
+                        className="inline-flex flex-row items-center text-primary border border-primary rounded-full relative whitespace-nowrap transition-all duration-400 py-2.5 px-6 md:py-4 hover:text-white group gap-4 cursor-pointer">
                         <span className="-z-1 absolute inset-0 rounded-full bg-primary scale-75 opacity-0 transition-all duration-400 group-hover:opacity-100 group-hover:scale-100"></span>
                         <span className="-z-1 text-sm md:text-lg">curious? find out more</span>
 
                         <span className="h-6 w-6">
                             <IconArrowDown />
                         </span>
-                    </Link>
+                    </a>
                 </div>
             </div>
         </section>

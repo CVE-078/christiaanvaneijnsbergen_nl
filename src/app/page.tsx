@@ -6,6 +6,10 @@ import Footer from '@/components/footer';
 
 const Home = () => (
     <div className="flex flex-col min-h-dvh bg-white">
+        <span id="top" className="h-px -m-px overflow-hidden p-0 absolute whitespace-nowrap w-px border-0 -top-20">
+            &nbsp;
+        </span>
+
         <Header />
         <Hero />
 

@@ -1,5 +1,5 @@
-import { experience as data } from '@/lib/experience';
 import Link from 'next/link';
+import experience from '@/lib/experience';
 
 const Experience = () => (
     <section className="relative py-14 lg:py-24 px-6">
@@ -16,12 +16,12 @@ const Experience = () => (
                 </h2>
 
                 <div className="flex justify-center w-full">
-                    {data ? (
+                    {experience ? (
                         <div className="before:top-[69px] before:bottom-[66px] before:bg-primary lg:before:top-[69px] lg:before:bottom-[67px] xl:before:top-[74px] xl:before:bottom-[71px] flex flex-col items-center w-full relative gap-10 before:content-[''] before:w-0.5 before:absolute before:left-1/2 before:-translate-x-1/2 before:z-1">
-                            {data.map((item, index) => (
+                            {experience.map((item, index) => (
                                 <div
                                     key={index}
-                                    className={`z-2 bg-grey p-6 flex flex-col flex-1 w-full transition-all duration-400 sm:w-auto gap-2.5 after:content-[''] after:h-0.5 after:w-6 after:absolute after:top-1/2 after:bg-primary after:hidden lg:after:block lg:w-[calc(50%_-_24px)] xl:w-auto xl:max-w-[calc(50%_-_24px)] ${
+                                    className={`z-2 bg-gray p-6 flex flex-col flex-1 w-full transition-all duration-400 sm:w-auto gap-2.5 after:content-[''] after:h-0.5 after:w-6 after:absolute after:top-1/2 after:bg-primary after:hidden lg:after:block lg:w-[calc(50%_-_24px)] xl:w-auto xl:max-w-[calc(50%_-_24px)] ${
                                         index % 2 === 0
                                             ? 'lg:ml-12 lg:translate-x-1/2 lg:items-start after:right-full'
                                             : 'lg:mr-12 lg:-translate-x-1/2 lg:items-end after:left-full'
