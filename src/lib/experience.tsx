@@ -22,11 +22,10 @@ interface Experience {
     location: string;
     startDate: string;
     endDate: string;
-    description: string;
     stack: Stack[];
 }
 
-const experience = [
+const experience: Experience[] = [
     {
         company: 'B.made',
         url: 'https://www.bmade.nl/',

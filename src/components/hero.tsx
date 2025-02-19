@@ -11,7 +11,7 @@ const Hero = () => {
 
     const descriptions: string[] = React.useMemo(() => {
         return [
-            '29 years old',
+            '30 years old',
             'an avid gamer',
             'a father of two',
             'a problem solver',
