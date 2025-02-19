@@ -25,10 +25,10 @@ const About = () => (
                         </p>
 
                         <p>
-                            My interest for programming began after being on my dad's computer (perhaps too often..)
-                            back in the day - in all honesty, mainly to play games. Choosing to study computer science
-                            came quite natural due to the amount of time spent on the computer, only to realise in high
-                            school that I was actually thoroughly enjoying it.
+                            My interest for programming began after being on my dad&apos;s computer (perhaps too
+                            often..) back in the day - in all honesty, mainly to play games. Choosing to study computer
+                            science came quite natural due to the amount of time spent on the computer, only to realise
+                            in high school that I was actually thoroughly enjoying it.
                         </p>
 
                         <p>
