@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Poppins } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 
 const poppins = Poppins({ subsets: ['latin'], weight: ['400', '700'] });
@@ -18,6 +19,8 @@ export default function RootLayout({
         <html lang="en" className="scroll-smooth">
             <body className={`${poppins.className} scroll-smooth text-primary bg-primary leading-normal p-5 md:p-8`}>
                 {children}
+
+                <Analytics />
             </body>
         </html>
     );
