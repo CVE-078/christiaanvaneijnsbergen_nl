@@ -53,8 +53,8 @@ const About = () => (
                     <Image
                         src="/assets/me.png"
                         alt="Christiaan van Eijnsbergen"
-                        width={200}
-                        height={200}
+                        width={500}
+                        height={500}
                         className="block max-w-full max-h-64 object-contain md:max-h-full basis-2/5"
                     />
                 </div>

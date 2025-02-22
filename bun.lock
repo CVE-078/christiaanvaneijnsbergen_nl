@@ -4,8 +4,6 @@
     "": {
       "name": "christiaanvaneijnsbergen_nl",
       "dependencies": {
-        "@hugeicons/core-free-icons": "^1.0.10",
-        "@hugeicons/react": "^1.0.3",
         "@vercel/analytics": "^1.5.0",
         "next": "15.1.7",
         "react": "^19.0.0",
@@ -21,6 +19,7 @@
         "postcss": "^8.5.3",
         "prettier": "^3.5.1",
         "prettier-plugin-tailwindcss": "^0.6.11",
+        "react-icons": "^5.5.0",
         "tailwindcss": "^4.0.7",
         "typescript": "^5.7.3",
       },
@@ -46,10 +45,6 @@
     "@eslint/object-schema": ["@eslint/object-schema@2.1.6", "", {}, "sha512-RBMg5FRL0I0gs51M/guSAj5/e14VQ4tpZnQNWwuDT66P14I43ItmPfIZRhO9fUVIPOAQXU47atlywZ/czoqFPA=="],
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.2.6", "", { "dependencies": { "@eslint/core": "^0.11.0", "levn": "^0.4.1" } }, "sha512-+0TjwR1eAUdZtvv/ir1mGX+v0tUoR3VEPB8Up0LLJC+whRW0GgBBtpbOkg/a/U4Dxa6l5a3l9AJ1aWIQVyoWJA=="],
-
-    "@hugeicons/core-free-icons": ["@hugeicons/core-free-icons@1.0.10", "", {}, "sha512-XMjwTffefQGJ0B3gjnS9IV2UqM5qYT4WUJjD+cD7x6TfwE8rSAb+foGNbcyCjpXKVOnuyaJa+y4ukrPyNY/DBw=="],
-
-    "@hugeicons/react": ["@hugeicons/react@1.0.3", "", { "peerDependencies": { "react": ">=16.0.0" } }, "sha512-NJN8PmxTZlkt3T9a7uNZLhkJlIyQUt+sMxM5Qa/UH1qC1fBkwI7C7HSY/y4f7jjo5SQl7zRkm3hWH9tpWuHmWw=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 
@@ -596,6 +591,8 @@
     "react": ["react@19.0.0", "", {}, "sha512-V8AVnmPIICiWpGfm6GLzCR/W5FXLchHop40W4nXBmdlEceh16rCN8O8LNWm5bh5XUX91fh7KpA+W0TgMKmgTpQ=="],
 
     "react-dom": ["react-dom@19.0.0", "", { "dependencies": { "scheduler": "^0.25.0" }, "peerDependencies": { "react": "^19.0.0" } }, "sha512-4GV5sHFG0e/0AD4X+ySy6UJd3jVl1iNsNHdpad0qhABJ11twS3TTBnseqsKurKcsNqCEFeGL3uLpVChpIO3QfQ=="],
+
+    "react-icons": ["react-icons@5.5.0", "", { "peerDependencies": { "react": "*" } }, "sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw=="],
 
     "react-is": ["react-is@16.13.1", "", {}, "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ=="],
 

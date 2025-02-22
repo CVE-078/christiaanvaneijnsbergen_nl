@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import * as React from 'react';
-import { Github01Icon, Linkedin02Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
+import { FaGithub, FaLinkedinIn } from 'react-icons/fa6';
 
 interface Social {
     id: number;
@@ -15,13 +14,13 @@ const socials: Social[] = [
         id: 0,
         name: 'LinkedIn',
         url: 'https://www.linkedin.com/in/christiaan-van-eijnsbergen/',
-        icon: <HugeiconsIcon icon={Linkedin02Icon} size={32} strokeWidth={0.2} />,
+        icon: <FaLinkedinIn />,
     },
     {
         id: 1,
         name: 'Github',
         url: 'https://github.com/CVE-078',
-        icon: <HugeiconsIcon icon={Github01Icon} size={32} strokeWidth={0.2} />,
+        icon: <FaGithub />,
     },
 ];
 
@@ -69,7 +68,7 @@ const Footer = () => (
                                 title={social.name}
                                 className="relative text-secondary leading-snug inline-block hover:text-primary transition-all duration-400">
                                 <span className="sr-only">{social.name}</span>
-                                {social.icon}
+                                <span className="text-3xl">{social.icon}</span>
                             </a>
                         ))}
                     </div>
