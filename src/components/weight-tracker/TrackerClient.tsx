@@ -32,23 +32,34 @@ export default function TrackerClient({ initialLogs }: Props) {
     localStorage.setItem('wt_week', String(activeWeek));
   }, [activeWeek]);
 
-  const updateLog = useCallback(
-    (key: string, entry: LogEntry) => {
-      const newLogs = { ...logs, [key]: entry };
+  const persist = useCallback(
+    (newLogs: Logs) => {
       setLogs(newLogs);
       setSaveError(null);
       saveLogs(newLogs).catch(() => {
         setSaveError('Failed to save. Retrying…');
         setTimeout(
-          () =>
-            saveLogs(newLogs).catch(() =>
-              setSaveError('Save failed. Check your connection and try again.'),
-            ),
+          () => saveLogs(newLogs).catch(() => setSaveError('Save failed. Check your connection and try again.')),
           3000,
         );
       });
     },
-    [logs],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const updateLog = useCallback(
+    (key: string, entry: LogEntry) => persist({ ...logs, [key]: entry }),
+    [logs, persist],
+  );
+
+  const deleteLog = useCallback(
+    (key: string) => {
+      const newLogs = { ...logs };
+      delete newLogs[key];
+      persist(newLogs);
+    },
+    [logs, persist],
   );
 
   return (
@@ -124,6 +135,7 @@ export default function TrackerClient({ initialLogs }: Props) {
           setActiveTab={setActiveTab}
           logs={logs}
           updateLog={updateLog}
+          deleteLog={deleteLog}
         />
       )}
       {view === 'program' && (

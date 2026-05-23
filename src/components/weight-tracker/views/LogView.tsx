@@ -10,9 +10,10 @@ interface Props {
   setActiveTab: (t: WorkoutType) => void;
   logs: Logs;
   updateLog: (key: string, entry: LogEntry) => void;
+  deleteLog: (key: string) => void;
 }
 
-export default function LogView({ activeWeek, activeTab, setActiveTab, logs, updateLog }: Props) {
+export default function LogView({ activeWeek, activeTab, setActiveTab, logs, updateLog, deleteLog }: Props) {
   const workout = WORKOUTS[activeTab];
   const rir = getRIR(activeWeek);
   const accent = rirColor(rir);
@@ -66,6 +67,7 @@ export default function LogView({ activeWeek, activeTab, setActiveTab, logs, upd
           color={workout.color}
           logs={logs}
           onSave={updateLog}
+          onDelete={deleteLog}
         />
       ))}
     </div>

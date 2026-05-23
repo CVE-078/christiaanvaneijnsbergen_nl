@@ -13,9 +13,10 @@ interface Props {
   color: string;
   logs: Logs;
   onSave: (key: string, entry: LogEntry) => void;
+  onDelete: (key: string) => void;
 }
 
-export default function ExerciseCard({ exercise, exIdx, week, type, color, logs, onSave }: Props) {
+export default function ExerciseCard({ exercise, exIdx, week, type, color, logs, onSave, onDelete }: Props) {
   const [open, setOpen] = useState(false);
   const maxSets = parseMaxSets(exercise.sets);
   const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, type, exIdx, i)).filter(
@@ -66,6 +67,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, color, logs,
               type={type}
               entry={logs[logKey(week, type, exIdx, i)]}
               onSave={entry => onSave(logKey(week, type, exIdx, i), entry)}
+              onDelete={() => onDelete(logKey(week, type, exIdx, i))}
             />
           ))}
         </div>

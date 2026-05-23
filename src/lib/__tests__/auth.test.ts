@@ -26,11 +26,18 @@ describe('createSession + verifySession', () => {
     vi.stubEnv('TRACKER_PASSWORD', 'test-secret');
   });
 
-  it('creates a token that verifies successfully', async () => {
+  it('creates a 64-char hex token that verifies successfully', async () => {
     const token = await createSession();
     expect(typeof token).toBe('string');
-    expect(token).toContain('.');
+    expect(token).toHaveLength(64);
+    expect(token).toMatch(/^[0-9a-f]+$/);
     await expect(verifySession(token)).resolves.toBe(true);
+  });
+
+  it('is deterministic — same password → same token', async () => {
+    const a = await createSession();
+    const b = await createSession();
+    expect(a).toBe(b);
   });
 
   it('rejects undefined token', async () => {
@@ -43,17 +50,19 @@ describe('createSession + verifySession', () => {
 
   it('rejects a tampered token', async () => {
     const token = await createSession();
-    const tampered = token.slice(0, -4) + 'XXXX';
+    const tampered = token.slice(0, -4) + 'xxxx';
     await expect(verifySession(tampered)).resolves.toBe(false);
-  });
-
-  it('rejects token with no dot separator', async () => {
-    await expect(verifySession('notavalidtoken')).resolves.toBe(false);
   });
 
   it('rejects when TRACKER_PASSWORD is unset', async () => {
     vi.stubEnv('TRACKER_PASSWORD', '');
-    const token = 'some.token';
+    const token = 'a'.repeat(64);
+    await expect(verifySession(token)).resolves.toBe(false);
+  });
+
+  it('rejects token derived from a different password', async () => {
+    const token = await createSession();
+    vi.stubEnv('TRACKER_PASSWORD', 'other-secret');
     await expect(verifySession(token)).resolves.toBe(false);
   });
 });

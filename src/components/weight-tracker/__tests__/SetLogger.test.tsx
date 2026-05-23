@@ -28,9 +28,10 @@ describe('SetLogger', () => {
     expect(screen.getByText('✓')).toBeInTheDocument();
   });
 
-  it('pre-fills inputs from a saved entry', () => {
+  it('pre-fills inputs with saved values when Edit is clicked', async () => {
     const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
     render(<SetLogger {...defaultProps} entry={savedEntry} />);
+    await userEvent.click(screen.getByRole('button', { name: /edit/i }));
     expect(screen.getByRole('spinbutton', { name: /weight in kilograms/i })).toHaveValue(80);
     expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
   });
