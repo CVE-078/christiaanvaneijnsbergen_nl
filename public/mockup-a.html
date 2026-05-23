@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse — Design A Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #fafafa;
+    --surface:  #ffffff;
+    --border:   #e8e8e8;
+    --muted:    #c4c4c4;
+    --dim:      #999;
+    --body:     #444;
+    --heading:  #0a0a0a;
+    --blue:     #0066ff;
+    --blue-bg:  #0066ff0f;
+    --red:      #e53e3e;
+    --sans:     'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--body);
+    font-family: var(--sans);
+    font-size: 0.875rem;
+    min-height: 100vh;
+    max-width: 520px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Header ─────────────────────────────────────── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(250,250,250,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.25rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .logo {
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--heading);
+  }
+
+  .logo span {
+    color: var(--blue);
+  }
+
+  .week-chip {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--dim);
+    background: var(--border);
+    padding: 0.2rem 0.6rem;
+    border-radius: 100px;
+  }
+
+  nav {
+    margin-left: auto;
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  nav a {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--dim);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  nav a.active { color: var(--heading); }
+
+  /* ── Workout tabs ──────────────────────────────── */
+  .workout-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .workout-tab {
+    flex: 1;
+    padding: 0.75rem 0;
+    text-align: center;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--dim);
+    cursor: pointer;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    transition: color 0.1s;
+  }
+
+  .workout-tab.active {
+    color: var(--heading);
+    border-bottom-color: var(--blue);
+  }
+
+  /* ── Week row ──────────────────────────────────── */
+  .week-row {
+    display: flex;
+    gap: 0;
+    padding: 0 1.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .week-row::-webkit-scrollbar { display: none; }
+
+  .week-btn {
+    font-size: 0.75rem;
+    font-weight: 500;
+    min-width: 2.25rem;
+    padding: 0.625rem 0;
+    text-align: center;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--dim);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-bottom: -1px;
+  }
+
+  .week-btn.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+    font-weight: 600;
+  }
+
+  /* ── Context bar ───────────────────────────────── */
+  .context-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.25rem 0.5rem;
+  }
+
+  .context-bar .phase-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--heading);
+  }
+
+  .context-bar .sep { color: var(--muted); }
+
+  .context-bar .rir-tag {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--blue);
+    background: var(--blue-bg);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .context-bar .desc {
+    font-size: 0.75rem;
+    color: var(--dim);
+    margin-left: auto;
+    font-style: italic;
+  }
+
+  /* ── Exercise list ─────────────────────────────── */
+  .exercises {
+    padding: 0.5rem 1.25rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .exercise {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0.375rem;
+  }
+
+  /* Phase accent — left stripe */
+  .exercise { border-left: 3px solid var(--blue); }
+
+  .exercise-header {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+  }
+
+  .exercise-header:hover { background: #f5f5f5; }
+
+  .ex-info { flex: 1; min-width: 0; }
+
+  .ex-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ex-meta {
+    font-size: 0.6875rem;
+    color: var(--dim);
+    margin-top: 0.2rem;
+  }
+
+  .ex-count {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .ex-count .done { color: var(--heading); }
+
+  .ex-chevron {
+    color: var(--muted);
+    font-size: 0.625rem;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+
+  /* ── Set rows ──────────────────────────────────── */
+  .sets {
+    border-top: 1px solid var(--border);
+  }
+
+  .set-note {
+    font-size: 0.6875rem;
+    color: var(--dim);
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-style: italic;
+    line-height: 1.5;
+    background: #fafafa;
+  }
+
+  .set-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .set-row:last-child { border-bottom: none; }
+
+  .set-num {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--muted);
+    width: 1.25rem;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .set-input {
+    width: 4rem;
+    padding: 0.35rem 0.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--heading);
+    font-family: var(--sans);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+
+  .set-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px #0066ff18;
+  }
+
+  .set-input::placeholder { color: var(--muted); }
+
+  .set-sep { color: var(--muted); font-size: 0.75rem; }
+
+  .set-rir {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--dim);
+    margin-left: auto;
+  }
+
+  .set-save {
+    padding: 0.35rem 0.75rem;
+    background: var(--blue);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.1s;
+  }
+
+  .set-save:hover { opacity: 0.85; }
+
+  /* Saved state */
+  .set-row.is-saved { background: #fafafa; }
+
+  .set-summary {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--heading);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .set-rir-saved {
+    font-size: 0.6875rem;
+    color: var(--dim);
+  }
+
+  .set-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+
+  .set-row.is-saved:hover .set-actions { opacity: 1; }
+
+  /* Always show on touch */
+  @media (hover: none) {
+    .set-actions { opacity: 1 !important; }
+  }
+
+  .set-check {
+    font-size: 0.75rem;
+    color: var(--blue);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .set-edit-btn {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .set-edit-btn:hover { color: var(--heading); }
+
+  .set-del-btn {
+    font-size: 0.6875rem;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .set-del-btn:hover { color: var(--red); }
+
+  /* ── Empty exercise ─────────────────────────────── */
+  .exercise.done { border-left-color: #22c55e; }
+  .exercise.done .ex-count .done { color: #22c55e; }
+
+  /* ── Footer hint ────────────────────────────────── */
+  .hint {
+    text-align: center;
+    font-size: 0.6875rem;
+    color: var(--muted);
+    padding: 2rem 1rem 1rem;
+  }
+
+  .hint a {
+    color: var(--blue);
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────── -->
+<header>
+  <span class="logo">Pulse<span>.</span></span>
+  <span class="week-chip">Week 9</span>
+  <nav>
+    <a class="active">Log</a>
+    <a>Program</a>
+    <a>History</a>
+  </nav>
+</header>
+
+<!-- ── Workout tabs ────────────────────────────────── -->
+<div class="workout-tabs">
+  <button class="workout-tab active">Push</button>
+  <button class="workout-tab">Pull</button>
+  <button class="workout-tab">Legs</button>
+</div>
+
+<!-- ── Week row ────────────────────────────────────── -->
+<div class="week-row">
+  <button class="week-btn">1</button>
+  <button class="week-btn">2</button>
+  <button class="week-btn">3</button>
+  <button class="week-btn">4</button>
+  <button class="week-btn">5</button>
+  <button class="week-btn">6</button>
+  <button class="week-btn">7</button>
+  <button class="week-btn">8</button>
+  <button class="week-btn active">9</button>
+  <button class="week-btn">10</button>
+  <button class="week-btn">11</button>
+  <button class="week-btn">12</button>
+</div>
+
+<!-- ── Context bar ─────────────────────────────────── -->
+<div class="context-bar">
+  <span class="phase-label">Peaking block</span>
+  <span class="sep">·</span>
+  <span class="rir-tag">RIR 0</span>
+  <span class="desc">Max intensity</span>
+</div>
+
+<!-- ── Exercises ───────────────────────────────────── -->
+<div class="exercises">
+
+  <!-- Exercise 1: closed, partial -->
+  <div class="exercise">
+    <button class="exercise-header">
+      <div class="ex-info">
+        <div class="ex-name">Bench Press</div>
+        <div class="ex-meta">4 sets · 4–6 reps · RPE 9–10</div>
+      </div>
+      <span class="ex-count"><span class="done">3</span> / 4</span>
+      <span class="ex-chevron">▼</span>
+    </button>
+  </div>
+
+  <!-- Exercise 2: open -->
+  <div class="exercise">
+    <button class="exercise-header">
+      <div class="ex-info">
+        <div class="ex-name">Overhead Press</div>
+        <div class="ex-meta">3–4 sets · 6–8 reps · RPE 8–9</div>
+      </div>
+      <span class="ex-count"><span class="done">1</span> / 4</span>
+      <span class="ex-chevron">▲</span>
+    </button>
+
+    <div class="sets">
+      <p class="set-note">Top set from last week +2.5 kg &mdash; rest 3–4 min between sets</p>
+
+      <!-- Saved set — hover to reveal Edit / ✕ -->
+      <div class="set-row is-saved">
+        <span class="set-num">1</span>
+        <span class="set-summary">65 kg &times; 6</span>
+        <span class="set-rir-saved">RIR 0</span>
+        <span class="set-check">✓</span>
+        <div class="set-actions">
+          <button class="set-edit-btn">Edit</button>
+          <button class="set-del-btn">Remove</button>
+        </div>
+      </div>
+
+      <!-- Unsaved -->
+      <div class="set-row">
+        <span class="set-num">2</span>
+        <input class="set-input" type="number" placeholder="kg" />
+        <span class="set-sep">&times;</span>
+        <input class="set-input" type="number" placeholder="reps" />
+        <span class="set-rir">RIR 0</span>
+        <button class="set-save">Save</button>
+      </div>
+
+      <div class="set-row">
+        <span class="set-num">3</span>
+        <input class="set-input" type="number" placeholder="kg" />
+        <span class="set-sep">&times;</span>
+        <input class="set-input" type="number" placeholder="reps" />
+        <span class="set-rir">RIR 0</span>
+        <button class="set-save">Save</button>
+      </div>
+
+      <div class="set-row">
+        <span class="set-num">4</span>
+        <input class="set-input" type="number" placeholder="kg" />
+        <span class="set-sep">&times;</span>
+        <input class="set-input" type="number" placeholder="reps" />
+        <span class="set-rir">RIR 0</span>
+        <button class="set-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exercise 3: closed, complete -->
+  <div class="exercise done">
+    <button class="exercise-header">
+      <div class="ex-info">
+        <div class="ex-name">Incline DB Press</div>
+        <div class="ex-meta">3 sets · 8–10 reps · RPE 8</div>
+      </div>
+      <span class="ex-count"><span class="done">3</span> / 3</span>
+      <span class="ex-chevron">▼</span>
+    </button>
+  </div>
+
+  <!-- Exercise 4: closed, untouched -->
+  <div class="exercise">
+    <button class="exercise-header">
+      <div class="ex-info">
+        <div class="ex-name">Cable Lateral Raise</div>
+        <div class="ex-meta">3–4 sets · 12–15 reps · RPE 8–9</div>
+      </div>
+      <span class="ex-count"><span class="done">0</span> / 4</span>
+      <span class="ex-chevron">▼</span>
+    </button>
+  </div>
+
+</div>
+
+<p class="hint">
+  Hover a saved set to edit &nbsp;·&nbsp; christiaanvaneijnsbergen.nl/pulse &nbsp;·&nbsp; Design A mockup
+</p>
+
+</body>
+</html>
