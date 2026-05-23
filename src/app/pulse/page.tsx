@@ -4,7 +4,7 @@ import type { Logs } from '@/lib/weight-tracker/types';
 
 export const revalidate = 0;
 
-export default async function WeightTrackerPage() {
+export default async function PulsePage() {
   const logs = await kv.get<Logs>('ppl-logs') ?? {};
   return <TrackerClient initialLogs={logs} />;
 }

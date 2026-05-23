@@ -4,6 +4,13 @@ import { buildHistory } from '@/lib/weight-tracker/utils';
 import { WORKOUTS } from '@/lib/weight-tracker/data';
 import type { Logs } from '@/lib/weight-tracker/types';
 
+const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+const ACCENT = '#ff6c2f';
+const SURFACE = '#141414';
+const BORDER = '#1f1f1f';
+const DIM = '#555';
+const MUTED = '#3a3a3a';
+
 interface Props {
   logs: Logs;
 }
@@ -13,17 +20,11 @@ export default function HistoryView({ logs }: Props) {
 
   if (sessions.length === 0) {
     return (
-      <div
-        style={{
-          padding: '4rem 1rem',
-          textAlign: 'center',
-          color: '#444',
-          fontFamily: 'system-ui, sans-serif',
-        }}
-      >
-        <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>—</div>
-        <div style={{ fontSize: '0.9375rem' }}>No logged sets yet.</div>
-        <div style={{ fontSize: '0.8125rem', marginTop: '0.375rem', color: '#333' }}>
+      <div style={{ padding: '4rem 1rem', textAlign: 'center' }}>
+        <div style={{ fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: MUTED, marginBottom: '0.75rem' }}>
+          No sessions yet
+        </div>
+        <div style={{ fontFamily: MONO, fontSize: '0.625rem', color: '#333', letterSpacing: '0.04em' }}>
           Head to Log to get started.
         </div>
       </div>
@@ -31,32 +32,23 @@ export default function HistoryView({ logs }: Props) {
   }
 
   return (
-    <div style={{ padding: '1rem', maxWidth: 600, margin: '0 auto' }}>
+    <div style={{ padding: '1rem', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
       {sessions.map((session, si) => {
         const workout = WORKOUTS[session.type];
         return (
-          <div
-            key={si}
-            style={{ marginBottom: '1rem', background: '#1a1a1a', borderRadius: '10px', overflow: 'hidden' }}
-          >
-            <div
-              style={{
-                padding: '0.75rem 1rem',
-                borderBottom: '1px solid #222',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-              }}
-            >
-              <span style={{ color: workout.color, fontWeight: 700, fontSize: '0.9375rem' }}>
-                {workout.icon} {workout.label}
+          <div key={si} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontFamily: MONO, fontSize: '0.625rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700, color: ACCENT }}>
+                {workout.label}
               </span>
-              <span style={{ color: '#555', fontSize: '0.8125rem' }}>Week {session.week}</span>
-              <span style={{ color: '#333', fontSize: '0.75rem', marginLeft: 'auto' }}>
+              <span style={{ fontFamily: MONO, fontSize: '0.625rem', color: DIM, letterSpacing: '0.04em' }}>
+                Week {session.week}
+              </span>
+              <span style={{ fontFamily: MONO, fontSize: '0.5625rem', color: MUTED, marginLeft: 'auto' }}>
                 {session.sets.length} sets
               </span>
             </div>
-            <div style={{ padding: '0.625rem 1rem 0.75rem' }}>
+            <div style={{ padding: '0.5rem 1rem 0.75rem' }}>
               {session.sets.map((set, i) => {
                 const exercise = workout.exercises[set.exIdx];
                 return (
@@ -65,19 +57,23 @@ export default function HistoryView({ logs }: Props) {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5rem',
+                      gap: '0.75rem',
                       padding: '0.25rem 0',
-                      fontSize: '0.8125rem',
+                      borderBottom: i < session.sets.length - 1 ? '1px solid #111' : 'none',
                     }}
                   >
-                    <span style={{ color: '#444', width: '1.5rem', flexShrink: 0 }}>#{set.setIdx + 1}</span>
-                    <span style={{ color: '#999', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontFamily: MONO, fontSize: '0.5625rem', color: MUTED, width: '1.25rem', flexShrink: 0 }}>
+                      {String(set.setIdx + 1).padStart(2, '0')}
+                    </span>
+                    <span style={{ color: DIM, fontSize: '0.75rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {exercise?.name ?? `Exercise ${set.exIdx + 1}`}
                     </span>
-                    <span style={{ color: '#fff', fontWeight: 600, flexShrink: 0 }}>
-                      {set.kg}kg × {set.reps}
+                    <span style={{ fontFamily: MONO, color: '#fff', fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}>
+                      {set.kg} kg × {set.reps}
                     </span>
-                    <span style={{ color: '#444', flexShrink: 0 }}>@{set.rir}</span>
+                    <span style={{ fontFamily: MONO, color: MUTED, fontSize: '0.625rem', flexShrink: 0 }}>
+                      {set.rir} RIR
+                    </span>
                   </div>
                 );
               })}

@@ -4,20 +4,16 @@ interface Props {
   color: string;
 }
 
+const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+
 export default function ProgressBar({ filled, total, color }: Props) {
   return (
-    <div style={{ display: 'flex', gap: '3px' }}>
+    <span style={{ fontFamily: MONO, fontSize: '0.875rem', letterSpacing: '0.05em', flexShrink: 0 }}>
       {Array.from({ length: total }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: 2,
-            background: i < filled ? color : '#2a2a2a',
-          }}
-        />
+        <span key={i} style={{ color: i < filled ? color : '#3a3a3a' }}>
+          {i < filled ? '█' : '░'}
+        </span>
       ))}
-    </div>
+    </span>
   );
 }

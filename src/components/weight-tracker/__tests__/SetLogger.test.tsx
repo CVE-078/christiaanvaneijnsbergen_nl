@@ -58,11 +58,11 @@ describe('SetLogger', () => {
 
   it('shows the correct set number label', () => {
     render(<SetLogger {...defaultProps} setIdx={2} />);
-    expect(screen.getByText('#3')).toBeInTheDocument();
+    expect(screen.getByText('03')).toBeInTheDocument();
   });
 
   it('displays the RIR target for the given week', () => {
     render(<SetLogger {...defaultProps} week={9} />); // week 9 → RIR 0
-    expect(screen.getByText('@RIR 0')).toBeInTheDocument();
+    expect(screen.getByText(/^0\s+RIR$/)).toBeInTheDocument();
   });
 });

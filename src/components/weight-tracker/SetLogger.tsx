@@ -3,6 +3,12 @@ import { useState, useTransition } from 'react';
 import { getRIR } from '@/lib/weight-tracker/utils';
 import type { LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
 
+const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+const ACCENT = '#ff6c2f';
+const BORDER = '#1f1f1f';
+const DIM = '#555';
+const MUTED = '#3a3a3a';
+
 interface Props {
   exIdx: number;
   setIdx: number;
@@ -14,26 +20,17 @@ interface Props {
 }
 
 const inputStyle = {
-  width: '4rem',
-  padding: '0.375rem',
-  background: '#111',
-  border: '1px solid #2a2a2a',
-  borderRadius: '6px',
+  width: '3.75rem',
+  padding: '0.375rem 0.5rem',
+  background: '#0a0a0a',
+  border: `1px solid #1f1f1f`,
+  borderRadius: '3px',
   color: '#fff',
-  fontSize: '0.875rem',
+  fontFamily: MONO,
+  fontSize: '0.8125rem',
   textAlign: 'center' as const,
+  outline: 'none',
 };
-
-const actionBtn = (danger = false) => ({
-  padding: '0.25rem 0.5rem',
-  background: 'transparent',
-  border: `1px solid ${danger ? '#f43f5e44' : '#2a2a2a'}`,
-  borderRadius: '6px',
-  color: danger ? '#f43f5e' : '#888',
-  fontSize: '0.7rem',
-  cursor: 'pointer',
-  flexShrink: 0 as const,
-});
 
 export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Props) {
   const [kg, setKg] = useState(entry?.kg?.toString() ?? '');
@@ -74,12 +71,13 @@ export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Pro
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
-        padding: '0.5rem 0',
+        padding: '0.4375rem 0',
+        borderBottom: '1px solid #111',
         opacity: saved && !editing ? 0.55 : 1,
       }}
     >
-      <span style={{ color: '#555', fontSize: '0.75rem', width: '2rem', flexShrink: 0 }}>
-        #{setIdx + 1}
+      <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: MUTED, width: '1.5rem', flexShrink: 0 }}>
+        {String(setIdx + 1).padStart(2, '0')}
       </span>
 
       {showInputs ? (
@@ -95,7 +93,7 @@ export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Pro
             onChange={e => setKg(e.target.value)}
             style={inputStyle}
           />
-          <span style={{ color: '#444' }}>×</span>
+          <span style={{ fontFamily: MONO, color: MUTED, fontSize: '0.75rem' }}>×</span>
           <input
             type="number"
             aria-label="Repetitions"
@@ -106,10 +104,13 @@ export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Pro
             onChange={e => setReps(e.target.value)}
             style={inputStyle}
           />
-          <span style={{ color: '#444', fontSize: '0.75rem', flexShrink: 0 }}>@RIR {targetRIR}</span>
+          <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, flexShrink: 0 }}>{targetRIR} RIR</span>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.375rem' }}>
             {editing && (
-              <button onClick={handleCancel} style={actionBtn()}>
+              <button
+                onClick={handleCancel}
+                style={{ fontFamily: MONO, fontSize: '0.625rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: DIM, background: 'none', border: `1px solid ${BORDER}`, borderRadius: '3px', padding: '0.25rem 0.5rem', cursor: 'pointer', flexShrink: 0 }}
+              >
                 Cancel
               </button>
             )}
@@ -117,12 +118,15 @@ export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Pro
               onClick={handleSave}
               disabled={isPending}
               style={{
-                padding: '0.375rem 0.75rem',
-                background: '#222',
-                border: '1px solid #3a3a3a',
-                borderRadius: '6px',
-                color: isPending ? '#555' : '#ccc',
-                fontSize: '0.75rem',
+                fontFamily: MONO,
+                fontSize: '0.625rem',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                padding: '0.25rem 0.625rem',
+                background: 'transparent',
+                border: `1px solid ${isPending ? BORDER : '#3a3a3a'}`,
+                borderRadius: '3px',
+                color: isPending ? DIM : '#aaa',
                 cursor: isPending ? 'not-allowed' : 'pointer',
                 flexShrink: 0,
               }}
@@ -133,17 +137,23 @@ export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Pro
         </>
       ) : (
         <>
-          <span style={{ color: '#ccc', fontSize: '0.8125rem' }}>
+          <span style={{ fontFamily: MONO, fontSize: '0.8125rem', color: '#d4d4d4' }}>
             {entry!.kg} kg × {entry!.reps}
           </span>
-          <span style={{ color: '#444', fontSize: '0.75rem' }}>@RIR {entry!.rir}</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-            <span style={{ color: '#4ade80', fontSize: '0.9rem' }}>✓</span>
-            <button onClick={handleEdit} style={actionBtn()}>
+          <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM }}>{entry!.rir} RIR</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: ACCENT }}>✓</span>
+            <button
+              onClick={handleEdit}
+              style={{ fontFamily: MONO, fontSize: '0.625rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: DIM, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
               Edit
             </button>
             {onDelete && (
-              <button onClick={onDelete} style={actionBtn(true)}>
+              <button
+                onClick={onDelete}
+                style={{ fontFamily: MONO, fontSize: '0.625rem', color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
                 ✕
               </button>
             )}

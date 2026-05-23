@@ -1,12 +1,18 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { saveLogs } from '@/app/weight-tracker/actions';
+import { saveLogs } from '@/app/pulse/actions';
 import ProgramView from './views/ProgramView';
 import LogView from './views/LogView';
 import HistoryView from './views/HistoryView';
 import type { Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
 
 type View = 'log' | 'program' | 'history';
+
+const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+const ACCENT = '#ff6c2f';
+const BG = '#0a0a0a';
+const BORDER = '#1f1f1f';
+const DIM = '#555';
 
 const NAV: { id: View; label: string }[] = [
   { id: 'log', label: 'Log' },
@@ -39,7 +45,7 @@ export default function TrackerClient({ initialLogs }: Props) {
       saveLogs(newLogs).catch(() => {
         setSaveError('Failed to save. Retrying…');
         setTimeout(
-          () => saveLogs(newLogs).catch(() => setSaveError('Save failed. Check your connection and try again.')),
+          () => saveLogs(newLogs).catch(() => setSaveError('Save failed. Check your connection.')),
           3000,
         );
       });
@@ -63,65 +69,60 @@ export default function TrackerClient({ initialLogs }: Props) {
   );
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#0f0f0f',
-        color: '#fff',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-      }}
-    >
-      {/* Sticky header */}
+    <div style={{ minHeight: '100vh', background: BG, color: '#d4d4d4' }}>
+      {/* Header */}
       <div
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          background: '#0f0f0f',
-          borderBottom: '1px solid #1a1a1a',
-          padding: '0.75rem 1rem',
+          background: BG,
+          borderBottom: `1px solid ${BORDER}`,
+          padding: '0 1rem',
+          height: 56,
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
+          gap: '1rem',
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: '1rem', flex: 1, color: '#fff' }}>PPL Tracker</span>
-        {NAV.map(({ id, label }) => {
-          const active = view === id;
-          return (
-            <button
-              key={id}
-              onClick={() => setView(id)}
-              style={{
-                padding: '0.375rem 0.75rem',
-                borderRadius: '20px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                background: active ? '#fff' : 'transparent',
-                color: active ? '#000' : '#888',
-                border: `1px solid ${active ? '#fff' : '#2a2a2a'}`,
-                transition: 'all 0.15s',
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: '0.8125rem', letterSpacing: '0.08em', color: '#fff', textTransform: 'uppercase', flexShrink: 0 }}>
+          Pulse<span style={{ color: ACCENT }}>.</span>
+        </span>
+        <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: DIM, letterSpacing: '0.05em' }}>
+          WK <strong style={{ color: ACCENT, fontWeight: 700 }}>{String(activeWeek).padStart(2, '0')}</strong> / 12
+        </span>
+        <nav style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem' }}>
+          {NAV.map(({ id, label }) => {
+            const active = view === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setView(id)}
+                style={{
+                  fontFamily: MONO,
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  color: active ? '#fff' : DIM,
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: active ? `1px solid ${ACCENT}` : '1px solid transparent',
+                  paddingBottom: '1px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Save error banner */}
+      {/* Save error */}
       {saveError && (
         <div
           role="alert"
-          style={{
-            padding: '0.625rem 1rem',
-            background: '#f43f5e22',
-            borderBottom: '1px solid #f43f5e44',
-            color: '#f43f5e',
-            fontSize: '0.8125rem',
-            textAlign: 'center',
-          }}
+          style={{ padding: '0.5rem 1rem', background: '#f43f5e18', borderBottom: '1px solid #f43f5e33', color: '#f43f5e', fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.04em', textAlign: 'center' }}
         >
           {saveError}
         </div>
@@ -131,6 +132,7 @@ export default function TrackerClient({ initialLogs }: Props) {
       {view === 'log' && (
         <LogView
           activeWeek={activeWeek}
+          onSelectWeek={setActiveWeek}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           logs={logs}

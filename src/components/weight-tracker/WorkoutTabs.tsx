@@ -1,17 +1,25 @@
 'use client';
-import { WORKOUTS } from '@/lib/weight-tracker/data';
 import type { WorkoutType } from '@/lib/weight-tracker/types';
+
+const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+const ACCENT = '#ff6c2f';
+const BORDER = '#1f1f1f';
 
 interface Props {
   activeTab: WorkoutType;
   onSelect: (t: WorkoutType) => void;
 }
 
+const TABS: { type: WorkoutType; label: string }[] = [
+  { type: 'push', label: 'Push' },
+  { type: 'pull', label: 'Pull' },
+  { type: 'legs', label: 'Legs' },
+];
+
 export default function WorkoutTabs({ activeTab, onSelect }: Props) {
   return (
-    <div style={{ display: 'flex', gap: '0.5rem' }}>
-      {(['push', 'pull', 'legs'] as WorkoutType[]).map(type => {
-        const w = WORKOUTS[type];
+    <div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}` }}>
+      {TABS.map(({ type, label }) => {
         const active = activeTab === type;
         return (
           <button
@@ -19,18 +27,21 @@ export default function WorkoutTabs({ activeTab, onSelect }: Props) {
             onClick={() => onSelect(type)}
             style={{
               flex: 1,
-              padding: '0.625rem',
-              borderRadius: '10px',
+              padding: '0.875rem 0',
+              textAlign: 'center',
+              fontFamily: MONO,
+              fontSize: '0.6875rem',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: active ? '#fff' : '#555',
               cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: 700,
-              background: active ? w.color : 'transparent',
-              color: active ? '#000' : w.color,
-              border: `2px solid ${w.color}`,
-              transition: 'all 0.15s',
+              background: 'none',
+              border: 'none',
+              borderBottom: `2px solid ${active ? ACCENT : 'transparent'}`,
+              marginBottom: '-1px',
             }}
           >
-            {w.icon} {w.label}
+            {label}
           </button>
         );
       })}

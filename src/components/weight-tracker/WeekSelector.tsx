@@ -1,6 +1,12 @@
 'use client';
 import { PHASES } from '@/lib/weight-tracker/data';
 
+const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+const ACCENT = '#ff6c2f';
+const BORDER = '#1f1f1f';
+const DIM = '#555';
+const MUTED = '#3a3a3a';
+
 interface Props {
   activeWeek: number;
   onSelect: (w: number) => void;
@@ -8,18 +14,10 @@ interface Props {
 
 export default function WeekSelector({ activeWeek, onSelect }: Props) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {PHASES.map(phase => (
         <div key={phase.label}>
-          <div
-            style={{
-              color: '#555',
-              fontSize: '0.6875rem',
-              marginBottom: '0.25rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
+          <div style={{ fontFamily: MONO, fontSize: '0.5625rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: MUTED, marginBottom: '0.5rem' }}>
             {phase.label} · {phase.subtitle}
           </div>
           <div style={{ display: 'flex', gap: '0.375rem' }}>
@@ -32,14 +30,15 @@ export default function WeekSelector({ activeWeek, onSelect }: Props) {
                   style={{
                     flex: 1,
                     padding: '0.5rem',
-                    borderRadius: '8px',
+                    borderRadius: '3px',
                     cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    background: active ? phase.color : '#1a1a1a',
-                    color: active ? '#000' : '#777',
-                    border: `2px solid ${active ? phase.color : '#2a2a2a'}`,
-                    transition: 'all 0.15s',
+                    fontFamily: MONO,
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    background: active ? ACCENT : '#141414',
+                    color: active ? '#000' : DIM,
+                    border: `1px solid ${active ? ACCENT : BORDER}`,
+                    transition: 'all 0.12s',
                   }}
                 >
                   {w}

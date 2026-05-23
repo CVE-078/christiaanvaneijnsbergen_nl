@@ -1,22 +1,27 @@
 'use client';
 import { useState } from 'react';
 import { logKey, parseMaxSets } from '@/lib/weight-tracker/utils';
-import ProgressBar from './ProgressBar';
 import SetLogger from './SetLogger';
 import type { Exercise, Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
+
+const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+const ACCENT = '#ff6c2f';
+const SURFACE = '#141414';
+const BORDER = '#1f1f1f';
+const DIM = '#555';
+const MUTED = '#3a3a3a';
 
 interface Props {
   exercise: Exercise;
   exIdx: number;
   week: number;
   type: WorkoutType;
-  color: string;
   logs: Logs;
   onSave: (key: string, entry: LogEntry) => void;
   onDelete: (key: string) => void;
 }
 
-export default function ExerciseCard({ exercise, exIdx, week, type, color, logs, onSave, onDelete }: Props) {
+export default function ExerciseCard({ exercise, exIdx, week, type, logs, onSave, onDelete }: Props) {
   const [open, setOpen] = useState(false);
   const maxSets = parseMaxSets(exercise.sets);
   const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, type, exIdx, i)).filter(
@@ -24,7 +29,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, color, logs,
   ).length;
 
   return (
-    <div style={{ background: '#1a1a1a', borderRadius: '10px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+    <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: '4px', overflow: 'hidden' }}>
       <button
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
@@ -37,25 +42,33 @@ export default function ExerciseCard({ exercise, exIdx, week, type, color, logs,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
+          gap: '1rem',
           textAlign: 'left',
         }}
       >
+        <span style={{ fontFamily: MONO, fontSize: '1.75rem', fontWeight: 700, color: '#222', lineHeight: 1, width: '2.25rem', flexShrink: 0, letterSpacing: '-0.04em', userSelect: 'none' }}>
+          {String(exIdx + 1).padStart(2, '0')}
+        </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.9375rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {exercise.name}
           </div>
-          <div style={{ color: '#555', fontSize: '0.6875rem', marginTop: '0.125rem' }}>
+          <div style={{ fontFamily: MONO, fontSize: '0.625rem', letterSpacing: '0.06em', color: DIM, marginTop: '0.25rem', textTransform: 'uppercase' }}>
             {exercise.sets} sets · {exercise.reps} reps
           </div>
         </div>
-        <ProgressBar filled={savedCount} total={maxSets} color={color} />
-        <span aria-hidden="true" style={{ color: '#444', fontSize: '0.75rem', flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ fontFamily: MONO, fontSize: '0.875rem', letterSpacing: '0.05em', flexShrink: 0 }}>
+          {Array.from({ length: maxSets }, (_, i) => (
+            <span key={i} style={{ color: i < savedCount ? ACCENT : MUTED }}>
+              {i < savedCount ? '█' : '░'}
+            </span>
+          ))}
+        </span>
       </button>
 
       {open && (
-        <div style={{ padding: '0 1rem 1rem', borderTop: '1px solid #222' }}>
-          <p style={{ color: '#555', fontSize: '0.75rem', margin: '0.75rem 0', lineHeight: 1.6 }}>
+        <div style={{ borderTop: `1px solid ${BORDER}`, padding: '0.25rem 1rem 0.875rem' }}>
+          <p style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, padding: '0.625rem 0 0.375rem', lineHeight: 1.6 }}>
             {exercise.load} · {exercise.note}
           </p>
           {Array.from({ length: maxSets }, (_, i) => (

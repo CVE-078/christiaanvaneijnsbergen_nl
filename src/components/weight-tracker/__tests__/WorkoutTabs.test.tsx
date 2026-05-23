@@ -11,12 +11,12 @@ describe('WorkoutTabs', () => {
     expect(screen.getByRole('button', { name: /legs/i })).toBeInTheDocument();
   });
 
-  it('applies solid background to the active tab', () => {
+  it('active tab has white color; inactive tab has dimmed color', () => {
     render(<WorkoutTabs activeTab="pull" onSelect={vi.fn()} />);
     const pullBtn = screen.getByRole('button', { name: /pull/i }) as HTMLElement;
     const pushBtn = screen.getByRole('button', { name: /push/i }) as HTMLElement;
-    expect(pullBtn.style.background).not.toBe('transparent');
-    expect(pushBtn.style.background).toBe('transparent');
+    expect(pullBtn.style.color).toBe('rgb(255, 255, 255)'); // active → #fff
+    expect(pushBtn.style.color).toBe('rgb(85, 85, 85)');   // inactive → #555
   });
 
   it('calls onSelect when an inactive tab is clicked', async () => {

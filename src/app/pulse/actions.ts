@@ -27,5 +27,5 @@ export async function saveLogs(logs: unknown) {
   if (!validateLogs(logs)) throw new Error('Invalid data');
   if (Object.keys(logs).length > 2000) throw new Error('Data too large');
   await kv.set('ppl-logs', logs);
-  revalidatePath('/weight-tracker');
+  revalidatePath('/pulse');
 }
