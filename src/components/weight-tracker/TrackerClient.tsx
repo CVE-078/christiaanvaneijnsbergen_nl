@@ -1,6 +1,7 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { saveLogs, logout } from '@/app/pulse/actions';
+import { computeStreak } from '@/lib/weight-tracker/utils';
 import ProgramView from './views/ProgramView';
 import LogView from './views/LogView';
 import HistoryView from './views/HistoryView';
@@ -33,6 +34,7 @@ export default function TrackerClient({ initialLogs }: Props) {
   const [activeTab, setActiveTab] = useState<WorkoutType>('push');
   const [view, setView] = useState<View>('log');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const streak = useMemo(() => computeStreak(logs), [logs]);
 
   useEffect(() => {
     localStorage.setItem('wt_week', String(activeWeek));
@@ -103,6 +105,11 @@ export default function TrackerClient({ initialLogs }: Props) {
         <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: DIM, letterSpacing: '0.05em' }}>
           WK <strong style={{ color: ACCENT, fontWeight: 700 }}>{String(activeWeek).padStart(2, '0')}</strong> / 12
         </span>
+        {streak > 0 && (
+          <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: '#555', letterSpacing: '0.05em' }}>
+            · {streak}WK
+          </span>
+        )}
         <nav style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
           {NAV.map(({ id, label }) => {
             const active = view === id;

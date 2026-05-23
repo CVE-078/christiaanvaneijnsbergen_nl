@@ -1,6 +1,6 @@
 'use client';
 import { useMemo } from 'react';
-import { buildHistory } from '@/lib/weight-tracker/utils';
+import { buildHistory, computePRMap, calcE1RM } from '@/lib/weight-tracker/utils';
 import { WORKOUTS } from '@/lib/weight-tracker/data';
 import type { Logs } from '@/lib/weight-tracker/types';
 
@@ -17,6 +17,7 @@ interface Props {
 
 export default function HistoryView({ logs }: Props) {
   const sessions = useMemo(() => buildHistory(logs), [logs]);
+  const prMap = useMemo(() => computePRMap(logs), [logs]);
 
   if (sessions.length === 0) {
     return (
@@ -51,6 +52,9 @@ export default function HistoryView({ logs }: Props) {
             <div style={{ padding: '0.5rem 1rem 0.75rem' }}>
               {session.sets.map((set, i) => {
                 const exercise = workout.exercises[set.exIdx];
+                const exKey = `${session.type}-${set.exIdx}`;
+                const bestE1RM = prMap[exKey] ?? 0;
+                const isPR = bestE1RM > 0 && calcE1RM(set.kg, set.reps) >= bestE1RM;
                 return (
                   <div
                     key={i}
@@ -71,6 +75,22 @@ export default function HistoryView({ logs }: Props) {
                     <span style={{ fontFamily: MONO, color: '#fff', fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}>
                       {set.kg} kg × {set.reps}
                     </span>
+                    {isPR && (
+                      <span style={{
+                        fontFamily: MONO,
+                        fontSize: '0.5rem',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: ACCENT,
+                        background: `${ACCENT}18`,
+                        border: `1px solid ${ACCENT}44`,
+                        borderRadius: '2px',
+                        padding: '0.1rem 0.3rem',
+                        flexShrink: 0,
+                      }}>
+                        PR
+                      </span>
+                    )}
                     <span style={{ fontFamily: MONO, color: MUTED, fontSize: '0.625rem', flexShrink: 0 }}>
                       {set.rir} RIR
                     </span>

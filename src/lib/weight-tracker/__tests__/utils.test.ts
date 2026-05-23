@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { getPhase, getRIR, logKey, parseMaxSets, buildHistory, weekHasData } from '../utils';
+import {
+  getPhase, getRIR, logKey, parseMaxSets, buildHistory, weekHasData,
+  calcE1RM, computePRMap, computeStreak, computeSuggestion,
+} from '../utils';
 import type { Logs } from '../types';
 
 describe('getPhase', () => {
@@ -99,6 +102,100 @@ describe('buildHistory', () => {
     const history = buildHistory(logs);
     expect(history[0].week).toBe(3);
     expect(history[1].week).toBe(1);
+  });
+});
+
+describe('calcE1RM', () => {
+  it('returns kg unchanged for 0 reps', () => {
+    expect(calcE1RM(100, 0)).toBeCloseTo(100);
+  });
+  it('applies Epley formula correctly', () => {
+    expect(calcE1RM(60, 10)).toBeCloseTo(80); // 60 * (1 + 10/30)
+    expect(calcE1RM(100, 5)).toBeCloseTo(116.67);
+  });
+});
+
+describe('computePRMap', () => {
+  it('returns empty map for empty logs', () => {
+    expect(computePRMap({})).toEqual({});
+  });
+  it('finds best e1RM per exercise across weeks', () => {
+    const logs: Logs = {
+      '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
+      '2-push-0-0': { kg: 65, reps: 6, rir: 2, saved: true },
+    };
+    const map = computePRMap(logs);
+    expect(map['push-0']).toBeGreaterThan(calcE1RM(60, 8));
+    expect(map['push-0']).toBeCloseTo(calcE1RM(65, 6));
+  });
+  it('ignores unsaved entries', () => {
+    const logs: Logs = {
+      '1-push-0-0': { kg: 200, reps: 20, rir: 0, saved: false },
+    };
+    expect(computePRMap(logs)).toEqual({});
+  });
+  it('keeps separate keys per exercise', () => {
+    const logs: Logs = {
+      '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
+      '1-push-1-0': { kg: 40, reps: 12, rir: 3, saved: true },
+    };
+    const map = computePRMap(logs);
+    expect(map['push-0']).toBeDefined();
+    expect(map['push-1']).toBeDefined();
+    expect(map['push-0']).not.toBeCloseTo(map['push-1']);
+  });
+});
+
+describe('computeStreak', () => {
+  it('returns 0 for empty logs', () => {
+    expect(computeStreak({})).toBe(0);
+  });
+  it('counts consecutive weeks from the most recent', () => {
+    const logs: Logs = {
+      '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
+      '2-push-0-0': { kg: 62, reps: 8, rir: 3, saved: true },
+      '3-push-0-0': { kg: 65, reps: 8, rir: 2, saved: true },
+    };
+    expect(computeStreak(logs)).toBe(3);
+  });
+  it('stops at the first gap', () => {
+    const logs: Logs = {
+      '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
+      '3-push-0-0': { kg: 65, reps: 8, rir: 2, saved: true },
+    };
+    expect(computeStreak(logs)).toBe(1);
+  });
+  it('ignores unsaved entries when counting', () => {
+    const logs: Logs = {
+      '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
+      '2-push-0-0': { kg: 62, reps: 8, rir: 3, saved: false },
+      '3-push-0-0': { kg: 65, reps: 8, rir: 2, saved: true },
+    };
+    expect(computeStreak(logs)).toBe(1);
+  });
+});
+
+describe('computeSuggestion', () => {
+  it('returns null when no previous entry', () => {
+    expect(computeSuggestion(undefined, 3)).toBeNull();
+  });
+  it('returns null for week 1 (no previous week)', () => {
+    expect(computeSuggestion({ kg: 60, reps: 8, rir: 3, saved: true }, 1)).toBeNull();
+  });
+  it('suggests +2.5 when previous RIR exceeded the target', () => {
+    // week 2: prevTarget = getRIR(1) = 3, rir = 4 > 3
+    expect(computeSuggestion({ kg: 60, reps: 8, rir: 4, saved: true }, 2)).toBe(62.5);
+  });
+  it('suggests same weight when previous RIR matched the target', () => {
+    // week 2: prevTarget = 3, rir = 3
+    expect(computeSuggestion({ kg: 60, reps: 8, rir: 3, saved: true }, 2)).toBe(60);
+  });
+  it('suggests -2.5 when previous RIR was below the target', () => {
+    // week 2: prevTarget = 3, rir = 2 < 3
+    expect(computeSuggestion({ kg: 60, reps: 8, rir: 2, saved: true }, 2)).toBe(57.5);
+  });
+  it('never suggests below 0.5 kg', () => {
+    expect(computeSuggestion({ kg: 2, reps: 8, rir: 1, saved: true }, 2)).toBe(0.5);
   });
 });
 

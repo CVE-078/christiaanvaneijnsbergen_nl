@@ -1,6 +1,6 @@
 'use client';
 import { useState, useTransition } from 'react';
-import { getRIR } from '@/lib/weight-tracker/utils';
+import { getRIR, computeSuggestion } from '@/lib/weight-tracker/utils';
 import type { LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
 
 const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
@@ -16,6 +16,7 @@ interface Props {
   type: WorkoutType;
   entry: LogEntry | undefined;
   previousEntry?: LogEntry;
+  isPR?: boolean;
   onSave: (entry: LogEntry) => void;
   onDelete?: () => void;
 }
@@ -33,8 +34,9 @@ const inputStyle = {
   outline: 'none',
 };
 
-export default function SetLogger({ setIdx, week, entry, previousEntry, onSave, onDelete }: Props) {
-  const [kg, setKg] = useState(entry?.kg?.toString() ?? '');
+export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, onSave, onDelete }: Props) {
+  const suggestion = computeSuggestion(previousEntry, week);
+  const [kg, setKg] = useState(entry?.kg?.toString() ?? (suggestion !== null ? String(suggestion) : ''));
   const [reps, setReps] = useState(entry?.reps?.toString() ?? '');
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -153,6 +155,22 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, onSave, 
           <span style={{ fontFamily: MONO, fontSize: '0.8125rem', color: '#d4d4d4' }}>
             {entry!.kg} kg × {entry!.reps}
           </span>
+          {isPR && (
+            <span style={{
+              fontFamily: MONO,
+              fontSize: '0.5rem',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: ACCENT,
+              background: `${ACCENT}18`,
+              border: `1px solid ${ACCENT}44`,
+              borderRadius: '2px',
+              padding: '0.1rem 0.3rem',
+              flexShrink: 0,
+            }}>
+              PR
+            </span>
+          )}
           <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM }}>{entry!.rir} RIR</span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: ACCENT }}>✓</span>

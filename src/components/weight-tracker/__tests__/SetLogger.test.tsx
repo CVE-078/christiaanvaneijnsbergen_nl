@@ -71,4 +71,23 @@ describe('SetLogger', () => {
     render(<SetLogger {...defaultProps} previousEntry={prev} />);
     expect(screen.getByText(/60 kg × 8/)).toBeInTheDocument();
   });
+
+  it('pre-fills kg input with suggested weight when previous RIR exceeded target', () => {
+    // week 2, prevTarget = getRIR(1) = 3, prev.rir = 4 > 3 → +2.5 → 62.5
+    const prev: LogEntry = { kg: 60, reps: 8, rir: 4, saved: true };
+    render(<SetLogger {...defaultProps} week={2} previousEntry={prev} />);
+    expect(screen.getByRole('spinbutton', { name: /weight in kilograms/i })).toHaveValue(62.5);
+  });
+
+  it('shows PR badge when isPR is true and entry is saved', () => {
+    const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
+    render(<SetLogger {...defaultProps} entry={savedEntry} isPR={true} />);
+    expect(screen.getByText('PR')).toBeInTheDocument();
+  });
+
+  it('does not show PR badge when isPR is false', () => {
+    const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
+    render(<SetLogger {...defaultProps} entry={savedEntry} isPR={false} />);
+    expect(screen.queryByText('PR')).not.toBeInTheDocument();
+  });
 });

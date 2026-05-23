@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { logKey, parseMaxSets } from '@/lib/weight-tracker/utils';
+import { useState, useMemo } from 'react';
+import { logKey, parseMaxSets, calcE1RM, computePRMap } from '@/lib/weight-tracker/utils';
 import SetLogger from './SetLogger';
 import type { Exercise, Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
 
@@ -27,6 +27,8 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, onSave
   const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, type, exIdx, i)).filter(
     k => logs[k]?.saved,
   ).length;
+  const prMap = useMemo(() => computePRMap(logs), [logs]);
+  const bestE1RM = prMap[`${type}-${exIdx}`] ?? 0;
 
   return (
     <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: '4px', overflow: 'hidden' }}>
@@ -71,19 +73,24 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, onSave
           <p style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, padding: '0.625rem 0 0.375rem', lineHeight: 1.6 }}>
             {exercise.load} · {exercise.note}
           </p>
-          {Array.from({ length: maxSets }, (_, i) => (
-            <SetLogger
-              key={i}
-              exIdx={exIdx}
-              setIdx={i}
-              week={week}
-              type={type}
-              entry={logs[logKey(week, type, exIdx, i)]}
-              previousEntry={week > 1 ? logs[logKey(week - 1, type, exIdx, i)] : undefined}
-              onSave={entry => onSave(logKey(week, type, exIdx, i), entry)}
-              onDelete={() => onDelete(logKey(week, type, exIdx, i))}
-            />
-          ))}
+          {Array.from({ length: maxSets }, (_, i) => {
+            const entry = logs[logKey(week, type, exIdx, i)];
+            const isPR = !!(entry?.saved && bestE1RM > 0 && calcE1RM(entry.kg, entry.reps) >= bestE1RM);
+            return (
+              <SetLogger
+                key={i}
+                exIdx={exIdx}
+                setIdx={i}
+                week={week}
+                type={type}
+                entry={entry}
+                previousEntry={week > 1 ? logs[logKey(week - 1, type, exIdx, i)] : undefined}
+                isPR={isPR}
+                onSave={e => onSave(logKey(week, type, exIdx, i), e)}
+                onDelete={() => onDelete(logKey(week, type, exIdx, i))}
+              />
+            );
+          })}
         </div>
       )}
     </div>
