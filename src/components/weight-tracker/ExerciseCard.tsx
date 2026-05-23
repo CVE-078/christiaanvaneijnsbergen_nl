@@ -79,6 +79,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, onSave
               week={week}
               type={type}
               entry={logs[logKey(week, type, exIdx, i)]}
+              previousEntry={week > 1 ? logs[logKey(week - 1, type, exIdx, i)] : undefined}
               onSave={entry => onSave(logKey(week, type, exIdx, i), entry)}
               onDelete={() => onDelete(logKey(week, type, exIdx, i))}
             />

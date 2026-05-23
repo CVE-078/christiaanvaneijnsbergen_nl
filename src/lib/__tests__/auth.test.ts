@@ -1,5 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { hashPassword, createSession, verifySession } from '../auth';
+import { hashPassword, createSession, verifySession, timingSafeEqual } from '../auth';
+
+describe('timingSafeEqual', () => {
+  it('returns true for equal strings', () => {
+    expect(timingSafeEqual('abc123', 'abc123')).toBe(true);
+  });
+  it('returns false for strings differing by one char', () => {
+    expect(timingSafeEqual('abc123', 'abc124')).toBe(false);
+  });
+  it('returns false for strings of different length', () => {
+    expect(timingSafeEqual('abc', 'abcd')).toBe(false);
+  });
+});
 
 describe('hashPassword', () => {
   it('returns a 64-character hex string', async () => {

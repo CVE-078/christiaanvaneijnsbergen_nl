@@ -15,6 +15,7 @@ interface Props {
   week: number;
   type: WorkoutType;
   entry: LogEntry | undefined;
+  previousEntry?: LogEntry;
   onSave: (entry: LogEntry) => void;
   onDelete?: () => void;
 }
@@ -32,7 +33,7 @@ const inputStyle = {
   outline: 'none',
 };
 
-export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Props) {
+export default function SetLogger({ setIdx, week, entry, previousEntry, onSave, onDelete }: Props) {
   const [kg, setKg] = useState(entry?.kg?.toString() ?? '');
   const [reps, setReps] = useState(entry?.reps?.toString() ?? '');
   const [editing, setEditing] = useState(false);
@@ -42,7 +43,7 @@ export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Pro
 
   function handleSave() {
     const kgNum = parseFloat(kg);
-    const repsNum = parseInt(reps);
+    const repsNum = parseInt(reps, 10);
     if (!kgNum || kgNum <= 0 || kgNum > 500) return;
     if (!repsNum || repsNum < 1 || repsNum > 100) return;
     startTransition(() => {
@@ -105,6 +106,18 @@ export default function SetLogger({ setIdx, week, entry, onSave, onDelete }: Pro
             style={inputStyle}
           />
           <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, flexShrink: 0 }}>{targetRIR} RIR</span>
+          {previousEntry && (
+            <span style={{
+              fontFamily: MONO,
+              fontSize: '0.5625rem',
+              color: '#444',
+              letterSpacing: '0.04em',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}>
+              ↑ {previousEntry.kg} kg × {previousEntry.reps}
+            </span>
+          )}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.375rem' }}>
             {editing && (
               <button

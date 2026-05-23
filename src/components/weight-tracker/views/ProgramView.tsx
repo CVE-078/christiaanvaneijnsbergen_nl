@@ -1,6 +1,7 @@
 import { WORKOUTS, VOLUME, SCHEDULE, WEEK_NOTES } from '@/lib/weight-tracker/data';
 import { getPhase } from '@/lib/weight-tracker/utils';
 import WeekSelector from '../WeekSelector';
+import type { Logs } from '@/lib/weight-tracker/types';
 
 const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
 const ACCENT = '#ff6c2f';
@@ -14,15 +15,16 @@ const BAR_MAX_HEIGHT_PX = 44;
 interface Props {
   activeWeek: number;
   onSelectWeek: (w: number) => void;
+  logs: Logs;
 }
 
-export default function ProgramView({ activeWeek, onSelectWeek }: Props) {
+export default function ProgramView({ activeWeek, onSelectWeek, logs }: Props) {
   const phase = getPhase(activeWeek);
   const maxSets = Math.max(...VOLUME.map(v => v.sets));
 
   return (
     <div style={{ padding: '1rem', maxWidth: 600, margin: '0 auto' }}>
-      <WeekSelector activeWeek={activeWeek} onSelect={onSelectWeek} />
+      <WeekSelector activeWeek={activeWeek} onSelect={onSelectWeek} logs={logs} />
 
       {/* Phase info */}
       <div

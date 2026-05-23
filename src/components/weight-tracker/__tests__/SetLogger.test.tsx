@@ -65,4 +65,10 @@ describe('SetLogger', () => {
     render(<SetLogger {...defaultProps} week={9} />); // week 9 → RIR 0
     expect(screen.getByText(/^0\s+RIR$/)).toBeInTheDocument();
   });
+
+  it('shows previous week reference when previousEntry is provided and set is unsaved', () => {
+    const prev: LogEntry = { kg: 60, reps: 8, rir: 3, saved: true };
+    render(<SetLogger {...defaultProps} previousEntry={prev} />);
+    expect(screen.getByText(/60 kg × 8/)).toBeInTheDocument();
+  });
 });

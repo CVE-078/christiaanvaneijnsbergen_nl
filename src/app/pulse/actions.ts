@@ -1,6 +1,7 @@
 'use server';
 import { kv } from '@vercel/kv';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { verifySession, COOKIE_NAME } from '@/lib/auth';
 import type { Logs } from '@/lib/weight-tracker/types';
@@ -19,6 +20,11 @@ function validateLogs(value: unknown): value is Logs {
     if (typeof saved !== 'boolean') return false;
   }
   return true;
+}
+
+export async function logout() {
+  (await cookies()).delete(COOKIE_NAME);
+  redirect('/pulse/login');
 }
 
 export async function saveLogs(logs: unknown) {

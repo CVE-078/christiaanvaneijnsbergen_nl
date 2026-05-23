@@ -15,8 +15,13 @@ export function logKey(week: number, type: WorkoutType, exIdx: number, setIdx: n
 }
 
 export function parseMaxSets(s: string): number {
-  const n = parseInt(s.split('–').pop() ?? s);
+  const n = parseInt(s.split('–').pop() ?? s, 10);
   return isNaN(n) ? 3 : n;
+}
+
+export function weekHasData(week: number, logs: Logs): boolean {
+  const prefix = `${week}-`;
+  return Object.keys(logs).some(k => k.startsWith(prefix) && logs[k]?.saved);
 }
 
 export function buildHistory(logs: Logs): HistorySession[] {
@@ -24,7 +29,10 @@ export function buildHistory(logs: Logs): HistorySession[] {
 
   for (const [key, val] of Object.entries(logs)) {
     if (!val?.saved) continue;
-    const [week, type, exIdxStr, setIdxStr] = key.split('-');
+    const parts = key.split('-');
+    if (parts.length !== 4) continue;
+    const [week, type, exIdxStr, setIdxStr] = parts;
+    if (!['push', 'pull', 'legs'].includes(type)) continue;
     const sessionKey = `${week}-${type}`;
     if (!sessions[sessionKey]) {
       sessions[sessionKey] = { week: Number(week), type: type as WorkoutType, sets: [] };
@@ -35,15 +43,4 @@ export function buildHistory(logs: Logs): HistorySession[] {
   return Object.values(sessions).sort(
     (a, b) => b.week - a.week || a.type.localeCompare(b.type),
   );
-}
-
-export function rirColor(rir: number): string {
-  if (rir === 0) return '#f43f5e';
-  if (rir === 1) return '#f97316';
-  if (rir === 2) return '#facc15';
-  return '#4ade80';
-}
-
-export function rirBgColor(rir: number): string {
-  return `${rirColor(rir)}22`;
 }

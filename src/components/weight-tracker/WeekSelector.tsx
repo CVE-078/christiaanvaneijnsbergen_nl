@@ -1,5 +1,7 @@
 'use client';
 import { PHASES } from '@/lib/weight-tracker/data';
+import { weekHasData } from '@/lib/weight-tracker/utils';
+import type { Logs } from '@/lib/weight-tracker/types';
 
 const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
 const ACCENT = '#ff6c2f';
@@ -10,9 +12,10 @@ const MUTED = '#3a3a3a';
 interface Props {
   activeWeek: number;
   onSelect: (w: number) => void;
+  logs: Logs;
 }
 
-export default function WeekSelector({ activeWeek, onSelect }: Props) {
+export default function WeekSelector({ activeWeek, onSelect, logs }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {PHASES.map(phase => (
@@ -29,7 +32,7 @@ export default function WeekSelector({ activeWeek, onSelect }: Props) {
                   onClick={() => onSelect(w)}
                   style={{
                     flex: 1,
-                    padding: '0.5rem',
+                    padding: '0.5rem 0.5rem 0.375rem',
                     borderRadius: '3px',
                     cursor: 'pointer',
                     fontFamily: MONO,
@@ -42,6 +45,14 @@ export default function WeekSelector({ activeWeek, onSelect }: Props) {
                   }}
                 >
                   {w}
+                  <span style={{
+                    display: 'block',
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: weekHasData(w, logs) ? (active ? '#000' : ACCENT) : 'transparent',
+                    margin: '2px auto 0',
+                  }} />
                 </button>
               );
             })}

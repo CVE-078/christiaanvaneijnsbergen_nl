@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPhase, getRIR, logKey, parseMaxSets, buildHistory, rirColor, rirBgColor } from '../utils';
+import { getPhase, getRIR, logKey, parseMaxSets, buildHistory, weekHasData } from '../utils';
 import type { Logs } from '../types';
 
 describe('getPhase', () => {
@@ -102,19 +102,16 @@ describe('buildHistory', () => {
   });
 });
 
-describe('rirColor', () => {
-  it('returns red for RIR 0', () => expect(rirColor(0)).toBe('#f43f5e'));
-  it('returns orange for RIR 1', () => expect(rirColor(1)).toBe('#f97316'));
-  it('returns yellow for RIR 2', () => expect(rirColor(2)).toBe('#facc15'));
-  it('returns green for RIR 3+', () => {
-    expect(rirColor(3)).toBe('#4ade80');
-    expect(rirColor(10)).toBe('#4ade80');
+describe('weekHasData', () => {
+  it('returns true when a saved entry exists for the week', () => {
+    const logs: Logs = { '3-push-0-0': { kg: 60, reps: 8, rir: 2, saved: true } };
+    expect(weekHasData(3, logs)).toBe(true);
   });
-});
-
-describe('rirBgColor', () => {
-  it('appends 22 to rirColor', () => {
-    expect(rirBgColor(0)).toBe('#f43f5e22');
-    expect(rirBgColor(3)).toBe('#4ade8022');
+  it('returns false when no saved entries exist for the week', () => {
+    expect(weekHasData(3, {})).toBe(false);
+  });
+  it('returns false when entry exists but is not saved', () => {
+    const logs: Logs = { '3-push-0-0': { kg: 60, reps: 8, rir: 2, saved: false } };
+    expect(weekHasData(3, logs)).toBe(false);
   });
 });

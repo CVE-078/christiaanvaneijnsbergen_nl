@@ -7,6 +7,7 @@ import { scrollToElement } from '@/utils';
 const Hero = () => {
     const [currentItemIndex, setCurrentItemIndex] = React.useState<number>(0);
     const [isHiding, setIsHiding] = React.useState<boolean>(false);
+    const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const descriptions: string[] = React.useMemo(() => {
         return [
@@ -24,13 +25,15 @@ const Hero = () => {
     React.useEffect(() => {
         const interval = setInterval(() => {
             setIsHiding(true);
-
-            setTimeout(() => {
+            timeoutRef.current = setTimeout(() => {
                 setCurrentItemIndex((index) => (index === descriptions.length - 1 ? 0 : index + 1));
                 setIsHiding(false);
             }, 1000);
         }, 3000);
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
     }, [descriptions]);
 
     return (

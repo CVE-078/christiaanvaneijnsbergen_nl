@@ -22,16 +22,20 @@ export async function createSession(): Promise<string> {
   return sessionHash(process.env.TRACKER_PASSWORD ?? '');
 }
 
+export function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export async function verifySession(token: string | undefined): Promise<boolean> {
   const envPw = process.env.TRACKER_PASSWORD;
   if (!token || !envPw) return false;
   const expected = await sessionHash(envPw);
-  if (token.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) {
-    diff |= token.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return diff === 0;
+  return timingSafeEqual(token, expected);
 }
 
 export async function hashPassword(password: string): Promise<string> {

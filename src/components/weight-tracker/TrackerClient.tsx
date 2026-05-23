@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { saveLogs } from '@/app/pulse/actions';
+import { saveLogs, logout } from '@/app/pulse/actions';
 import ProgramView from './views/ProgramView';
 import LogView from './views/LogView';
 import HistoryView from './views/HistoryView';
@@ -68,6 +68,18 @@ export default function TrackerClient({ initialLogs }: Props) {
     [logs, persist],
   );
 
+  function handleExport() {
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pulse-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: BG, color: '#d4d4d4' }}>
       {/* Header */}
@@ -91,7 +103,7 @@ export default function TrackerClient({ initialLogs }: Props) {
         <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: DIM, letterSpacing: '0.05em' }}>
           WK <strong style={{ color: ACCENT, fontWeight: 700 }}>{String(activeWeek).padStart(2, '0')}</strong> / 12
         </span>
-        <nav style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem' }}>
+        <nav style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
           {NAV.map(({ id, label }) => {
             const active = view === id;
             return (
@@ -115,6 +127,42 @@ export default function TrackerClient({ initialLogs }: Props) {
               </button>
             );
           })}
+          <span style={{ color: '#2a2a2a', paddingBottom: '1px' }}>|</span>
+          <button
+            onClick={handleExport}
+            style={{
+              fontFamily: MONO,
+              fontSize: '0.8125rem',
+              fontWeight: 500,
+              color: DIM,
+              background: 'none',
+              border: 'none',
+              borderBottom: '1px solid transparent',
+              paddingBottom: '1px',
+              cursor: 'pointer',
+              letterSpacing: '0.02em',
+            }}
+          >
+            Export
+          </button>
+          <form action={logout} style={{ display: 'inline' }}>
+            <button
+              type="submit"
+              style={{
+                fontFamily: MONO,
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                color: '#444',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                letterSpacing: '0.02em',
+                paddingBottom: '1px',
+              }}
+            >
+              Sign out
+            </button>
+          </form>
         </nav>
       </div>
 
@@ -147,6 +195,7 @@ export default function TrackerClient({ initialLogs }: Props) {
             setActiveWeek(w);
             setView('log');
           }}
+          logs={logs}
         />
       )}
       {view === 'history' && <HistoryView logs={logs} />}

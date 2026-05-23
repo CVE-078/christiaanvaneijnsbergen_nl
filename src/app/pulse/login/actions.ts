@@ -2,7 +2,7 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { kv } from '@vercel/kv';
-import { hashPassword, createSession, COOKIE_NAME, COOKIE_OPTIONS } from '@/lib/auth';
+import { hashPassword, createSession, COOKIE_NAME, COOKIE_OPTIONS, timingSafeEqual } from '@/lib/auth';
 
 export async function login(formData: FormData) {
   const entered = (formData.get('password') as string) ?? '';
@@ -17,11 +17,7 @@ export async function login(formData: FormData) {
 
   const enteredHash = await hashPassword(entered);
   const expectedHash = await hashPassword(envPw);
-  let diff = 0;
-  for (let i = 0; i < 64; i++) {
-    diff |= enteredHash.charCodeAt(i) ^ expectedHash.charCodeAt(i);
-  }
-  if (diff !== 0) redirect('/pulse/login?error=1');
+  if (!timingSafeEqual(enteredHash, expectedHash)) redirect('/pulse/login?error=1');
 
   const token = await createSession();
   (await cookies()).set(COOKIE_NAME, token, COOKIE_OPTIONS);

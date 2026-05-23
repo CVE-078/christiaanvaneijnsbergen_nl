@@ -1,5 +1,5 @@
 import { WORKOUTS } from '@/lib/weight-tracker/data';
-import { getPhase, getRIR } from '@/lib/weight-tracker/utils';
+import { getPhase, getRIR, weekHasData } from '@/lib/weight-tracker/utils';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
 import type { Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
@@ -41,7 +41,7 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
                 fontSize: '0.75rem',
                 fontWeight: active ? 700 : 400,
                 minWidth: '2.25rem',
-                padding: '0.625rem 0',
+                padding: '0.5rem 0 0.375rem',
                 textAlign: 'center',
                 background: 'none',
                 border: 'none',
@@ -53,6 +53,14 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
               }}
             >
               {w}
+              <span style={{
+                display: 'block',
+                width: 4,
+                height: 4,
+                borderRadius: '50%',
+                background: weekHasData(w, logs) ? ACCENT : 'transparent',
+                margin: '2px auto 0',
+              }} />
             </button>
           );
         })}
