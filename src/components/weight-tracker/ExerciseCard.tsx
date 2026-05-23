@@ -26,6 +26,8 @@ export default function ExerciseCard({ exercise, exIdx, week, type, color, logs,
     <div style={{ background: '#1a1a1a', borderRadius: '10px', overflow: 'hidden', marginBottom: '0.5rem' }}>
       <button
         onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}`}
         style={{
           width: '100%',
           padding: '0.875rem 1rem',
@@ -47,7 +49,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, color, logs,
           </div>
         </div>
         <ProgressBar filled={savedCount} total={maxSets} color={color} />
-        <span style={{ color: '#444', fontSize: '0.75rem', flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+        <span aria-hidden="true" style={{ color: '#444', fontSize: '0.75rem', flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (

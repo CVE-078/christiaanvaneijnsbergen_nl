@@ -1,11 +1,14 @@
 import { login } from './actions';
+import SubmitButton from './SubmitButton';
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
-  const { error } = await searchParams;
+  const params = await searchParams;
+  const isRateLimited = params.error === 'rate';
+  const isWrongPassword = params.error === '1';
 
   return (
     <div
@@ -29,23 +32,32 @@ export default async function LoginPage({
           maxWidth: '380px',
         }}
       >
-        <h1 style={{ color: '#fff', marginBottom: '0.25rem', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
+        <h1 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
           Weight Tracker
         </h1>
         <p style={{ color: '#555', fontSize: '0.8125rem', marginTop: '0.25rem', marginBottom: '1.5rem' }}>
           12-week PPL programme
         </p>
 
-        {error && (
-          <p style={{ color: '#f43f5e', fontSize: '0.875rem', marginBottom: '1rem', margin: '0 0 1rem' }}>
+        {isRateLimited && (
+          <p role="alert" style={{ color: '#f97316', fontSize: '0.875rem', margin: '0 0 1rem' }}>
+            Too many attempts. Please wait 15 minutes.
+          </p>
+        )}
+        {isWrongPassword && !isRateLimited && (
+          <p role="alert" style={{ color: '#f43f5e', fontSize: '0.875rem', margin: '0 0 1rem' }}>
             Incorrect password. Try again.
           </p>
         )}
 
-        <label style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.375rem' }}>
+        <label
+          htmlFor="password"
+          style={{ display: 'block', color: '#888', fontSize: '0.75rem', marginBottom: '0.375rem' }}
+        >
           Password
         </label>
         <input
+          id="password"
           type="password"
           name="password"
           required
@@ -65,23 +77,7 @@ export default async function LoginPage({
           }}
         />
 
-        <button
-          type="submit"
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '0.75rem',
-            background: '#00adb5',
-            border: 'none',
-            borderRadius: '10px',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: '1rem',
-            cursor: 'pointer',
-          }}
-        >
-          Enter
-        </button>
+        <SubmitButton />
       </form>
     </div>
   );

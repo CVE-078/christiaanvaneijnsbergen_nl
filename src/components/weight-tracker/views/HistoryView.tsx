@@ -1,3 +1,5 @@
+'use client';
+import { useMemo } from 'react';
 import { buildHistory } from '@/lib/weight-tracker/utils';
 import { WORKOUTS } from '@/lib/weight-tracker/data';
 import type { Logs } from '@/lib/weight-tracker/types';
@@ -7,7 +9,7 @@ interface Props {
 }
 
 export default function HistoryView({ logs }: Props) {
-  const sessions = buildHistory(logs);
+  const sessions = useMemo(() => buildHistory(logs), [logs]);
 
   if (sessions.length === 0) {
     return (

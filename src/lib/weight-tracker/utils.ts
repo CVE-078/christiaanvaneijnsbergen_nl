@@ -43,3 +43,7 @@ export function rirColor(rir: number): string {
   if (rir === 2) return '#facc15';
   return '#4ade80';
 }
+
+export function rirBgColor(rir: number): string {
+  return `${rirColor(rir)}22`;
+}

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { getRIR } from '@/lib/weight-tracker/utils';
 import type { LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
 
@@ -15,14 +15,18 @@ interface Props {
 export default function SetLogger({ setIdx, week, entry, onSave }: Props) {
   const [kg, setKg] = useState(entry?.kg?.toString() ?? '');
   const [reps, setReps] = useState(entry?.reps?.toString() ?? '');
+  const [isPending, startTransition] = useTransition();
   const targetRIR = getRIR(week);
   const saved = entry?.saved ?? false;
 
   function handleSave() {
     const kgNum = parseFloat(kg);
     const repsNum = parseInt(reps);
-    if (!kgNum || !repsNum) return;
-    onSave({ kg: kgNum, reps: repsNum, rir: targetRIR, saved: true });
+    if (!kgNum || kgNum <= 0 || kgNum > 500) return;
+    if (!repsNum || repsNum < 1 || repsNum > 100) return;
+    startTransition(() => {
+      onSave({ kg: kgNum, reps: repsNum, rir: targetRIR, saved: true });
+    });
   }
 
   return (
@@ -40,8 +44,12 @@ export default function SetLogger({ setIdx, week, entry, onSave }: Props) {
       </span>
       <input
         type="number"
+        aria-label="Weight in kilograms"
         placeholder="kg"
         value={kg}
+        min={0.5}
+        max={500}
+        step={0.5}
         onChange={e => setKg(e.target.value)}
         style={{
           width: '4rem',
@@ -57,8 +65,11 @@ export default function SetLogger({ setIdx, week, entry, onSave }: Props) {
       <span style={{ color: '#444' }}>×</span>
       <input
         type="number"
+        aria-label="Repetitions"
         placeholder="reps"
         value={reps}
+        min={1}
+        max={100}
         onChange={e => setReps(e.target.value)}
         style={{
           width: '4rem',
@@ -77,19 +88,20 @@ export default function SetLogger({ setIdx, week, entry, onSave }: Props) {
       ) : (
         <button
           onClick={handleSave}
+          disabled={isPending}
           style={{
             marginLeft: 'auto',
             padding: '0.375rem 0.75rem',
             background: '#222',
             border: '1px solid #3a3a3a',
             borderRadius: '6px',
-            color: '#ccc',
+            color: isPending ? '#555' : '#ccc',
             fontSize: '0.75rem',
-            cursor: 'pointer',
+            cursor: isPending ? 'not-allowed' : 'pointer',
             flexShrink: 0,
           }}
         >
-          Save
+          {isPending ? '…' : 'Save'}
         </button>
       )}
     </div>

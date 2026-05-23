@@ -1,12 +1,17 @@
 import * as React from 'react';
 
-interface Hamburger {
+interface HamburgerProps {
     openMenu: boolean;
     setOpenMenu: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const Hamburger = ({ openMenu, setOpenMenu }: Hamburger) => (
-    <div className="sm:hidden relative cursor-pointer" onClick={() => setOpenMenu((prevState) => !prevState)}>
+const Hamburger = ({ openMenu, setOpenMenu }: HamburgerProps) => (
+    <button
+        type="button"
+        aria-label="Toggle navigation menu"
+        aria-expanded={openMenu}
+        className="sm:hidden relative cursor-pointer bg-transparent border-0 p-0"
+        onClick={() => setOpenMenu((prevState) => !prevState)}>
         <div
             className={`flex flex-col justify-center h-10 w-10 transition-all duration-400 ${
                 openMenu ? 'gap-2 text-white' : 'gap-1.5 text-primary'
@@ -27,7 +32,7 @@ const Hamburger = ({ openMenu, setOpenMenu }: Hamburger) => (
                         : 'bg-primary'
                 }`}></span>
         </div>
-    </div>
+    </button>
 );
 
 export default Hamburger;

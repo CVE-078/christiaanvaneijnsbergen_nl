@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { saveLogs } from '@/app/weight-tracker/actions';
 import ProgramView from './views/ProgramView';
 import LogView from './views/LogView';
@@ -20,15 +20,36 @@ interface Props {
 
 export default function TrackerClient({ initialLogs }: Props) {
   const [logs, setLogs] = useState<Logs>(initialLogs);
-  const [activeWeek, setActiveWeek] = useState(1);
+  const [activeWeek, setActiveWeek] = useState<number>(() => {
+    if (typeof window === 'undefined') return 1;
+    return Number(localStorage.getItem('wt_week') ?? 1);
+  });
   const [activeTab, setActiveTab] = useState<WorkoutType>('push');
   const [view, setView] = useState<View>('log');
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  function updateLog(key: string, entry: LogEntry) {
-    const newLogs = { ...logs, [key]: entry };
-    setLogs(newLogs);
-    saveLogs(newLogs).catch(console.error);
-  }
+  useEffect(() => {
+    localStorage.setItem('wt_week', String(activeWeek));
+  }, [activeWeek]);
+
+  const updateLog = useCallback(
+    (key: string, entry: LogEntry) => {
+      const newLogs = { ...logs, [key]: entry };
+      setLogs(newLogs);
+      setSaveError(null);
+      saveLogs(newLogs).catch(() => {
+        setSaveError('Failed to save. Retrying…');
+        setTimeout(
+          () =>
+            saveLogs(newLogs).catch(() =>
+              setSaveError('Save failed. Check your connection and try again.'),
+            ),
+          3000,
+        );
+      });
+    },
+    [logs],
+  );
 
   return (
     <div
@@ -67,7 +88,7 @@ export default function TrackerClient({ initialLogs }: Props) {
                 fontWeight: 600,
                 cursor: 'pointer',
                 background: active ? '#fff' : 'transparent',
-                color: active ? '#000' : '#555',
+                color: active ? '#000' : '#888',
                 border: `1px solid ${active ? '#fff' : '#2a2a2a'}`,
                 transition: 'all 0.15s',
               }}
@@ -77,6 +98,23 @@ export default function TrackerClient({ initialLogs }: Props) {
           );
         })}
       </div>
+
+      {/* Save error banner */}
+      {saveError && (
+        <div
+          role="alert"
+          style={{
+            padding: '0.625rem 1rem',
+            background: '#f43f5e22',
+            borderBottom: '1px solid #f43f5e44',
+            color: '#f43f5e',
+            fontSize: '0.8125rem',
+            textAlign: 'center',
+          }}
+        >
+          {saveError}
+        </div>
+      )}
 
       {/* Views */}
       {view === 'log' && (

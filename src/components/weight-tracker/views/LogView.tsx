@@ -1,5 +1,5 @@
 import { WORKOUTS } from '@/lib/weight-tracker/data';
-import { getRIR, rirColor } from '@/lib/weight-tracker/utils';
+import { getRIR, rirColor, rirBgColor } from '@/lib/weight-tracker/utils';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
 import type { Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
@@ -16,6 +16,7 @@ export default function LogView({ activeWeek, activeTab, setActiveTab, logs, upd
   const workout = WORKOUTS[activeTab];
   const rir = getRIR(activeWeek);
   const accent = rirColor(rir);
+  const accentBg = rirBgColor(rir);
 
   return (
     <div style={{ padding: '1rem', maxWidth: 600, margin: '0 auto' }}>
@@ -43,7 +44,7 @@ export default function LogView({ activeWeek, activeTab, setActiveTab, logs, upd
             marginLeft: 'auto',
             padding: '0.25rem 0.625rem',
             borderRadius: '20px',
-            background: `${accent}22`,
+            background: accentBg,
             color: accent,
             fontSize: '0.75rem',
             fontWeight: 700,

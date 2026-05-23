@@ -1,6 +1,6 @@
 import { scrollToElement } from '@/utils';
 
-interface Navigation {
+interface NavigationProps {
     openMenu: boolean;
     setOpenMenu: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -11,7 +11,7 @@ interface NavigationItem {
     type: string;
 }
 
-const Navigation = ({ openMenu, setOpenMenu }: Navigation) => {
+const Navigation = ({ openMenu, setOpenMenu }: NavigationProps) => {
     const items: NavigationItem[] = [
         {
             name: 'about',

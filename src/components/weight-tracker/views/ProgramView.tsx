@@ -7,6 +7,8 @@ interface Props {
   onSelectWeek: (w: number) => void;
 }
 
+const BAR_MAX_HEIGHT_PX = 44; // matches container height of 54px minus label space
+
 export default function ProgramView({ activeWeek, onSelectWeek }: Props) {
   const phase = getPhase(activeWeek);
   const maxSets = Math.max(...VOLUME.map(v => v.sets));
@@ -60,7 +62,7 @@ export default function ProgramView({ activeWeek, onSelectWeek }: Props) {
                   style={{
                     width: '100%',
                     background: activeWeek === week ? ph.color : '#222',
-                    height: `${(sets / maxSets) * 44}px`,
+                    height: `${(sets / maxSets) * BAR_MAX_HEIGHT_PX}px`,
                     borderRadius: '2px 2px 0 0',
                     transition: 'background 0.15s',
                   }}
