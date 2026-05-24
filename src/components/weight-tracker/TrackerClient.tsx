@@ -6,22 +6,30 @@ import { MONO, ACCENT, BG, BORDER, DIM } from '@/lib/weight-tracker/theme';
 import ProgramView from './views/ProgramView';
 import LogView from './views/LogView';
 import HistoryView from './views/HistoryView';
-import type { Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
+import ProfileView from './views/ProfileView';
+import type { Logs, LogEntry, WorkoutType, Unit, Profile, BodyweightEntry } from '@/lib/weight-tracker/types';
 
-type View = 'log' | 'program' | 'history';
+type View = 'log' | 'program' | 'history' | 'profile';
 
 const NAV: { id: View; label: string }[] = [
   { id: 'log', label: 'Log' },
   { id: 'program', label: 'Program' },
   { id: 'history', label: 'History' },
+  { id: 'profile', label: 'Profile' },
 ];
 
 interface Props {
   initialLogs: Logs;
+  initialProfile: Profile;
+  initialBodyweightLogs: BodyweightEntry[];
+  email: string;
 }
 
-export default function TrackerClient({ initialLogs }: Props) {
+export default function TrackerClient({ initialLogs, initialProfile, initialBodyweightLogs, email }: Props) {
   const [logs, setLogs] = useState<Logs>(initialLogs);
+  const [unit, setUnit] = useState<Unit>(initialProfile.unit);
+  const [displayName, setDisplayName] = useState<string | null>(initialProfile.display_name);
+  const [bodyweightLogs, setBodyweightLogs] = useState<BodyweightEntry[]>(initialBodyweightLogs);
   const [activeWeek, setActiveWeek] = useState<number>(() => {
     if (typeof window === 'undefined') return 1;
     const stored = Number(localStorage.getItem('wt_week'));
@@ -285,6 +293,7 @@ export default function TrackerClient({ initialLogs }: Props) {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           logs={logs}
+          unit={unit}
           updateLog={updateLog}
           deleteLog={deleteLog}
           timerTrigger={timerTrigger}
@@ -300,7 +309,18 @@ export default function TrackerClient({ initialLogs }: Props) {
           logs={logs}
         />
       )}
-      {view === 'history' && <HistoryView logs={logs} />}
+      {view === 'history' && <HistoryView logs={logs} unit={unit} />}
+      {view === 'profile' && (
+        <ProfileView
+          email={email}
+          displayName={displayName}
+          unit={unit}
+          bodyweightLogs={bodyweightLogs}
+          onUnitChange={setUnit}
+          onDisplayNameChange={setDisplayName}
+          onBodyweightLogsChange={setBodyweightLogs}
+        />
+      )}
     </div>
   );
 }

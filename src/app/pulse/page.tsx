@@ -2,9 +2,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/weight-tracker/validation';
 import TrackerClient from '@/components/weight-tracker/TrackerClient';
-import type { Logs } from '@/lib/weight-tracker/types';
+import type { Logs, Profile, BodyweightEntry } from '@/lib/weight-tracker/types';
 
-// Always fetch fresh — private page, no caching
 export const revalidate = 0;
 
 export default async function PulsePage() {
@@ -21,7 +20,6 @@ export default async function PulsePage() {
 
     if (error) throw error;
 
-    // Reconstruct flat Logs shape from relational rows
     const raw: Record<string, unknown> = {};
     for (const row of data ?? []) {
       raw[`${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`] = {
@@ -37,5 +35,36 @@ export default async function PulsePage() {
     throw new Error('Failed to load training data. Please try again.');
   }
 
-  return <TrackerClient initialLogs={logs} />;
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('display_name, unit')
+    .eq('id', user.id)
+    .single();
+
+  const profile: Profile = {
+    display_name: profileRow?.display_name ?? null,
+    unit: (profileRow?.unit === 'lbs' ? 'lbs' : 'kg'),
+  };
+
+  const { data: bwRows } = await supabase
+    .from('bodyweight_logs')
+    .select('id, logged_at, weight_kg')
+    .eq('user_id', user.id)
+    .order('logged_at', { ascending: false })
+    .limit(90);
+
+  const bodyweightLogs: BodyweightEntry[] = (bwRows ?? []).map(r => ({
+    id: r.id,
+    logged_at: r.logged_at,
+    weight_kg: Number(r.weight_kg),
+  }));
+
+  return (
+    <TrackerClient
+      initialLogs={logs}
+      initialProfile={profile}
+      initialBodyweightLogs={bodyweightLogs}
+      email={user.email ?? ''}
+    />
+  );
 }

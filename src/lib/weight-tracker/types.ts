@@ -9,6 +9,19 @@ export type Logs = Record<string, LogEntry>;
 
 export type WorkoutType = 'push' | 'pull' | 'legs';
 
+export type Unit = 'kg' | 'lbs';
+
+export interface Profile {
+  display_name: string | null;
+  unit: Unit;
+}
+
+export interface BodyweightEntry {
+  id: string;
+  logged_at: string; // YYYY-MM-DD
+  weight_kg: number;
+}
+
 export interface Phase {
   weeks: number[];
   label: string;

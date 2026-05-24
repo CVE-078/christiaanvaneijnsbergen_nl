@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/weight-tracker/validation';
-import type { Logs } from '@/lib/weight-tracker/types';
+import type { Logs, Unit, BodyweightEntry } from '@/lib/weight-tracker/types';
 
 export async function logout() {
   const supabase = await createClient();
@@ -69,4 +69,48 @@ export async function saveLogs(logs: unknown) {
   }
 
   revalidatePath('/pulse');
+}
+
+export async function updateProfile(displayName: string | null, unit: Unit) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const { error } = await supabase.from('profiles').upsert(
+    { id: user.id, display_name: displayName, unit, updated_at: new Date().toISOString() },
+    { onConflict: 'id' },
+  );
+  if (error) throw new Error('Failed to update profile');
+}
+
+export async function logBodyWeight(weightKg: number): Promise<BodyweightEntry> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from('bodyweight_logs')
+    .upsert(
+      { user_id: user.id, logged_at: today, weight_kg: weightKg },
+      { onConflict: 'user_id,logged_at' },
+    )
+    .select('id, logged_at, weight_kg')
+    .single();
+
+  if (error || !data) throw new Error('Failed to log body weight');
+  return { id: data.id, logged_at: data.logged_at, weight_kg: Number(data.weight_kg) };
+}
+
+export async function deleteBodyWeight(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const { error } = await supabase
+    .from('bodyweight_logs')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+  if (error) throw new Error('Failed to delete entry');
 }

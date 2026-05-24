@@ -1,8 +1,23 @@
 import { PHASES } from './data';
-import type { Phase, Logs, WorkoutType, HistorySession, LogEntry } from './types';
+import type { Phase, Logs, WorkoutType, HistorySession, LogEntry, Unit } from './types';
 
 export const MIN_KG = 0.5;
 export const MAX_KG = 500;
+export const KG_TO_LBS = 2.20462;
+
+export function toDisplay(kg: number, unit: Unit): number {
+  if (unit === 'lbs') return Math.round(kg * KG_TO_LBS * 10) / 10;
+  return kg;
+}
+
+export function toKg(value: number, unit: Unit): number {
+  if (unit === 'lbs') return Math.round((value / KG_TO_LBS) * 100) / 100;
+  return value;
+}
+
+export function getInitials(name: string, max = 3): string {
+  return name.trim().split(/\s+/).filter(Boolean).slice(0, max).map(w => w[0].toUpperCase()).join('');
+}
 
 export function getPhase(week: number): Phase {
   return PHASES.find(p => p.weeks.includes(week)) ?? PHASES[0];
