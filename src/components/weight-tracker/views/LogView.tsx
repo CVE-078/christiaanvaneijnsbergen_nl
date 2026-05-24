@@ -5,7 +5,7 @@ import { MONO, ACCENT, BORDER, DIM } from '@/lib/weight-tracker/theme';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
 import RestTimer from '../RestTimer';
-import type { Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
+import type { Logs, LogEntry, WorkoutType, Unit } from '@/lib/weight-tracker/types';
 
 interface Props {
   activeWeek: number;
@@ -13,12 +13,13 @@ interface Props {
   activeTab: WorkoutType;
   setActiveTab: (t: WorkoutType) => void;
   logs: Logs;
+  unit: Unit;
   updateLog: (key: string, entry: LogEntry) => void;
   deleteLog: (key: string) => void;
   timerTrigger: number;
 }
 
-export default function LogView({ activeWeek, onSelectWeek, activeTab, setActiveTab, logs, updateLog, deleteLog, timerTrigger }: Props) {
+export default function LogView({ activeWeek, onSelectWeek, activeTab, setActiveTab, logs, unit, updateLog, deleteLog, timerTrigger }: Props) {
   const workout = WORKOUTS[activeTab];
   const rir = getRIR(activeWeek);
   const phase = getPhase(activeWeek);
@@ -90,6 +91,7 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
             type={activeTab}
             logs={logs}
             prMap={prMap}
+            unit={unit}
             onSave={updateLog}
             onDelete={deleteLog}
           />

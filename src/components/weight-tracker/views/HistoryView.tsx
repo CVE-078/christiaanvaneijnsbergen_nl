@@ -1,15 +1,16 @@
 'use client';
 import { useMemo } from 'react';
-import { buildHistory, computePRMap, calcE1RM } from '@/lib/weight-tracker/utils';
+import { buildHistory, computePRMap, calcE1RM, toDisplay } from '@/lib/weight-tracker/utils';
 import { WORKOUTS } from '@/lib/weight-tracker/data';
 import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
-import type { Logs } from '@/lib/weight-tracker/types';
+import type { Logs, Unit } from '@/lib/weight-tracker/types';
 
 interface Props {
   logs: Logs;
+  unit: Unit;
 }
 
-export default function HistoryView({ logs }: Props) {
+export default function HistoryView({ logs, unit }: Props) {
   const sessions = useMemo(() => buildHistory(logs), [logs]);
   const prMap = useMemo(() => computePRMap(logs), [logs]);
 
@@ -67,7 +68,7 @@ export default function HistoryView({ logs }: Props) {
                       {exercise?.name ?? `Exercise ${set.exIdx + 1}`}
                     </span>
                     <span style={{ fontFamily: MONO, color: '#fff', fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}>
-                      {set.kg} kg × {set.reps}
+                      {toDisplay(set.kg, unit)} {unit} × {set.reps}
                     </span>
                     {isPR && (
                       <span style={{

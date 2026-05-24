@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { logKey, parseMaxSets, calcE1RM } from '@/lib/weight-tracker/utils';
 import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
 import SetLogger from './SetLogger';
-import type { Exercise, Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
+import type { Exercise, Logs, LogEntry, WorkoutType, Unit } from '@/lib/weight-tracker/types';
 
 interface Props {
   exercise: Exercise;
@@ -12,11 +12,12 @@ interface Props {
   type: WorkoutType;
   logs: Logs;
   prMap: Record<string, number>;
+  unit: Unit;
   onSave: (key: string, entry: LogEntry) => void;
   onDelete: (key: string) => void;
 }
 
-export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap, onSave, onDelete }: Props) {
+export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap, unit, onSave, onDelete }: Props) {
   const [open, setOpen] = useState(false);
   const maxSets = parseMaxSets(exercise.sets);
   const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, type, exIdx, i)).filter(
@@ -71,6 +72,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                 entry={entry}
                 previousEntry={prevEntry?.saved ? prevEntry : undefined}
                 isPR={isPR}
+                unit={unit}
                 onSave={e => onSave(logKey(week, type, exIdx, i), e)}
                 onDelete={() => onDelete(logKey(week, type, exIdx, i))}
               />

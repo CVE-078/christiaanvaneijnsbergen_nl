@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
-import { getRIR, computeSuggestion } from '@/lib/weight-tracker/utils';
+import { useEffect, useState } from 'react';
+import { getRIR, computeSuggestion, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/weight-tracker/utils';
 import { MONO, ACCENT, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
-import type { LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
+import type { LogEntry, WorkoutType, Unit } from '@/lib/weight-tracker/types';
 
 interface Props {
   setIdx: number;
@@ -11,6 +11,7 @@ interface Props {
   entry: LogEntry | undefined;
   previousEntry?: LogEntry;
   isPR?: boolean;
+  unit: Unit;
   onSave: (entry: LogEntry) => void;
   onDelete?: () => void;
 }
@@ -28,31 +29,53 @@ const inputStyle = {
   outline: 'none',
 };
 
-export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, onSave, onDelete }: Props) {
+export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, unit, onSave, onDelete }: Props) {
   const suggestion = computeSuggestion(previousEntry, week);
-  const [kg, setKg] = useState(entry?.kg?.toString() ?? (suggestion !== null ? String(suggestion) : ''));
+
+  function initKg() {
+    if (entry?.kg !== undefined) return String(toDisplay(entry.kg, unit));
+    if (suggestion !== null) return String(toDisplay(suggestion, unit));
+    return '';
+  }
+
+  const [kg, setKg] = useState(initKg);
   const [reps, setReps] = useState(entry?.reps?.toString() ?? '');
   const [editing, setEditing] = useState(false);
   const targetRIR = getRIR(week);
   const saved = entry?.saved ?? false;
 
+  // Sync display value when unit changes while input is visible
+  useEffect(() => {
+    if (!saved || editing) {
+      const base = entry?.kg ?? (suggestion !== null ? suggestion : null);
+      if (base !== null) setKg(String(toDisplay(base, unit)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unit]);
+
+  const displayMin = toDisplay(MIN_KG, unit);
+  const displayMax = toDisplay(MAX_KG, unit);
+  const displayStep = unit === 'lbs' ? 1 : 0.5;
+
   function handleSave() {
-    const kgNum = parseFloat(kg);
+    const displayNum = parseFloat(kg);
     const repsNum = parseInt(reps, 10);
-    if (isNaN(kgNum) || kgNum <= 0 || kgNum > 500) return;
+    if (isNaN(displayNum) || displayNum <= 0) return;
+    const kgNum = toKg(displayNum, unit);
+    if (kgNum <= 0 || kgNum > MAX_KG) return;
     if (!repsNum || repsNum < 1 || repsNum > 100) return;
     onSave({ kg: kgNum, reps: repsNum, rir: targetRIR, saved: true });
     setEditing(false);
   }
 
   function handleEdit() {
-    setKg(entry?.kg?.toString() ?? '');
+    setKg(entry?.kg !== undefined ? String(toDisplay(entry.kg, unit)) : '');
     setReps(entry?.reps?.toString() ?? '');
     setEditing(true);
   }
 
   function handleCancel() {
-    setKg(entry?.kg?.toString() ?? '');
+    setKg(entry?.kg !== undefined ? String(toDisplay(entry.kg, unit)) : '');
     setReps(entry?.reps?.toString() ?? '');
     setEditing(false);
   }
@@ -78,12 +101,12 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
         <>
           <input
             type="number"
-            aria-label="Weight in kilograms"
-            placeholder="kg"
+            aria-label={`Weight in ${unit}`}
+            placeholder={unit}
             value={kg}
-            min={0.5}
-            max={500}
-            step={0.5}
+            min={displayMin}
+            max={displayMax}
+            step={displayStep}
             onChange={e => setKg(e.target.value)}
             style={inputStyle}
           />
@@ -101,7 +124,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
           <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, flexShrink: 0 }}>{targetRIR} RIR</span>
           {previousEntry && (
             <span style={{ fontFamily: MONO, fontSize: '0.5625rem', color: '#444', letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              ↑ {previousEntry.kg} kg × {previousEntry.reps}
+              ↑ {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
             </span>
           )}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.375rem' }}>
@@ -124,7 +147,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
       ) : (
         <>
           <span style={{ fontFamily: MONO, fontSize: '0.8125rem', color: '#d4d4d4' }}>
-            {entry!.kg} kg × {entry!.reps}
+            {toDisplay(entry!.kg, unit)} {unit} × {entry!.reps}
           </span>
           {isPR && (
             <span style={{ fontFamily: MONO, fontSize: '0.5rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT, background: `${ACCENT}18`, border: `1px solid ${ACCENT}44`, borderRadius: '2px', padding: '0.1rem 0.3rem', flexShrink: 0 }}>

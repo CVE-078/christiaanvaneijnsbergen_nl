@@ -10,13 +10,14 @@ const defaultProps = {
   week: 1,
   type: 'push' as const,
   entry: undefined,
+  unit: 'kg' as const,
   onSave: vi.fn(),
 };
 
 describe('SetLogger', () => {
   it('renders kg and reps inputs and a Save button when not saved', () => {
     render(<SetLogger {...defaultProps} />);
-    expect(screen.getByRole('spinbutton', { name: /weight in kilograms/i })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
@@ -32,7 +33,7 @@ describe('SetLogger', () => {
     const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
     render(<SetLogger {...defaultProps} entry={savedEntry} />);
     await userEvent.click(screen.getByRole('button', { name: /edit/i }));
-    expect(screen.getByRole('spinbutton', { name: /weight in kilograms/i })).toHaveValue(80);
+    expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(80);
     expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
   });
 
@@ -40,7 +41,7 @@ describe('SetLogger', () => {
     const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
     render(<SetLogger {...defaultProps} entry={savedEntry} />);
     await userEvent.click(screen.getByRole('button', { name: /edit/i }));
-    const kgInput = screen.getByRole('spinbutton', { name: /weight in kilograms/i });
+    const kgInput = screen.getByRole('spinbutton', { name: /weight in kg/i });
     await userEvent.clear(kgInput);
     await userEvent.type(kgInput, '999');
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
@@ -53,7 +54,7 @@ describe('SetLogger', () => {
     const onSave = vi.fn();
     render(<SetLogger {...defaultProps} onSave={onSave} />);
 
-    await userEvent.type(screen.getByRole('spinbutton', { name: /weight in kilograms/i }), '60');
+    await userEvent.type(screen.getByRole('spinbutton', { name: /weight in kg/i }), '60');
     await userEvent.type(screen.getByRole('spinbutton', { name: /repetitions/i }), '10');
     await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
@@ -97,7 +98,7 @@ describe('SetLogger', () => {
     // week 2, prevTarget = getRIR(1) = 3, prev.rir = 4 > 3 → +2.5 → 62.5
     const prev: LogEntry = { kg: 60, reps: 8, rir: 4, saved: true };
     render(<SetLogger {...defaultProps} week={2} previousEntry={prev} />);
-    expect(screen.getByRole('spinbutton', { name: /weight in kilograms/i })).toHaveValue(62.5);
+    expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(62.5);
   });
 
   it('shows PR badge when isPR is true and entry is saved', () => {
