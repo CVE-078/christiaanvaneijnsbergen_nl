@@ -15,3 +15,12 @@
     outline: 2px solid #00adb5;
     outline-offset: 2px;
 }
+
+/* Pulse tracker responsive nav */
+.pulse-desktop-nav { display: contents; }
+.pulse-hamburger   { display: none; }
+
+@media (max-width: 639px) {
+  .pulse-desktop-nav { display: none; }
+  .pulse-hamburger   { display: flex; }
+}

@@ -30,8 +30,10 @@ export default function TrackerClient({ initialLogs }: Props) {
   const [activeTab, setActiveTab] = useState<WorkoutType>('push');
   const [view, setView] = useState<View>('log');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const streak = useMemo(() => computeStreak(logs), [logs]);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem('wt_week', String(activeWeek));
@@ -42,6 +44,18 @@ export default function TrackerClient({ initialLogs }: Props) {
       if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
     };
   }, []);
+
+  // Close mobile menu on outside tap
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [menuOpen]);
 
   const persist = useCallback(
     (newLogs: Logs) => {
@@ -86,95 +100,165 @@ export default function TrackerClient({ initialLogs }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  function navigate(v: View) {
+    setView(v);
+    setMenuOpen(false);
+  }
+
+  const hamburgerLineStyle = {
+    display: 'block',
+    width: '18px',
+    height: '1.5px',
+    background: DIM,
+    borderRadius: '1px',
+    transition: 'transform 0.2s, opacity 0.2s',
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: BG, color: '#d4d4d4' }}>
       {/* Header */}
       <div
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          background: BG,
-          borderBottom: `1px solid ${BORDER}`,
-          padding: '0 1rem',
-          height: 56,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-        }}
+        ref={menuRef}
+        style={{ position: 'sticky', top: 0, zIndex: 10, background: BG }}
       >
-        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: '0.8125rem', letterSpacing: '0.08em', color: '#fff', textTransform: 'uppercase', flexShrink: 0 }}>
-          Pulse<span style={{ color: ACCENT }}>.</span>
-        </span>
-        <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: DIM, letterSpacing: '0.05em' }}>
-          WK <strong style={{ color: ACCENT, fontWeight: 700 }}>{String(activeWeek).padStart(2, '0')}</strong> / 12
-        </span>
-        {streak > 0 && (
-          <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: '#555', letterSpacing: '0.05em' }}>
-            · {streak}WK
+        <div
+          style={{
+            borderBottom: `1px solid ${menuOpen ? 'transparent' : BORDER}`,
+            padding: '0 1rem',
+            height: 56,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}
+        >
+          {/* Brand */}
+          <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: '0.8125rem', letterSpacing: '0.08em', color: '#fff', textTransform: 'uppercase', flexShrink: 0 }}>
+            Pulse<span style={{ color: ACCENT }}>.</span>
           </span>
-        )}
-        <nav style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-          {NAV.map(({ id, label }) => {
-            const active = view === id;
-            return (
+
+          {/* Week + streak */}
+          <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: DIM, letterSpacing: '0.05em', flexShrink: 0 }}>
+            WK <strong style={{ color: ACCENT, fontWeight: 700 }}>{String(activeWeek).padStart(2, '0')}</strong> / 12
+          </span>
+          {streak > 0 && (
+            <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: '#555', letterSpacing: '0.05em', flexShrink: 0 }}>
+              · {streak}WK
+            </span>
+          )}
+
+          {/* Desktop nav */}
+          <nav
+            style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center' }}
+            aria-label="Main navigation"
+          >
+            {/* Nav buttons — hidden on mobile via container query workaround using max-width inline trick */}
+            <span style={{ display: 'contents' }} className="pulse-desktop-nav">
+              {NAV.map(({ id, label }) => {
+                const active = view === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => navigate(id)}
+                    style={{
+                      fontFamily: MONO,
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      color: active ? '#fff' : DIM,
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: active ? `1px solid ${ACCENT}` : '1px solid transparent',
+                      paddingBottom: '1px',
+                      cursor: 'pointer',
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              <span style={{ color: '#2a2a2a', paddingBottom: '1px' }}>|</span>
               <button
-                key={id}
-                onClick={() => setView(id)}
-                style={{
-                  fontFamily: MONO,
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                  color: active ? '#fff' : DIM,
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: active ? `1px solid ${ACCENT}` : '1px solid transparent',
-                  paddingBottom: '1px',
-                  cursor: 'pointer',
-                  letterSpacing: '0.02em',
-                }}
+                onClick={handleExport}
+                style={{ fontFamily: MONO, fontSize: '0.8125rem', fontWeight: 500, color: DIM, background: 'none', border: 'none', borderBottom: '1px solid transparent', paddingBottom: '1px', cursor: 'pointer', letterSpacing: '0.02em' }}
               >
-                {label}
+                Export
               </button>
-            );
-          })}
-          <span style={{ color: '#2a2a2a', paddingBottom: '1px' }}>|</span>
-          <button
-            onClick={handleExport}
+              <form action={logout} style={{ display: 'inline' }}>
+                <button
+                  type="submit"
+                  style={{ fontFamily: MONO, fontSize: '0.75rem', fontWeight: 500, color: '#444', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.02em', paddingBottom: '1px' }}
+                >
+                  Sign out
+                </button>
+              </form>
+            </span>
+
+            {/* Hamburger — visible on mobile only */}
+            <button
+              className="pulse-hamburger"
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}
+            >
+              <span style={{ ...hamburgerLineStyle, transform: menuOpen ? 'translateY(5.5px) rotate(45deg)' : 'none' }} />
+              <span style={{ ...hamburgerLineStyle, opacity: menuOpen ? 0 : 1 }} />
+              <span style={{ ...hamburgerLineStyle, transform: menuOpen ? 'translateY(-5.5px) rotate(-45deg)' : 'none' }} />
+            </button>
+          </nav>
+        </div>
+
+        {/* Mobile dropdown menu */}
+        {menuOpen && (
+          <div
             style={{
-              fontFamily: MONO,
-              fontSize: '0.8125rem',
-              fontWeight: 500,
-              color: DIM,
-              background: 'none',
-              border: 'none',
-              borderBottom: '1px solid transparent',
-              paddingBottom: '1px',
-              cursor: 'pointer',
-              letterSpacing: '0.02em',
+              borderBottom: `1px solid ${BORDER}`,
+              padding: '0.5rem 0 0.75rem',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            Export
-          </button>
-          <form action={logout} style={{ display: 'inline' }}>
+            {NAV.map(({ id, label }) => {
+              const active = view === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => navigate(id)}
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: '0.9375rem',
+                    fontWeight: active ? 700 : 400,
+                    color: active ? '#fff' : DIM,
+                    background: 'none',
+                    border: 'none',
+                    borderLeft: `2px solid ${active ? ACCENT : 'transparent'}`,
+                    textAlign: 'left',
+                    padding: '0.75rem 1.25rem',
+                    cursor: 'pointer',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+            <div style={{ height: '1px', background: '#1a1a1a', margin: '0.25rem 1rem' }} />
             <button
-              type="submit"
-              style={{
-                fontFamily: MONO,
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                color: '#444',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                letterSpacing: '0.02em',
-                paddingBottom: '1px',
-              }}
+              onClick={() => { handleExport(); setMenuOpen(false); }}
+              style={{ fontFamily: MONO, fontSize: '0.875rem', color: DIM, background: 'none', border: 'none', borderLeft: '2px solid transparent', textAlign: 'left', padding: '0.75rem 1.25rem', cursor: 'pointer', letterSpacing: '0.02em' }}
             >
-              Sign out
+              Export
             </button>
-          </form>
-        </nav>
+            <form action={logout}>
+              <button
+                type="submit"
+                style={{ fontFamily: MONO, fontSize: '0.875rem', color: '#444', background: 'none', border: 'none', borderLeft: '2px solid transparent', textAlign: 'left', padding: '0.75rem 1.25rem', cursor: 'pointer', letterSpacing: '0.02em', width: '100%' }}
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Save error */}
