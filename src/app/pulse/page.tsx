@@ -1,7 +1,5 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { kv } from '@vercel/kv';
-import { verifySession, COOKIE_NAME } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/weight-tracker/validation';
 import TrackerClient from '@/components/weight-tracker/TrackerClient';
 import type { Logs } from '@/lib/weight-tracker/types';
@@ -10,14 +8,30 @@ import type { Logs } from '@/lib/weight-tracker/types';
 export const revalidate = 0;
 
 export default async function PulsePage() {
-  // Re-validate in the RSC; middleware is a first line of defence, not the only one
-  const cookie = (await cookies()).get(COOKIE_NAME)?.value;
-  if (!await verifySession(cookie)) redirect('/pulse/login');
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/pulse/login');
 
   let logs: Logs = {};
   try {
-    const raw = await kv.get('ppl-logs');
-    // validateLogs returns false for null (no data yet) as well as malformed data
+    const { data, error } = await supabase
+      .from('set_logs')
+      .select('week, workout_type, ex_idx, set_idx, kg, reps, rir, saved')
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    // Reconstruct flat Logs shape from relational rows
+    const raw: Record<string, unknown> = {};
+    for (const row of data ?? []) {
+      raw[`${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`] = {
+        kg: Number(row.kg),
+        reps: row.reps,
+        rir: row.rir,
+        saved: row.saved,
+      };
+    }
+
     if (validateLogs(raw)) logs = raw;
   } catch {
     throw new Error('Failed to load training data. Please try again.');

@@ -1,7 +1,6 @@
 'use client';
 import { useFormStatus } from 'react-dom';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+import { MONO } from '@/lib/weight-tracker/theme';
 
 export default function SubmitButton() {
   const { pending } = useFormStatus();
@@ -27,7 +26,7 @@ export default function SubmitButton() {
         transition: 'background 0.15s',
       }}
     >
-      {pending ? 'Entering…' : 'Enter'}
+      {pending ? 'Signing in…' : 'Sign in'}
     </button>
   );
 }

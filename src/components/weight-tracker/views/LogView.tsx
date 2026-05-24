@@ -4,6 +4,7 @@ import { getPhase, getRIR, weekHasData, computePRMap } from '@/lib/weight-tracke
 import { MONO, ACCENT, BORDER, DIM } from '@/lib/weight-tracker/theme';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
+import RestTimer from '../RestTimer';
 import type { Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
 
 interface Props {
@@ -14,9 +15,10 @@ interface Props {
   logs: Logs;
   updateLog: (key: string, entry: LogEntry) => void;
   deleteLog: (key: string) => void;
+  timerTrigger: number;
 }
 
-export default function LogView({ activeWeek, onSelectWeek, activeTab, setActiveTab, logs, updateLog, deleteLog }: Props) {
+export default function LogView({ activeWeek, onSelectWeek, activeTab, setActiveTab, logs, updateLog, deleteLog, timerTrigger }: Props) {
   const workout = WORKOUTS[activeTab];
   const rir = getRIR(activeWeek);
   const phase = getPhase(activeWeek);
@@ -26,6 +28,7 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
   return (
     <div>
       <WorkoutTabs activeTab={activeTab} onSelect={setActiveTab} />
+      <RestTimer trigger={timerTrigger} />
 
       {/* Week row */}
       <div style={{ display: 'flex', padding: '0 1rem', overflowX: 'auto', scrollbarWidth: 'none', borderBottom: `1px solid ${BORDER}` }}>
