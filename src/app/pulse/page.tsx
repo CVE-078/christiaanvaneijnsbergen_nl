@@ -53,11 +53,13 @@ export default async function PulsePage() {
     .order('logged_at', { ascending: false })
     .limit(90);
 
-  const bodyweightLogs: BodyweightEntry[] = (bwRows ?? []).map(r => ({
-    id: r.id,
-    logged_at: r.logged_at,
-    weight_kg: Number(r.weight_kg),
-  }));
+  const bodyweightLogs: BodyweightEntry[] = (bwRows ?? []).map(
+    (r: { id: string; logged_at: string; weight_kg: number }) => ({
+      id: r.id,
+      logged_at: r.logged_at,
+      weight_kg: Number(r.weight_kg),
+    }),
+  );
 
   return (
     <TrackerClient

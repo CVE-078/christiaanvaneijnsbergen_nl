@@ -1,4 +1,4 @@
-import type { Phase, VolumeEntry, Workout, ScheduleDay } from './types';
+import type { Phase, VolumeEntry, Workout, ScheduleDay, WorkoutType } from './types';
 
 export const PHASES: Phase[] = [
   { weeks: [1, 2, 3],   label: 'Phase 1', subtitle: 'Accumulation',    rir: [3, 3, 2], color: '#4ade80' },
@@ -14,7 +14,7 @@ export const VOLUME: VolumeEntry[] = [
   { week: 10, sets: 18 }, { week: 11, sets: 20 }, { week: 12, sets: 10 },
 ];
 
-export const WORKOUTS: Record<string, Workout> = {
+export const WORKOUTS: Record<WorkoutType, Workout> = {
   push: {
     label: 'PUSH', icon: '△', color: '#f97316', description: 'Chest · Shoulders · Triceps',
     exercises: [

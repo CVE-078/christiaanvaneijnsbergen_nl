@@ -54,7 +54,8 @@ export async function saveLogs(logs: unknown) {
     .eq('user_id', user.id);
 
   const toDelete = (existing ?? []).filter(
-    row => !currentKeys.has(`${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`),
+    (row: { week: number; workout_type: string; ex_idx: number; set_idx: number }) =>
+      !currentKeys.has(`${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`),
   );
 
   for (const row of toDelete) {

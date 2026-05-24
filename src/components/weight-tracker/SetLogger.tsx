@@ -50,6 +50,8 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
       const base = entry?.kg ?? (suggestion !== null ? suggestion : null);
       if (base !== null) setKg(String(toDisplay(base, unit)));
     }
+    // Intentionally only [unit]: re-syncs display value when unit changes.
+    // entry and suggestion are captured at mount; they don't change independently.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unit]);
 
