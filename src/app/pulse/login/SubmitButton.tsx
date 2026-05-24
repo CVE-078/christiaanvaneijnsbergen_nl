@@ -9,6 +9,7 @@ export default function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
+      aria-busy={pending}
       style={{
         display: 'block',
         width: '100%',

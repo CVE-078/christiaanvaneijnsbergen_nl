@@ -1,15 +1,9 @@
 'use client';
-import { useState, useMemo } from 'react';
-import { logKey, parseMaxSets, calcE1RM, computePRMap } from '@/lib/weight-tracker/utils';
+import { useState } from 'react';
+import { logKey, parseMaxSets, calcE1RM } from '@/lib/weight-tracker/utils';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
 import SetLogger from './SetLogger';
 import type { Exercise, Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
-const ACCENT = '#ff6c2f';
-const SURFACE = '#141414';
-const BORDER = '#1f1f1f';
-const DIM = '#555';
-const MUTED = '#3a3a3a';
 
 interface Props {
   exercise: Exercise;
@@ -17,17 +11,17 @@ interface Props {
   week: number;
   type: WorkoutType;
   logs: Logs;
+  prMap: Record<string, number>;
   onSave: (key: string, entry: LogEntry) => void;
   onDelete: (key: string) => void;
 }
 
-export default function ExerciseCard({ exercise, exIdx, week, type, logs, onSave, onDelete }: Props) {
+export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap, onSave, onDelete }: Props) {
   const [open, setOpen] = useState(false);
   const maxSets = parseMaxSets(exercise.sets);
   const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, type, exIdx, i)).filter(
     k => logs[k]?.saved,
   ).length;
-  const prMap = useMemo(() => computePRMap(logs), [logs]);
   const bestE1RM = prMap[`${type}-${exIdx}`] ?? 0;
 
   return (
@@ -36,17 +30,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, onSave
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}`}
-        style={{
-          width: '100%',
-          padding: '0.875rem 1rem',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          textAlign: 'left',
-        }}
+        style={{ width: '100%', padding: '0.875rem 1rem', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem', textAlign: 'left' }}
       >
         <span style={{ fontFamily: MONO, fontSize: '1.75rem', fontWeight: 700, color: '#222', lineHeight: 1, width: '2.25rem', flexShrink: 0, letterSpacing: '-0.04em', userSelect: 'none' }}>
           {String(exIdx + 1).padStart(2, '0')}
@@ -76,15 +60,17 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, onSave
           {Array.from({ length: maxSets }, (_, i) => {
             const entry = logs[logKey(week, type, exIdx, i)];
             const isPR = !!(entry?.saved && bestE1RM > 0 && calcE1RM(entry.kg, entry.reps) >= bestE1RM);
+            // Only pass saved previous entries to avoid driving suggestions from unsaved drafts
+            const prevEntry = week > 1 ? logs[logKey(week - 1, type, exIdx, i)] : undefined;
             return (
               <SetLogger
-                key={i}
+                key={`${week}-${i}`}
                 exIdx={exIdx}
                 setIdx={i}
                 week={week}
                 type={type}
                 entry={entry}
-                previousEntry={week > 1 ? logs[logKey(week - 1, type, exIdx, i)] : undefined}
+                previousEntry={prevEntry?.saved ? prevEntry : undefined}
                 isPR={isPR}
                 onSave={e => onSave(logKey(week, type, exIdx, i), e)}
                 onDelete={() => onDelete(logKey(week, type, exIdx, i))}

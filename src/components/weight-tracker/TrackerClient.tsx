@@ -1,19 +1,14 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { saveLogs, logout } from '@/app/pulse/actions';
 import { computeStreak } from '@/lib/weight-tracker/utils';
+import { MONO, ACCENT, BG, BORDER, DIM } from '@/lib/weight-tracker/theme';
 import ProgramView from './views/ProgramView';
 import LogView from './views/LogView';
 import HistoryView from './views/HistoryView';
 import type { Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
 
 type View = 'log' | 'program' | 'history';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
-const ACCENT = '#ff6c2f';
-const BG = '#0a0a0a';
-const BORDER = '#1f1f1f';
-const DIM = '#555';
 
 const NAV: { id: View; label: string }[] = [
   { id: 'log', label: 'Log' },
@@ -29,24 +24,33 @@ export default function TrackerClient({ initialLogs }: Props) {
   const [logs, setLogs] = useState<Logs>(initialLogs);
   const [activeWeek, setActiveWeek] = useState<number>(() => {
     if (typeof window === 'undefined') return 1;
-    return Number(localStorage.getItem('wt_week') ?? 1);
+    const stored = Number(localStorage.getItem('wt_week'));
+    return stored >= 1 && stored <= 12 ? stored : 1;
   });
   const [activeTab, setActiveTab] = useState<WorkoutType>('push');
   const [view, setView] = useState<View>('log');
   const [saveError, setSaveError] = useState<string | null>(null);
   const streak = useMemo(() => computeStreak(logs), [logs]);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     localStorage.setItem('wt_week', String(activeWeek));
   }, [activeWeek]);
 
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+    };
+  }, []);
+
   const persist = useCallback(
     (newLogs: Logs) => {
       setLogs(newLogs);
       setSaveError(null);
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
       saveLogs(newLogs).catch(() => {
         setSaveError('Failed to save. Retrying…');
-        setTimeout(
+        retryTimeoutRef.current = setTimeout(
           () => saveLogs(newLogs).catch(() => setSaveError('Save failed. Check your connection.')),
           3000,
         );

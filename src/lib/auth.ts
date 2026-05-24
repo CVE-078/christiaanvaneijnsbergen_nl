@@ -5,8 +5,20 @@ export const COOKIE_OPTIONS = {
   secure: true,
   sameSite: 'lax' as const,
   maxAge: 60 * 60 * 24 * 30,
-  path: '/',
+  // Scoped to the tracker only — no need to send on portfolio routes
+  path: '/pulse',
 };
+
+// Runs the full XOR loop regardless of length to avoid an early-exit timing oracle.
+export function timingSafeEqual(a: string, b: string): boolean {
+  const len = Math.max(a.length, b.length);
+  let diff = a.length ^ b.length; // non-zero when lengths differ
+  for (let i = 0; i < len; i++) {
+    // charCodeAt returns NaN for out-of-range indices; NaN | 0 === 0 in JS bitwise ops
+    diff |= (a.charCodeAt(i) | 0) ^ (b.charCodeAt(i) | 0);
+  }
+  return diff === 0;
+}
 
 async function sessionHash(password: string): Promise<string> {
   const buf = await crypto.subtle.digest(
@@ -20,15 +32,6 @@ async function sessionHash(password: string): Promise<string> {
 
 export async function createSession(): Promise<string> {
   return sessionHash(process.env.TRACKER_PASSWORD ?? '');
-}
-
-export function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
 }
 
 export async function verifySession(token: string | undefined): Promise<boolean> {

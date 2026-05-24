@@ -2,14 +2,8 @@
 import { useMemo } from 'react';
 import { buildHistory, computePRMap, calcE1RM } from '@/lib/weight-tracker/utils';
 import { WORKOUTS } from '@/lib/weight-tracker/data';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
 import type { Logs } from '@/lib/weight-tracker/types';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
-const ACCENT = '#ff6c2f';
-const SURFACE = '#141414';
-const BORDER = '#1f1f1f';
-const DIM = '#555';
-const MUTED = '#3a3a3a';
 
 interface Props {
   logs: Logs;
@@ -34,10 +28,10 @@ export default function HistoryView({ logs }: Props) {
 
   return (
     <div style={{ padding: '1rem', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {sessions.map((session, si) => {
+      {sessions.map((session) => {
         const workout = WORKOUTS[session.type];
         return (
-          <div key={si} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: '4px', overflow: 'hidden' }}>
+          <div key={`${session.week}-${session.type}`} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span style={{ fontFamily: MONO, fontSize: '0.625rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700, color: ACCENT }}>
                 {workout.label}

@@ -1,14 +1,8 @@
 import { WORKOUTS, VOLUME, SCHEDULE, WEEK_NOTES } from '@/lib/weight-tracker/data';
 import { getPhase } from '@/lib/weight-tracker/utils';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
 import WeekSelector from '../WeekSelector';
 import type { Logs } from '@/lib/weight-tracker/types';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
-const ACCENT = '#ff6c2f';
-const SURFACE = '#141414';
-const BORDER = '#1f1f1f';
-const DIM = '#555';
-const MUTED = '#3a3a3a';
 
 const BAR_MAX_HEIGHT_PX = 44;
 

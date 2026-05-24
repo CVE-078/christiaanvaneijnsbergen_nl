@@ -1,13 +1,8 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { getRIR, computeSuggestion } from '@/lib/weight-tracker/utils';
+import { MONO, ACCENT, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
 import type { LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
-const ACCENT = '#ff6c2f';
-const BORDER = '#1f1f1f';
-const DIM = '#555';
-const MUTED = '#3a3a3a';
 
 interface Props {
   exIdx: number;
@@ -39,7 +34,6 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
   const [kg, setKg] = useState(entry?.kg?.toString() ?? (suggestion !== null ? String(suggestion) : ''));
   const [reps, setReps] = useState(entry?.reps?.toString() ?? '');
   const [editing, setEditing] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const targetRIR = getRIR(week);
   const saved = entry?.saved ?? false;
 
@@ -48,10 +42,8 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
     const repsNum = parseInt(reps, 10);
     if (!kgNum || kgNum <= 0 || kgNum > 500) return;
     if (!repsNum || repsNum < 1 || repsNum > 100) return;
-    startTransition(() => {
-      onSave({ kg: kgNum, reps: repsNum, rir: targetRIR, saved: true });
-      setEditing(false);
-    });
+    onSave({ kg: kgNum, reps: repsNum, rir: targetRIR, saved: true });
+    setEditing(false);
   }
 
   function handleEdit() {
@@ -109,14 +101,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
           />
           <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, flexShrink: 0 }}>{targetRIR} RIR</span>
           {previousEntry && (
-            <span style={{
-              fontFamily: MONO,
-              fontSize: '0.5625rem',
-              color: '#444',
-              letterSpacing: '0.04em',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}>
+            <span style={{ fontFamily: MONO, fontSize: '0.5625rem', color: '#444', letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0 }}>
               ↑ {previousEntry.kg} kg × {previousEntry.reps}
             </span>
           )}
@@ -131,22 +116,9 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
             )}
             <button
               onClick={handleSave}
-              disabled={isPending}
-              style={{
-                fontFamily: MONO,
-                fontSize: '0.625rem',
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                padding: '0.25rem 0.625rem',
-                background: 'transparent',
-                border: `1px solid ${isPending ? BORDER : '#3a3a3a'}`,
-                borderRadius: '3px',
-                color: isPending ? DIM : '#aaa',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                flexShrink: 0,
-              }}
+              style={{ fontFamily: MONO, fontSize: '0.625rem', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '0.25rem 0.625rem', background: 'transparent', border: `1px solid #3a3a3a`, borderRadius: '3px', color: '#aaa', cursor: 'pointer', flexShrink: 0 }}
             >
-              {isPending ? '…' : editing ? 'Update' : 'Save'}
+              {editing ? 'Update' : 'Save'}
             </button>
           </div>
         </>
@@ -156,18 +128,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
             {entry!.kg} kg × {entry!.reps}
           </span>
           {isPR && (
-            <span style={{
-              fontFamily: MONO,
-              fontSize: '0.5rem',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: ACCENT,
-              background: `${ACCENT}18`,
-              border: `1px solid ${ACCENT}44`,
-              borderRadius: '2px',
-              padding: '0.1rem 0.3rem',
-              flexShrink: 0,
-            }}>
+            <span style={{ fontFamily: MONO, fontSize: '0.5rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT, background: `${ACCENT}18`, border: `1px solid ${ACCENT}44`, borderRadius: '2px', padding: '0.1rem 0.3rem', flexShrink: 0 }}>
               PR
             </span>
           )}

@@ -1,7 +1,9 @@
+// Depends on --pulse-mono CSS variable injected by the Pulse layout wrapper div
+const mono = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+
 export default function Loading() {
-  const mono = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a' }}>
+    <div role="status" aria-label="Loading Pulse" style={{ minHeight: '100vh', background: '#0a0a0a' }}>
       {/* Header */}
       <div style={{ borderBottom: '1px solid #1f1f1f', padding: '0 1rem', height: 56, display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <div style={{ fontFamily: mono, fontWeight: 700, fontSize: '0.8125rem', letterSpacing: '0.08em', color: '#fff', textTransform: 'uppercase' }}>

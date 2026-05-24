@@ -6,31 +6,45 @@ import WorkoutTabs from '../WorkoutTabs';
 describe('WorkoutTabs', () => {
   it('renders Push, Pull and Legs tabs', () => {
     render(<WorkoutTabs activeTab="push" onSelect={vi.fn()} />);
-    expect(screen.getByRole('button', { name: /push/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /pull/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /legs/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /push/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /pull/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /legs/i })).toBeInTheDocument();
   });
 
-  it('active tab has white color; inactive tab has dimmed color', () => {
+  it('marks the active tab with aria-selected="true" and others with false', () => {
     render(<WorkoutTabs activeTab="pull" onSelect={vi.fn()} />);
-    const pullBtn = screen.getByRole('button', { name: /pull/i }) as HTMLElement;
-    const pushBtn = screen.getByRole('button', { name: /push/i }) as HTMLElement;
-    expect(pullBtn.style.color).toBe('rgb(255, 255, 255)'); // active → #fff
-    expect(pushBtn.style.color).toBe('rgb(85, 85, 85)');   // inactive → #555
+    expect(screen.getByRole('tab', { name: /pull/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /push/i })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tab', { name: /legs/i })).toHaveAttribute('aria-selected', 'false');
   });
 
   it('calls onSelect when an inactive tab is clicked', async () => {
     const onSelect = vi.fn();
     render(<WorkoutTabs activeTab="push" onSelect={onSelect} />);
-    await userEvent.click(screen.getByRole('button', { name: /legs/i }));
+    await userEvent.click(screen.getByRole('tab', { name: /legs/i }));
     expect(onSelect).toHaveBeenCalledWith('legs');
   });
 
-  it('does not call onSelect when the active tab is clicked', async () => {
+  it('calls onSelect with active tab type when active tab is clicked', async () => {
     const onSelect = vi.fn();
     render(<WorkoutTabs activeTab="push" onSelect={onSelect} />);
-    await userEvent.click(screen.getByRole('button', { name: /push/i }));
-    // onSelect is still called (no prevention needed), but it will be 'push'
+    await userEvent.click(screen.getByRole('tab', { name: /push/i }));
     expect(onSelect).toHaveBeenCalledWith('push');
+  });
+
+  it('navigates to the next tab on ArrowRight', async () => {
+    const onSelect = vi.fn();
+    render(<WorkoutTabs activeTab="push" onSelect={onSelect} />);
+    screen.getByRole('tab', { name: /push/i }).focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(onSelect).toHaveBeenCalledWith('pull');
+  });
+
+  it('wraps around to the last tab on ArrowLeft from the first', async () => {
+    const onSelect = vi.fn();
+    render(<WorkoutTabs activeTab="push" onSelect={onSelect} />);
+    screen.getByRole('tab', { name: /push/i }).focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(onSelect).toHaveBeenCalledWith('legs');
   });
 });

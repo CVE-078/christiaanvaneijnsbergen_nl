@@ -1,13 +1,10 @@
+import { useMemo } from 'react';
 import { WORKOUTS } from '@/lib/weight-tracker/data';
-import { getPhase, getRIR, weekHasData } from '@/lib/weight-tracker/utils';
+import { getPhase, getRIR, weekHasData, computePRMap } from '@/lib/weight-tracker/utils';
+import { MONO, ACCENT, BORDER, DIM } from '@/lib/weight-tracker/theme';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
 import type { Logs, LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
-const ACCENT = '#ff6c2f';
-const BORDER = '#1f1f1f';
-const DIM = '#555';
 
 interface Props {
   activeWeek: number;
@@ -23,6 +20,8 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
   const workout = WORKOUTS[activeTab];
   const rir = getRIR(activeWeek);
   const phase = getPhase(activeWeek);
+  // Computed once here — passed down to all ExerciseCards to avoid redundant work
+  const prMap = useMemo(() => computePRMap(logs), [logs]);
 
   return (
     <div>
@@ -53,14 +52,7 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
               }}
             >
               {w}
-              <span style={{
-                display: 'block',
-                width: 4,
-                height: 4,
-                borderRadius: '50%',
-                background: weekHasData(w, logs) ? ACCENT : 'transparent',
-                margin: '2px auto 0',
-              }} />
+              <span style={{ display: 'block', width: 4, height: 4, borderRadius: '50%', background: weekHasData(w, logs) ? ACCENT : 'transparent', margin: '2px auto 0' }} />
             </button>
           );
         })}
@@ -79,16 +71,22 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
         </span>
       </div>
 
-      {/* Exercise cards */}
-      <div style={{ padding: '0.25rem 1rem 2rem', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      {/* Exercise cards — keyed on activeTab+index so open state resets on tab switch */}
+      <div
+        id={`panel-${activeTab}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${activeTab}`}
+        style={{ padding: '0.25rem 1rem 2rem', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}
+      >
         {workout.exercises.map((exercise, i) => (
           <ExerciseCard
-            key={i}
+            key={`${activeTab}-${i}`}
             exercise={exercise}
             exIdx={i}
             week={activeWeek}
             type={activeTab}
             logs={logs}
+            prMap={prMap}
             onSave={updateLog}
             onDelete={deleteLog}
           />

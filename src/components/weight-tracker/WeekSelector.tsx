@@ -1,13 +1,8 @@
 'use client';
 import { PHASES } from '@/lib/weight-tracker/data';
 import { weekHasData } from '@/lib/weight-tracker/utils';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
 import type { Logs } from '@/lib/weight-tracker/types';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
-const ACCENT = '#ff6c2f';
-const BORDER = '#1f1f1f';
-const DIM = '#555';
-const MUTED = '#3a3a3a';
 
 interface Props {
   activeWeek: number;
@@ -38,7 +33,7 @@ export default function WeekSelector({ activeWeek, onSelect, logs }: Props) {
                     fontFamily: MONO,
                     fontSize: '0.8125rem',
                     fontWeight: 700,
-                    background: active ? ACCENT : '#141414',
+                    background: active ? ACCENT : SURFACE,
                     color: active ? '#000' : DIM,
                     border: `1px solid ${active ? ACCENT : BORDER}`,
                     transition: 'all 0.12s',

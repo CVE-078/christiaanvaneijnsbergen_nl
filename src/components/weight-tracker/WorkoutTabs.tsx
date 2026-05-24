@@ -1,9 +1,6 @@
 'use client';
 import type { WorkoutType } from '@/lib/weight-tracker/types';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
-const ACCENT = '#ff6c2f';
-const BORDER = '#1f1f1f';
+import { MONO, ACCENT, BORDER } from '@/lib/weight-tracker/theme';
 
 interface Props {
   activeTab: WorkoutType;
@@ -17,14 +14,29 @@ const TABS: { type: WorkoutType; label: string }[] = [
 ];
 
 export default function WorkoutTabs({ activeTab, onSelect }: Props) {
+  function handleKeyDown(e: React.KeyboardEvent, idx: number) {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      onSelect(TABS[(idx + 1) % TABS.length].type);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      onSelect(TABS[(idx - 1 + TABS.length) % TABS.length].type);
+    }
+  }
+
   return (
-    <div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}` }}>
-      {TABS.map(({ type, label }) => {
+    <div role="tablist" style={{ display: 'flex', borderBottom: `1px solid ${BORDER}` }}>
+      {TABS.map(({ type, label }, idx) => {
         const active = activeTab === type;
         return (
           <button
             key={type}
+            role="tab"
+            id={`tab-${type}`}
+            aria-selected={active}
+            aria-controls={`panel-${type}`}
             onClick={() => onSelect(type)}
+            onKeyDown={e => handleKeyDown(e, idx)}
             style={{
               flex: 1,
               padding: '0.875rem 0',

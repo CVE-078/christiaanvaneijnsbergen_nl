@@ -4,29 +4,27 @@ import * as React from 'react';
 import IconArrowDown from '@/components/icons/icon-arrow-down';
 import { scrollToElement } from '@/utils';
 
+const DESCRIPTIONS = [
+    '30 years old',
+    'an avid gamer',
+    'a father of two',
+    'a problem solver',
+    'a weight-pusher',
+    'a tv series binger',
+    'a web developer',
+    'a Formula 1 watcher',
+];
+
 const Hero = () => {
     const [currentItemIndex, setCurrentItemIndex] = React.useState<number>(0);
     const [isHiding, setIsHiding] = React.useState<boolean>(false);
     const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const descriptions: string[] = React.useMemo(() => {
-        return [
-            '30 years old',
-            'an avid gamer',
-            'a father of two',
-            'a problem solver',
-            'a weight-pusher',
-            'a tv series binger',
-            'a web developer',
-            'a Formula 1 watcher',
-        ];
-    }, []);
-
     React.useEffect(() => {
         const interval = setInterval(() => {
             setIsHiding(true);
             timeoutRef.current = setTimeout(() => {
-                setCurrentItemIndex((index) => (index === descriptions.length - 1 ? 0 : index + 1));
+                setCurrentItemIndex((index) => (index === DESCRIPTIONS.length - 1 ? 0 : index + 1));
                 setIsHiding(false);
             }, 1000);
         }, 3000);
@@ -34,7 +32,7 @@ const Hero = () => {
             clearInterval(interval);
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
         };
-    }, [descriptions]);
+    }, []);
 
     return (
         <section className="flex flex-col justify-center items-center w-full relative h-dvh px-6">
@@ -52,7 +50,7 @@ const Hero = () => {
                             className={`inline-flex border-2 border-primary py-1.5 px-2.5 my-1.5 text-white bg-primary md:my-2.5 text-sm sm:text-base md:text-xl lowercase whitespace-nowrap transition-all duration-300 overflow-hidden ${
                                 isHiding ? '!opacity-0 !w-0 !px-0' : ''
                             }`}>
-                            {descriptions[currentItemIndex]}
+                            {DESCRIPTIONS[currentItemIndex]}
                         </span>
                         located in Sliedrecht, The Netherlands
                     </span>

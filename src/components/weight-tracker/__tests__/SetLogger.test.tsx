@@ -36,6 +36,19 @@ describe('SetLogger', () => {
     expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
   });
 
+  it('Cancel resets inputs to saved values and hides the Cancel button', async () => {
+    const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
+    render(<SetLogger {...defaultProps} entry={savedEntry} />);
+    await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+    const kgInput = screen.getByRole('spinbutton', { name: /weight in kilograms/i });
+    await userEvent.clear(kgInput);
+    await userEvent.type(kgInput, '999');
+    await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    // Back to saved view — no Cancel button visible
+    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
+    expect(screen.getByText('✓')).toBeInTheDocument();
+  });
+
   it('calls onSave with a valid LogEntry when Save is clicked', async () => {
     const onSave = vi.fn();
     render(<SetLogger {...defaultProps} onSave={onSave} />);
@@ -54,6 +67,14 @@ describe('SetLogger', () => {
     render(<SetLogger {...defaultProps} onSave={onSave} />);
     await userEvent.click(screen.getByRole('button', { name: /save/i }));
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('calls onDelete when the delete button is clicked', async () => {
+    const onDelete = vi.fn();
+    const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
+    render(<SetLogger {...defaultProps} entry={savedEntry} onDelete={onDelete} />);
+    await userEvent.click(screen.getByRole('button', { name: /✕/i }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
   it('shows the correct set number label', () => {
