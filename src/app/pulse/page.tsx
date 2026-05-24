@@ -11,17 +11,29 @@ export default async function PulsePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/pulse/login');
 
-  let logs: Logs = {};
-  try {
-    const { data, error } = await supabase
+  const [logsResult, profileResult, bwResult] = await Promise.all([
+    supabase
       .from('set_logs')
       .select('week, workout_type, ex_idx, set_idx, kg, reps, rir, saved')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id),
+    supabase
+      .from('profiles')
+      .select('display_name, unit')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('bodyweight_logs')
+      .select('id, logged_at, weight_kg')
+      .eq('user_id', user.id)
+      .order('logged_at', { ascending: false })
+      .limit(90),
+  ]);
 
-    if (error) throw error;
-
+  let logs: Logs = {};
+  try {
+    if (logsResult.error) throw logsResult.error;
     const raw: Record<string, unknown> = {};
-    for (const row of data ?? []) {
+    for (const row of logsResult.data ?? []) {
       raw[`${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`] = {
         kg: Number(row.kg),
         reps: row.reps,
@@ -29,31 +41,18 @@ export default async function PulsePage() {
         saved: row.saved,
       };
     }
-
     if (validateLogs(raw)) logs = raw;
   } catch {
     throw new Error('Failed to load training data. Please try again.');
   }
 
-  const { data: profileRow } = await supabase
-    .from('profiles')
-    .select('display_name, unit')
-    .eq('id', user.id)
-    .single();
-
+  const profileRow = profileResult.data;
   const profile: Profile = {
     display_name: profileRow?.display_name ?? null,
-    unit: (profileRow?.unit === 'lbs' ? 'lbs' : 'kg'),
+    unit: profileRow?.unit === 'lbs' ? 'lbs' : 'kg',
   };
 
-  const { data: bwRows } = await supabase
-    .from('bodyweight_logs')
-    .select('id, logged_at, weight_kg')
-    .eq('user_id', user.id)
-    .order('logged_at', { ascending: false })
-    .limit(90);
-
-  const bodyweightLogs: BodyweightEntry[] = (bwRows ?? []).map(
+  const bodyweightLogs: BodyweightEntry[] = (bwResult.data ?? []).map(
     (r: { id: string; logged_at: string; weight_kg: number }) => ({
       id: r.id,
       logged_at: r.logged_at,

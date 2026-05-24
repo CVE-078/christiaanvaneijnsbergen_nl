@@ -60,15 +60,33 @@ export async function saveLogs(logs: unknown) {
       !currentKeys.has(`${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`),
   );
 
-  for (const row of toDelete) {
-    await supabase
+  if (toDelete.length > 0) {
+    const keysToDelete = new Set(
+      toDelete.map(
+        (row: { week: number; workout_type: string; ex_idx: number; set_idx: number }) =>
+          `${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`,
+      ),
+    );
+
+    const { data: rowsWithIds } = await supabase
       .from('set_logs')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('week', row.week)
-      .eq('workout_type', row.workout_type)
-      .eq('ex_idx', row.ex_idx)
-      .eq('set_idx', row.set_idx);
+      .select('id, week, workout_type, ex_idx, set_idx')
+      .eq('user_id', user.id);
+
+    const idsToDelete = (rowsWithIds ?? [])
+      .filter(
+        (r: { id: string; week: number; workout_type: string; ex_idx: number; set_idx: number }) =>
+          keysToDelete.has(`${r.week}-${r.workout_type}-${r.ex_idx}-${r.set_idx}`),
+      )
+      .map((r: { id: string }) => r.id);
+
+    if (idsToDelete.length > 0) {
+      await supabase
+        .from('set_logs')
+        .delete()
+        .in('id', idsToDelete)
+        .eq('user_id', user.id);
+    }
   }
 
   revalidatePath('/pulse');
