@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { WORKOUTS } from '@/lib/weight-tracker/data';
-import { getPhase, getRIR, weekHasData, computePRMap } from '@/lib/weight-tracker/utils';
+import { getPhase, getRIR, weekHasData, computePRMap, parseMaxSets, logKey } from '@/lib/weight-tracker/utils';
 import { MONO, ACCENT, BORDER, DIM } from '@/lib/weight-tracker/theme';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
@@ -25,6 +25,12 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
   const phase = getPhase(activeWeek);
   // Computed once here — passed down to all ExerciseCards to avoid redundant work
   const prMap = useMemo(() => computePRMap(logs), [logs]);
+
+  const hasData = workout.exercises.some((ex, exIdx) =>
+    Array.from({ length: parseMaxSets(ex.sets) }, (_, s) =>
+      logs[logKey(activeWeek, activeTab, exIdx, s)]?.saved,
+    ).some(Boolean),
+  );
 
   return (
     <div>
@@ -96,6 +102,13 @@ export default function LogView({ activeWeek, onSelectWeek, activeTab, setActive
             onDelete={deleteLog}
           />
         ))}
+        {!hasData && (
+          <div style={{ padding: '1.5rem 0 0', textAlign: 'center' }}>
+            <div style={{ fontFamily: MONO, fontSize: '0.6875rem', color: '#333', letterSpacing: '0.04em' }}>
+              Tap an exercise to start logging.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

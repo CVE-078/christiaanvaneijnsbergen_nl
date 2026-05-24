@@ -23,6 +23,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
   const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, type, exIdx, i)).filter(
     k => logs[k]?.saved,
   ).length;
+  const complete = savedCount >= maxSets;
   const bestE1RM = prMap[`${type}-${exIdx}`] ?? 0;
 
   return (
@@ -30,7 +31,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
       <button
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
-        aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}`}
+        aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}${complete ? ' — all sets done' : ''}`}
         style={{ width: '100%', padding: '0.875rem 1rem', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem', textAlign: 'left' }}
       >
         <span style={{ fontFamily: MONO, fontSize: '1.75rem', fontWeight: 700, color: '#222', lineHeight: 1, width: '2.25rem', flexShrink: 0, letterSpacing: '-0.04em', userSelect: 'none' }}>
@@ -51,6 +52,20 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
             </span>
           ))}
         </span>
+        {complete && (
+          <span
+            aria-label="All sets done"
+            style={{
+              fontFamily: MONO,
+              fontSize: '0.625rem',
+              color: ACCENT,
+              marginLeft: '0.375rem',
+              flexShrink: 0,
+            }}
+          >
+            ✓
+          </span>
+        )}
       </button>
 
       {open && (
