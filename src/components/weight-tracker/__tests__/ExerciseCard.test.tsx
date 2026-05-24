@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ExerciseCard from '../ExerciseCard';
 import { WORKOUTS } from '@/lib/weight-tracker/data';
 
@@ -34,5 +35,32 @@ describe('ExerciseCard', () => {
     };
     render(<ExerciseCard {...defaultProps} logs={logs} />);
     expect(screen.getAllByLabelText(/all sets done/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders the exercise name', () => {
+    render(<ExerciseCard {...defaultProps} />);
+    expect(screen.getByText(exercise.name)).toBeInTheDocument();
+  });
+
+  it('expands to show SetLogger rows when clicked', async () => {
+    render(<ExerciseCard {...defaultProps} />);
+    await userEvent.click(screen.getByRole('button', { name: new RegExp(`expand ${exercise.name}`, 'i') }));
+    const saveButtons = screen.getAllByRole('button', { name: /save/i });
+    expect(saveButtons.length).toBeGreaterThan(0);
+  });
+
+  it('calls onSave with the correct log key when a set is saved', async () => {
+    const onSave = vi.fn();
+    render(<ExerciseCard {...defaultProps} onSave={onSave} />);
+    await userEvent.click(screen.getByRole('button', { name: new RegExp(`expand ${exercise.name}`, 'i') }));
+    const kgInputs = screen.getAllByRole('spinbutton', { name: /weight in kg/i });
+    const repsInputs = screen.getAllByRole('spinbutton', { name: /repetitions/i });
+    await userEvent.type(kgInputs[0], '60');
+    await userEvent.type(repsInputs[0], '10');
+    await userEvent.click(screen.getAllByRole('button', { name: /save/i })[0]);
+    expect(onSave).toHaveBeenCalledWith(
+      '1-push-0-0',
+      expect.objectContaining({ kg: 60, reps: 10, saved: true }),
+    );
   });
 });
