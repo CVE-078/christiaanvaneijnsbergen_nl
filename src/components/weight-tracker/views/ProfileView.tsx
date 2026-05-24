@@ -135,7 +135,7 @@ export default function ProfileView({ email, displayName, unit, bodyweightLogs, 
     });
   }
 
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div style={{ padding: '1.25rem 1rem 3rem', maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
