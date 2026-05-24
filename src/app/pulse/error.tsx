@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+import { MONO } from '@/lib/weight-tracker/theme';
 
 interface Props {
   error: Error & { digest?: string };

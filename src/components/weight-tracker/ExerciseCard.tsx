@@ -65,7 +65,6 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
             return (
               <SetLogger
                 key={`${week}-${i}`}
-                exIdx={exIdx}
                 setIdx={i}
                 week={week}
                 type={type}

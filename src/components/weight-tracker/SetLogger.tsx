@@ -5,7 +5,6 @@ import { MONO, ACCENT, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
 import type { LogEntry, WorkoutType } from '@/lib/weight-tracker/types';
 
 interface Props {
-  exIdx: number;
   setIdx: number;
   week: number;
   type: WorkoutType;
@@ -40,7 +39,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, on
   function handleSave() {
     const kgNum = parseFloat(kg);
     const repsNum = parseInt(reps, 10);
-    if (!kgNum || kgNum <= 0 || kgNum > 500) return;
+    if (isNaN(kgNum) || kgNum <= 0 || kgNum > 500) return;
     if (!repsNum || repsNum < 1 || repsNum > 100) return;
     onSave({ kg: kgNum, reps: repsNum, rir: targetRIR, saved: true });
     setEditing(false);

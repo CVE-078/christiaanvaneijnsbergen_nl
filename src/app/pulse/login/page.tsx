@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { login } from './actions';
 import SubmitButton from './SubmitButton';
-
-const MONO = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+import { MONO } from '@/lib/weight-tracker/theme';
 
 export const metadata: Metadata = {
   title: 'Pulse — Login',
@@ -55,7 +54,7 @@ export default async function LoginPage({
           required
           autoFocus
           autoComplete="current-password"
-          aria-invalid={hasError || undefined}
+          aria-invalid={hasError ? true : undefined}
           aria-describedby={hasError ? 'login-error' : undefined}
           style={{
             display: 'block',

@@ -1,5 +1,4 @@
-// Depends on --pulse-mono CSS variable injected by the Pulse layout wrapper div
-const mono = "var(--pulse-mono, 'JetBrains Mono', 'Courier New', monospace)";
+import { MONO as mono } from '@/lib/weight-tracker/theme';
 
 export default function Loading() {
   return (

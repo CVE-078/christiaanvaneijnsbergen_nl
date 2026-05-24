@@ -1,13 +1,17 @@
 import { PHASES } from './data';
 import type { Phase, Logs, WorkoutType, HistorySession, LogEntry } from './types';
 
+export const MIN_KG = 0.5;
+export const MAX_KG = 500;
+
 export function getPhase(week: number): Phase {
   return PHASES.find(p => p.weeks.includes(week)) ?? PHASES[0];
 }
 
 export function getRIR(week: number): number {
   const phase = getPhase(week);
-  return phase.rir[phase.weeks.indexOf(week)];
+  const idx = phase.weeks.indexOf(week);
+  return idx !== -1 ? phase.rir[idx] : phase.rir[0];
 }
 
 export function logKey(week: number, type: WorkoutType, exIdx: number, setIdx: number): string {
@@ -15,7 +19,7 @@ export function logKey(week: number, type: WorkoutType, exIdx: number, setIdx: n
 }
 
 export function parseMaxSets(s: string): number {
-  const n = parseInt(s.split('–').pop() ?? s, 10);
+  const n = parseInt(s.split(/[–-]/).pop() ?? s, 10);
   return isNaN(n) ? 3 : n;
 }
 
@@ -60,7 +64,7 @@ export function computeSuggestion(previousEntry: LogEntry | undefined, week: num
   const prevTargetRIR = getRIR(week - 1);
   if (previousEntry.rir > prevTargetRIR) return previousEntry.kg + 2.5;
   if (previousEntry.rir === prevTargetRIR) return previousEntry.kg;
-  return Math.max(previousEntry.kg - 2.5, 0.5);
+  return Math.max(previousEntry.kg - 2.5, MIN_KG);
 }
 
 export function weekHasData(week: number, logs: Logs): boolean {

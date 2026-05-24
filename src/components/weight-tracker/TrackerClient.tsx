@@ -179,6 +179,7 @@ export default function TrackerClient({ initialLogs }: Props) {
               <span style={{ color: '#2a2a2a', paddingBottom: '1px' }}>|</span>
               <button
                 onClick={handleExport}
+                aria-label="Export workout logs as JSON"
                 style={{ fontFamily: MONO, fontSize: '0.8125rem', fontWeight: 500, color: DIM, background: 'none', border: 'none', borderBottom: '1px solid transparent', paddingBottom: '1px', cursor: 'pointer', letterSpacing: '0.02em' }}
               >
                 Export
@@ -186,6 +187,7 @@ export default function TrackerClient({ initialLogs }: Props) {
               <form action={logout} style={{ display: 'inline' }}>
                 <button
                   type="submit"
+                  aria-label="Sign out of Pulse"
                   style={{ fontFamily: MONO, fontSize: '0.75rem', fontWeight: 500, color: '#444', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.02em', paddingBottom: '1px' }}
                 >
                   Sign out
