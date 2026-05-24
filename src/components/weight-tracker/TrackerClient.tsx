@@ -31,6 +31,7 @@ export default function TrackerClient({ initialLogs }: Props) {
   const [view, setView] = useState<View>('log');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [timerTrigger, setTimerTrigger] = useState(0);
   const streak = useMemo(() => computeStreak(logs), [logs]);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -75,7 +76,10 @@ export default function TrackerClient({ initialLogs }: Props) {
   );
 
   const updateLog = useCallback(
-    (key: string, entry: LogEntry) => persist({ ...logs, [key]: entry }),
+    (key: string, entry: LogEntry) => {
+      persist({ ...logs, [key]: entry });
+      setTimerTrigger(t => t + 1);
+    },
     [logs, persist],
   );
 
@@ -283,6 +287,7 @@ export default function TrackerClient({ initialLogs }: Props) {
           logs={logs}
           updateLog={updateLog}
           deleteLog={deleteLog}
+          timerTrigger={timerTrigger}
         />
       )}
       {view === 'program' && (

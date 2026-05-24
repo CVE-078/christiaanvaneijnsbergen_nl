@@ -1,15 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { COOKIE_NAME, verifySession } from '@/lib/auth';
+import { type NextRequest } from 'next/server';
+import { updateSession } from '@/lib/supabase/middleware';
 
-export async function middleware(req: NextRequest) {
-  // Use startsWith to handle both /pulse/login and /pulse/login/ (trailing slash)
-  if (req.nextUrl.pathname.startsWith('/pulse/login')) return NextResponse.next();
-
-  const cookie = req.cookies.get(COOKIE_NAME)?.value;
-  if (!await verifySession(cookie))
-    return NextResponse.redirect(new URL('/pulse/login', req.url));
-
-  return NextResponse.next();
+export async function middleware(request: NextRequest) {
+  return updateSession(request);
 }
 
 export const config = { matcher: ['/pulse/:path*'] };
