@@ -11,7 +11,7 @@ export function validateLogs(value: unknown): value is Logs {
     const { kg, reps, rir, saved } = entry as Record<string, unknown>;
     if (typeof kg !== 'number' || kg <= 0 || kg > 500) return false;
     if (typeof reps !== 'number' || !Number.isInteger(reps) || reps < 1 || reps > 100) return false;
-    if (typeof rir !== 'number' || rir < 0 || rir > 10) return false;
+    if (typeof rir !== 'number' || !Number.isInteger(rir) || rir < 0 || rir > 10) return false;
     if (typeof saved !== 'boolean') return false;
   }
   return true;

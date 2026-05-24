@@ -14,14 +14,17 @@ export async function login(formData: FormData) {
   }
 
   // Atomic INCR + EXPIRE via pipeline — prevents permanent lockout if the process
-  // crashes between two separate Redis commands (x-forwarded-for is Vercel-controlled
-  // here so it's trustworthy; move off Vercel and you'd need to re-evaluate this)
-  const ip = (await headers()).get('x-forwarded-for') ?? 'unknown';
+  // crashes between two separate Redis commands. Extract only the first IP from
+  // x-forwarded-for (Vercel adds the real client IP first; full string would vary
+  // across proxy hops and could be manipulated on non-Vercel deployments).
+  const rawIp = (await headers()).get('x-forwarded-for') ?? 'unknown';
+  const ip = rawIp.split(',')[0].trim();
   const rateLimitKey = `login_attempts:${ip}`;
   const p = kv.pipeline();
   p.incr(rateLimitKey);
   p.expire(rateLimitKey, 900);
-  const [attempts] = await p.exec() as [number, number];
+  const [attempts] = await p.exec();
+  if (typeof attempts !== 'number') throw new Error('Rate limit check failed');
   if (attempts > 5) redirect('/pulse/login?error=rate');
 
   const enteredHash = await hashPassword(entered);
