@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/weight-tracker/validation';
 import type { Logs, Unit, BodyweightEntry } from '@/lib/weight-tracker/types';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -73,6 +75,9 @@ export async function saveLogs(logs: unknown) {
 }
 
 export async function updateProfile(displayName: string | null, unit: Unit) {
+  if (displayName !== null && displayName.trim().length > 50)
+    throw new Error('Display name must be 50 characters or fewer');
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
@@ -85,6 +90,9 @@ export async function updateProfile(displayName: string | null, unit: Unit) {
 }
 
 export async function logBodyWeight(weightKg: number): Promise<BodyweightEntry> {
+  if (typeof weightKg !== 'number' || isNaN(weightKg) || weightKg < 0.5 || weightKg > 500)
+    throw new Error('Invalid weight');
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
@@ -104,6 +112,8 @@ export async function logBodyWeight(weightKg: number): Promise<BodyweightEntry> 
 }
 
 export async function deleteBodyWeight(id: string) {
+  if (!UUID_RE.test(id)) throw new Error('Invalid id');
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
