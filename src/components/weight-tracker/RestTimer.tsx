@@ -31,9 +31,13 @@ function beep() {
 }
 
 export default function RestTimer({ trigger }: Props) {
-  const [durationIdx, setDurationIdx] = useState(DEFAULT_IDX);
+  const [durationIdx, setDurationIdx] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_IDX;
+    const stored = Number(localStorage.getItem('wt_timer_idx'));
+    return stored >= 0 && stored < DURATIONS.length ? stored : DEFAULT_IDX;
+  });
   const [remaining, setRemaining] = useState<number | null>(null);
-  const totalRef = useRef(DURATIONS[DEFAULT_IDX]);
+  const totalRef = useRef(DURATIONS[durationIdx]);
 
   // Start/restart when a set is saved
   useEffect(() => {
@@ -41,6 +45,11 @@ export default function RestTimer({ trigger }: Props) {
     totalRef.current = DURATIONS[durationIdx];
     setRemaining(DURATIONS[durationIdx]);
   }, [trigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist selected duration index
+  useEffect(() => {
+    localStorage.setItem('wt_timer_idx', String(durationIdx));
+  }, [durationIdx]);
 
   // Countdown tick
   useEffect(() => {
