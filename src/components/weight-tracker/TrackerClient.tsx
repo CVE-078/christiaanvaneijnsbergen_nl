@@ -151,8 +151,8 @@ export default function TrackerClient({ initialLogs }: Props) {
             style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center' }}
             aria-label="Main navigation"
           >
-            {/* Nav buttons — hidden on mobile via container query workaround using max-width inline trick */}
-            <span style={{ display: 'contents' }} className="pulse-desktop-nav">
+            {/* Nav buttons — visibility controlled by .pulse-desktop-nav media query in globals.css */}
+            <span className="pulse-desktop-nav">
               {NAV.map(({ id, label }) => {
                 const active = view === id;
                 return (
@@ -199,7 +199,7 @@ export default function TrackerClient({ initialLogs }: Props) {
               onClick={() => setMenuOpen(o => !o)}
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={menuOpen}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', flexDirection: 'column', gap: '4px', flexShrink: 0 }}
             >
               <span style={{ ...hamburgerLineStyle, transform: menuOpen ? 'translateY(5.5px) rotate(45deg)' : 'none' }} />
               <span style={{ ...hamburgerLineStyle, opacity: menuOpen ? 0 : 1 }} />
