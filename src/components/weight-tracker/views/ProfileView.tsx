@@ -67,6 +67,7 @@ export default function ProfileView({ email, displayName, unit, bodyweightLogs, 
   const [isPending, startTransition] = useTransition();
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(displayName ?? '');
+  const [nameSaved, setNameSaved] = useState(false);
   const [bwInput, setBwInput] = useState('');
   const [bwError, setBwError] = useState<string | null>(null);
 
@@ -85,7 +86,11 @@ export default function ProfileView({ email, displayName, unit, bodyweightLogs, 
     setEditingName(false);
     if (trimmed === displayName) return;
     onDisplayNameChange(trimmed);
-    startTransition(async () => { await updateProfile(trimmed, unit); });
+    startTransition(async () => {
+      await updateProfile(trimmed, unit);
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 2000);
+    });
   }
 
   function handleNameKeyDown(e: React.KeyboardEvent) {
@@ -176,6 +181,18 @@ export default function ProfileView({ email, displayName, unit, bodyweightLogs, 
           <div style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, marginTop: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {email}
           </div>
+          {nameSaved && !editingName && (
+            <span style={{
+              fontFamily: MONO,
+              fontSize: '0.5625rem',
+              color: '#4ade80',
+              letterSpacing: '0.04em',
+              marginTop: '0.125rem',
+              display: 'block',
+            }}>
+              Saved ✓
+            </span>
+          )}
         </div>
       </div>
 
