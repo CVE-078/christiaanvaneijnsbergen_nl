@@ -1,8 +1,8 @@
 export interface LogEntry {
-  kg: number;
-  reps: number;
-  rir: number;
-  saved: boolean;
+    kg: number;
+    reps: number;
+    rir: number;
+    saved: boolean;
 }
 
 export type Logs = Record<string, LogEntry>;
@@ -12,52 +12,52 @@ export type WorkoutType = 'push' | 'pull' | 'legs';
 export type Unit = 'kg' | 'lbs';
 
 export interface Profile {
-  display_name: string | null;
-  unit: Unit;
+    display_name: string | null;
+    unit: Unit;
 }
 
 export interface BodyweightEntry {
-  id: string;
-  logged_at: string; // YYYY-MM-DD
-  weight_kg: number;
+    id: string;
+    logged_at: string; // YYYY-MM-DD
+    weight_kg: number;
 }
 
 export interface Phase {
-  weeks: number[];
-  label: string;
-  subtitle: string;
-  rir: number[];
-  color: string;
+    weeks: number[];
+    label: string;
+    subtitle: string;
+    rir: number[];
+    color: string;
 }
 
 export interface Exercise {
-  name: string;
-  sets: string;
-  reps: string;
-  load: string;
-  note: string;
+    name: string;
+    sets: string;
+    reps: string;
+    load: string;
+    note: string;
 }
 
 export interface Workout {
-  label: string;
-  icon: string;
-  color: string;
-  description: string;
-  exercises: Exercise[];
+    label: string;
+    icon: string;
+    color: string;
+    description: string;
+    exercises: Exercise[];
 }
 
 export interface VolumeEntry {
-  week: number;
-  sets: number;
+    week: number;
+    sets: number;
 }
 
 export interface ScheduleDay {
-  day: string;
-  type: WorkoutType | 'rest';
+    day: string;
+    type: WorkoutType | 'rest';
 }
 
 export interface HistorySession {
-  week: number;
-  type: WorkoutType;
-  sets: Array<LogEntry & { exIdx: number; setIdx: number }>;
+    week: number;
+    type: WorkoutType;
+    sets: Array<LogEntry & { exIdx: number; setIdx: number }>;
 }
