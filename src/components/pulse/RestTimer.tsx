@@ -33,7 +33,7 @@ function beep() {
 export default function RestTimer({ trigger }: Props) {
     const [durationIdx, setDurationIdx] = useState(() => {
         if (typeof window === 'undefined') return DEFAULT_IDX;
-        const stored = Number(localStorage.getItem('wt_timer_idx'));
+        const stored = Number(localStorage.getItem('pulse_timer_idx'));
         return stored >= 0 && stored < DURATIONS.length ? stored : DEFAULT_IDX;
     });
     const [remaining, setRemaining] = useState<number | null>(null);
@@ -48,7 +48,7 @@ export default function RestTimer({ trigger }: Props) {
 
     // Persist selected duration index
     useEffect(() => {
-        localStorage.setItem('wt_timer_idx', String(durationIdx));
+        localStorage.setItem('pulse_timer_idx', String(durationIdx));
     }, [durationIdx]);
 
     // Countdown tick
