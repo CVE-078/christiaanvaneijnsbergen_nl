@@ -61,3 +61,8 @@ export interface HistorySession {
     type: WorkoutType;
     sets: Array<LogEntry & { exIdx: number; setIdx: number }>;
 }
+
+export type View = 'log' | 'program' | 'history' | 'profile';
+
+// Maps exercise key (workoutType-exIdx) to best E1RM value
+export type PRMap = Record<string, number>;

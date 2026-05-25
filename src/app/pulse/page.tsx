@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { validateLogs } from '@/lib/weight-tracker/validation';
-import TrackerClient from '@/components/weight-tracker/TrackerClient';
-import type { Logs, Profile, BodyweightEntry } from '@/lib/weight-tracker/types';
+import { validateLogs } from '@/lib/pulse/validation';
+import TrackerClient from '@/components/pulse/TrackerClient';
+import type { Logs, Profile, BodyweightEntry } from '@/lib/pulse/types';
 
 export const metadata: Metadata = {
     title: 'Pulse',
