@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { MONO } from '@/lib/weight-tracker/theme';
+import { MONO } from '@/lib/pulse/theme';
 
 interface Props {
     error: Error & { digest?: string };

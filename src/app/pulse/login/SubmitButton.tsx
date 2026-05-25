@@ -1,6 +1,6 @@
 'use client';
 import { useFormStatus } from 'react-dom';
-import { MONO } from '@/lib/weight-tracker/theme';
+import { MONO } from '@/lib/pulse/theme';
 
 export default function SubmitButton() {
     const { pending } = useFormStatus();

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { login } from './actions';
 import SubmitButton from './SubmitButton';
-import { MONO } from '@/lib/weight-tracker/theme';
+import { MONO } from '@/lib/pulse/theme';
 
 export const metadata: Metadata = {
     title: 'Pulse — Login',

@@ -1,4 +1,4 @@
-import { MONO, BG, SURFACE, BORDER, ACCENT } from '@/lib/weight-tracker/theme';
+import { MONO, BG, SURFACE, BORDER, ACCENT } from '@/lib/pulse/theme';
 
 const shimmer: React.CSSProperties = {
     background: `linear-gradient(90deg, #141414 25%, #1c1c1c 50%, #141414 75%)`,
