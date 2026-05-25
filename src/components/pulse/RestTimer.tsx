@@ -33,7 +33,8 @@ function beep() {
 export default function RestTimer({ trigger }: Props) {
     const [durationIdx, setDurationIdx] = useState(() => {
         if (typeof window === 'undefined') return DEFAULT_IDX;
-        const stored = Number(localStorage.getItem('pulse_timer_idx'));
+        const raw = localStorage.getItem('pulse_timer_idx') ?? localStorage.getItem('wt_timer_idx');
+        const stored = raw !== null ? Number(raw) : -1;
         return stored >= 0 && stored < DURATIONS.length ? stored : DEFAULT_IDX;
     });
     const [remaining, setRemaining] = useState<number | null>(null);

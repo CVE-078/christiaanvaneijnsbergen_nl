@@ -34,32 +34,41 @@ export function PulseProvider({
     const streak = useMemo(() => computeStreak(logs), [logs]);
     const prMap = useMemo(() => computePRMap(logs), [logs]);
 
+    const contextValue = useMemo(
+        () => ({
+            logs,
+            profile,
+            bodyweightLogs,
+            isLoading: false as const,
+            saveError,
+            streak,
+            prMap,
+            email,
+            updateLog,
+            deleteLog,
+            handleExport,
+            updateProfile,
+            logBodyWeight,
+            deleteBodyWeight,
+            view,
+            navigate,
+            activeWeek,
+            setActiveWeek,
+            activeTab,
+            setActiveTab,
+            timerTrigger,
+            fireTrigger,
+        }),
+        [
+            logs, profile, bodyweightLogs, saveError, streak, prMap, email,
+            updateLog, deleteLog, handleExport, updateProfile, logBodyWeight,
+            deleteBodyWeight, view, navigate, activeWeek, setActiveWeek,
+            activeTab, setActiveTab, timerTrigger, fireTrigger,
+        ],
+    );
+
     return (
-        <PulseContext.Provider
-            value={{
-                logs,
-                profile,
-                bodyweightLogs,
-                isLoading: false,
-                saveError,
-                streak,
-                prMap,
-                email,
-                updateLog,
-                deleteLog,
-                handleExport,
-                updateProfile,
-                logBodyWeight,
-                deleteBodyWeight,
-                view,
-                navigate,
-                activeWeek,
-                setActiveWeek,
-                activeTab,
-                setActiveTab,
-                timerTrigger,
-                fireTrigger,
-            }}>
+        <PulseContext.Provider value={contextValue}>
             {children}
         </PulseContext.Provider>
     );
