@@ -1,28 +1,43 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import LogView from '../views/LogView';
 
-const defaultProps = {
+vi.mock('@/context/PulseContext', () => ({
+    usePulse: vi.fn(),
+}));
+
+import { usePulse } from '@/context/PulseContext';
+
+const defaultContext = {
     activeWeek: 1,
-    onSelectWeek: () => {},
+    setActiveWeek: vi.fn(),
     activeTab: 'push' as const,
-    setActiveTab: () => {},
+    setActiveTab: vi.fn(),
     logs: {},
-    unit: 'kg' as const,
-    updateLog: () => {},
-    deleteLog: () => {},
+    profile: { display_name: null, unit: 'kg' as const },
+    prMap: {},
+    updateLog: vi.fn(),
+    deleteLog: vi.fn(),
     timerTrigger: 0,
+    fireTrigger: vi.fn(),
 };
+
+beforeEach(() => {
+    vi.mocked(usePulse).mockReturnValue(defaultContext as ReturnType<typeof usePulse>);
+});
 
 describe('LogView', () => {
     it('shows an empty state hint when no sets are logged for the current week', () => {
-        render(<LogView {...defaultProps} />);
+        render(<LogView />);
         expect(screen.getByText(/tap an exercise/i)).toBeInTheDocument();
     });
 
     it('hides the empty state hint when at least one set is logged', () => {
-        const logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 3, saved: true } };
-        render(<LogView {...defaultProps} logs={logs} />);
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            logs: { '1-push-0-0': { kg: 60, reps: 10, rir: 3, saved: true } },
+        } as ReturnType<typeof usePulse>);
+        render(<LogView />);
         expect(screen.queryByText(/tap an exercise/i)).not.toBeInTheDocument();
     });
 });
