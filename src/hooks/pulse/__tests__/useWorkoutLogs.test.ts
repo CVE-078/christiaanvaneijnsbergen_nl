@@ -14,7 +14,7 @@ import type { Logs, LogEntry } from '@/lib/pulse/types';
 const mockMutate = vi.fn();
 
 beforeEach(() => {
-    vi.mocked(useSWR).mockReturnValue({ data: {}, mutate: mockMutate } as ReturnType<typeof useSWR>);
+    vi.mocked(useSWR).mockReturnValue({ data: {}, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
     mockMutate.mockClear();
     vi.mocked(saveLogs).mockClear();
 });
@@ -22,13 +22,15 @@ beforeEach(() => {
 describe('useWorkoutLogs', () => {
     it('returns logs from SWR data', () => {
         const logs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
-        vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as ReturnType<typeof useSWR>);
+        vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
         const { result } = renderHook(() => useWorkoutLogs({}));
         expect(result.current.logs).toEqual(logs);
     });
 
     it('falls back to initialLogs when SWR data is undefined', () => {
-        vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as ReturnType<typeof useSWR>);
+        vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
+            typeof useSWR
+        >);
         const initialLogs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         const { result } = renderHook(() => useWorkoutLogs(initialLogs));
         expect(result.current.logs).toEqual(initialLogs);
@@ -48,7 +50,7 @@ describe('useWorkoutLogs', () => {
 
     it('deleteLog removes the key, calls mutate optimistically then saveLogs', async () => {
         const logs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
-        vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as ReturnType<typeof useSWR>);
+        vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
         const { result } = renderHook(() => useWorkoutLogs(logs));
 
         await act(async () => {

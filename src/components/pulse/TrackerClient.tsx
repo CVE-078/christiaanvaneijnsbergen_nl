@@ -10,12 +10,7 @@ interface Props {
     email: string;
 }
 
-export default function TrackerClient({
-    initialLogs,
-    initialProfile,
-    initialBodyweightLogs,
-    email,
-}: Props) {
+export default function TrackerClient({ initialLogs, initialProfile, initialBodyweightLogs, email }: Props) {
     return (
         <PulseProvider
             initialLogs={initialLogs}

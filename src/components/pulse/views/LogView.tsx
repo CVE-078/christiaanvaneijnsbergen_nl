@@ -90,10 +90,24 @@ export default function LogView() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', padding: '0.875rem 1rem 0.5rem' }}>
-                <span style={{ fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: DIM }}>
+                <span
+                    style={{
+                        fontFamily: MONO,
+                        fontSize: '0.6875rem',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        color: DIM,
+                    }}>
                     {phase.label}
                 </span>
-                <span style={{ fontFamily: MONO, fontSize: '0.75rem', fontWeight: 700, color: ACCENT, letterSpacing: '0.04em' }}>
+                <span
+                    style={{
+                        fontFamily: MONO,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: ACCENT,
+                        letterSpacing: '0.04em',
+                    }}>
                     {rir} RIR
                 </span>
                 <span style={{ fontSize: '0.8125rem', color: DIM, marginLeft: 'auto' }}>{workout.description}</span>
@@ -103,7 +117,14 @@ export default function LogView() {
                 id={`panel-${activeTab}`}
                 role="tabpanel"
                 aria-labelledby={`tab-${activeTab}`}
-                style={{ padding: '0.25rem 1rem 2rem', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                style={{
+                    padding: '0.25rem 1rem 2rem',
+                    maxWidth: 600,
+                    margin: '0 auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem',
+                }}>
                 {workout.exercises.map((exercise, i) => (
                     <ExerciseCard
                         key={`${activeTab}-${i}`}
@@ -120,7 +141,8 @@ export default function LogView() {
                 ))}
                 {!hasData && (
                     <div style={{ padding: '1.5rem 0 0', textAlign: 'center' }}>
-                        <div style={{ fontFamily: MONO, fontSize: '0.6875rem', color: '#333', letterSpacing: '0.04em' }}>
+                        <div
+                            style={{ fontFamily: MONO, fontSize: '0.6875rem', color: '#333', letterSpacing: '0.04em' }}>
                             Tap an exercise to start logging.
                         </div>
                     </div>

@@ -16,13 +16,7 @@ interface Props {
     children: React.ReactNode;
 }
 
-export function PulseProvider({
-    initialLogs,
-    initialProfile,
-    initialBodyweightLogs,
-    email,
-    children,
-}: Props) {
+export function PulseProvider({ initialLogs, initialProfile, initialBodyweightLogs, email, children }: Props) {
     const { logs, saveError, updateLog, deleteLog, handleExport } = useWorkoutLogs(initialLogs);
     const { profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight } = useProfile(
         initialProfile,
@@ -60,16 +54,29 @@ export function PulseProvider({
             fireTrigger,
         }),
         [
-            logs, profile, bodyweightLogs, saveError, streak, prMap, email,
-            updateLog, deleteLog, handleExport, updateProfile, logBodyWeight,
-            deleteBodyWeight, view, navigate, activeWeek, setActiveWeek,
-            activeTab, setActiveTab, timerTrigger, fireTrigger,
+            logs,
+            profile,
+            bodyweightLogs,
+            saveError,
+            streak,
+            prMap,
+            email,
+            updateLog,
+            deleteLog,
+            handleExport,
+            updateProfile,
+            logBodyWeight,
+            deleteBodyWeight,
+            view,
+            navigate,
+            activeWeek,
+            setActiveWeek,
+            activeTab,
+            setActiveTab,
+            timerTrigger,
+            fireTrigger,
         ],
     );
 
-    return (
-        <PulseContext.Provider value={contextValue}>
-            {children}
-        </PulseContext.Provider>
-    );
+    return <PulseContext.Provider value={contextValue}>{children}</PulseContext.Provider>;
 }

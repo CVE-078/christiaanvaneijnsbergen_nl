@@ -9,11 +9,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json(null, { status: 401 });
 
-    const { data } = await supabase
-        .from('profiles')
-        .select('display_name, unit')
-        .eq('id', user.id)
-        .single();
+    const { data } = await supabase.from('profiles').select('display_name, unit').eq('id', user.id).single();
 
     const profile: Profile = {
         display_name: data?.display_name ?? null,

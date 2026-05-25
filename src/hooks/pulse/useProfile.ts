@@ -16,18 +16,16 @@ async function fetcher<T>(url: string): Promise<T> {
 }
 
 export function useProfile(initialProfile: Profile, initialBodyweightLogs: BodyweightEntry[]) {
-    const { data: profileData, mutate: mutateProfile } = useSWR<Profile>(
-        PROFILE_KEY,
-        fetcher,
-        { fallbackData: initialProfile, revalidateOnFocus: true },
-    );
+    const { data: profileData, mutate: mutateProfile } = useSWR<Profile>(PROFILE_KEY, fetcher, {
+        fallbackData: initialProfile,
+        revalidateOnFocus: true,
+    });
     const profile = profileData ?? initialProfile;
 
-    const { data: bwData, mutate: mutateBW } = useSWR<BodyweightEntry[]>(
-        BODYWEIGHT_KEY,
-        fetcher,
-        { fallbackData: initialBodyweightLogs, revalidateOnFocus: true },
-    );
+    const { data: bwData, mutate: mutateBW } = useSWR<BodyweightEntry[]>(BODYWEIGHT_KEY, fetcher, {
+        fallbackData: initialBodyweightLogs,
+        revalidateOnFocus: true,
+    });
     const bodyweightLogs = bwData ?? initialBodyweightLogs;
 
     async function updateProfile(displayName: string | null, unit: Unit): Promise<void> {

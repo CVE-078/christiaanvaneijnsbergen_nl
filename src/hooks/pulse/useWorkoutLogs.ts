@@ -36,10 +36,7 @@ export function useWorkoutLogs(initialLogs: Logs) {
             saveLogs(newLogs).catch(() => {
                 setSaveError('Failed to save. Retrying…');
                 retryRef.current = setTimeout(
-                    () =>
-                        saveLogs(newLogs).catch(() =>
-                            setSaveError('Save failed. Check your connection.'),
-                        ),
+                    () => saveLogs(newLogs).catch(() => setSaveError('Save failed. Check your connection.')),
                     3000,
                 );
             });

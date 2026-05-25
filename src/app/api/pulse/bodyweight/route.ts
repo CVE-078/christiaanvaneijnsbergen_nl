@@ -16,13 +16,11 @@ export async function GET() {
         .order('logged_at', { ascending: false })
         .limit(90);
 
-    const entries: BodyweightEntry[] = (data ?? []).map(
-        (r: { id: string; logged_at: string; weight_kg: number }) => ({
-            id: r.id,
-            logged_at: r.logged_at,
-            weight_kg: Number(r.weight_kg),
-        }),
-    );
+    const entries: BodyweightEntry[] = (data ?? []).map((r: { id: string; logged_at: string; weight_kg: number }) => ({
+        id: r.id,
+        logged_at: r.logged_at,
+        weight_kg: Number(r.weight_kg),
+    }));
 
     return NextResponse.json(entries);
 }

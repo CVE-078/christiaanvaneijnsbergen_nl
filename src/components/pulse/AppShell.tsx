@@ -174,9 +174,19 @@ export function AppShell() {
                                 gap: '4px',
                                 flexShrink: 0,
                             }}>
-                            <span style={{ ...hamburgerLineStyle, transform: menuOpen ? 'translateY(5.5px) rotate(45deg)' : 'none' }} />
+                            <span
+                                style={{
+                                    ...hamburgerLineStyle,
+                                    transform: menuOpen ? 'translateY(5.5px) rotate(45deg)' : 'none',
+                                }}
+                            />
                             <span style={{ ...hamburgerLineStyle, opacity: menuOpen ? 0 : 1 }} />
-                            <span style={{ ...hamburgerLineStyle, transform: menuOpen ? 'translateY(-5.5px) rotate(-45deg)' : 'none' }} />
+                            <span
+                                style={{
+                                    ...hamburgerLineStyle,
+                                    transform: menuOpen ? 'translateY(-5.5px) rotate(-45deg)' : 'none',
+                                }}
+                            />
                         </button>
                     </nav>
                 </div>
@@ -214,7 +224,10 @@ export function AppShell() {
                         })}
                         <div style={{ height: '1px', background: '#1a1a1a', margin: '0.25rem 1rem' }} />
                         <button
-                            onClick={() => { handleExport(); setMenuOpen(false); }}
+                            onClick={() => {
+                                handleExport();
+                                setMenuOpen(false);
+                            }}
                             style={{
                                 fontFamily: MONO,
                                 fontSize: '0.875rem',
