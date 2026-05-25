@@ -227,8 +227,8 @@ Two types must be added during this refactor (they are referenced by context and
 // Navigation view identifier
 export type View = 'log' | 'program' | 'history' | 'profile';
 
-// PR map: best saved LogEntry per exercise key (week-workoutType-exIdx)
-export type PRMap = Record<string, LogEntry>;
+// PR map: best E1RM (number) per exercise key (workoutType-exIdx)
+export type PRMap = Record<string, number>;
 ```
 
 `View` was previously an inline union in `TrackerClient`. `PRMap` is the return type of `computePRMap` in `utils.ts`, made explicit here.
