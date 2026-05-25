@@ -32,8 +32,11 @@ export function useProfile(initialProfile: Profile, initialBodyweightLogs: Bodyw
 
     async function updateProfile(displayName: string | null, unit: Unit): Promise<void> {
         mutateProfile({ ...profile, display_name: displayName, unit }, false);
-        await serverUpdateProfile(displayName, unit);
-        mutateProfile();
+        try {
+            await serverUpdateProfile(displayName, unit);
+        } finally {
+            mutateProfile();
+        }
     }
 
     async function logBodyWeight(weightKg: number): Promise<BodyweightEntry> {
@@ -47,8 +50,11 @@ export function useProfile(initialProfile: Profile, initialBodyweightLogs: Bodyw
 
     async function deleteBodyWeight(id: string): Promise<void> {
         mutateBW((prev = []) => prev.filter((e) => e.id !== id), false);
-        await serverDeleteBodyWeight(id);
-        mutateBW();
+        try {
+            await serverDeleteBodyWeight(id);
+        } finally {
+            mutateBW();
+        }
     }
 
     return { profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight };

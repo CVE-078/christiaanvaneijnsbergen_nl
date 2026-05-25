@@ -26,6 +26,7 @@ beforeEach(() => {
     profileMutate.mockClear();
     bwMutate.mockClear();
     vi.mocked(updateProfile).mockClear();
+    vi.mocked(logBodyWeight).mockClear();
     vi.mocked(deleteBodyWeight).mockClear();
 });
 
@@ -84,6 +85,7 @@ describe('useProfile', () => {
             expect(returned).toEqual(entry);
         });
 
+        expect(logBodyWeight).toHaveBeenCalledWith(75);
         expect(bwMutate).toHaveBeenCalled();
     });
 });
