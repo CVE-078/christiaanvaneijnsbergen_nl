@@ -1,15 +1,14 @@
 'use client';
 import { useMemo } from 'react';
-import { buildHistory, computePRMap, calcE1RM, toDisplay } from '@/lib/pulse/utils';
+import { buildHistory, calcE1RM, toDisplay } from '@/lib/pulse/utils';
 import { WORKOUTS } from '@/lib/pulse/data';
 import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import { usePulse } from '@/context/PulseContext';
 
 export default function HistoryView() {
-    const { logs, profile } = usePulse();
+    const { logs, profile, prMap } = usePulse();
     const unit = profile.unit;
     const sessions = useMemo(() => buildHistory(logs), [logs]);
-    const prMap = useMemo(() => computePRMap(logs), [logs]);
 
     if (sessions.length === 0) {
         return (

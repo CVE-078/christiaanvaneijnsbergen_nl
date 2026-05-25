@@ -23,7 +23,7 @@ const defaultContext = {
 };
 
 beforeEach(() => {
-    vi.mocked(usePulse).mockReturnValue(defaultContext as ReturnType<typeof usePulse>);
+    vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
 });
 
 describe('LogView', () => {
@@ -36,7 +36,7 @@ describe('LogView', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             logs: { '1-push-0-0': { kg: 60, reps: 10, rir: 3, saved: true } },
-        } as ReturnType<typeof usePulse>);
+        } as unknown as ReturnType<typeof usePulse>);
         render(<LogView />);
         expect(screen.queryByText(/tap an exercise/i)).not.toBeInTheDocument();
     });

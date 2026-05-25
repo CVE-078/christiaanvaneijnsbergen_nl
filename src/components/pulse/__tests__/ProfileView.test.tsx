@@ -10,7 +10,7 @@ vi.mock('@/context/PulseContext', () => ({
 import { usePulse } from '@/context/PulseContext';
 
 const mockUpdateProfile = vi.fn().mockResolvedValue(undefined);
-const mockLogBodyWeight = vi.fn();
+const mockLogBodyWeight = vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 });
 const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
 
 const defaultContext = {
@@ -23,7 +23,7 @@ const defaultContext = {
 };
 
 beforeEach(() => {
-    vi.mocked(usePulse).mockReturnValue(defaultContext as ReturnType<typeof usePulse>);
+    vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
     mockUpdateProfile.mockClear();
     mockLogBodyWeight.mockClear();
     mockDeleteBodyWeight.mockClear();
@@ -52,7 +52,7 @@ describe('ProfileView', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             profile: { display_name: 'John Doe', unit: 'kg' },
-        } as ReturnType<typeof usePulse>);
+        } as unknown as ReturnType<typeof usePulse>);
         render(<ProfileView />);
         expect(screen.getByText('JD')).toBeInTheDocument();
     });
@@ -61,7 +61,7 @@ describe('ProfileView', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             profile: { display_name: null, unit: 'kg' },
-        } as ReturnType<typeof usePulse>);
+        } as unknown as ReturnType<typeof usePulse>);
         render(<ProfileView />);
         expect(screen.getByText('T')).toBeInTheDocument();
     });
@@ -76,7 +76,7 @@ describe('ProfileView', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             bodyweightLogs: [{ id: 'abc', logged_at: '2026-05-01', weight_kg: 80 }],
-        } as ReturnType<typeof usePulse>);
+        } as unknown as ReturnType<typeof usePulse>);
         render(<ProfileView />);
         expect(screen.getByText(/80 kg/i)).toBeInTheDocument();
     });
