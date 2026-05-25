@@ -1,8 +1,8 @@
-'use client';
-import { PHASES } from '@/lib/weight-tracker/data';
-import { weekHasData } from '@/lib/weight-tracker/utils';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
-import type { Logs } from '@/lib/weight-tracker/types';
+﻿'use client';
+import { PHASES } from '@/lib/pulse/data';
+import { weekHasData } from '@/lib/pulse/utils';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
+import type { Logs } from '@/lib/pulse/types';
 
 interface Props {
     activeWeek: number;
@@ -24,7 +24,7 @@ export default function WeekSelector({ activeWeek, onSelect, logs }: Props) {
                             color: MUTED,
                             marginBottom: '0.5rem',
                         }}>
-                        {phase.label} · {phase.subtitle}
+                        {phase.label} Â· {phase.subtitle}
                     </div>
                     <div style={{ display: 'flex', gap: '0.375rem' }}>
                         {phase.weeks.map((w) => {

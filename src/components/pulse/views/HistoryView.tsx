@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 import { useMemo } from 'react';
-import { buildHistory, computePRMap, calcE1RM, toDisplay } from '@/lib/weight-tracker/utils';
-import { WORKOUTS } from '@/lib/weight-tracker/data';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
-import type { Logs, Unit } from '@/lib/weight-tracker/types';
+import { buildHistory, computePRMap, calcE1RM, toDisplay } from '@/lib/pulse/utils';
+import { WORKOUTS } from '@/lib/pulse/data';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
+import type { Logs, Unit } from '@/lib/pulse/types';
 
 interface Props {
     logs: Logs;
@@ -128,7 +128,7 @@ export default function HistoryView({ logs, unit }: Props) {
                                                 fontSize: '0.75rem',
                                                 flexShrink: 0,
                                             }}>
-                                            {toDisplay(set.kg, unit)} {unit} × {set.reps}
+                                            {toDisplay(set.kg, unit)} {unit} Ã— {set.reps}
                                         </span>
                                         {isPR && (
                                             <span

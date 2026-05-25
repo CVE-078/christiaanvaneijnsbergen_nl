@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProfileView from '../views/ProfileView';
@@ -45,7 +45,7 @@ describe('ProfileView', () => {
 
     it('renders first email letter as initials when displayName is null', () => {
         render(<ProfileView {...defaultProps} displayName={null} />);
-        expect(screen.getByText('T')).toBeInTheDocument(); // 'test@example.com' → 'T'
+        expect(screen.getByText('T')).toBeInTheDocument(); // 'test@example.com' â†’ 'T'
     });
 
     it('calls onUnitChange and updateProfile when unit is toggled to lbs', async () => {

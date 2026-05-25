@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ExerciseCard from '../ExerciseCard';
-import { WORKOUTS } from '@/lib/weight-tracker/data';
+import { WORKOUTS } from '@/lib/pulse/data';
 
-// WORKOUTS.push.exercises[0] = Dumbbell Bench Press, sets: '3–4' → maxSets = 4
+// WORKOUTS.push.exercises[0] = Dumbbell Bench Press, sets: '3â€“4' â†’ maxSets = 4
 const exercise = WORKOUTS.push.exercises[0];
 
 const defaultProps = {
@@ -26,7 +26,7 @@ describe('ExerciseCard', () => {
     });
 
     it('shows completed indicator when all sets are logged', () => {
-        // Dumbbell Bench Press: sets '3–4' → parseMaxSets returns 4, so sets 0..3
+        // Dumbbell Bench Press: sets '3â€“4' â†’ parseMaxSets returns 4, so sets 0..3
         const logs: Record<string, { kg: number; reps: number; rir: number; saved: boolean }> = {
             '1-push-0-0': { kg: 60, reps: 10, rir: 3, saved: true },
             '1-push-0-1': { kg: 60, reps: 10, rir: 3, saved: true },

@@ -1,6 +1,6 @@
-'use client';
-import type { WorkoutType } from '@/lib/weight-tracker/types';
-import { MONO, ACCENT, BORDER } from '@/lib/weight-tracker/theme';
+﻿'use client';
+import type { WorkoutType } from '@/lib/pulse/types';
+import { MONO, ACCENT, BORDER } from '@/lib/pulse/theme';
 
 interface Props {
     activeTab: WorkoutType;

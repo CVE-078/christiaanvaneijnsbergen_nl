@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 import { useTransition, useState } from 'react';
 import { updateProfile, logBodyWeight, deleteBodyWeight } from '@/app/pulse/actions';
-import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/weight-tracker/utils';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
-import type { Unit, BodyweightEntry } from '@/lib/weight-tracker/types';
+import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
+import type { Unit, BodyweightEntry } from '@/lib/pulse/types';
 
 interface Props {
     email: string;
@@ -263,7 +263,7 @@ export default function ProfileView({
                                 marginTop: '0.125rem',
                                 display: 'block',
                             }}>
-                            Saved ✓
+                            Saved âœ“
                         </span>
                     )}
                 </div>
@@ -439,7 +439,7 @@ export default function ProfileView({
                                         padding: 0,
                                         flexShrink: 0,
                                     }}>
-                                    ✕
+                                    âœ•
                                 </button>
                             </div>
                         ))}

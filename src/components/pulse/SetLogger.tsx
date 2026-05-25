@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
-import { getRIR, computeSuggestion, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/weight-tracker/utils';
-import { MONO, ACCENT, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
-import type { LogEntry, WorkoutType, Unit } from '@/lib/weight-tracker/types';
+import { getRIR, computeSuggestion, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
+import { MONO, ACCENT, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
+import type { LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
 interface Props {
     setIdx: number;
@@ -111,7 +111,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         onChange={(e) => setKg(e.target.value)}
                         style={inputStyle}
                     />
-                    <span style={{ fontFamily: MONO, color: MUTED, fontSize: '0.75rem' }}>×</span>
+                    <span style={{ fontFamily: MONO, color: MUTED, fontSize: '0.75rem' }}>Ã—</span>
                     <input
                         type="number"
                         aria-label="Repetitions"
@@ -135,7 +135,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                                 whiteSpace: 'nowrap',
                                 flexShrink: 0,
                             }}>
-                            ↑ {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
+                            â†‘ {toDisplay(previousEntry.kg, unit)} {unit} Ã— {previousEntry.reps}
                         </span>
                     )}
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.375rem' }}>
@@ -180,7 +180,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
             ) : (
                 <>
                     <span style={{ fontFamily: MONO, fontSize: '0.8125rem', color: '#d4d4d4' }}>
-                        {toDisplay(entry!.kg, unit)} {unit} × {entry!.reps}
+                        {toDisplay(entry!.kg, unit)} {unit} Ã— {entry!.reps}
                     </span>
                     {isPR && (
                         <span
@@ -201,7 +201,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                     )}
                     <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM }}>{entry!.rir} RIR</span>
                     <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: ACCENT }}>✓</span>
+                        <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: ACCENT }}>âœ“</span>
                         <button
                             onClick={handleEdit}
                             style={{
@@ -229,7 +229,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                                     cursor: 'pointer',
                                     padding: 0,
                                 }}>
-                                ✕
+                                âœ•
                             </button>
                         )}
                     </div>

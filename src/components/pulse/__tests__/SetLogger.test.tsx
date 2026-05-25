@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SetLogger from '../SetLogger';
-import type { LogEntry } from '@/lib/weight-tracker/types';
+import type { LogEntry } from '@/lib/pulse/types';
 
 const defaultProps = {
     exIdx: 0,
@@ -26,7 +26,7 @@ describe('SetLogger', () => {
         const savedEntry: LogEntry = { kg: 60, reps: 10, rir: 3, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} />);
         expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
-        expect(screen.getByText('✓')).toBeInTheDocument();
+        expect(screen.getByText('âœ“')).toBeInTheDocument();
     });
 
     it('pre-fills inputs with saved values when Edit is clicked', async () => {
@@ -45,9 +45,9 @@ describe('SetLogger', () => {
         await userEvent.clear(kgInput);
         await userEvent.type(kgInput, '999');
         await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
-        // Back to saved view — no Cancel button visible
+        // Back to saved view â€” no Cancel button visible
         expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
-        expect(screen.getByText('✓')).toBeInTheDocument();
+        expect(screen.getByText('âœ“')).toBeInTheDocument();
     });
 
     it('calls onSave with a valid LogEntry when Save is clicked', async () => {
@@ -72,7 +72,7 @@ describe('SetLogger', () => {
         const onDelete = vi.fn();
         const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} onDelete={onDelete} />);
-        await userEvent.click(screen.getByRole('button', { name: /✕/i }));
+        await userEvent.click(screen.getByRole('button', { name: /âœ•/i }));
         expect(onDelete).toHaveBeenCalledTimes(1);
     });
 
@@ -82,18 +82,18 @@ describe('SetLogger', () => {
     });
 
     it('displays the RIR target for the given week', () => {
-        render(<SetLogger {...defaultProps} week={9} />); // week 9 → RIR 0
+        render(<SetLogger {...defaultProps} week={9} />); // week 9 â†’ RIR 0
         expect(screen.getByText(/^0\s+RIR$/)).toBeInTheDocument();
     });
 
     it('shows previous week reference when previousEntry is provided and set is unsaved', () => {
         const prev: LogEntry = { kg: 60, reps: 8, rir: 3, saved: true };
         render(<SetLogger {...defaultProps} previousEntry={prev} />);
-        expect(screen.getByText(/60 kg × 8/)).toBeInTheDocument();
+        expect(screen.getByText(/60 kg Ã— 8/)).toBeInTheDocument();
     });
 
     it('pre-fills kg input with suggested weight when previous RIR exceeded target', () => {
-        // week 2, prevTarget = getRIR(1) = 3, prev.rir = 4 > 3 → +2.5 → 62.5
+        // week 2, prevTarget = getRIR(1) = 3, prev.rir = 4 > 3 â†’ +2.5 â†’ 62.5
         const prev: LogEntry = { kg: 60, reps: 8, rir: 4, saved: true };
         render(<SetLogger {...defaultProps} week={2} previousEntry={prev} />);
         expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(62.5);

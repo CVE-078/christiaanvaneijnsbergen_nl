@@ -1,8 +1,8 @@
-import { WORKOUTS, VOLUME, SCHEDULE, WEEK_NOTES } from '@/lib/weight-tracker/data';
-import { getPhase } from '@/lib/weight-tracker/utils';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
+﻿import { WORKOUTS, VOLUME, SCHEDULE, WEEK_NOTES } from '@/lib/pulse/data';
+import { getPhase } from '@/lib/pulse/utils';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import WeekSelector from '../WeekSelector';
-import type { Logs } from '@/lib/weight-tracker/types';
+import type { Logs } from '@/lib/pulse/types';
 
 const BAR_MAX_HEIGHT_PX = 44;
 
@@ -38,7 +38,7 @@ export default function ProgramView({ activeWeek, onSelectWeek, logs }: Props) {
                         textTransform: 'uppercase',
                         color: ACCENT,
                     }}>
-                    {phase.label} — {phase.subtitle}
+                    {phase.label} â€” {phase.subtitle}
                 </div>
                 {WEEK_NOTES[activeWeek] && (
                     <div style={{ color: DIM, fontSize: '0.8125rem', marginTop: '0.375rem', lineHeight: 1.6 }}>
@@ -102,7 +102,7 @@ export default function ProgramView({ activeWeek, onSelectWeek, logs }: Props) {
                 <div style={{ display: 'flex', gap: '0.375rem' }}>
                     {SCHEDULE.map(({ day, type }) => {
                         const isRest = type === 'rest';
-                        const label = isRest ? '—' : type.charAt(0).toUpperCase();
+                        const label = isRest ? 'â€”' : type.charAt(0).toUpperCase();
                         return (
                             <div key={day} style={{ flex: 1, textAlign: 'center' }}>
                                 <div
@@ -149,7 +149,7 @@ export default function ProgramView({ activeWeek, onSelectWeek, logs }: Props) {
                                 fontWeight: 700,
                                 marginBottom: '0.75rem',
                             }}>
-                            {workout.label} — {workout.description}
+                            {workout.label} â€” {workout.description}
                         </div>
                         {workout.exercises.map((ex, i) => (
                             <div
@@ -183,7 +183,7 @@ export default function ProgramView({ activeWeek, onSelectWeek, logs }: Props) {
                                             letterSpacing: '0.04em',
                                             marginTop: '0.125rem',
                                         }}>
-                                        {ex.sets} sets · {ex.reps} reps · {ex.load}
+                                        {ex.sets} sets Â· {ex.reps} reps Â· {ex.load}
                                     </div>
                                 </div>
                             </div>

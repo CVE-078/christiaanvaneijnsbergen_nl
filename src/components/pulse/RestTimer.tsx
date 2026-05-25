@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 import { useEffect, useRef, useState } from 'react';
-import { MONO, ACCENT, BORDER, SURFACE, DIM } from '@/lib/weight-tracker/theme';
+import { MONO, ACCENT, BORDER, SURFACE, DIM } from '@/lib/pulse/theme';
 
 const DURATIONS = [60, 90, 120, 180];
 const DEFAULT_IDX = 1; // 90s

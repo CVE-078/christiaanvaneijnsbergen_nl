@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
-import { WORKOUTS } from '@/lib/weight-tracker/data';
-import { getPhase, getRIR, weekHasData, computePRMap, parseMaxSets, logKey } from '@/lib/weight-tracker/utils';
-import { MONO, ACCENT, BORDER, DIM } from '@/lib/weight-tracker/theme';
+﻿import { useMemo } from 'react';
+import { WORKOUTS } from '@/lib/pulse/data';
+import { getPhase, getRIR, weekHasData, computePRMap, parseMaxSets, logKey } from '@/lib/pulse/utils';
+import { MONO, ACCENT, BORDER, DIM } from '@/lib/pulse/theme';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
 import RestTimer from '../RestTimer';
-import type { Logs, LogEntry, WorkoutType, Unit } from '@/lib/weight-tracker/types';
+import type { Logs, LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
 interface Props {
     activeWeek: number;
@@ -33,7 +33,7 @@ export default function LogView({
     const workout = WORKOUTS[activeTab];
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
-    // Computed once here — passed down to all ExerciseCards to avoid redundant work
+    // Computed once here â€” passed down to all ExerciseCards to avoid redundant work
     const prMap = useMemo(() => computePRMap(logs), [logs]);
 
     const hasData = workout.exercises.some((ex, exIdx) =>
@@ -119,7 +119,7 @@ export default function LogView({
                 <span style={{ fontSize: '0.8125rem', color: DIM, marginLeft: 'auto' }}>{workout.description}</span>
             </div>
 
-            {/* Exercise cards — keyed on activeTab+index so open state resets on tab switch */}
+            {/* Exercise cards â€” keyed on activeTab+index so open state resets on tab switch */}
             <div
                 id={`panel-${activeTab}`}
                 role="tabpanel"

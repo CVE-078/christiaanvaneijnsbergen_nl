@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
-import { logKey, parseMaxSets, calcE1RM } from '@/lib/weight-tracker/utils';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/weight-tracker/theme';
+import { logKey, parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
+import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import SetLogger from './SetLogger';
-import type { Exercise, Logs, LogEntry, WorkoutType, Unit } from '@/lib/weight-tracker/types';
+import type { Exercise, Logs, LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
 interface Props {
     exercise: Exercise;
@@ -31,7 +31,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
             <button
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
-                aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}${complete ? ' — all sets done' : ''}`}
+                aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}${complete ? ' â€” all sets done' : ''}`}
                 style={{
                     width: '100%',
                     padding: '0.875rem 1rem',
@@ -78,13 +78,13 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                             marginTop: '0.25rem',
                             textTransform: 'uppercase',
                         }}>
-                        {exercise.sets} sets · {exercise.reps} reps
+                        {exercise.sets} sets Â· {exercise.reps} reps
                     </div>
                 </div>
                 <span style={{ fontFamily: MONO, fontSize: '0.875rem', letterSpacing: '0.05em', flexShrink: 0 }}>
                     {Array.from({ length: maxSets }, (_, i) => (
                         <span key={i} style={{ color: i < savedCount ? ACCENT : MUTED }}>
-                            {i < savedCount ? '█' : '░'}
+                            {i < savedCount ? 'â–ˆ' : 'â–‘'}
                         </span>
                     ))}
                 </span>
@@ -98,7 +98,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                             marginLeft: '0.375rem',
                             flexShrink: 0,
                         }}>
-                        ✓
+                        âœ“
                     </span>
                 )}
             </button>
@@ -113,7 +113,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                             padding: '0.625rem 0 0.375rem',
                             lineHeight: 1.6,
                         }}>
-                        {exercise.load} · {exercise.note}
+                        {exercise.load} Â· {exercise.note}
                     </p>
                     {Array.from({ length: maxSets }, (_, i) => {
                         const entry = logs[logKey(week, type, exIdx, i)];

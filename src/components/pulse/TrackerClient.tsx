@@ -1,13 +1,13 @@
-'use client';
+﻿'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { saveLogs, logout } from '@/app/pulse/actions';
-import { computeStreak } from '@/lib/weight-tracker/utils';
-import { MONO, ACCENT, BG, BORDER, DIM } from '@/lib/weight-tracker/theme';
+import { computeStreak } from '@/lib/pulse/utils';
+import { MONO, ACCENT, BG, BORDER, DIM } from '@/lib/pulse/theme';
 import ProgramView from './views/ProgramView';
 import LogView from './views/LogView';
 import HistoryView from './views/HistoryView';
 import ProfileView from './views/ProfileView';
-import type { Logs, LogEntry, WorkoutType, Unit, Profile, BodyweightEntry } from '@/lib/weight-tracker/types';
+import type { Logs, LogEntry, WorkoutType, Unit, Profile, BodyweightEntry } from '@/lib/pulse/types';
 
 type View = 'log' | 'program' | 'history' | 'profile';
 
@@ -72,7 +72,7 @@ export default function TrackerClient({ initialLogs, initialProfile, initialBody
             setSaveError(null);
             if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
             saveLogs(newLogs).catch(() => {
-                setSaveError('Failed to save. Retrying…');
+                setSaveError('Failed to save. Retryingâ€¦');
                 retryTimeoutRef.current = setTimeout(
                     () => saveLogs(newLogs).catch(() => setSaveError('Save failed. Check your connection.')),
                     3000,
@@ -177,7 +177,7 @@ export default function TrackerClient({ initialLogs, initialProfile, initialBody
                                 letterSpacing: '0.05em',
                                 flexShrink: 0,
                             }}>
-                            · {streak}WK
+                            Â· {streak}WK
                         </span>
                     )}
 
@@ -185,7 +185,7 @@ export default function TrackerClient({ initialLogs, initialProfile, initialBody
                     <nav
                         style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center' }}
                         aria-label="Main navigation">
-                        {/* Nav buttons — visibility controlled by .pulse-desktop-nav media query in globals.css */}
+                        {/* Nav buttons â€” visibility controlled by .pulse-desktop-nav media query in globals.css */}
                         <span className="pulse-desktop-nav">
                             {NAV.map(({ id, label }) => {
                                 const active = view === id;
@@ -247,7 +247,7 @@ export default function TrackerClient({ initialLogs, initialProfile, initialBody
                             </form>
                         </span>
 
-                        {/* Hamburger — visible on mobile only */}
+                        {/* Hamburger â€” visible on mobile only */}
                         <button
                             className="pulse-hamburger"
                             onClick={() => setMenuOpen((o) => !o)}

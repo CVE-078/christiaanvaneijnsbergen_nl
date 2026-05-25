@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RestTimer from '../RestTimer';
@@ -10,7 +10,7 @@ beforeEach(() => {
 describe('RestTimer', () => {
     it('persists selected duration to localStorage when changed', async () => {
         render(<RestTimer trigger={1} />);
-        // The duration button label is "Rest duration: 90s. Click to change." — matches /rest duration/i
+        // The duration button label is "Rest duration: 90s. Click to change." â€” matches /rest duration/i
         const durationBtn = screen.getByRole('button', { name: /rest duration/i });
         await userEvent.click(durationBtn); // cycles to next index
         const stored = Number(localStorage.getItem('wt_timer_idx'));
