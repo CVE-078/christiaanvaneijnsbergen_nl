@@ -110,6 +110,16 @@ export async function updateProfile(
     } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
 
+    if (activeRoutineId !== undefined && activeRoutineId !== null) {
+        const { data: routine } = await supabase
+            .from('workout_routines')
+            .select('id')
+            .eq('id', activeRoutineId)
+            .eq('user_id', user.id)
+            .single();
+        if (!routine) throw new Error('Routine not found');
+    }
+
     const { error } = await supabase
         .from('profiles')
         .upsert(
@@ -258,21 +268,31 @@ export async function deleteRoutine(id: string): Promise<void> {
         .single();
 
     if (profile?.active_routine_id === id) {
-        await supabase
+        const { error: profileError } = await supabase
             .from('profiles')
             .update({ active_routine_id: null })
             .eq('id', user.id);
+        if (profileError) throw new Error('Failed to clear active routine');
     }
 }
 
 export async function setActiveRoutine(routineId: string | null): Promise<void> {
-    if (routineId !== null && !UUID_RE.test(routineId)) throw new Error('Invalid routine id');
-
     const supabase = await createClient();
     const {
         data: { user },
     } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
+
+    if (routineId !== null) {
+        if (!UUID_RE.test(routineId)) throw new Error('Invalid routine id');
+        const { data: routine } = await supabase
+            .from('workout_routines')
+            .select('id')
+            .eq('id', routineId)
+            .eq('user_id', user.id)
+            .single();
+        if (!routine) throw new Error('Routine not found');
+    }
 
     const { error } = await supabase
         .from('profiles')
@@ -420,7 +440,7 @@ export async function reorderRoutineExercises(
         .single();
     if (!routine) throw new Error('Routine not found');
 
-    await Promise.all(
+    const results = await Promise.all(
         orderedIds.map((id, index) =>
             supabase
                 .from('routine_exercises')
@@ -429,4 +449,6 @@ export async function reorderRoutineExercises(
                 .eq('routine_id', routineId),
         ),
     );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) throw new Error('Failed to reorder exercises');
 }
