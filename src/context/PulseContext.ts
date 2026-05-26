@@ -1,5 +1,19 @@
 import { createContext, useContext } from 'react';
-import type { Logs, Profile, BodyweightEntry, WorkoutType, Unit, LogEntry, View, PRMap } from '@/lib/pulse/types';
+import type {
+    Logs,
+    Profile,
+    BodyweightEntry,
+    WorkoutType,
+    Unit,
+    LogEntry,
+    View,
+    PRMap,
+    DbExercise,
+    WorkoutRoutine,
+    RoutineWithExercises,
+    RoutineExercise,
+    ExerciseCategory,
+} from '@/lib/pulse/types';
 
 export interface PulseContextValue {
     // Data
@@ -37,6 +51,37 @@ export interface PulseContextValue {
     // Rest timer
     timerTrigger: number;
     fireTrigger: () => void;
+
+    // Routine & exercise state
+    exercises: DbExercise[];
+    routines: RoutineWithExercises[];
+    activeRoutine: RoutineWithExercises | null;
+    routineExercisesByType: Record<WorkoutType, RoutineExercise[]>;
+
+    // Routine mutations
+    createRoutine: (name: string) => Promise<WorkoutRoutine>;
+    deleteRoutine: (id: string) => Promise<void>;
+    setActiveRoutine: (routineId: string | null) => Promise<void>;
+    addExerciseToRoutine: (
+        routineId: string,
+        exerciseId: string,
+        sets: string,
+        reps: string,
+        startingWeightKg: number | null,
+    ) => Promise<RoutineExercise>;
+    removeExerciseFromRoutine: (routineExerciseId: string) => Promise<void>;
+    updateRoutineExercise: (
+        routineExerciseId: string,
+        sets: string,
+        reps: string,
+        startingWeightKg: number | null,
+    ) => Promise<void>;
+    reorderRoutineExercises: (routineId: string, orderedIds: string[]) => Promise<void>;
+
+    // Exercise library mutations
+    createExercise: (name: string, category: ExerciseCategory, defaultSets: string, defaultReps: string) => Promise<DbExercise>;
+    updateExercise: (id: string, name: string) => Promise<void>;
+    deleteExercise: (id: string) => Promise<void>;
 }
 
 export const PulseContext = createContext<PulseContextValue | null>(null);

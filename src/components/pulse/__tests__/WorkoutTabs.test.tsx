@@ -1,60 +1,97 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WorkoutTabs from '../WorkoutTabs';
-import { WORKOUTS } from '@/lib/pulse/data';
+import type { RoutineExercise } from '@/lib/pulse/types';
 
-const base = { activeTab: 'push' as const, onSelect: vi.fn(), logs: {}, week: 1 };
+vi.mock('@/context/PulseContext', () => ({
+    usePulse: vi.fn(),
+}));
+
+import { usePulse } from '@/context/PulseContext';
+
+const mockRE = (id: string): RoutineExercise => ({
+    id,
+    routine_id: 'r1',
+    exercise_id: id,
+    order: 0,
+    sets: '3',
+    reps: '8-12',
+    starting_weight_kg: null,
+    exercise: { id, name: `Exercise ${id}`, category: 'push', default_sets: '3', default_reps: '8-12', user_id: null },
+});
+
+const defaultContext = {
+    activeTab: 'push' as const,
+    setActiveTab: vi.fn(),
+    activeWeek: 1,
+    logs: {},
+    routineExercisesByType: {
+        push: [mockRE('ex-1'), mockRE('ex-2'), mockRE('ex-3')],
+        pull: [mockRE('ex-4')],
+        legs: [],
+    },
+};
+
+beforeEach(() => {
+    vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
+    defaultContext.setActiveTab.mockClear();
+});
 
 describe('WorkoutTabs', () => {
     it('renders Push, Pull and Legs tabs', () => {
-        render(<WorkoutTabs {...base} />);
+        render(<WorkoutTabs />);
         expect(screen.getByRole('tab', { name: /push/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /pull/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /legs/i })).toBeInTheDocument();
     });
 
     it('marks the active tab with aria-selected="true" and others with false', () => {
-        render(<WorkoutTabs {...base} activeTab="pull" />);
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeTab: 'pull' as const,
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<WorkoutTabs />);
         expect(screen.getByRole('tab', { name: /pull/i })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tab', { name: /push/i })).toHaveAttribute('aria-selected', 'false');
         expect(screen.getByRole('tab', { name: /legs/i })).toHaveAttribute('aria-selected', 'false');
     });
 
-    it('calls onSelect when an inactive tab is clicked', async () => {
-        const onSelect = vi.fn();
-        render(<WorkoutTabs {...base} onSelect={onSelect} />);
+    it('calls setActiveTab when an inactive tab is clicked', async () => {
+        render(<WorkoutTabs />);
         await userEvent.click(screen.getByRole('tab', { name: /legs/i }));
-        expect(onSelect).toHaveBeenCalledWith('legs');
+        expect(defaultContext.setActiveTab).toHaveBeenCalledWith('legs');
     });
 
-    it('calls onSelect with active tab type when active tab is clicked', async () => {
-        const onSelect = vi.fn();
-        render(<WorkoutTabs {...base} onSelect={onSelect} />);
+    it('calls setActiveTab with active tab type when active tab is clicked', async () => {
+        render(<WorkoutTabs />);
         await userEvent.click(screen.getByRole('tab', { name: /push/i }));
-        expect(onSelect).toHaveBeenCalledWith('push');
+        expect(defaultContext.setActiveTab).toHaveBeenCalledWith('push');
     });
 
     it('navigates to the next tab on ArrowRight', async () => {
-        const onSelect = vi.fn();
-        render(<WorkoutTabs {...base} onSelect={onSelect} />);
+        render(<WorkoutTabs />);
         screen.getByRole('tab', { name: /push/i }).focus();
         await userEvent.keyboard('{ArrowRight}');
-        expect(onSelect).toHaveBeenCalledWith('pull');
+        expect(defaultContext.setActiveTab).toHaveBeenCalledWith('pull');
     });
 
     it('wraps around to the last tab on ArrowLeft from the first', async () => {
-        const onSelect = vi.fn();
-        render(<WorkoutTabs {...base} onSelect={onSelect} />);
+        render(<WorkoutTabs />);
         screen.getByRole('tab', { name: /push/i }).focus();
         await userEvent.keyboard('{ArrowLeft}');
-        expect(onSelect).toHaveBeenCalledWith('legs');
+        expect(defaultContext.setActiveTab).toHaveBeenCalledWith('legs');
     });
 
-    it('shows "0/N" completion summary on the active tab', () => {
-        render(<WorkoutTabs {...base} />);
-        const total = WORKOUTS.push.exercises.length;
-        const badge = screen.getAllByText((_, el) => el?.textContent === `0/${total}`);
-        expect(badge.length).toBeGreaterThanOrEqual(1);
+    it('shows "0/3" completion badge on the active push tab', () => {
+        render(<WorkoutTabs />);
+        expect(screen.getByText('0/3')).toBeInTheDocument();
+    });
+
+    it('does not show a badge when the tab has no exercises', () => {
+        render(<WorkoutTabs />);
+        // legs has 0 exercises — no badge rendered for it
+        const legsTab = screen.getByRole('tab', { name: /legs/i });
+        expect(legsTab.querySelector('span:last-child')?.textContent).not.toMatch(/\d+\/\d+/);
     });
 });

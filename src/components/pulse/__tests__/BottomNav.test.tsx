@@ -4,12 +4,13 @@ import userEvent from '@testing-library/user-event';
 import BottomNav from '../BottomNav';
 
 describe('BottomNav', () => {
-    it('renders all four nav labels', () => {
+    it('renders all five nav labels', () => {
         render(<BottomNav view="log" onNavigate={vi.fn()} />);
         expect(screen.getByText('Log')).toBeInTheDocument();
         expect(screen.getByText('Program')).toBeInTheDocument();
         expect(screen.getByText('History')).toBeInTheDocument();
         expect(screen.getByText('Profile')).toBeInTheDocument();
+        expect(screen.getByText('Library')).toBeInTheDocument();
     });
 
     it('calls onNavigate with the correct view when a tab is clicked', async () => {

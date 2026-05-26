@@ -54,10 +54,11 @@ describe('getRIR', () => {
 });
 
 describe('logKey', () => {
-    it('returns hyphen-delimited string', () => {
-        expect(logKey(1, 'push', 0, 0)).toBe('1-push-0-0');
-        expect(logKey(12, 'legs', 5, 3)).toBe('12-legs-5-3');
-        expect(logKey(7, 'pull', 2, 1)).toBe('7-pull-2-1');
+    it('returns hyphen-delimited string with UUID in middle', () => {
+        const uuid = '550e8400-e29b-41d4-a716-446655440000';
+        expect(logKey(1, uuid, 0)).toBe(`1-${uuid}-0`);
+        expect(logKey(12, uuid, 3)).toBe(`12-${uuid}-3`);
+        expect(logKey(7, uuid, 1)).toBe(`7-${uuid}-1`);
     });
 });
 
@@ -78,34 +79,36 @@ describe('parseMaxSets', () => {
 });
 
 describe('buildHistory', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+    const UUID_B = '550e8400-e29b-41d4-a716-446655440001';
+
     it('returns empty array for empty logs', () => {
         expect(buildHistory({})).toEqual([]);
     });
 
     it('ignores entries where saved is false', () => {
         const logs: Logs = {
-            '1-push-0-0': { kg: 60, reps: 10, rir: 3, saved: false },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 10, rir: 3, saved: false },
         };
         expect(buildHistory(logs)).toEqual([]);
     });
 
-    it('groups saved entries by week+type', () => {
+    it('groups saved entries by week', () => {
         const logs: Logs = {
-            '1-push-0-0': { kg: 60, reps: 10, rir: 3, saved: true },
-            '1-push-0-1': { kg: 62, reps: 8, rir: 2, saved: true },
-            '1-pull-0-0': { kg: 50, reps: 12, rir: 3, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 10, rir: 3, saved: true },
+            [`1-${UUID_A}-1`]: { kg: 62, reps: 8,  rir: 2, saved: true },
+            [`1-${UUID_B}-0`]: { kg: 50, reps: 12, rir: 3, saved: true },
         };
         const history = buildHistory(logs);
-        expect(history).toHaveLength(2);
-        const pushSession = history.find((s) => s.type === 'push');
-        expect(pushSession?.week).toBe(1);
-        expect(pushSession?.sets).toHaveLength(2);
+        expect(history).toHaveLength(1);
+        expect(history[0].week).toBe(1);
+        expect(history[0].sets).toHaveLength(3);
     });
 
     it('sorts sessions descending by week', () => {
         const logs: Logs = {
-            '3-push-0-0': { kg: 70, reps: 8, rir: 2, saved: true },
-            '1-push-0-0': { kg: 60, reps: 10, rir: 3, saved: true },
+            [`3-${UUID_A}-0`]: { kg: 70, reps: 8,  rir: 2, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 10, rir: 3, saved: true },
         };
         const history = buildHistory(logs);
         expect(history[0].week).toBe(3);
@@ -124,60 +127,65 @@ describe('calcE1RM', () => {
 });
 
 describe('computePRMap', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+    const UUID_B = '550e8400-e29b-41d4-a716-446655440001';
+
     it('returns empty map for empty logs', () => {
         expect(computePRMap({})).toEqual({});
     });
     it('finds best e1RM per exercise across weeks', () => {
         const logs: Logs = {
-            '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
-            '2-push-0-0': { kg: 65, reps: 6, rir: 2, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`2-${UUID_A}-0`]: { kg: 65, reps: 6, rir: 2, saved: true },
         };
         const map = computePRMap(logs);
-        expect(map['push-0']).toBeGreaterThan(calcE1RM(60, 8));
-        expect(map['push-0']).toBeCloseTo(calcE1RM(65, 6));
+        expect(map[UUID_A]).toBeGreaterThan(calcE1RM(60, 8));
+        expect(map[UUID_A]).toBeCloseTo(calcE1RM(65, 6));
     });
     it('ignores unsaved entries', () => {
         const logs: Logs = {
-            '1-push-0-0': { kg: 200, reps: 20, rir: 0, saved: false },
+            [`1-${UUID_A}-0`]: { kg: 200, reps: 20, rir: 0, saved: false },
         };
         expect(computePRMap(logs)).toEqual({});
     });
     it('keeps separate keys per exercise', () => {
         const logs: Logs = {
-            '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
-            '1-push-1-0': { kg: 40, reps: 12, rir: 3, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8,  rir: 3, saved: true },
+            [`1-${UUID_B}-0`]: { kg: 40, reps: 12, rir: 3, saved: true },
         };
         const map = computePRMap(logs);
-        expect(map['push-0']).toBeDefined();
-        expect(map['push-1']).toBeDefined();
-        expect(map['push-0']).not.toBeCloseTo(map['push-1']);
+        expect(map[UUID_A]).toBeDefined();
+        expect(map[UUID_B]).toBeDefined();
+        expect(map[UUID_A]).not.toBeCloseTo(map[UUID_B]);
     });
 });
 
 describe('computeStreak', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+
     it('returns 0 for empty logs', () => {
         expect(computeStreak({})).toBe(0);
     });
     it('counts consecutive weeks from the most recent', () => {
         const logs: Logs = {
-            '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
-            '2-push-0-0': { kg: 62, reps: 8, rir: 3, saved: true },
-            '3-push-0-0': { kg: 65, reps: 8, rir: 2, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`2-${UUID_A}-0`]: { kg: 62, reps: 8, rir: 3, saved: true },
+            [`3-${UUID_A}-0`]: { kg: 65, reps: 8, rir: 2, saved: true },
         };
         expect(computeStreak(logs)).toBe(3);
     });
     it('stops at the first gap', () => {
         const logs: Logs = {
-            '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
-            '3-push-0-0': { kg: 65, reps: 8, rir: 2, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`3-${UUID_A}-0`]: { kg: 65, reps: 8, rir: 2, saved: true },
         };
         expect(computeStreak(logs)).toBe(1);
     });
     it('ignores unsaved entries when counting', () => {
         const logs: Logs = {
-            '1-push-0-0': { kg: 60, reps: 8, rir: 3, saved: true },
-            '2-push-0-0': { kg: 62, reps: 8, rir: 3, saved: false },
-            '3-push-0-0': { kg: 65, reps: 8, rir: 2, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`2-${UUID_A}-0`]: { kg: 62, reps: 8, rir: 3, saved: false },
+            [`3-${UUID_A}-0`]: { kg: 65, reps: 8, rir: 2, saved: true },
         };
         expect(computeStreak(logs)).toBe(1);
     });
@@ -208,15 +216,17 @@ describe('computeSuggestion', () => {
 });
 
 describe('weekHasData', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+
     it('returns true when a saved entry exists for the week', () => {
-        const logs: Logs = { '3-push-0-0': { kg: 60, reps: 8, rir: 2, saved: true } };
+        const logs: Logs = { [`3-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 2, saved: true } };
         expect(weekHasData(3, logs)).toBe(true);
     });
     it('returns false when no saved entries exist for the week', () => {
         expect(weekHasData(3, {})).toBe(false);
     });
     it('returns false when entry exists but is not saved', () => {
-        const logs: Logs = { '3-push-0-0': { kg: 60, reps: 8, rir: 2, saved: false } };
+        const logs: Logs = { [`3-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 2, saved: false } };
         expect(weekHasData(3, logs)).toBe(false);
     });
 });

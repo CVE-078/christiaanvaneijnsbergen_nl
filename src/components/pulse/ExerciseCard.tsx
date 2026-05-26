@@ -1,14 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { logKey, parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
+import { logKey, parseMaxSets, calcE1RM, toDisplay } from '@/lib/pulse/utils';
 import SetLogger from './SetLogger';
-import type { Exercise, Logs, LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
+import type { Logs, LogEntry, Unit } from '@/lib/pulse/types';
+import type { RoutineExercise } from '@/lib/pulse/types';
 
 interface Props {
-    exercise: Exercise;
+    routineExercise: RoutineExercise;
     exIdx: number;
     week: number;
-    type: WorkoutType;
     logs: Logs;
     prMap: Record<string, number>;
     unit: Unit;
@@ -16,14 +16,14 @@ interface Props {
     onDelete: (key: string) => void;
 }
 
-export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap, unit, onSave, onDelete }: Props) {
+export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, prMap, unit, onSave, onDelete }: Props) {
     const [open, setOpen] = useState(false);
-    const maxSets = parseMaxSets(exercise.sets);
-    const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, type, exIdx, i)).filter(
+    const maxSets = parseMaxSets(re.sets);
+    const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, re.id, i)).filter(
         (k) => logs[k]?.saved,
     ).length;
     const complete = savedCount >= maxSets;
-    const bestE1RM = prMap[`${type}-${exIdx}`] ?? 0;
+    const bestE1RM = prMap[re.id] ?? 0;
 
     return (
         <div
@@ -33,7 +33,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
             <button
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
-                aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}${complete ? ' — all sets done' : ''}`}
+                aria-label={`${open ? 'Collapse' : 'Expand'} ${re.exercise.name}${complete ? ' — all sets done' : ''}`}
                 className="w-full py-3.5 px-4 bg-transparent border-none cursor-pointer flex items-center gap-3 text-left">
                 {/* Small index chip */}
                 <span
@@ -44,10 +44,13 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                 </span>
                 <div className="flex-1 min-w-0">
                     <div className={`font-pulse text-[0.9375rem] font-semibold truncate ${complete ? 'text-pulse-text' : 'text-white'}`}>
-                        {exercise.name}
+                        {re.exercise.name}
                     </div>
                     <div className="font-pulse text-xs text-pulse-dim mt-0.5">
-                        {exercise.sets} sets · {exercise.reps} reps
+                        {re.sets} sets · {re.reps} reps
+                        {re.starting_weight_kg !== null && (
+                            <> · {toDisplay(re.starting_weight_kg, unit)} {unit} start</>
+                        )}
                     </div>
                 </div>
                 {/* Progress pips + count */}
@@ -91,25 +94,24 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
 
             {open && (
                 <div className="border-t border-pulse-border px-4 pt-1 pb-4">
-                    <p className="font-pulse text-xs text-pulse-dim pt-2.5 pb-2 leading-relaxed">
-                        {exercise.load} · {exercise.note}
-                    </p>
                     {Array.from({ length: maxSets }, (_, i) => {
-                        const entry = logs[logKey(week, type, exIdx, i)];
+                        const key = logKey(week, re.id, i);
+                        const entry = logs[key];
                         const isPR = !!(entry?.saved && bestE1RM > 0 && calcE1RM(entry.kg, entry.reps) >= bestE1RM);
-                        const prevEntry = week > 1 ? logs[logKey(week - 1, type, exIdx, i)] : undefined;
+                        const prevKey = logKey(week - 1, re.id, i);
+                        const prevEntry = week > 1 ? logs[prevKey] : undefined;
                         return (
                             <SetLogger
                                 key={`${week}-${i}`}
                                 setIdx={i}
                                 week={week}
-                                type={type}
+                                type="push"
                                 entry={entry}
                                 previousEntry={prevEntry?.saved ? prevEntry : undefined}
                                 isPR={isPR}
                                 unit={unit}
-                                onSave={(e) => onSave(logKey(week, type, exIdx, i), e)}
-                                onDelete={() => onDelete(logKey(week, type, exIdx, i))}
+                                onSave={(e) => onSave(key, e)}
+                                onDelete={() => onDelete(key)}
                             />
                         );
                     })}

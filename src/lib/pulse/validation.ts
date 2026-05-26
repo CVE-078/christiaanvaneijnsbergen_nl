@@ -1,7 +1,8 @@
 import type { Logs } from './types';
 
-// Tightly bounded: weeks 1–12, exercise indices 0–5, set indices 0–3
-const LOG_KEY_RE = /^([1-9]|1[0-2])-(?:push|pull|legs)-[0-5]-[0-3]$/;
+// Format: "<week>-<routineExerciseId (UUID v4)>-<setIdx>"
+// Weeks 1–52, set indices 0–9
+const LOG_KEY_RE = /^([1-9]|[1-4][0-9]|5[0-2])-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-[0-9]$/i;
 
 export function validateLogs(value: unknown): value is Logs {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;

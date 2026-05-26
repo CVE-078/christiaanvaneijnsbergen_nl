@@ -1,7 +1,6 @@
 ﻿'use client';
 import { useMemo } from 'react';
 import { buildHistory, calcE1RM, toDisplay } from '@/lib/pulse/utils';
-import { WORKOUTS } from '@/lib/pulse/data';
 import { usePulse } from '@/context/PulseContext';
 
 export default function HistoryView() {
@@ -25,16 +24,12 @@ export default function HistoryView() {
     return (
         <div className="p-4 max-w-[600px] mx-auto flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:max-w-[1100px] lg:items-start">
             {sessions.map((session) => {
-                const workout = WORKOUTS[session.type];
                 return (
                     <div
-                        key={`${session.week}-${session.type}`}
+                        key={session.week}
                         className="bg-pulse-surface border border-pulse-border rounded overflow-hidden">
                         <div className="py-3 px-4 border-b border-pulse-border flex items-center gap-3">
                             <span className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase font-bold text-pulse-accent">
-                                {workout.label}
-                            </span>
-                            <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
                                 Week {session.week}
                             </span>
                             <span className="font-pulse text-[0.6875rem] text-pulse-muted ml-auto">
@@ -43,9 +38,8 @@ export default function HistoryView() {
                         </div>
                         <div className="py-2 px-4 pb-3">
                             {session.sets.map((set, i) => {
-                                const exercise = workout.exercises[set.exIdx];
-                                const exKey = `${session.type}-${set.exIdx}`;
-                                const bestE1RM = prMap[exKey] ?? 0;
+                                // TODO(4.5): look up exercise by routineExerciseId once routine data is available
+                                const bestE1RM = prMap[set.routineExerciseId] ?? 0;
                                 const isPR = bestE1RM > 0 && calcE1RM(set.kg, set.reps) >= bestE1RM;
                                 return (
                                     <div
@@ -55,7 +49,7 @@ export default function HistoryView() {
                                             {String(set.setIdx + 1).padStart(2, '0')}
                                         </span>
                                         <span className="text-pulse-dim text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                                            {exercise?.name ?? `Exercise ${set.exIdx + 1}`}
+                                            {`Exercise`}
                                         </span>
                                         <span className="font-pulse text-white font-semibold text-sm shrink-0">
                                             {toDisplay(set.kg, unit)} {unit} × {set.reps}

@@ -1,14 +1,7 @@
-﻿'use client';
-import { WORKOUTS } from '@/lib/pulse/data';
+'use client';
 import { logKey, parseMaxSets } from '@/lib/pulse/utils';
-import type { WorkoutType, Logs } from '@/lib/pulse/types';
-
-interface Props {
-    activeTab: WorkoutType;
-    onSelect: (t: WorkoutType) => void;
-    logs: Logs;
-    week: number;
-}
+import { usePulse } from '@/context/PulseContext';
+import type { WorkoutType } from '@/lib/pulse/types';
 
 const TABS: { type: WorkoutType; label: string }[] = [
     { type: 'push', label: 'Push' },
@@ -16,21 +9,16 @@ const TABS: { type: WorkoutType; label: string }[] = [
     { type: 'legs', label: 'Legs' },
 ];
 
-function countDone(type: WorkoutType, week: number, logs: Logs): number {
-    return WORKOUTS[type].exercises.filter((ex, exIdx) => {
-        const maxSets = parseMaxSets(ex.sets);
-        return Array.from({ length: maxSets }, (_, s) => logKey(week, type, exIdx, s)).every((k) => logs[k]?.saved);
-    }).length;
-}
+export default function WorkoutTabs() {
+    const { activeTab, setActiveTab, routineExercisesByType, logs, activeWeek } = usePulse();
 
-export default function WorkoutTabs({ activeTab, onSelect, logs, week }: Props) {
     function handleKeyDown(e: React.KeyboardEvent, idx: number) {
         if (e.key === 'ArrowRight') {
             e.preventDefault();
-            onSelect(TABS[(idx + 1) % TABS.length].type);
+            setActiveTab(TABS[(idx + 1) % TABS.length].type);
         } else if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            onSelect(TABS[(idx - 1 + TABS.length) % TABS.length].type);
+            setActiveTab(TABS[(idx - 1 + TABS.length) % TABS.length].type);
         }
     }
 
@@ -38,8 +26,14 @@ export default function WorkoutTabs({ activeTab, onSelect, logs, week }: Props) 
         <div role="tablist" className="flex items-center gap-1.5 p-4 pb-3">
             {TABS.map(({ type, label }, idx) => {
                 const active = activeTab === type;
-                const done = countDone(type, week, logs);
-                const total = WORKOUTS[type].exercises.length;
+                const exercises = routineExercisesByType[type];
+                const done = exercises.filter((re) => {
+                    const maxSets = parseMaxSets(re.sets);
+                    return Array.from({ length: maxSets }, (_, s) => logKey(activeWeek, re.id, s)).every(
+                        (k) => logs[k]?.saved,
+                    );
+                }).length;
+                const total = exercises.length;
                 return (
                     <button
                         key={type}
@@ -47,7 +41,7 @@ export default function WorkoutTabs({ activeTab, onSelect, logs, week }: Props) 
                         id={`tab-${type}`}
                         aria-selected={active}
                         aria-controls={`panel-${type}`}
-                        onClick={() => onSelect(type)}
+                        onClick={() => setActiveTab(type)}
                         onKeyDown={(e) => handleKeyDown(e, idx)}
                         className={`flex items-center gap-2 py-2 px-4 rounded-full border cursor-pointer transition-all duration-150 ${
                             active
@@ -55,12 +49,14 @@ export default function WorkoutTabs({ activeTab, onSelect, logs, week }: Props) 
                                 : 'bg-transparent border-pulse-border text-pulse-dim hover:text-pulse-text'
                         }`}>
                         <span className="font-pulse text-sm font-semibold">{label}</span>
-                        <span
-                            className={`font-pulse text-xs rounded-full px-1.5 py-0.5 ${
-                                active ? 'bg-pulse-accent/15 text-pulse-accent' : 'bg-pulse-surface-2 text-pulse-dim'
-                            }`}>
-                            {done}/{total}
-                        </span>
+                        {total > 0 && (
+                            <span
+                                className={`font-pulse text-xs rounded-full px-1.5 py-0.5 ${
+                                    active ? 'bg-pulse-accent/15 text-pulse-accent' : 'bg-pulse-surface-2 text-pulse-dim'
+                                }`}>
+                                {done}/{total}
+                            </span>
+                        )}
                     </button>
                 );
             })}

@@ -12,14 +12,14 @@ export async function GET() {
 
     const { data, error } = await supabase
         .from('set_logs')
-        .select('week, workout_type, ex_idx, set_idx, kg, reps, rir, saved')
+        .select('week, routine_exercise_id, set_idx, kg, reps, rir, saved')
         .eq('user_id', user.id);
 
     if (error) return NextResponse.json(null, { status: 500 });
 
     const raw: Record<string, unknown> = {};
     for (const row of data ?? []) {
-        raw[`${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`] = {
+        raw[`${row.week}-${row.routine_exercise_id}-${row.set_idx}`] = {
             kg: Number(row.kg),
             reps: row.reps,
             rir: row.rir,
