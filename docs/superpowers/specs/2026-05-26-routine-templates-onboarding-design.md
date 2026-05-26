@@ -20,14 +20,14 @@ New users currently land in an empty Library with no exercises or routines pre-l
 
 ```sql
 CREATE TABLE routine_templates (
-  id               uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  name             text NOT NULL,
-  slug             text NOT NULL UNIQUE,       -- e.g. 'ppl-db', 'full-body-gym'
-  equipment        text NOT NULL CHECK (equipment IN ('dumbbells', 'gym')),
-  days_per_week    text NOT NULL,              -- e.g. '2-3', '4', '3-6'
-  experience_level text NOT NULL CHECK (experience_level IN ('beginner', 'intermediate', 'advanced')),
-  session_time     text NOT NULL,              -- e.g. '30-45 min', '45-60 min', '60-90 min'
-  description      text NOT NULL
+  id                  uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name                text NOT NULL,
+  slug                text NOT NULL UNIQUE,          -- e.g. 'ppl-home', 'full-body-gym'
+  required_equipment  text[] NOT NULL,               -- e.g. '{dumbbells}', '{dumbbells,barbell,bench}'
+  days_per_week       text NOT NULL,                 -- e.g. '2-3', '4', '3-6'
+  experience_level    text NOT NULL CHECK (experience_level IN ('beginner', 'intermediate', 'advanced')),
+  session_time        text NOT NULL,                 -- e.g. '30-45 min', '45-60 min', '60-90 min'
+  description         text NOT NULL
 );
 
 CREATE TABLE template_exercises (
@@ -67,18 +67,30 @@ Added to the existing `exercises` seeding block (`user_id = NULL`):
 
 ## 2. Templates
 
-Six templates seeded at migration time with stable explicit UUIDs.
+Eight templates seeded at migration time with stable explicit UUIDs. A "home" tier sits between dumbbell-only and full-gym to cover users with a barbell + bench at home.
 
-| Slug | Name | Equipment | Days | Experience | Description |
-|---|---|---|---|---|---|
-| Slug | Name | Equipment | Days | Session | Experience | Description |
+**Equipment vocabulary** (used in `required_equipment` and the onboarding multi-select):
+
+| Key | Label |
+|---|---|
+| `dumbbells` | Dumbbells |
+| `barbell` | Barbell & plates |
+| `bench` | Weight bench |
+| `cables` | Cable machine |
+| `machines` | Gym machines (leg press, lat pulldown, etc.) |
+
+| Slug | Name | Required equipment | Days | Session | Experience | Description |
 |---|---|---|---|---|---|---|
-| `full-body-db` | Full Body — Dumbbells | dumbbells | 2–3 | 30–45 min | beginner | One session works everything. Great for building the habit. |
-| `full-body-gym` | Full Body — Gym | gym | 2–3 | 45–60 min | beginner | Full body compound lifts with barbells and machines. |
-| `upper-lower-db` | Upper/Lower — Dumbbells | dumbbells | 4 | 45–60 min | intermediate | Alternate upper and lower days for more weekly volume. |
-| `upper-lower-gym` | Upper/Lower — Gym | gym | 4 | 45–60 min | intermediate | Upper/lower split with barbells and cables. |
-| `ppl-db` | PPL — Dumbbells | dumbbells | 3–6 | 45–60 min | intermediate | Push, pull, legs. Run 3×/week or repeat for 6×/week. |
-| `ppl-gym` | PPL — Gym | gym | 3–6 | 60–90 min | intermediate | Classic PPL with barbells and cables. 3× or 6×/week. |
+| `full-body-db` | Full Body — Dumbbells | `[dumbbells]` | 2–3 | 30–45 min | beginner | One session works everything. Great for building the habit. |
+| `full-body-home` | Full Body — Home Gym | `[dumbbells, barbell, bench]` | 2–3 | 45–60 min | beginner | Full body with a barbell for heavier compound work. |
+| `full-body-gym` | Full Body — Gym | `[barbell, bench, cables, machines]` | 2–3 | 45–60 min | beginner | Barbells, cables, and machines. Fastest beginner progress. |
+| `upper-lower-home` | Upper/Lower — Home Gym | `[dumbbells, barbell, bench]` | 4 | 45–60 min | intermediate | Upper/lower split with barbell compounds at home. |
+| `upper-lower-gym` | Upper/Lower — Gym | `[barbell, bench, cables, machines]` | 4 | 45–60 min | intermediate | Upper/lower split with full gym access. |
+| `ppl-db` | PPL — Dumbbells | `[dumbbells, bench]` | 3–6 | 45–60 min | intermediate | Push, pull, legs. Run 3×/week or repeat for 6×/week. |
+| `ppl-home` | PPL — Home Gym | `[dumbbells, barbell, bench]` | 3–6 | 60–90 min | intermediate | Classic PPL with a barbell. 3× or 6×/week. |
+| `ppl-gym` | PPL — Gym | `[barbell, bench, cables, machines]` | 3–6 | 60–90 min | intermediate | Classic PPL with full gym access. 3× or 6×/week. |
+
+**Template matching:** a template is eligible when the user's selected equipment set is a superset of the template's `required_equipment`.
 
 Each template has exercises covering all three `workout_type` values (push/pull/legs). This matches the existing `WorkoutType = 'push' | 'pull' | 'legs'` in the app — each workout type is a tab in the Log view.
 
@@ -113,7 +125,7 @@ The Library view already has a tab structure (Exercises / Routines). A third tab
 
 ### Templates tab layout
 
-- **Equipment filter pills** at the top: All / Dumbbells / Full gym. Default: All.
+- **Equipment filter pills** at the top: All / Dumbbells / Home Gym / Full Gym. Default: All. "Home Gym" matches templates that require `[dumbbells, barbell, bench]`; "Full Gym" matches templates that require cables or machines.
 - **Template cards** — one per matching template, sorted by experience level (beginner first).
 
 ### Template card
@@ -153,8 +165,14 @@ Full-screen overlay (`position: fixed, inset: 0`) with the step content centred.
 
 ### 5 steps
 
-**Step 1 — Equipment**
-- Options: Dumbbells only / Full gym
+**Step 1 — Equipment** (multi-select checkboxes — select all that apply)
+- Dumbbells
+- Barbell & plates
+- Weight bench
+- Cable machine
+- Gym machines (leg press, lat pulldown, etc.)
+
+At least one option must be selected to proceed. The selection is stored as a `Set<string>` of equipment keys.
 
 **Step 2 — Experience**
 - Options: Beginner (< 1 year) / Intermediate (1–3 years) / Advanced (3+ years)
@@ -213,15 +231,25 @@ ProfileView gets a "Retake quiz" button (or link) in the routines section. Tappi
 ## 7. New TypeScript Types
 
 ```typescript
+export type EquipmentKey = 'dumbbells' | 'barbell' | 'bench' | 'cables' | 'machines';
+
 export interface RoutineTemplate {
   id: string;
   name: string;
   slug: string;
-  equipment: 'dumbbells' | 'gym';
+  required_equipment: EquipmentKey[];
   days_per_week: string;
   experience_level: 'beginner' | 'intermediate' | 'advanced';
   session_time: string;
   description: string;
+}
+
+// Pure helper — true when user's equipment covers all template requirements
+export function templateMatchesEquipment(
+  template: RoutineTemplate,
+  userEquipment: Set<EquipmentKey>,
+): boolean {
+  return template.required_equipment.every((e) => userEquipment.has(e));
 }
 ```
 
