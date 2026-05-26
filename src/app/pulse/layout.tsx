@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function PulseLayout({ children }: { children: React.ReactNode }) {
-    return <div className={outfit.variable}>{children}</div>;
+    return <div className={`${outfit.variable} -m-5 md:-m-8`}>{children}</div>;
 }
