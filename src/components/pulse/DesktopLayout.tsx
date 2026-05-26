@@ -5,6 +5,7 @@ import LogView from './views/LogView';
 import ProgramView from './views/ProgramView';
 import HistoryView from './views/HistoryView';
 import ProfileView from './views/ProfileView';
+import LibraryView from './views/LibraryView';
 import type { View } from '@/lib/pulse/types';
 
 const NAV: { id: View; label: string }[] = [
@@ -12,6 +13,7 @@ const NAV: { id: View; label: string }[] = [
     { id: 'program', label: 'Program' },
     { id: 'history', label: 'History' },
     { id: 'profile', label: 'Profile' },
+    { id: 'library', label: 'Library' },
 ];
 
 export default function DesktopLayout() {
@@ -78,6 +80,7 @@ export default function DesktopLayout() {
                 {view === 'program' && <ProgramView />}
                 {view === 'history' && <HistoryView />}
                 {view === 'profile' && <ProfileView />}
+                {view === 'library' && <LibraryView />}
             </main>
         </div>
     );

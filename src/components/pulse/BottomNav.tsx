@@ -43,6 +43,17 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
             </svg>
         ),
     },
+    {
+        id: 'library',
+        label: 'Library',
+        icon: (
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
+                <rect x="3" y="4" width="4" height="12" rx="1" />
+                <rect x="8" y="4" width="4" height="12" rx="1" />
+                <rect x="13" y="4" width="4" height="12" rx="1" />
+            </svg>
+        ),
+    },
 ];
 
 interface Props {

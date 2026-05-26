@@ -1,9 +1,4 @@
-﻿import { WORKOUTS } from '@/lib/pulse/data';
-import { getPhase, getRIR, weekHasData, parseMaxSets } from '@/lib/pulse/utils';
-// TODO(4.5): replace with routine-based logKey once LogView is rewritten
-function legacyLogKey(week: number, type: string, exIdx: number, setIdx: number): string {
-    return `${week}-${type}-${exIdx}-${setIdx}`;
-}
+import { logKey, getPhase, getRIR, weekHasData, parseMaxSets } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
@@ -14,25 +9,24 @@ export default function LogView() {
         activeWeek,
         setActiveWeek,
         activeTab,
-        setActiveTab,
         logs,
         profile,
         prMap,
+        routineExercisesByType,
         updateLog,
         deleteLog,
         fireTrigger,
     } = usePulse();
 
-    const workout = WORKOUTS[activeTab];
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
     const unit = profile.unit;
+    const routineExercises = routineExercisesByType[activeTab];
 
-    const hasData = workout.exercises.some((ex, exIdx) =>
-        Array.from(
-            { length: parseMaxSets(ex.sets) },
-            (_, s) => logs[legacyLogKey(activeWeek, activeTab, exIdx, s)]?.saved,
-        ).some(Boolean),
+    const hasData = routineExercises.some((re) =>
+        Array.from({ length: parseMaxSets(re.sets) }, (_, s) => logKey(activeWeek, re.id, s)).some(
+            (k) => logs[k]?.saved,
+        ),
     );
 
     function handleSave(key: string, entry: LogEntry) {
@@ -42,12 +36,12 @@ export default function LogView() {
 
     return (
         <div>
-            <WorkoutTabs activeTab={activeTab} onSelect={setActiveTab} logs={logs} week={activeWeek} />
+            <WorkoutTabs />
 
             <div className="flex px-4 gap-1 overflow-x-auto [scrollbar-width:none] pb-3">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => {
                     const active = w === activeWeek;
-                    const hasData = weekHasData(w, logs);
+                    const hasWeekData = weekHasData(w, logs);
                     return (
                         <button
                             key={w}
@@ -59,7 +53,7 @@ export default function LogView() {
                             }`}>
                             {w}
                             <span
-                                className={`block w-1 h-1 rounded-full -mt-0.5 ${hasData ? 'bg-pulse-accent' : 'bg-transparent'}`}
+                                className={`block w-1 h-1 rounded-full -mt-0.5 ${hasWeekData ? 'bg-pulse-accent' : 'bg-transparent'}`}
                             />
                         </button>
                     );
@@ -71,7 +65,6 @@ export default function LogView() {
                     {phase.label}
                 </span>
                 <span className="font-pulse text-xs font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-full px-2 py-0.5">{rir} RIR</span>
-                <span className="font-pulse text-sm text-pulse-dim ml-auto">{workout.description}</span>
             </div>
 
             <div
@@ -79,13 +72,12 @@ export default function LogView() {
                 role="tabpanel"
                 aria-labelledby={`tab-${activeTab}`}
                 className="pt-1 px-4 pb-8 max-w-[600px] lg:max-w-[820px] mx-auto flex flex-col gap-2">
-                {workout.exercises.map((exercise, i) => (
+                {routineExercises.map((re, i) => (
                     <ExerciseCard
-                        key={`${activeTab}-${i}`}
-                        exercise={exercise}
+                        key={re.id}
+                        routineExercise={re}
                         exIdx={i}
                         week={activeWeek}
-                        type={activeTab}
                         logs={logs}
                         prMap={prMap}
                         unit={unit}

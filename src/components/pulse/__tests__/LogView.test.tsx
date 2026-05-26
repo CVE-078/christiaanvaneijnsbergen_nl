@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import LogView from '../views/LogView';
+import type { RoutineExercise } from '@/lib/pulse/types';
 
 vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
@@ -8,14 +9,33 @@ vi.mock('@/context/PulseContext', () => ({
 
 import { usePulse } from '@/context/PulseContext';
 
+const mockRE: RoutineExercise = {
+    id: 're-test-uuid',
+    routine_id: 'r1',
+    exercise_id: 'ex-1',
+    order: 0,
+    sets: '3',
+    reps: '8-12',
+    starting_weight_kg: null,
+    exercise: {
+        id: 'ex-1',
+        name: 'Bench Press',
+        category: 'push',
+        default_sets: '3',
+        default_reps: '8-12',
+        user_id: null,
+    },
+};
+
 const defaultContext = {
     activeWeek: 1,
     setActiveWeek: vi.fn(),
     activeTab: 'push' as const,
     setActiveTab: vi.fn(),
     logs: {},
-    profile: { display_name: null, unit: 'kg' as const },
+    profile: { display_name: null, unit: 'kg' as const, active_routine_id: null },
     prMap: {},
+    routineExercisesByType: { push: [mockRE], pull: [], legs: [] },
     updateLog: vi.fn(),
     deleteLog: vi.fn(),
     timerTrigger: 0,
@@ -35,7 +55,7 @@ describe('LogView', () => {
     it('hides the empty state hint when at least one set is logged', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            logs: { '1-push-0-0': { kg: 60, reps: 10, rir: 3, saved: true } },
+            logs: { '1-re-test-uuid-0': { kg: 60, reps: 10, rir: 3, saved: true } },
         } as unknown as ReturnType<typeof usePulse>);
         render(<LogView />);
         expect(screen.queryByText(/tap an exercise/i)).not.toBeInTheDocument();
