@@ -16,7 +16,7 @@ interface Props {
 }
 
 const inputClass =
-    'w-[3.75rem] py-1.5 px-2 bg-[#0a0a0a] border border-[#1f1f1f] rounded-sm text-white font-pulse text-[0.8125rem] text-center outline-none';
+    'w-[3.75rem] h-10 px-2 bg-[#1a1a1a] border border-[#222] rounded-[6px] text-white font-pulse text-[0.9375rem] font-bold text-center outline-none';
 
 export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, unit, onSave, onDelete }: Props) {
     const suggestion = computeSuggestion(previousEntry, week);
@@ -72,9 +72,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
     const showInputs = !saved || editing;
 
     return (
-        <div
-            className="flex items-center gap-2 py-[0.4375rem] border-b border-[#111]"
-            style={{ opacity: saved && !editing ? 0.55 : 1 }}>
+        <div className={`flex items-center gap-2 py-[0.4375rem] border-b border-[#111] ${saved && !editing ? 'bg-[#0e1510]' : ''}`}>
             <span className="font-pulse text-[0.6875rem] text-pulse-muted w-6 shrink-0">
                 {String(setIdx + 1).padStart(2, '0')}
             </span>
@@ -119,7 +117,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         )}
                         <button
                             onClick={handleSave}
-                            className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase py-1 px-2.5 bg-transparent border border-[#3a3a3a] rounded-sm text-[#aaa] cursor-pointer shrink-0">
+                            className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase h-10 px-4 bg-pulse-accent border-none rounded-[6px] text-white cursor-pointer shrink-0 transition-opacity duration-100">
                             {editing ? 'Update' : 'Save'}
                         </button>
                     </div>
