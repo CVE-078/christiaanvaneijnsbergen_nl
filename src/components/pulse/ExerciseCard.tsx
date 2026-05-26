@@ -4,6 +4,8 @@ import { logKey, parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
 import SetLogger from './SetLogger';
 import type { Exercise, Logs, LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
+const GREEN = '#22c55e';
+
 interface Props {
     exercise: Exercise;
     exIdx: number;
@@ -26,13 +28,13 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
     const bestE1RM = prMap[`${type}-${exIdx}`] ?? 0;
 
     return (
-        <div className="bg-pulse-surface border border-pulse-border rounded overflow-hidden">
+        <div className={`bg-pulse-surface rounded overflow-hidden border ${complete ? 'border-[rgba(34,197,94,0.2)]' : 'border-pulse-border'}`}>
             <button
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
                 aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}${complete ? ' — all sets done' : ''}`}
-                className="w-full py-3.5 px-4 bg-transparent border-none cursor-pointer flex items-center gap-4 text-left">
-                <span className="font-pulse text-[1.75rem] font-bold text-[#222] leading-none w-9 shrink-0 tracking-[-0.04em] select-none">
+                className="w-full py-[0.875rem] px-4 bg-transparent border-none cursor-pointer flex items-center gap-3 text-left">
+                <span className={`font-pulse text-[1.75rem] font-bold leading-none w-9 shrink-0 tracking-[-0.04em] select-none ${complete ? 'text-[rgba(34,197,94,0.4)]' : 'text-[#222]'}`}>
                     {String(exIdx + 1).padStart(2, '0')}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -41,21 +43,39 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                         {exercise.sets} sets · {exercise.reps} reps
                     </div>
                 </div>
-                <span className="font-pulse text-[0.875rem] tracking-[0.05em] shrink-0">
-                    {Array.from({ length: maxSets }, (_, i) => (
-                        <span key={i} className={i < savedCount ? 'text-pulse-accent' : 'text-pulse-muted'}>
-                            {i < savedCount ? '█' : '░'}
-                        </span>
-                    ))}
-                </span>
+                {/* Dot indicators replacing ░█ progress chars */}
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="font-pulse text-xs font-bold">
+                        <span className="text-white">{savedCount}</span>
+                        <span className="text-pulse-muted">/{maxSets}</span>
+                    </span>
+                    <div className="flex gap-[3px]">
+                        {Array.from({ length: maxSets }, (_, i) => (
+                            <span
+                                key={i}
+                                className="block w-1.5 h-1.5 rounded-full transition-colors duration-200"
+                                style={{ background: i < savedCount ? (complete ? GREEN : 'var(--color-pulse-accent)') : 'var(--color-pulse-muted)' }}
+                            />
+                        ))}
+                    </div>
+                </div>
                 {complete && (
-                    <span
-                        aria-label="All sets done"
-                        className="font-pulse text-[0.625rem] text-pulse-accent ml-1.5 shrink-0">
+                    <span aria-label="All sets done" className="font-pulse text-[0.625rem] text-[#22c55e] ml-1.5 shrink-0">
                         ✓
                     </span>
                 )}
             </button>
+
+            {/* 2px progress bar — visible when open */}
+            {open && (
+                <div className="h-[2px] bg-pulse-muted overflow-hidden">
+                    {/* width is runtime ratio — must stay inline */}
+                    <div
+                        className="h-full bg-pulse-accent transition-[width] duration-300"
+                        style={{ width: `${(savedCount / maxSets) * 100}%` }}
+                    />
+                </div>
+            )}
 
             {open && (
                 <div className="border-t border-pulse-border px-4 pt-1 pb-3.5">
