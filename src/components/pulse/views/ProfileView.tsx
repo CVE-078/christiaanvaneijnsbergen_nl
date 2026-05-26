@@ -153,7 +153,8 @@ export default function ProfileView() {
     const today = new Date().toISOString().slice(0, 10);
 
     return (
-        <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto flex flex-col gap-7">
+        <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto flex flex-col gap-7 lg:flex-row lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12 lg:gap-10">
+            <div className="flex flex-col gap-7 lg:w-[280px] lg:shrink-0">
             {/* Identity */}
             <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-[6px] shrink-0 bg-pulse-surface border border-pulse-border flex items-center justify-center font-pulse text-xl font-bold text-pulse-accent tracking-[-0.02em]">
@@ -208,6 +209,8 @@ export default function ProfileView() {
                 </div>
             </div>
 
+            </div>
+            <div className="lg:flex-1 lg:min-w-0">
             {/* Body weight */}
             <div>
                 <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
@@ -278,6 +281,7 @@ export default function ProfileView() {
                 ) : (
                     <div className="font-pulse text-[0.625rem] text-[#333] tracking-[0.04em]">No entries yet.</div>
                 )}
+            </div>
             </div>
         </div>
     );

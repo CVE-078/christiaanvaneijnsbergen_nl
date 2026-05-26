@@ -23,7 +23,7 @@ export default function HistoryView() {
     }
 
     return (
-        <div className="p-4 max-w-[600px] mx-auto flex flex-col gap-2">
+        <div className="p-4 max-w-[600px] mx-auto flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:max-w-[1100px] lg:items-start">
             {sessions.map((session) => {
                 const workout = WORKOUTS[session.type];
                 return (
