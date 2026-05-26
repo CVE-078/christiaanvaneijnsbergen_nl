@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import {
     createRoutine as serverCreateRoutine,
@@ -51,71 +52,71 @@ export function useRoutines(
     const activeRoutine =
         (routines ?? initialRoutines).find((r) => r.id === activeRoutineId) ?? null;
 
-    async function createRoutine(name: string): Promise<WorkoutRoutine> {
+    const createRoutine = useCallback(async (name: string): Promise<WorkoutRoutine> => {
         const routine = await serverCreateRoutine(name);
         await mutateRoutines();
         return routine;
-    }
+    }, [mutateRoutines]);
 
-    async function deleteRoutine(id: string): Promise<void> {
+    const deleteRoutine = useCallback(async (id: string): Promise<void> => {
         await serverDeleteRoutine(id);
         await mutateRoutines();
         await globalMutate(PROFILE_KEY);
-    }
+    }, [mutateRoutines, globalMutate]);
 
-    async function setActiveRoutine(routineId: string | null): Promise<void> {
+    const setActiveRoutine = useCallback(async (routineId: string | null): Promise<void> => {
         await serverSetActiveRoutine(routineId);
         await globalMutate(PROFILE_KEY);
         await mutateRoutines();
-    }
+    }, [globalMutate, mutateRoutines]);
 
-    async function addExerciseToRoutine(
+    const addExerciseToRoutine = useCallback(async (
         routineId: string,
         exerciseId: string,
         sets: string,
         reps: string,
         startingWeightKg: number | null,
-    ): Promise<RoutineExercise> {
+    ): Promise<RoutineExercise> => {
         const re = await serverAddExerciseToRoutine(routineId, exerciseId, sets, reps, startingWeightKg);
         await mutateRoutines();
         return re;
-    }
+    }, [mutateRoutines]);
 
-    async function removeExerciseFromRoutine(routineExerciseId: string): Promise<void> {
+    const removeExerciseFromRoutine = useCallback(async (routineExerciseId: string): Promise<void> => {
         await serverRemoveExerciseFromRoutine(routineExerciseId);
         await mutateRoutines();
-    }
+    }, [mutateRoutines]);
 
-    async function updateRoutineExercise(
+    const updateRoutineExercise = useCallback(async (
         routineExerciseId: string,
         sets: string,
         reps: string,
         startingWeightKg: number | null,
-    ): Promise<void> {
+    ): Promise<void> => {
         await serverUpdateRoutineExercise(routineExerciseId, sets, reps, startingWeightKg);
         await mutateRoutines();
-    }
+    }, [mutateRoutines]);
 
-    async function reorderRoutineExercises(routineId: string, orderedIds: string[]): Promise<void> {
+    const reorderRoutineExercises = useCallback(async (routineId: string, orderedIds: string[]): Promise<void> => {
         await serverReorderRoutineExercises(routineId, orderedIds);
         await mutateRoutines();
-    }
+    }, [mutateRoutines]);
 
-    async function createExercise(name: string, category: ExerciseCategory): Promise<DbExercise> {
+    const createExercise = useCallback(async (name: string, category: ExerciseCategory): Promise<DbExercise> => {
         const exercise = await serverCreateExercise(name, category);
         await mutateExercises();
         return exercise;
-    }
+    }, [mutateExercises]);
 
-    async function updateExercise(id: string, name: string): Promise<void> {
+    const updateExercise = useCallback(async (id: string, name: string): Promise<void> => {
         await serverUpdateExercise(id, name);
         await mutateExercises();
-    }
+    }, [mutateExercises]);
 
-    async function deleteExercise(id: string): Promise<void> {
+    const deleteExercise = useCallback(async (id: string): Promise<void> => {
         await serverDeleteExercise(id);
         await mutateExercises();
-    }
+    }, [mutateExercises]);
 
     return {
         exercises: exercises ?? initialExercises,
