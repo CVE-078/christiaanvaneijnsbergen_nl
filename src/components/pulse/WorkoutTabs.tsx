@@ -19,9 +19,7 @@ const TABS: { type: WorkoutType; label: string }[] = [
 function countDone(type: WorkoutType, week: number, logs: Logs): number {
     return WORKOUTS[type].exercises.filter((ex, exIdx) => {
         const maxSets = parseMaxSets(ex.sets);
-        return Array.from({ length: maxSets }, (_, s) => logKey(week, type, exIdx, s)).every(
-            (k) => logs[k]?.saved,
-        );
+        return Array.from({ length: maxSets }, (_, s) => logKey(week, type, exIdx, s)).every((k) => logs[k]?.saved);
     }).length;
 }
 
@@ -54,10 +52,12 @@ export default function WorkoutTabs({ activeTab, onSelect, logs, week }: Props) 
                         className={`flex-1 flex flex-col items-center py-2.5 pb-2 gap-[0.2rem] bg-transparent border-0 border-b-2 -mb-px cursor-pointer ${
                             active ? 'border-pulse-accent' : 'border-transparent'
                         }`}>
-                        <span className={`font-pulse text-[0.6875rem] tracking-[0.12em] uppercase ${active ? 'text-white' : 'text-pulse-dim'}`}>
+                        <span
+                            className={`font-pulse text-[0.6875rem] tracking-[0.12em] uppercase ${active ? 'text-white' : 'text-pulse-dim'}`}>
                             {label}
                         </span>
-                        <span className={`font-pulse text-[0.5625rem] tracking-[0.04em] ${active ? 'text-pulse-dim' : 'text-pulse-muted'}`}>
+                        <span
+                            className={`font-pulse text-[0.5625rem] tracking-[0.04em] ${active ? 'text-pulse-dim' : 'text-pulse-muted'}`}>
                             {done} / {total}
                         </span>
                     </button>

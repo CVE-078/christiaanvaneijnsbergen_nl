@@ -28,8 +28,8 @@ export default function DesktopLayout() {
                     </div>
                     <div className="font-pulse text-xs text-pulse-dim mt-2.5">
                         WK{' '}
-                        <strong className="text-pulse-accent font-bold">{String(activeWeek).padStart(2, '0')}</strong>
-                        {' '}/ 12
+                        <strong className="text-pulse-accent font-bold">{String(activeWeek).padStart(2, '0')}</strong> /
+                        12
                     </div>
                     {streak > 0 && (
                         <div className="font-pulse text-[0.625rem] text-[#444] mt-1 tracking-[0.04em]">

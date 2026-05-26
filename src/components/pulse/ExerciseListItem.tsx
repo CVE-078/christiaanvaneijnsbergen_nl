@@ -28,7 +28,8 @@ export default function ExerciseListItem({ exercise, exIdx, week, type, logs, is
                 {String(exIdx + 1).padStart(2, '0')}
             </span>
             <div className="flex-1 min-w-0">
-                <div className={`font-semibold text-[0.875rem] truncate transition-colors duration-100 ${isActive ? 'text-white' : 'text-[#888]'}`}>
+                <div
+                    className={`font-semibold text-[0.875rem] truncate transition-colors duration-100 ${isActive ? 'text-white' : 'text-[#888]'}`}>
                     {exercise.name}
                 </div>
                 <div className="flex gap-[3px] mt-1">
@@ -36,14 +37,19 @@ export default function ExerciseListItem({ exercise, exIdx, week, type, logs, is
                         <span
                             key={i}
                             className="block w-1 h-1 rounded-full"
-                            style={{ background: i < savedCount ? (complete ? GREEN : 'var(--color-pulse-accent)') : 'var(--color-pulse-muted)' }}
+                            style={{
+                                background:
+                                    i < savedCount
+                                        ? complete
+                                            ? GREEN
+                                            : 'var(--color-pulse-accent)'
+                                        : 'var(--color-pulse-muted)',
+                            }}
                         />
                     ))}
                 </div>
             </div>
-            {complete && (
-                <span className="font-pulse text-[0.625rem] text-[#22c55e] shrink-0">✓</span>
-            )}
+            {complete && <span className="font-pulse text-[0.625rem] text-[#22c55e] shrink-0">✓</span>}
         </button>
     );
 }

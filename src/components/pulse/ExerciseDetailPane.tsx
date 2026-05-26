@@ -17,7 +17,16 @@ interface Props {
 }
 
 export default function ExerciseDetailPane({
-    exercise, exIdx, week, type, logs, prMap, unit, onSave, onDelete, timerTrigger,
+    exercise,
+    exIdx,
+    week,
+    type,
+    logs,
+    prMap,
+    unit,
+    onSave,
+    onDelete,
+    timerTrigger,
 }: Props) {
     const maxSets = parseMaxSets(exercise.sets);
     const bestE1RM = prMap[`${type}-${exIdx}`] ?? 0;

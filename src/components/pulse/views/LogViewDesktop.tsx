@@ -12,11 +12,17 @@ const LAST_EX_KEY = 'pulse_last_ex';
 
 export default function LogViewDesktop() {
     const {
-        activeWeek, setActiveWeek,
-        activeTab, setActiveTab,
-        logs, profile, prMap,
-        updateLog, deleteLog,
-        timerTrigger, fireTrigger,
+        activeWeek,
+        setActiveWeek,
+        activeTab,
+        setActiveTab,
+        logs,
+        profile,
+        prMap,
+        updateLog,
+        deleteLog,
+        timerTrigger,
+        fireTrigger,
     } = usePulse();
 
     const unit = profile.unit;

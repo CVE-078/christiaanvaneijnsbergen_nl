@@ -28,9 +28,7 @@ export function AppShell() {
                     WK {String(activeWeek).padStart(2, '0')}
                 </span>
                 {streak > 0 && (
-                    <span className="font-pulse text-xs text-pulse-dim tracking-[0.04em] shrink-0">
-                        {streak}WK
-                    </span>
+                    <span className="font-pulse text-xs text-pulse-dim tracking-[0.04em] shrink-0">{streak}WK</span>
                 )}
                 <div className="ml-auto flex gap-3 items-center">
                     <button

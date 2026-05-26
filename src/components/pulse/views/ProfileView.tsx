@@ -155,133 +155,132 @@ export default function ProfileView() {
     return (
         <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto flex flex-col gap-7 lg:flex-row lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12 lg:gap-10">
             <div className="flex flex-col gap-7 lg:w-[280px] lg:shrink-0">
-            {/* Identity */}
-            <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-[6px] shrink-0 bg-pulse-surface border border-pulse-border flex items-center justify-center font-pulse text-xl font-bold text-pulse-accent tracking-[-0.02em]">
-                    {initials}
-                </div>
-                <div className="flex-1 min-w-0">
-                    {editingName ? (
-                        <input
-                            autoFocus
-                            value={nameInput}
-                            onChange={(e) => setNameInput(e.target.value)}
-                            onBlur={handleNameSave}
-                            onKeyDown={handleNameKeyDown}
-                            placeholder="Display name"
-                            className="font-pulse text-[0.9375rem] font-semibold text-white bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
-                        />
-                    ) : (
-                        <button
-                            onClick={() => {
-                                setNameInput(displayName ?? '');
-                                setEditingName(true);
-                            }}
-                            className={`font-pulse text-[0.9375rem] font-semibold bg-transparent border-none p-0 cursor-text text-left block w-full ${displayName ? 'text-white' : 'text-pulse-dim'}`}>
-                            {displayName ?? 'Add display name'}
-                        </button>
-                    )}
-                    <div className="font-pulse text-[0.6875rem] text-pulse-dim mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                        {email}
+                {/* Identity */}
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-[6px] shrink-0 bg-pulse-surface border border-pulse-border flex items-center justify-center font-pulse text-xl font-bold text-pulse-accent tracking-[-0.02em]">
+                        {initials}
                     </div>
-                    {nameSaved && !editingName && (
-                        <span className="font-pulse text-[0.5625rem] text-[#4ade80] tracking-[0.04em] mt-0.5 block">
-                            Saved ✓
-                        </span>
-                    )}
-                </div>
-            </div>
-
-            {/* Unit toggle */}
-            <div>
-                <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
-                    Weight Unit
-                </div>
-                <div className="flex gap-2">
-                    {(['kg', 'lbs'] as const).map((u) => (
-                        <button
-                            key={u}
-                            onClick={() => handleUnitChange(u)}
-                            className={`font-pulse text-[0.8125rem] font-semibold tracking-[0.06em] uppercase py-[0.375rem] px-4 rounded-[3px] cursor-pointer ${unit === u ? 'bg-pulse-accent border border-pulse-accent text-black' : 'bg-transparent border border-pulse-border text-pulse-dim'}`}>
-                            {u}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            </div>
-            <div className="lg:flex-1 lg:min-w-0">
-            {/* Body weight */}
-            <div>
-                <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
-                    Body Weight
-                </div>
-                <div className="flex gap-2 items-start mb-[0.875rem]">
-                    <div className="flex-1">
-                        <div className="flex gap-2 items-center">
+                    <div className="flex-1 min-w-0">
+                        {editingName ? (
                             <input
-                                type="number"
-                                aria-label={`Body weight in ${unit}`}
-                                placeholder={unit}
-                                value={bwInput}
-                                min={toDisplay(MIN_KG, unit)}
-                                max={toDisplay(MAX_KG, unit)}
-                                step={0.1}
-                                onChange={(e) => {
-                                    setBwInput(e.target.value);
-                                    setBwError(null);
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleLogBodyweight();
-                                }}
-                                className={`w-[5.5rem] py-[0.375rem] px-2 bg-[#0a0a0a] rounded-[3px] text-white font-pulse text-[0.8125rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
+                                autoFocus
+                                value={nameInput}
+                                onChange={(e) => setNameInput(e.target.value)}
+                                onBlur={handleNameSave}
+                                onKeyDown={handleNameKeyDown}
+                                placeholder="Display name"
+                                className="font-pulse text-[0.9375rem] font-semibold text-white bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
                             />
-                            <span className="font-pulse text-[0.6875rem] text-pulse-dim">{today}</span>
+                        ) : (
+                            <button
+                                onClick={() => {
+                                    setNameInput(displayName ?? '');
+                                    setEditingName(true);
+                                }}
+                                className={`font-pulse text-[0.9375rem] font-semibold bg-transparent border-none p-0 cursor-text text-left block w-full ${displayName ? 'text-white' : 'text-pulse-dim'}`}>
+                                {displayName ?? 'Add display name'}
+                            </button>
+                        )}
+                        <div className="font-pulse text-[0.6875rem] text-pulse-dim mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                            {email}
                         </div>
-                        {bwError && <div className="font-pulse text-[0.625rem] text-[#f43f5e] mt-1">{bwError}</div>}
+                        {nameSaved && !editingName && (
+                            <span className="font-pulse text-[0.5625rem] text-[#4ade80] tracking-[0.04em] mt-0.5 block">
+                                Saved ✓
+                            </span>
+                        )}
                     </div>
-                    <button
-                        onClick={handleLogBodyweight}
-                        disabled={isPending}
-                        /* opacity/cursor are runtime booleans — must stay inline */
-                        style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
-                        className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase py-[0.4375rem] px-3 bg-transparent border border-pulse-muted rounded-[3px] text-[#aaa] shrink-0">
-                        Log
-                    </button>
                 </div>
 
-                {bodyweightLogs.length >= 2 && (
-                    <div className="bg-pulse-surface border border-pulse-border rounded pt-[0.625rem] px-2 pb-2 mb-3">
-                        <BodyweightChart entries={bodyweightLogs} unit={unit} />
+                {/* Unit toggle */}
+                <div>
+                    <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
+                        Weight Unit
                     </div>
-                )}
-
-                {bodyweightLogs.length > 0 ? (
-                    <div>
-                        {bodyweightLogs.map((entry) => (
-                            <div
-                                key={entry.id}
-                                className="flex items-center gap-3 py-[0.4375rem] border-b border-[#111]">
-                                <span className="font-pulse text-[0.6875rem] text-pulse-dim flex-1">
-                                    {entry.logged_at}
-                                </span>
-                                <span className="font-pulse text-[0.8125rem] text-pulse-text font-semibold">
-                                    {toDisplay(entry.weight_kg, unit)} {unit}
-                                </span>
-                                <button
-                                    onClick={() => handleDeleteBodyweight(entry.id)}
-                                    disabled={isPending}
-                                    aria-label={`Delete entry for ${entry.logged_at}`}
-                                    className="font-pulse text-[0.625rem] text-[#444] bg-transparent border-none cursor-pointer p-0 shrink-0">
-                                    ✕
-                                </button>
-                            </div>
+                    <div className="flex gap-2">
+                        {(['kg', 'lbs'] as const).map((u) => (
+                            <button
+                                key={u}
+                                onClick={() => handleUnitChange(u)}
+                                className={`font-pulse text-[0.8125rem] font-semibold tracking-[0.06em] uppercase py-[0.375rem] px-4 rounded-[3px] cursor-pointer ${unit === u ? 'bg-pulse-accent border border-pulse-accent text-black' : 'bg-transparent border border-pulse-border text-pulse-dim'}`}>
+                                {u}
+                            </button>
                         ))}
                     </div>
-                ) : (
-                    <div className="font-pulse text-[0.625rem] text-[#333] tracking-[0.04em]">No entries yet.</div>
-                )}
+                </div>
             </div>
+            <div className="lg:flex-1 lg:min-w-0">
+                {/* Body weight */}
+                <div>
+                    <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
+                        Body Weight
+                    </div>
+                    <div className="flex gap-2 items-start mb-[0.875rem]">
+                        <div className="flex-1">
+                            <div className="flex gap-2 items-center">
+                                <input
+                                    type="number"
+                                    aria-label={`Body weight in ${unit}`}
+                                    placeholder={unit}
+                                    value={bwInput}
+                                    min={toDisplay(MIN_KG, unit)}
+                                    max={toDisplay(MAX_KG, unit)}
+                                    step={0.1}
+                                    onChange={(e) => {
+                                        setBwInput(e.target.value);
+                                        setBwError(null);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleLogBodyweight();
+                                    }}
+                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-[#0a0a0a] rounded-[3px] text-white font-pulse text-[0.8125rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
+                                />
+                                <span className="font-pulse text-[0.6875rem] text-pulse-dim">{today}</span>
+                            </div>
+                            {bwError && <div className="font-pulse text-[0.625rem] text-[#f43f5e] mt-1">{bwError}</div>}
+                        </div>
+                        <button
+                            onClick={handleLogBodyweight}
+                            disabled={isPending}
+                            /* opacity/cursor are runtime booleans — must stay inline */
+                            style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
+                            className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase py-[0.4375rem] px-3 bg-transparent border border-pulse-muted rounded-[3px] text-[#aaa] shrink-0">
+                            Log
+                        </button>
+                    </div>
+
+                    {bodyweightLogs.length >= 2 && (
+                        <div className="bg-pulse-surface border border-pulse-border rounded pt-[0.625rem] px-2 pb-2 mb-3">
+                            <BodyweightChart entries={bodyweightLogs} unit={unit} />
+                        </div>
+                    )}
+
+                    {bodyweightLogs.length > 0 ? (
+                        <div>
+                            {bodyweightLogs.map((entry) => (
+                                <div
+                                    key={entry.id}
+                                    className="flex items-center gap-3 py-[0.4375rem] border-b border-[#111]">
+                                    <span className="font-pulse text-[0.6875rem] text-pulse-dim flex-1">
+                                        {entry.logged_at}
+                                    </span>
+                                    <span className="font-pulse text-[0.8125rem] text-pulse-text font-semibold">
+                                        {toDisplay(entry.weight_kg, unit)} {unit}
+                                    </span>
+                                    <button
+                                        onClick={() => handleDeleteBodyweight(entry.id)}
+                                        disabled={isPending}
+                                        aria-label={`Delete entry for ${entry.logged_at}`}
+                                        className="font-pulse text-[0.625rem] text-[#444] bg-transparent border-none cursor-pointer p-0 shrink-0">
+                                        ✕
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="font-pulse text-[0.625rem] text-[#333] tracking-[0.04em]">No entries yet.</div>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -72,7 +72,8 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
     const showInputs = !saved || editing;
 
     return (
-        <div className={`flex items-center gap-2 py-[0.4375rem] border-b border-[#111] ${saved && !editing ? 'bg-[#0e1510]' : ''}`}>
+        <div
+            className={`flex items-center gap-2 py-[0.4375rem] border-b border-[#111] ${saved && !editing ? 'bg-[#0e1510]' : ''}`}>
             <span className="font-pulse text-[0.6875rem] text-pulse-muted w-6 shrink-0">
                 {String(setIdx + 1).padStart(2, '0')}
             </span>
