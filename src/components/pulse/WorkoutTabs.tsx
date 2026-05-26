@@ -1,6 +1,10 @@
 ﻿'use client';
 import { WORKOUTS } from '@/lib/pulse/data';
-import { logKey, parseMaxSets } from '@/lib/pulse/utils';
+import { parseMaxSets } from '@/lib/pulse/utils';
+// TODO(4.5): replace with routine-based logKey once WorkoutTabs is rewritten
+function legacyLogKey(week: number, type: string, exIdx: number, setIdx: number): string {
+    return `${week}-${type}-${exIdx}-${setIdx}`;
+}
 import type { WorkoutType, Logs } from '@/lib/pulse/types';
 
 interface Props {
@@ -19,7 +23,7 @@ const TABS: { type: WorkoutType; label: string }[] = [
 function countDone(type: WorkoutType, week: number, logs: Logs): number {
     return WORKOUTS[type].exercises.filter((ex, exIdx) => {
         const maxSets = parseMaxSets(ex.sets);
-        return Array.from({ length: maxSets }, (_, s) => logKey(week, type, exIdx, s)).every((k) => logs[k]?.saved);
+        return Array.from({ length: maxSets }, (_, s) => legacyLogKey(week, type, exIdx, s)).every((k) => logs[k]?.saved);
     }).length;
 }
 

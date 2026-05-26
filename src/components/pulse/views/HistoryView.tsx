@@ -43,9 +43,8 @@ export default function HistoryView() {
                         </div>
                         <div className="py-2 px-4 pb-3">
                             {session.sets.map((set, i) => {
-                                const exercise = workout.exercises[set.exIdx];
-                                const exKey = `${session.type}-${set.exIdx}`;
-                                const bestE1RM = prMap[exKey] ?? 0;
+                                // TODO(4.5): look up exercise by routineExerciseId once routine data is available
+                                const bestE1RM = prMap[set.routineExerciseId] ?? 0;
                                 const isPR = bestE1RM > 0 && calcE1RM(set.kg, set.reps) >= bestE1RM;
                                 return (
                                     <div
@@ -55,7 +54,7 @@ export default function HistoryView() {
                                             {String(set.setIdx + 1).padStart(2, '0')}
                                         </span>
                                         <span className="text-pulse-dim text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                                            {exercise?.name ?? `Exercise ${set.exIdx + 1}`}
+                                            {`Exercise`}
                                         </span>
                                         <span className="font-pulse text-white font-semibold text-sm shrink-0">
                                             {toDisplay(set.kg, unit)} {unit} × {set.reps}

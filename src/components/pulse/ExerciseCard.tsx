@@ -1,6 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { logKey, parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
+import { parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
+// TODO(4.5): replace with routine-based logKey once ExerciseCard is rewritten
+function legacyLogKey(week: number, type: string, exIdx: number, setIdx: number): string {
+    return `${week}-${type}-${exIdx}-${setIdx}`;
+}
 import SetLogger from './SetLogger';
 import type { Exercise, Logs, LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
@@ -19,7 +23,7 @@ interface Props {
 export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap, unit, onSave, onDelete }: Props) {
     const [open, setOpen] = useState(false);
     const maxSets = parseMaxSets(exercise.sets);
-    const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, type, exIdx, i)).filter(
+    const savedCount = Array.from({ length: maxSets }, (_, i) => legacyLogKey(week, type, exIdx, i)).filter(
         (k) => logs[k]?.saved,
     ).length;
     const complete = savedCount >= maxSets;
@@ -95,9 +99,9 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                         {exercise.load} · {exercise.note}
                     </p>
                     {Array.from({ length: maxSets }, (_, i) => {
-                        const entry = logs[logKey(week, type, exIdx, i)];
+                        const entry = logs[legacyLogKey(week, type, exIdx, i)];
                         const isPR = !!(entry?.saved && bestE1RM > 0 && calcE1RM(entry.kg, entry.reps) >= bestE1RM);
-                        const prevEntry = week > 1 ? logs[logKey(week - 1, type, exIdx, i)] : undefined;
+                        const prevEntry = week > 1 ? logs[legacyLogKey(week - 1, type, exIdx, i)] : undefined;
                         return (
                             <SetLogger
                                 key={`${week}-${i}`}
@@ -108,8 +112,8 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                                 previousEntry={prevEntry?.saved ? prevEntry : undefined}
                                 isPR={isPR}
                                 unit={unit}
-                                onSave={(e) => onSave(logKey(week, type, exIdx, i), e)}
-                                onDelete={() => onDelete(logKey(week, type, exIdx, i))}
+                                onSave={(e) => onSave(legacyLogKey(week, type, exIdx, i), e)}
+                                onDelete={() => onDelete(legacyLogKey(week, type, exIdx, i))}
                             />
                         );
                     })}

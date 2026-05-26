@@ -1,5 +1,9 @@
 ﻿import { WORKOUTS } from '@/lib/pulse/data';
-import { getPhase, getRIR, weekHasData, parseMaxSets, logKey } from '@/lib/pulse/utils';
+import { getPhase, getRIR, weekHasData, parseMaxSets } from '@/lib/pulse/utils';
+// TODO(4.5): replace with routine-based logKey once LogView is rewritten
+function legacyLogKey(week: number, type: string, exIdx: number, setIdx: number): string {
+    return `${week}-${type}-${exIdx}-${setIdx}`;
+}
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
@@ -27,7 +31,7 @@ export default function LogView() {
     const hasData = workout.exercises.some((ex, exIdx) =>
         Array.from(
             { length: parseMaxSets(ex.sets) },
-            (_, s) => logs[logKey(activeWeek, activeTab, exIdx, s)]?.saved,
+            (_, s) => logs[legacyLogKey(activeWeek, activeTab, exIdx, s)]?.saved,
         ).some(Boolean),
     );
 

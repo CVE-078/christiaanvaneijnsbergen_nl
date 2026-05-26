@@ -59,10 +59,44 @@ export interface ScheduleDay {
 export interface HistorySession {
     week: number;
     type: WorkoutType;
-    sets: Array<LogEntry & { exIdx: number; setIdx: number }>;
+    sets: Array<LogEntry & { routineExerciseId: string; setIdx: number }>;
 }
 
-export type View = 'log' | 'program' | 'history' | 'profile';
+export type View = 'log' | 'program' | 'history' | 'profile' | 'library';
 
 // Maps exercise key (workoutType-exIdx) to best E1RM value
 export type PRMap = Record<string, number>;
+
+// ── Exercise Library ──────────────────────────────────────────────────────────
+
+export type ExerciseCategory = 'push' | 'pull' | 'legs' | 'other';
+
+export interface DbExercise {
+    id: string;
+    name: string;
+    category: ExerciseCategory;
+    default_sets: string;
+    default_reps: string;
+    user_id: string | null; // null = global
+}
+
+export interface WorkoutRoutine {
+    id: string;
+    name: string;
+    created_at: string;
+}
+
+export interface RoutineExercise {
+    id: string;            // routine_exercise_id — used as log key component
+    routine_id: string;
+    exercise_id: string;
+    order: number;
+    sets: string;
+    reps: string;
+    starting_weight_kg: number | null;
+    exercise: DbExercise;  // joined
+}
+
+export interface RoutineWithExercises extends WorkoutRoutine {
+    exercises: RoutineExercise[];
+}

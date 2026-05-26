@@ -1,6 +1,9 @@
 import { PHASES } from './data';
 import type { Phase, Logs, WorkoutType, HistorySession, LogEntry, Unit } from './types';
 
+// UUID v4 pattern used in new log keys
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export const MIN_KG = 0.5;
 export const MAX_KG = 500;
 export const KG_TO_LBS = 2.20462;
@@ -35,8 +38,8 @@ export function getRIR(week: number): number {
     return idx !== -1 ? phase.rir[idx] : phase.rir[0];
 }
 
-export function logKey(week: number, type: WorkoutType, exIdx: number, setIdx: number): string {
-    return `${week}-${type}-${exIdx}-${setIdx}`;
+export function logKey(week: number, routineExerciseId: string, setIdx: number): string {
+    return `${week}-${routineExerciseId}-${setIdx}`;
 }
 
 export function parseMaxSets(s: string): number {
@@ -52,13 +55,15 @@ export function computePRMap(logs: Logs): Record<string, number> {
     const map: Record<string, number> = {};
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
-        const parts = key.split('-');
-        if (parts.length !== 4) continue;
-        const [, type, exIdxStr] = parts;
-        if (!['push', 'pull', 'legs'].includes(type)) continue;
-        const exKey = `${type}-${exIdxStr}`;
+        // New format: "<week>-<uuid>-<setIdx>"
+        // Extract week (first segment) and routineExerciseId (middle UUID segment)
+        const firstDash = key.indexOf('-');
+        const lastDash = key.lastIndexOf('-');
+        if (firstDash === -1 || lastDash === firstDash) continue;
+        const routineExerciseId = key.slice(firstDash + 1, lastDash);
+        if (!UUID_RE.test(routineExerciseId)) continue;
         const e = calcE1RM(val.kg, val.reps);
-        if (e > (map[exKey] ?? 0)) map[exKey] = e;
+        if (e > (map[routineExerciseId] ?? 0)) map[routineExerciseId] = e;
     }
     return map;
 }
@@ -98,16 +103,22 @@ export function buildHistory(logs: Logs): HistorySession[] {
 
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
-        const parts = key.split('-');
-        if (parts.length !== 4) continue;
-        const [week, type, exIdxStr, setIdxStr] = parts;
-        if (!['push', 'pull', 'legs'].includes(type)) continue;
-        const sessionKey = `${week}-${type}`;
+        // New format: "<week>-<routineExerciseId>-<setIdx>"
+        const firstDash = key.indexOf('-');
+        const lastDash = key.lastIndexOf('-');
+        if (firstDash === -1 || lastDash === firstDash) continue;
+        const weekStr = key.slice(0, firstDash);
+        const routineExerciseId = key.slice(firstDash + 1, lastDash);
+        const setIdxStr = key.slice(lastDash + 1);
+        if (!UUID_RE.test(routineExerciseId)) continue;
+        const week = Number(weekStr);
+        // Group by week only — type is no longer encoded in the key
+        const sessionKey = weekStr;
         if (!sessions[sessionKey]) {
-            sessions[sessionKey] = { week: Number(week), type: type as WorkoutType, sets: [] };
+            sessions[sessionKey] = { week, type: 'push', sets: [] };
         }
-        sessions[sessionKey].sets.push({ exIdx: Number(exIdxStr), setIdx: Number(setIdxStr), ...val });
+        sessions[sessionKey].sets.push({ routineExerciseId, setIdx: Number(setIdxStr), ...val });
     }
 
-    return Object.values(sessions).sort((a, b) => b.week - a.week || a.type.localeCompare(b.type));
+    return Object.values(sessions).sort((a, b) => b.week - a.week);
 }
