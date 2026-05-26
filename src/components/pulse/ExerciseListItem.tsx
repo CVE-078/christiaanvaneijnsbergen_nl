@@ -24,7 +24,7 @@ export default function ExerciseListItem({ exercise, exIdx, week, type, logs, is
         <button
             onClick={onClick}
             className={`w-full py-3 px-4 flex items-center gap-3 text-left border-none border-l-2 cursor-pointer border-b border-[#222] ${isActive ? 'bg-[#161616] border-pulse-accent' : 'bg-transparent border-transparent'}`}>
-            <span className="font-pulse text-[1.125rem] font-bold leading-none w-7 shrink-0 tracking-[-0.04em] select-none text-[#222]">
+            <span className="font-pulse text-[1.125rem] font-bold leading-none w-7 shrink-0 tracking-[-0.04em] select-none text-[#333]">
                 {String(exIdx + 1).padStart(2, '0')}
             </span>
             <div className="flex-1 min-w-0">

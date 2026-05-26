@@ -152,6 +152,12 @@ export default function ProfileView() {
 
     const today = new Date().toISOString().slice(0, 10);
 
+    function fmtDate(iso: string) {
+        if (iso === today) return 'Today';
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+
     return (
         <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto flex flex-col gap-7 lg:flex-row lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12 lg:gap-10">
             <div className="flex flex-col gap-7 lg:w-[280px] lg:shrink-0">
@@ -235,7 +241,7 @@ export default function ProfileView() {
                                     }}
                                     className={`w-[5.5rem] py-[0.375rem] px-2 bg-[#0a0a0a] rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
                                 />
-                                <span className="font-pulse text-[0.8125rem] text-pulse-dim">{today}</span>
+                                <span className="font-pulse text-[0.8125rem] text-pulse-dim">{fmtDate(today)}</span>
                             </div>
                             {bwError && <div className="font-pulse text-[0.75rem] text-[#f43f5e] mt-1">{bwError}</div>}
                         </div>
@@ -262,7 +268,7 @@ export default function ProfileView() {
                                     key={entry.id}
                                     className="flex items-center gap-3 py-[0.4375rem] border-b border-[#111]">
                                     <span className="font-pulse text-[0.8125rem] text-pulse-dim flex-1">
-                                        {entry.logged_at}
+                                        {fmtDate(entry.logged_at)}
                                     </span>
                                     <span className="font-pulse text-[0.9375rem] text-pulse-text font-semibold">
                                         {toDisplay(entry.weight_kg, unit)} {unit}

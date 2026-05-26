@@ -36,7 +36,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                 aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}${complete ? ' — all sets done' : ''}`}
                 className="w-full py-[0.875rem] px-4 bg-transparent border-none cursor-pointer flex items-center gap-3 text-left">
                 <span
-                    className={`font-pulse text-[1.75rem] font-bold leading-none w-9 shrink-0 tracking-[-0.04em] select-none ${complete ? 'text-[rgba(34,197,94,0.4)]' : 'text-[#222]'}`}>
+                    className={`font-pulse text-[1.75rem] font-bold leading-none w-9 shrink-0 tracking-[-0.04em] select-none ${complete ? 'text-[rgba(34,197,94,0.4)]' : 'text-[#333]'}`}>
                     {String(exIdx + 1).padStart(2, '0')}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -75,6 +75,17 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                         ✓
                     </span>
                 )}
+                <svg
+                    className={`w-3.5 h-3.5 text-pulse-muted shrink-0 transition-transform duration-150 ${open ? 'rotate-90' : ''}`}
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden>
+                    <polyline points="6,3 11,8 6,13" />
+                </svg>
             </button>
 
             {/* 2px progress bar — visible when open */}

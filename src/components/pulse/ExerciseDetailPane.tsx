@@ -42,7 +42,7 @@ export default function ExerciseDetailPane({
             </div>
 
             {/* Scrollable set list */}
-            <div className="flex-1 overflow-y-auto px-6 pb-4">
+            <div className="flex-1 overflow-y-auto px-6 pb-4 max-w-xl">
                 <p className="font-pulse text-[0.8125rem] text-pulse-dim pt-3 pb-1.5 leading-[1.6]">
                     {exercise.load} · {exercise.note}
                 </p>

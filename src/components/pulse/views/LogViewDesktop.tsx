@@ -58,7 +58,7 @@ export default function LogViewDesktop() {
     return (
         <div className="flex h-full overflow-hidden">
             {/* Left pane */}
-            <div className="w-[300px] shrink-0 border-r border-pulse-border flex flex-col overflow-hidden">
+            <div className="w-[400px] shrink-0 border-r border-pulse-border flex flex-col overflow-hidden">
                 <WorkoutTabs activeTab={activeTab} onSelect={setActiveTab} logs={logs} week={activeWeek} />
 
                 {/* Week strip */}

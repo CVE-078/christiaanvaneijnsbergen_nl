@@ -3,7 +3,6 @@ import { getPhase, getRIR, weekHasData, parseMaxSets, logKey } from '@/lib/pulse
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
 import ExerciseCard from '../ExerciseCard';
-import RestTimer from '../RestTimer';
 import type { LogEntry } from '@/lib/pulse/types';
 
 export default function LogView() {
@@ -17,7 +16,6 @@ export default function LogView() {
         prMap,
         updateLog,
         deleteLog,
-        timerTrigger,
         fireTrigger,
     } = usePulse();
 
@@ -41,7 +39,6 @@ export default function LogView() {
     return (
         <div>
             <WorkoutTabs activeTab={activeTab} onSelect={setActiveTab} logs={logs} week={activeWeek} />
-            <RestTimer trigger={timerTrigger} />
 
             <div className="flex px-4 overflow-x-auto [scrollbar-width:none] border-b border-pulse-border">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => {

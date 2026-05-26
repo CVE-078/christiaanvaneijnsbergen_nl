@@ -3,6 +3,7 @@ import { logout } from '@/app/pulse/actions';
 import { usePulse } from '@/context/PulseContext';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
 import DesktopLayout from './DesktopLayout';
+import RestTimer from './RestTimer';
 import LogView from './views/LogView';
 import ProgramView from './views/ProgramView';
 import HistoryView from './views/HistoryView';
@@ -10,7 +11,7 @@ import ProfileView from './views/ProfileView';
 import BottomNav from './BottomNav';
 
 export function AppShell() {
-    const { activeWeek, streak, view, navigate, handleExport, saveError } = usePulse();
+    const { activeWeek, streak, view, navigate, handleExport, saveError, timerTrigger } = usePulse();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
 
     if (isDesktop) {
@@ -60,6 +61,11 @@ export function AppShell() {
             {view === 'program' && <ProgramView />}
             {view === 'history' && <HistoryView />}
             {view === 'profile' && <ProfileView />}
+
+            {/* Rest timer fixed above bottom nav — avoids layout shift in LogView */}
+            <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-pulse-border">
+                <RestTimer trigger={timerTrigger} />
+            </div>
 
             <BottomNav view={view} onNavigate={navigate} />
         </div>

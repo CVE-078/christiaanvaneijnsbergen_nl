@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { getRIR, computeSuggestion, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import type { LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
@@ -30,6 +30,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
     const [kg, setKg] = useState(initKg);
     const [reps, setReps] = useState(entry?.reps?.toString() ?? '');
     const [editing, setEditing] = useState(false);
+    const [inputError, setInputError] = useState<string | null>(null);
     const targetRIR = getRIR(week);
     const saved = entry?.saved ?? false;
 
@@ -48,11 +49,21 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
 
     function handleSave() {
         const displayNum = parseFloat(kg);
-        const repsNum = parseInt(reps, 10);
-        if (isNaN(displayNum) || displayNum <= 0) return;
+        if (isNaN(displayNum) || displayNum <= 0) {
+            setInputError('Enter a valid weight');
+            return;
+        }
         const kgNum = toKg(displayNum, unit);
-        if (kgNum <= 0 || kgNum > MAX_KG) return;
-        if (!repsNum || repsNum < 1 || repsNum > 100) return;
+        if (kgNum <= 0 || kgNum > MAX_KG) {
+            setInputError(`Max ${toDisplay(MAX_KG, unit)} ${unit}`);
+            return;
+        }
+        const repsNum = parseInt(reps, 10);
+        if (!repsNum || repsNum < 1 || repsNum > 100) {
+            setInputError('Enter valid reps (1–100)');
+            return;
+        }
+        setInputError(null);
         onSave({ kg: kgNum, reps: repsNum, rir: targetRIR, saved: true });
         setEditing(false);
     }
@@ -61,12 +72,14 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
         setKg(entry?.kg !== undefined ? String(toDisplay(entry.kg, unit)) : '');
         setReps(entry?.reps?.toString() ?? '');
         setEditing(true);
+        setInputError(null);
     }
 
     function handleCancel() {
         setKg(entry?.kg !== undefined ? String(toDisplay(entry.kg, unit)) : '');
         setReps(entry?.reps?.toString() ?? '');
         setEditing(false);
+        setInputError(null);
     }
 
     const showInputs = !saved || editing;
@@ -80,35 +93,44 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
 
             {showInputs ? (
                 <>
-                    <input
-                        type="number"
-                        aria-label={`Weight in ${unit}`}
-                        placeholder={unit}
-                        value={kg}
-                        min={displayMin}
-                        max={displayMax}
-                        step={displayStep}
-                        onChange={(e) => setKg(e.target.value)}
-                        className={inputClass}
-                    />
-                    <span className="font-pulse text-pulse-muted text-sm">×</span>
-                    <input
-                        type="number"
-                        aria-label="Repetitions"
-                        placeholder="reps"
-                        value={reps}
-                        min={1}
-                        max={100}
-                        onChange={(e) => setReps(e.target.value)}
-                        className={inputClass}
-                    />
-                    <span className="font-pulse text-[0.8125rem] text-pulse-dim shrink-0">{targetRIR} RIR</span>
-                    {previousEntry && (
-                        <span className="font-pulse text-[0.6875rem] text-[#444] tracking-[0.04em] whitespace-nowrap shrink-0">
-                            → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
-                        </span>
-                    )}
-                    <div className="ml-auto flex gap-1.5">
+                    <div className="flex-1 min-w-0 flex flex-col gap-[0.25rem]">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                aria-label={`Weight in ${unit}`}
+                                placeholder={unit}
+                                value={kg}
+                                min={displayMin}
+                                max={displayMax}
+                                step={displayStep}
+                                onChange={(e) => { setKg(e.target.value); setInputError(null); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+                                className={inputClass}
+                            />
+                            <span className="font-pulse text-pulse-muted text-sm">×</span>
+                            <input
+                                type="number"
+                                aria-label="Repetitions"
+                                placeholder="reps"
+                                value={reps}
+                                min={1}
+                                max={100}
+                                onChange={(e) => { setReps(e.target.value); setInputError(null); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+                                className={inputClass}
+                            />
+                            <span className="font-pulse text-[0.8125rem] text-pulse-dim shrink-0">{targetRIR} RIR</span>
+                        </div>
+                        {previousEntry && (
+                            <span className="font-pulse text-[0.75rem] text-[#444] tracking-[0.04em]">
+                                → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
+                            </span>
+                        )}
+                        {inputError && (
+                            <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>
+                        )}
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
                         {editing && (
                             <button
                                 onClick={handleCancel}
