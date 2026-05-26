@@ -40,7 +40,7 @@ export default function LogView() {
 
     return (
         <div>
-            <WorkoutTabs activeTab={activeTab} onSelect={setActiveTab} />
+            <WorkoutTabs activeTab={activeTab} onSelect={setActiveTab} logs={logs} week={activeWeek} />
             <RestTimer trigger={timerTrigger} />
 
             <div className="flex px-4 overflow-x-auto [scrollbar-width:none] border-b border-pulse-border">

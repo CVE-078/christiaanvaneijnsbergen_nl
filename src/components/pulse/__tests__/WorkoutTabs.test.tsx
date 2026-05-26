@@ -1,18 +1,21 @@
-﻿import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WorkoutTabs from '../WorkoutTabs';
+import { WORKOUTS } from '@/lib/pulse/data';
+
+const base = { activeTab: 'push' as const, onSelect: vi.fn(), logs: {}, week: 1 };
 
 describe('WorkoutTabs', () => {
     it('renders Push, Pull and Legs tabs', () => {
-        render(<WorkoutTabs activeTab="push" onSelect={vi.fn()} />);
+        render(<WorkoutTabs {...base} />);
         expect(screen.getByRole('tab', { name: /push/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /pull/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /legs/i })).toBeInTheDocument();
     });
 
     it('marks the active tab with aria-selected="true" and others with false', () => {
-        render(<WorkoutTabs activeTab="pull" onSelect={vi.fn()} />);
+        render(<WorkoutTabs {...base} activeTab="pull" />);
         expect(screen.getByRole('tab', { name: /pull/i })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tab', { name: /push/i })).toHaveAttribute('aria-selected', 'false');
         expect(screen.getByRole('tab', { name: /legs/i })).toHaveAttribute('aria-selected', 'false');
@@ -20,21 +23,21 @@ describe('WorkoutTabs', () => {
 
     it('calls onSelect when an inactive tab is clicked', async () => {
         const onSelect = vi.fn();
-        render(<WorkoutTabs activeTab="push" onSelect={onSelect} />);
+        render(<WorkoutTabs {...base} onSelect={onSelect} />);
         await userEvent.click(screen.getByRole('tab', { name: /legs/i }));
         expect(onSelect).toHaveBeenCalledWith('legs');
     });
 
     it('calls onSelect with active tab type when active tab is clicked', async () => {
         const onSelect = vi.fn();
-        render(<WorkoutTabs activeTab="push" onSelect={onSelect} />);
+        render(<WorkoutTabs {...base} onSelect={onSelect} />);
         await userEvent.click(screen.getByRole('tab', { name: /push/i }));
         expect(onSelect).toHaveBeenCalledWith('push');
     });
 
     it('navigates to the next tab on ArrowRight', async () => {
         const onSelect = vi.fn();
-        render(<WorkoutTabs activeTab="push" onSelect={onSelect} />);
+        render(<WorkoutTabs {...base} onSelect={onSelect} />);
         screen.getByRole('tab', { name: /push/i }).focus();
         await userEvent.keyboard('{ArrowRight}');
         expect(onSelect).toHaveBeenCalledWith('pull');
@@ -42,9 +45,15 @@ describe('WorkoutTabs', () => {
 
     it('wraps around to the last tab on ArrowLeft from the first', async () => {
         const onSelect = vi.fn();
-        render(<WorkoutTabs activeTab="push" onSelect={onSelect} />);
+        render(<WorkoutTabs {...base} onSelect={onSelect} />);
         screen.getByRole('tab', { name: /push/i }).focus();
         await userEvent.keyboard('{ArrowLeft}');
         expect(onSelect).toHaveBeenCalledWith('legs');
+    });
+
+    it('shows "0 / N" completion summary on the active tab', () => {
+        render(<WorkoutTabs {...base} />);
+        const total = WORKOUTS.push.exercises.length;
+        expect(screen.getAllByText(`0 / ${total}`).length).toBeGreaterThanOrEqual(1);
     });
 });
