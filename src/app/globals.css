@@ -9,6 +9,16 @@
     --container-15: 15;
 
     --text-xxs: 10px;
+
+    /* Pulse design tokens */
+    --font-pulse: 'JetBrains Mono', 'Courier New', monospace;
+    --color-pulse-accent: #ff6c2f;
+    --color-pulse-bg: #0a0a0a;
+    --color-pulse-surface: #141414;
+    --color-pulse-border: #1f1f1f;
+    --color-pulse-dim: #555555;
+    --color-pulse-muted: #3a3a3a;
+    --color-pulse-text: #d4d4d4;
 }
 
 :focus-visible {
