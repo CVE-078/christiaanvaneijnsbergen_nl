@@ -220,11 +220,65 @@ export interface RoutineTemplate {
   equipment: 'dumbbells' | 'gym';
   days_per_week: string;
   experience_level: 'beginner' | 'intermediate' | 'advanced';
+  session_time: string;
   description: string;
 }
 ```
 
 `RoutineTemplate` is read from `/api/pulse/templates` (new API route) with SWR, or passed as initial data from the server component.
+
+### Exercise category overhaul
+
+The existing `ExerciseCategory = 'push' | 'pull' | 'legs' | 'other'` is replaced with granular muscle-group categories:
+
+```typescript
+export type ExerciseCategory =
+  | 'chest'
+  | 'shoulders'
+  | 'triceps'
+  | 'back'
+  | 'biceps'
+  | 'legs'
+  | 'other';
+```
+
+A pure utility function maps category → workout tab type:
+
+```typescript
+export function categoryToWorkoutType(cat: ExerciseCategory): WorkoutType | null {
+  const map: Record<ExerciseCategory, WorkoutType | null> = {
+    chest: 'push', shoulders: 'push', triceps: 'push',
+    back: 'pull', biceps: 'pull',
+    legs: 'legs',
+    other: null,
+  };
+  return map[cat];
+}
+```
+
+`WorkoutType = 'push' | 'pull' | 'legs'` is unchanged — it drives the log tabs.
+
+**DB impact:** The `exercises.category` CHECK constraint must be updated to the new set. Existing seeded exercises need their categories re-mapped:
+
+| Old category | Exercise | New category |
+|---|---|---|
+| push | Dumbbell Bench Press | chest |
+| push | Incline DB Press | chest |
+| push | DB Lateral Raise | shoulders |
+| push | DB Overhead Press | shoulders |
+| push | DB Tricep Overhead Extension | triceps |
+| push | Diamond / Close-Grip Push-Up | triceps |
+| pull | DB Bent-Over Row | back |
+| pull | DB Single-Arm Row | back |
+| pull | DB Reverse Fly | back |
+| pull | DB Face Pull bent-over | back |
+| pull | DB Bicep Curl | biceps |
+| pull | DB Hammer Curl | biceps |
+| legs | (all existing leg exercises) | legs |
+
+New gym exercises seeded with the new categories accordingly (Bench Press → chest, OHP → shoulders, Row → back, Lat Pulldown → back, Squat/Leg Press/etc → legs, Tricep Pushdown → triceps, Bicep Curl → biceps).
+
+**Library impact:** The category filter in the Exercises tab currently shows push/pull/legs/other pills. These are updated to show the new categories (chest, shoulders, triceps, back, biceps, legs, other).
 
 ---
 
