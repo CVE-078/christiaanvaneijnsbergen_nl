@@ -16,7 +16,7 @@ interface Props {
 }
 
 const inputClass =
-    'w-[3.75rem] h-10 px-2 bg-[#1a1a1a] border border-[#222] rounded-[6px] text-white font-pulse text-base font-bold text-center outline-none';
+    'w-[3.75rem] h-10 px-2 bg-pulse-surface border border-pulse-border rounded-lg text-white font-pulse text-base font-semibold text-center outline-none focus:border-pulse-accent/50 transition-colors';
 
 export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, unit, onSave, onDelete }: Props) {
     const suggestion = computeSuggestion(previousEntry, week);
@@ -86,7 +86,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
 
     return (
         <div
-            className={`flex items-center gap-2 py-[0.4375rem] border-b border-[#111] ${saved && !editing ? 'bg-[#0e1510]' : ''}`}>
+            className={`flex items-center gap-2 py-[0.4375rem] border-b border-pulse-border ${saved && !editing ? 'bg-pulse-accent/5' : ''}`}>
             <span className="font-pulse text-[0.8125rem] text-pulse-muted w-6 shrink-0">
                 {String(setIdx + 1).padStart(2, '0')}
             </span>
@@ -122,7 +122,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                             <span className="font-pulse text-[0.8125rem] text-pulse-dim shrink-0">{targetRIR} RIR</span>
                         </div>
                         {previousEntry && (
-                            <span className="font-pulse text-[0.75rem] text-[#444] tracking-[0.04em]">
+                            <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
                                 → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
                             </span>
                         )}
@@ -166,7 +166,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         {onDelete && (
                             <button
                                 onClick={onDelete}
-                                className="font-pulse text-[0.75rem] text-[#444] bg-transparent border-none cursor-pointer p-0">
+                                className="font-pulse text-[0.75rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0">
                                 ✕
                             </button>
                         )}

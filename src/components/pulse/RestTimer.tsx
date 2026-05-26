@@ -115,12 +115,12 @@ export default function RestTimer({ trigger }: Props) {
                     <button
                         onClick={skip}
                         aria-label="Skip rest timer"
-                        className="font-pulse text-[0.75rem] tracking-[0.06em] text-[#444] bg-transparent border-none cursor-pointer py-[0.2rem] px-0">
+                        className="font-pulse text-[0.75rem] tracking-[0.06em] text-pulse-dim bg-transparent border-none cursor-pointer py-[0.2rem] px-0">
                         Skip
                     </button>
                 </div>
             </div>
-            <div className="h-[2px] bg-[#1a1a1a]">
+            <div className="h-[2px] bg-pulse-surface-2">
                 {/* width is a runtime ratio — must stay inline */}
                 <div
                     className={`h-full transition-[width] duration-1000 ease-linear ${done ? 'bg-pulse-accent' : 'bg-pulse-accent/60'}`}

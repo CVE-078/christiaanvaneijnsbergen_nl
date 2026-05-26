@@ -35,14 +35,14 @@ export function AppShell() {
                     <button
                         onClick={handleExport}
                         aria-label="Export workout logs as JSON"
-                        className="font-pulse text-sm text-[#444] bg-transparent border-none cursor-pointer tracking-[0.02em]">
+                        className="font-pulse text-sm text-pulse-dim bg-transparent border-none cursor-pointer tracking-[0.02em]">
                         Export
                     </button>
                     <form action={logout} className="inline">
                         <button
                             type="submit"
                             aria-label="Sign out of Pulse"
-                            className="font-pulse text-sm text-[#444] bg-transparent border-none cursor-pointer tracking-[0.02em]">
+                            className="font-pulse text-sm text-pulse-dim bg-transparent border-none cursor-pointer tracking-[0.02em]">
                             Sign out
                         </button>
                     </form>

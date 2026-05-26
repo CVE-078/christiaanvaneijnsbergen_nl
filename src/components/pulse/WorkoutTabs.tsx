@@ -35,7 +35,7 @@ export default function WorkoutTabs({ activeTab, onSelect, logs, week }: Props) 
     }
 
     return (
-        <div role="tablist" className="flex border-b border-pulse-border">
+        <div role="tablist" className="flex items-center gap-1.5 p-4 pb-3">
             {TABS.map(({ type, label }, idx) => {
                 const active = activeTab === type;
                 const done = countDone(type, week, logs);
@@ -49,16 +49,17 @@ export default function WorkoutTabs({ activeTab, onSelect, logs, week }: Props) 
                         aria-controls={`panel-${type}`}
                         onClick={() => onSelect(type)}
                         onKeyDown={(e) => handleKeyDown(e, idx)}
-                        className={`flex-1 flex flex-col items-center py-2.5 pb-2 gap-[0.2rem] bg-transparent border-0 border-b-2 -mb-px cursor-pointer ${
-                            active ? 'border-pulse-accent' : 'border-transparent'
+                        className={`flex items-center gap-2 py-2 px-4 rounded-full border cursor-pointer transition-all duration-150 ${
+                            active
+                                ? 'bg-pulse-accent/10 border-pulse-accent/25 text-pulse-accent'
+                                : 'bg-transparent border-pulse-border text-pulse-dim hover:text-pulse-text'
                         }`}>
+                        <span className="font-pulse text-sm font-semibold">{label}</span>
                         <span
-                            className={`font-pulse text-[0.8125rem] tracking-[0.12em] uppercase ${active ? 'text-white' : 'text-pulse-dim'}`}>
-                            {label}
-                        </span>
-                        <span
-                            className={`font-pulse text-[0.6875rem] tracking-[0.04em] ${active ? 'text-pulse-dim' : 'text-pulse-muted'}`}>
-                            {done} / {total}
+                            className={`font-pulse text-xs rounded-full px-1.5 py-0.5 ${
+                                active ? 'bg-pulse-accent/15 text-pulse-accent' : 'bg-pulse-surface-2 text-pulse-dim'
+                            }`}>
+                            {done}/{total}
                         </span>
                     </button>
                 );
