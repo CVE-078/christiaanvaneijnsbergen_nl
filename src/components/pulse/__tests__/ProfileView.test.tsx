@@ -42,10 +42,9 @@ describe('ProfileView', () => {
         });
     });
 
-    it('displays today in UTC format (YYYY-MM-DD)', () => {
-        const utcDate = new Date().toISOString().slice(0, 10);
+    it('displays "Today" for the current date next to the bodyweight input', () => {
         render(<ProfileView />);
-        expect(screen.getByText(utcDate)).toBeInTheDocument();
+        expect(screen.getByText('Today')).toBeInTheDocument();
     });
 
     it('renders initials from displayName', () => {

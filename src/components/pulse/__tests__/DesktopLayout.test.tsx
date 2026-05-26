@@ -29,8 +29,8 @@ vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(() => ({ ...mockContext })),
 }));
 
-vi.mock('../views/LogViewDesktop', () => ({
-    default: () => <div data-testid="log-view-desktop">LogViewDesktop</div>,
+vi.mock('../views/LogView', () => ({
+    default: () => <div data-testid="log-view">LogView</div>,
 }));
 
 import { describe, it, expect } from 'vitest';
@@ -63,12 +63,12 @@ describe('DesktopLayout', () => {
 
     it('shows the active week padded to 2 digits', () => {
         render(<DesktopLayout />);
-        expect(screen.getByText('03')).toBeInTheDocument();
+        expect(screen.getByText('WK 03')).toBeInTheDocument();
     });
 
     it('shows streak when streak > 0', () => {
         render(<DesktopLayout />);
-        expect(screen.getByText(/2wk streak/i)).toBeInTheDocument();
+        expect(screen.getByText(/2WK/)).toBeInTheDocument();
     });
 
     it('renders the save error bar when saveError is set', async () => {

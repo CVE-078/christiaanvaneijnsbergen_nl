@@ -51,9 +51,10 @@ describe('WorkoutTabs', () => {
         expect(onSelect).toHaveBeenCalledWith('legs');
     });
 
-    it('shows "0 / N" completion summary on the active tab', () => {
+    it('shows "0/N" completion summary on the active tab', () => {
         render(<WorkoutTabs {...base} />);
         const total = WORKOUTS.push.exercises.length;
-        expect(screen.getAllByText(`0 / ${total}`).length).toBeGreaterThanOrEqual(1);
+        const badge = screen.getAllByText((_, el) => el?.textContent === `0/${total}`);
+        expect(badge.length).toBeGreaterThanOrEqual(1);
     });
 });
