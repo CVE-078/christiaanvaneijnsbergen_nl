@@ -64,18 +64,9 @@ ALTER TABLE profiles
   ADD COLUMN onboarding_completed boolean NOT NULL DEFAULT false;
 ```
 
-### 1.3 New global exercise seed (gym equipment)
+### 1.4 Global exercise seed expansion
 
-Added to the existing `exercises` seeding block (`user_id = NULL`):
-
-**Push — gym**
-- Barbell Bench Press, Incline Barbell Press, Cable Lateral Raise, Barbell Overhead Press, Cable Tricep Pushdown, Chest Fly Machine
-
-**Pull — gym**
-- Barbell Row, Cable Row, Lat Pulldown, Face Pull (cable), Barbell Bicep Curl, Cable Hammer Curl
-
-**Legs — gym**
-- Barbell Squat, Leg Press, Barbell Romanian Deadlift, Leg Curl Machine, Leg Extension Machine, Calf Raise Machine
+The full list of new exercises (with updated categories) is specified in §7. The old push/pull/legs-category gym exercises seeded earlier (`Barbell Bench Press`, `Barbell Row`, etc.) are superseded by the expanded seed in §7 with correct muscle-group categories.
 
 ---
 
@@ -144,7 +135,7 @@ Server action. Called when user taps "Use this" on a template card (after confir
 Steps:
 1. Fetch `routine_templates` row by slug + all `template_exercises` joined with `exercises`.
 2. Insert new `workout_routines` row for the user (name = template name).
-3. Insert `routine_exercises` rows for each template exercise (maps `template_exercises.exercise_id`, `sets`, `reps`, `order`; `starting_weight_kg = null`).
+3. Insert `routine_exercises` rows for each template exercise (maps `template_exercises.exercise_id`, `workout_type`, `sets`, `reps`, `order`; `starting_weight_kg = null`).
 4. Call `setActiveRoutine(newRoutineId)` — sets `profiles.active_routine_id`.
 5. Return the new `WorkoutRoutine`.
 
@@ -332,7 +323,7 @@ export function defaultWorkoutType(cat: ExerciseCategory): WorkoutType | null {
 }
 ```
 
-`WorkoutType = 'push' | 'pull' | 'legs'` is unchanged — it drives the log tabs. Abs exercises map to `null` because they are accessories added to whichever session the user prefers; they do not appear in templates automatically.
+Abs exercises map to `null` — they are accessories the user adds to whichever session they prefer; they do not appear in templates.
 
 **DB impact:** The `exercises.category` CHECK constraint is updated to the new set. Existing seeded exercises are re-categorised:
 
@@ -551,7 +542,7 @@ Includes:
 1. Create `routine_templates` and `template_exercises` tables.
 2. RLS policies.
 3. Seed gym exercises into `exercises`.
-4. Seed 6 templates into `routine_templates`.
+4. Seed 13 templates into `routine_templates`.
 5. Seed `template_exercises` rows (explicit UUIDs for stability).
 6. `ALTER TABLE profiles ADD COLUMN onboarding_completed`.
 
@@ -647,6 +638,167 @@ Lower day:
 | legs | DB Romanian Deadlift | 3 | 8-12 | 13 |
 | legs | DB Leg Curl lying on bench | 3 | 12-15 | 14 |
 | legs | DB Calf Raise | 3 | 15-20 | 15 |
+
+### Full Body — Home Gym (`full-body-home`)
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| push | Barbell Bench Press | 3 | 6-10 | 1 |
+| push | Barbell Overhead Press | 3 | 6-10 | 2 |
+| pull | Barbell Row | 3 | 6-10 | 3 |
+| pull | DB Bicep Curl | 3 | 10-14 | 4 |
+| legs | Barbell Squat | 4 | 5-8 | 5 |
+| legs | Romanian Deadlift | 3 | 8-12 | 6 |
+
+### Upper/Lower — Home Gym (`upper-lower-home`)
+
+Upper day:
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| push | Barbell Bench Press | 4 | 6-10 | 1 |
+| push | Barbell Overhead Press | 3 | 6-10 | 2 |
+| push | DB Lateral Raise | 3 | 12-16 | 3 |
+| pull | Barbell Row | 4 | 6-10 | 4 |
+| pull | DB Bicep Curl | 3 | 10-14 | 5 |
+| pull | DB Reverse Fly | 3 | 12-16 | 6 |
+
+Lower day:
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| legs | Barbell Squat | 4 | 5-8 | 7 |
+| legs | Romanian Deadlift | 3 | 8-12 | 8 |
+| legs | DB Bulgarian Split Squat | 3 | 10-12 per leg | 9 |
+| legs | DB Calf Raise | 3 | 15-20 | 10 |
+
+### PPL — Home Gym (`ppl-home`)
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| push | Barbell Bench Press | 4 | 6-10 | 1 |
+| push | Incline Barbell Press | 3 | 8-12 | 2 |
+| push | Barbell Overhead Press | 3 | 6-10 | 3 |
+| push | DB Lateral Raise | 3 | 12-16 | 4 |
+| push | DB Tricep Overhead Extension | 3 | 10-15 | 5 |
+| pull | Barbell Row | 4 | 6-10 | 6 |
+| pull | DB Single-Arm Row | 3 | 10-14 | 7 |
+| pull | DB Reverse Fly | 3 | 12-16 | 8 |
+| pull | DB Bicep Curl | 3 | 10-14 | 9 |
+| pull | DB Hammer Curl | 3 | 10-14 | 10 |
+| legs | Barbell Squat | 4 | 5-8 | 11 |
+| legs | Romanian Deadlift | 3 | 8-12 | 12 |
+| legs | DB Bulgarian Split Squat | 3 | 10-12 per leg | 13 |
+| legs | DB Leg Curl lying on bench | 3 | 12-15 | 14 |
+| legs | DB Calf Raise | 3 | 15-20 | 15 |
+
+### Push/Pull — Dumbbells (`push-pull-db`)
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| push | Dumbbell Bench Press | 4 | 8-12 | 1 |
+| push | DB Overhead Press | 3 | 8-12 | 2 |
+| push | DB Lateral Raise | 3 | 12-16 | 3 |
+| push | DB Tricep Overhead Extension | 3 | 10-15 | 4 |
+| pull | DB Bent-Over Row | 4 | 8-12 | 5 |
+| pull | DB Single-Arm Row | 3 | 10-14 | 6 |
+| pull | DB Bicep Curl | 3 | 10-14 | 7 |
+| pull | DB Hammer Curl | 3 | 10-14 | 8 |
+
+### Push/Pull — Gym (`push-pull-gym`)
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| push | Barbell Bench Press | 4 | 6-10 | 1 |
+| push | Barbell Overhead Press | 3 | 6-10 | 2 |
+| push | Cable Lateral Raise | 3 | 12-16 | 3 |
+| push | Cable Tricep Pushdown | 3 | 12-15 | 4 |
+| pull | Barbell Row | 4 | 6-10 | 5 |
+| pull | Lat Pulldown | 3 | 8-12 | 6 |
+| pull | Cable Row | 3 | 10-14 | 7 |
+| pull | Barbell Curl | 3 | 8-12 | 8 |
+
+### Bro Split — Gym (`bro-split-gym`)
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| chest | Barbell Bench Press | 4 | 6-10 | 1 |
+| chest | Incline Barbell Press | 3 | 8-12 | 2 |
+| chest | Cable Fly | 3 | 12-15 | 3 |
+| chest | Machine Chest Press | 3 | 10-14 | 4 |
+| chest | Pec Deck | 3 | 12-15 | 5 |
+| back | Deadlift | 4 | 4-6 | 6 |
+| back | Barbell Row | 4 | 6-10 | 7 |
+| back | Lat Pulldown | 3 | 8-12 | 8 |
+| back | Seated Cable Row | 3 | 10-14 | 9 |
+| back | Pull-Up | 3 | to failure | 10 |
+| shoulders | Barbell Overhead Press | 4 | 6-10 | 11 |
+| shoulders | Lateral Raise | 4 | 12-16 | 12 |
+| shoulders | Rear Delt Fly | 3 | 12-16 | 13 |
+| shoulders | Face Pull | 3 | 15-20 | 14 |
+| shoulders | Arnold Press | 3 | 8-12 | 15 |
+| arms | Barbell Curl | 4 | 8-12 | 16 |
+| arms | Tricep Pushdown | 4 | 10-14 | 17 |
+| arms | Skull Crusher | 3 | 8-12 | 18 |
+| arms | Cable Curl | 3 | 10-14 | 19 |
+| arms | Dips | 3 | to failure | 20 |
+| legs | Barbell Squat | 4 | 5-8 | 21 |
+| legs | Leg Press | 3 | 10-15 | 22 |
+| legs | Romanian Deadlift | 3 | 8-12 | 23 |
+| legs | Leg Curl Machine | 3 | 12-15 | 24 |
+| legs | Leg Extension Machine | 3 | 12-15 | 25 |
+| legs | Calf Raise Machine | 4 | 15-20 | 26 |
+
+### Arnold Split — Gym (`arnold-split-gym`)
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| chest | Barbell Bench Press | 4 | 6-10 | 1 |
+| chest | Incline Barbell Press | 3 | 8-12 | 2 |
+| chest | Cable Fly | 3 | 12-15 | 3 |
+| chest | Pec Deck | 3 | 12-15 | 4 |
+| back | Deadlift | 4 | 4-6 | 5 |
+| back | Barbell Row | 4 | 6-10 | 6 |
+| back | Lat Pulldown | 3 | 8-12 | 7 |
+| back | Seated Cable Row | 3 | 10-14 | 8 |
+| shoulders | Barbell Overhead Press | 4 | 6-10 | 9 |
+| shoulders | Arnold Press | 3 | 8-12 | 10 |
+| shoulders | Lateral Raise | 4 | 12-16 | 11 |
+| shoulders | Face Pull | 3 | 15-20 | 12 |
+| arms | Barbell Curl | 4 | 8-12 | 13 |
+| arms | Tricep Pushdown | 4 | 10-14 | 14 |
+| arms | Skull Crusher | 3 | 8-12 | 15 |
+| arms | EZ-Bar Curl | 3 | 8-12 | 16 |
+| legs | Barbell Squat | 4 | 5-8 | 17 |
+| legs | Leg Press | 3 | 10-15 | 18 |
+| legs | Romanian Deadlift | 3 | 8-12 | 19 |
+| legs | Leg Curl Machine | 3 | 12-15 | 20 |
+| legs | Calf Raise Machine | 4 | 15-20 | 21 |
+
+### Arnold Split — Home Gym (`arnold-split-home`)
+
+| workout_type | Exercise | sets | reps | order |
+|---|---|---|---|---|
+| chest | Barbell Bench Press | 4 | 6-10 | 1 |
+| chest | Incline Barbell Press | 3 | 8-12 | 2 |
+| chest | Dumbbell Bench Press | 3 | 8-12 | 3 |
+| chest | Chest Fly | 3 | 12-15 | 4 |
+| back | Deadlift | 4 | 4-6 | 5 |
+| back | Barbell Row | 4 | 6-10 | 6 |
+| back | DB Single-Arm Row | 3 | 10-14 | 7 |
+| back | DB Reverse Fly | 3 | 12-16 | 8 |
+| shoulders | Barbell Overhead Press | 4 | 6-10 | 9 |
+| shoulders | DB Overhead Press | 3 | 8-12 | 10 |
+| shoulders | DB Lateral Raise | 4 | 12-16 | 11 |
+| shoulders | DB Face Pull bent-over | 3 | 15-20 | 12 |
+| arms | Barbell Curl | 4 | 8-12 | 13 |
+| arms | DB Tricep Overhead Extension | 3 | 10-15 | 14 |
+| arms | DB Bicep Curl | 3 | 10-14 | 15 |
+| arms | DB Hammer Curl | 3 | 10-14 | 16 |
+| legs | Barbell Squat | 4 | 5-8 | 17 |
+| legs | Romanian Deadlift | 3 | 8-12 | 18 |
+| legs | DB Bulgarian Split Squat | 3 | 10-12 per leg | 19 |
+| legs | DB Calf Raise | 3 | 15-20 | 20 |
 
 ### PPL — Gym (`ppl-gym`)
 
