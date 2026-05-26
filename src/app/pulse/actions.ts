@@ -173,10 +173,18 @@ export async function deleteBodyWeight(id: string) {
 
 const VALID_CATEGORIES: ExerciseCategory[] = ['push', 'pull', 'legs', 'other'];
 
-export async function createExercise(name: string, category: string): Promise<DbExercise> {
+export async function createExercise(
+    name: string,
+    category: string,
+    defaultSets: string,
+    defaultReps: string,
+): Promise<DbExercise> {
     const trimmed = name.trim();
     if (!trimmed || trimmed.length > 100) throw new Error('Invalid exercise name');
     if (!VALID_CATEGORIES.includes(category as ExerciseCategory)) throw new Error('Invalid category');
+    const trimmedSets = defaultSets.trim();
+    const trimmedReps = defaultReps.trim();
+    if (!trimmedSets || !trimmedReps) throw new Error('Invalid default sets or reps');
 
     const supabase = await createClient();
     const {
@@ -186,7 +194,7 @@ export async function createExercise(name: string, category: string): Promise<Db
 
     const { data, error } = await supabase
         .from('exercises')
-        .insert({ user_id: user.id, name: trimmed, category })
+        .insert({ user_id: user.id, name: trimmed, category, default_sets: trimmedSets, default_reps: trimmedReps })
         .select('id, name, category, default_sets, default_reps, user_id')
         .single();
 

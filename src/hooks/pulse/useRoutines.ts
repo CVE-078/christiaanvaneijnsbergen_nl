@@ -102,8 +102,8 @@ export function useRoutines(
         await mutateRoutines();
     }, [mutateRoutines]);
 
-    const createExercise = useCallback(async (name: string, category: ExerciseCategory): Promise<DbExercise> => {
-        const exercise = await serverCreateExercise(name, category);
+    const createExercise = useCallback(async (name: string, category: ExerciseCategory, defaultSets: string, defaultReps: string): Promise<DbExercise> => {
+        const exercise = await serverCreateExercise(name, category, defaultSets, defaultReps);
         await mutateExercises();
         return exercise;
     }, [mutateExercises]);

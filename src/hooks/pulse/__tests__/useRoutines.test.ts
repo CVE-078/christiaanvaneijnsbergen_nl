@@ -246,11 +246,11 @@ describe('useRoutines', () => {
         const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
 
         await act(async () => {
-            const returned = await result.current.createExercise('Squat', 'legs');
+            const returned = await result.current.createExercise('Squat', 'legs', '4', '5');
             expect(returned).toEqual(newExercise);
         });
 
-        expect(serverCreateExercise).toHaveBeenCalledWith('Squat', 'legs');
+        expect(serverCreateExercise).toHaveBeenCalledWith('Squat', 'legs', '4', '5');
         expect(exercisesMutate).toHaveBeenCalled();
     });
 

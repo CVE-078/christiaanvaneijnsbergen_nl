@@ -125,7 +125,7 @@ describe('LibraryView', () => {
         await userEvent.type(screen.getByLabelText(/exercise name/i), 'Incline Press');
         await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
         await waitFor(() => {
-            expect(mocks.createExercise).toHaveBeenCalledWith('Incline Press', 'push');
+            expect(mocks.createExercise).toHaveBeenCalledWith('Incline Press', 'push', '3', '8-12');
         });
     });
 

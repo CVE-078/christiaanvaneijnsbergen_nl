@@ -41,6 +41,8 @@ function ExercisesTab() {
     const [adding, setAdding] = useState(false);
     const [newName, setNewName] = useState('');
     const [newCategory, setNewCategory] = useState<ExerciseCategory>('push');
+    const [newDefaultSets, setNewDefaultSets] = useState('3');
+    const [newDefaultReps, setNewDefaultReps] = useState('8-12');
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
@@ -49,11 +51,15 @@ function ExercisesTab() {
 
     function handleAdd() {
         const name = newName.trim();
-        if (!name) return;
+        const sets = newDefaultSets.trim();
+        const reps = newDefaultReps.trim();
+        if (!name || !sets || !reps) return;
         startTransition(async () => {
-            await createExercise(name, newCategory);
+            await createExercise(name, newCategory, sets, reps);
             setNewName('');
             setNewCategory('push');
+            setNewDefaultSets('3');
+            setNewDefaultReps('8-12');
             setAdding(false);
         });
     }
@@ -126,6 +132,26 @@ function ExercisesTab() {
                             </option>
                         ))}
                     </select>
+                    <div className="flex gap-2">
+                        <label className="flex flex-col gap-1 flex-1">
+                            <span className={SECTION_LABEL}>Default sets</span>
+                            <input
+                                aria-label="Default sets"
+                                value={newDefaultSets}
+                                onChange={(e) => setNewDefaultSets(e.target.value)}
+                                className={INPUT}
+                            />
+                        </label>
+                        <label className="flex flex-col gap-1 flex-1">
+                            <span className={SECTION_LABEL}>Default reps</span>
+                            <input
+                                aria-label="Default reps"
+                                value={newDefaultReps}
+                                onChange={(e) => setNewDefaultReps(e.target.value)}
+                                className={INPUT}
+                            />
+                        </label>
+                    </div>
                     <div className="flex gap-2">
                         <button onClick={handleAdd} className={BTN_PRIMARY}>
                             Add

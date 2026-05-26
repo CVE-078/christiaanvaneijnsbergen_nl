@@ -79,7 +79,7 @@ export interface PulseContextValue {
     reorderRoutineExercises: (routineId: string, orderedIds: string[]) => Promise<void>;
 
     // Exercise library mutations
-    createExercise: (name: string, category: ExerciseCategory) => Promise<DbExercise>;
+    createExercise: (name: string, category: ExerciseCategory, defaultSets: string, defaultReps: string) => Promise<DbExercise>;
     updateExercise: (id: string, name: string) => Promise<void>;
     deleteExercise: (id: string) => Promise<void>;
 }
