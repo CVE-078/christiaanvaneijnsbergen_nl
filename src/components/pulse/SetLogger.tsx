@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { getRIR, computeSuggestion, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import type { LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
@@ -16,7 +16,7 @@ interface Props {
 }
 
 const inputClass =
-    'w-[3.75rem] h-10 px-2 bg-[#1a1a1a] border border-[#222] rounded-[6px] text-white font-pulse text-[0.9375rem] font-bold text-center outline-none';
+    'w-[3.75rem] h-10 px-2 bg-[#1a1a1a] border border-[#222] rounded-[6px] text-white font-pulse text-base font-bold text-center outline-none';
 
 export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, unit, onSave, onDelete }: Props) {
     const suggestion = computeSuggestion(previousEntry, week);
@@ -74,7 +74,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
     return (
         <div
             className={`flex items-center gap-2 py-[0.4375rem] border-b border-[#111] ${saved && !editing ? 'bg-[#0e1510]' : ''}`}>
-            <span className="font-pulse text-[0.6875rem] text-pulse-muted w-6 shrink-0">
+            <span className="font-pulse text-[0.8125rem] text-pulse-muted w-6 shrink-0">
                 {String(setIdx + 1).padStart(2, '0')}
             </span>
 
@@ -91,7 +91,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         onChange={(e) => setKg(e.target.value)}
                         className={inputClass}
                     />
-                    <span className="font-pulse text-pulse-muted text-xs">×</span>
+                    <span className="font-pulse text-pulse-muted text-sm">×</span>
                     <input
                         type="number"
                         aria-label="Repetitions"
@@ -102,9 +102,9 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         onChange={(e) => setReps(e.target.value)}
                         className={inputClass}
                     />
-                    <span className="font-pulse text-[0.6875rem] text-pulse-dim shrink-0">{targetRIR} RIR</span>
+                    <span className="font-pulse text-[0.8125rem] text-pulse-dim shrink-0">{targetRIR} RIR</span>
                     {previousEntry && (
-                        <span className="font-pulse text-[0.5625rem] text-[#444] tracking-[0.04em] whitespace-nowrap shrink-0">
+                        <span className="font-pulse text-[0.6875rem] text-[#444] tracking-[0.04em] whitespace-nowrap shrink-0">
                             → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
                         </span>
                     )}
@@ -112,39 +112,39 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         {editing && (
                             <button
                                 onClick={handleCancel}
-                                className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border border-pulse-border rounded-sm py-1 px-2 cursor-pointer shrink-0">
+                                className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border border-pulse-border rounded-sm py-1 px-2 cursor-pointer shrink-0">
                                 Cancel
                             </button>
                         )}
                         <button
                             onClick={handleSave}
-                            className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase h-10 px-4 bg-pulse-accent border-none rounded-[6px] text-white cursor-pointer shrink-0 transition-opacity duration-100">
+                            className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase h-10 px-4 bg-pulse-accent border-none rounded-[6px] text-white cursor-pointer shrink-0 transition-opacity duration-100">
                             {editing ? 'Update' : 'Save'}
                         </button>
                     </div>
                 </>
             ) : (
                 <>
-                    <span className="font-pulse text-[0.8125rem] text-pulse-text">
+                    <span className="font-pulse text-[0.9375rem] text-pulse-text">
                         {toDisplay(entry!.kg, unit)} {unit} × {entry!.reps}
                     </span>
                     {isPR && (
-                        <span className="font-pulse text-[0.5rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
+                        <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
                             PR
                         </span>
                     )}
-                    <span className="font-pulse text-[0.6875rem] text-pulse-dim">{entry!.rir} RIR</span>
+                    <span className="font-pulse text-[0.8125rem] text-pulse-dim">{entry!.rir} RIR</span>
                     <div className="ml-auto flex items-center gap-2">
-                        <span className="font-pulse text-xs text-pulse-accent">✓</span>
+                        <span className="font-pulse text-sm text-pulse-accent">✓</span>
                         <button
                             onClick={handleEdit}
-                            className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer p-0">
+                            className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer p-0">
                             Edit
                         </button>
                         {onDelete && (
                             <button
                                 onClick={onDelete}
-                                className="font-pulse text-[0.625rem] text-[#444] bg-transparent border-none cursor-pointer p-0">
+                                className="font-pulse text-[0.75rem] text-[#444] bg-transparent border-none cursor-pointer p-0">
                                 ✕
                             </button>
                         )}

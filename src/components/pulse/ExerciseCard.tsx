@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { logKey, parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
 import SetLogger from './SetLogger';
@@ -40,14 +40,14 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                     {String(exIdx + 1).padStart(2, '0')}
                 </span>
                 <div className="flex-1 min-w-0">
-                    <div className="text-white font-semibold text-[0.9375rem] truncate">{exercise.name}</div>
-                    <div className="font-pulse text-[0.625rem] tracking-[0.06em] text-pulse-dim mt-1 uppercase">
+                    <div className="text-white font-semibold text-base truncate">{exercise.name}</div>
+                    <div className="font-pulse text-[0.75rem] tracking-[0.06em] text-pulse-dim mt-1 uppercase">
                         {exercise.sets} sets · {exercise.reps} reps
                     </div>
                 </div>
                 {/* Dot indicators replacing ░█ progress chars */}
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="font-pulse text-xs font-bold">
+                    <span className="font-pulse text-sm font-bold">
                         <span className="text-white">{savedCount}</span>
                         <span className="text-pulse-muted">/{maxSets}</span>
                     </span>
@@ -71,7 +71,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                 {complete && (
                     <span
                         aria-label="All sets done"
-                        className="font-pulse text-[0.625rem] text-[#22c55e] ml-1.5 shrink-0">
+                        className="font-pulse text-[0.75rem] text-[#22c55e] ml-1.5 shrink-0">
                         ✓
                     </span>
                 )}
@@ -90,7 +90,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
 
             {open && (
                 <div className="border-t border-pulse-border px-4 pt-1 pb-3.5">
-                    <p className="font-pulse text-[0.6875rem] text-pulse-dim pt-[0.625rem] pb-1.5 leading-[1.6]">
+                    <p className="font-pulse text-[0.8125rem] text-pulse-dim pt-[0.625rem] pb-1.5 leading-[1.6]">
                         {exercise.load} · {exercise.note}
                     </p>
                     {Array.from({ length: maxSets }, (_, i) => {

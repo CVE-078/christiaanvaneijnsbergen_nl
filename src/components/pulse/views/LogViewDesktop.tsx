@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { WORKOUTS } from '@/lib/pulse/data';
 import { getPhase, getRIR, weekHasData } from '@/lib/pulse/utils';
@@ -69,7 +69,7 @@ export default function LogViewDesktop() {
                             <button
                                 key={w}
                                 onClick={() => setActiveWeek(w)}
-                                className={`font-pulse text-[0.6875rem] min-w-[2rem] pt-[0.4rem] pb-[0.3rem] text-center bg-transparent border-none border-b-2 cursor-pointer shrink-0 -mb-px ${active ? 'font-bold text-pulse-accent border-pulse-accent' : 'font-normal text-pulse-dim border-transparent'}`}>
+                                className={`font-pulse text-[0.8125rem] min-w-[2rem] pt-[0.4rem] pb-[0.3rem] text-center bg-transparent border-none border-b-2 cursor-pointer shrink-0 -mb-px ${active ? 'font-bold text-pulse-accent border-pulse-accent' : 'font-normal text-pulse-dim border-transparent'}`}>
                                 {w}
                                 <span
                                     className={`block w-[3px] h-[3px] rounded-full mt-0.5 mx-auto ${weekHasData(w, logs) ? 'bg-pulse-accent' : 'bg-transparent'}`}
@@ -81,13 +81,13 @@ export default function LogViewDesktop() {
 
                 {/* Context bar */}
                 <div className="flex items-baseline gap-2 py-2.5 px-4 border-b border-pulse-border shrink-0">
-                    <span className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-dim">
+                    <span className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-dim">
                         {phase.label}
                     </span>
-                    <span className="font-pulse text-[0.5625rem] font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/15 py-[0.1rem] px-[0.35rem] rounded-[3px]">
+                    <span className="font-pulse text-[0.6875rem] font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/15 py-[0.1rem] px-[0.35rem] rounded-[3px]">
                         {rir} RIR
                     </span>
-                    <span className="font-pulse text-[0.625rem] text-pulse-dim ml-auto">{workout.description}</span>
+                    <span className="font-pulse text-[0.75rem] text-pulse-dim ml-auto">{workout.description}</span>
                 </div>
 
                 {/* Exercise list */}

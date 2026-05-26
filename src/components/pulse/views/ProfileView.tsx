@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useTransition, useState } from 'react';
 import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
@@ -169,7 +169,7 @@ export default function ProfileView() {
                                 onBlur={handleNameSave}
                                 onKeyDown={handleNameKeyDown}
                                 placeholder="Display name"
-                                className="font-pulse text-[0.9375rem] font-semibold text-white bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
+                                className="font-pulse text-base font-semibold text-white bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
                             />
                         ) : (
                             <button
@@ -177,15 +177,15 @@ export default function ProfileView() {
                                     setNameInput(displayName ?? '');
                                     setEditingName(true);
                                 }}
-                                className={`font-pulse text-[0.9375rem] font-semibold bg-transparent border-none p-0 cursor-text text-left block w-full ${displayName ? 'text-white' : 'text-pulse-dim'}`}>
+                                className={`font-pulse text-base font-semibold bg-transparent border-none p-0 cursor-text text-left block w-full ${displayName ? 'text-white' : 'text-pulse-dim'}`}>
                                 {displayName ?? 'Add display name'}
                             </button>
                         )}
-                        <div className="font-pulse text-[0.6875rem] text-pulse-dim mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                        <div className="font-pulse text-[0.8125rem] text-pulse-dim mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
                             {email}
                         </div>
                         {nameSaved && !editingName && (
-                            <span className="font-pulse text-[0.5625rem] text-[#4ade80] tracking-[0.04em] mt-0.5 block">
+                            <span className="font-pulse text-[0.6875rem] text-[#4ade80] tracking-[0.04em] mt-0.5 block">
                                 Saved ✓
                             </span>
                         )}
@@ -194,7 +194,7 @@ export default function ProfileView() {
 
                 {/* Unit toggle */}
                 <div>
-                    <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
+                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
                         Weight Unit
                     </div>
                     <div className="flex gap-2">
@@ -202,7 +202,7 @@ export default function ProfileView() {
                             <button
                                 key={u}
                                 onClick={() => handleUnitChange(u)}
-                                className={`font-pulse text-[0.8125rem] font-semibold tracking-[0.06em] uppercase py-[0.375rem] px-4 rounded-[3px] cursor-pointer ${unit === u ? 'bg-pulse-accent border border-pulse-accent text-black' : 'bg-transparent border border-pulse-border text-pulse-dim'}`}>
+                                className={`font-pulse text-[0.9375rem] font-semibold tracking-[0.06em] uppercase py-[0.375rem] px-4 rounded-[3px] cursor-pointer ${unit === u ? 'bg-pulse-accent border border-pulse-accent text-black' : 'bg-transparent border border-pulse-border text-pulse-dim'}`}>
                                 {u}
                             </button>
                         ))}
@@ -212,7 +212,7 @@ export default function ProfileView() {
             <div className="lg:flex-1 lg:min-w-0">
                 {/* Body weight */}
                 <div>
-                    <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
+                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
                         Body Weight
                     </div>
                     <div className="flex gap-2 items-start mb-[0.875rem]">
@@ -233,18 +233,18 @@ export default function ProfileView() {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleLogBodyweight();
                                     }}
-                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-[#0a0a0a] rounded-[3px] text-white font-pulse text-[0.8125rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
+                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-[#0a0a0a] rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
                                 />
-                                <span className="font-pulse text-[0.6875rem] text-pulse-dim">{today}</span>
+                                <span className="font-pulse text-[0.8125rem] text-pulse-dim">{today}</span>
                             </div>
-                            {bwError && <div className="font-pulse text-[0.625rem] text-[#f43f5e] mt-1">{bwError}</div>}
+                            {bwError && <div className="font-pulse text-[0.75rem] text-[#f43f5e] mt-1">{bwError}</div>}
                         </div>
                         <button
                             onClick={handleLogBodyweight}
                             disabled={isPending}
                             /* opacity/cursor are runtime booleans — must stay inline */
                             style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
-                            className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase py-[0.4375rem] px-3 bg-transparent border border-pulse-muted rounded-[3px] text-[#aaa] shrink-0">
+                            className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase py-[0.4375rem] px-3 bg-transparent border border-pulse-muted rounded-[3px] text-[#aaa] shrink-0">
                             Log
                         </button>
                     </div>
@@ -261,24 +261,24 @@ export default function ProfileView() {
                                 <div
                                     key={entry.id}
                                     className="flex items-center gap-3 py-[0.4375rem] border-b border-[#111]">
-                                    <span className="font-pulse text-[0.6875rem] text-pulse-dim flex-1">
+                                    <span className="font-pulse text-[0.8125rem] text-pulse-dim flex-1">
                                         {entry.logged_at}
                                     </span>
-                                    <span className="font-pulse text-[0.8125rem] text-pulse-text font-semibold">
+                                    <span className="font-pulse text-[0.9375rem] text-pulse-text font-semibold">
                                         {toDisplay(entry.weight_kg, unit)} {unit}
                                     </span>
                                     <button
                                         onClick={() => handleDeleteBodyweight(entry.id)}
                                         disabled={isPending}
                                         aria-label={`Delete entry for ${entry.logged_at}`}
-                                        className="font-pulse text-[0.625rem] text-[#444] bg-transparent border-none cursor-pointer p-0 shrink-0">
+                                        className="font-pulse text-[0.75rem] text-[#444] bg-transparent border-none cursor-pointer p-0 shrink-0">
                                         ✕
                                     </button>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="font-pulse text-[0.625rem] text-[#333] tracking-[0.04em]">No entries yet.</div>
+                        <div className="font-pulse text-[0.75rem] text-[#333] tracking-[0.04em]">No entries yet.</div>
                     )}
                 </div>
             </div>

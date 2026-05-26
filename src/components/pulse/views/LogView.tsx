@@ -1,4 +1,4 @@
-import { WORKOUTS } from '@/lib/pulse/data';
+﻿import { WORKOUTS } from '@/lib/pulse/data';
 import { getPhase, getRIR, weekHasData, parseMaxSets, logKey } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
@@ -50,7 +50,7 @@ export default function LogView() {
                         <button
                             key={w}
                             onClick={() => setActiveWeek(w)}
-                            className={`font-pulse text-xs min-w-[2.25rem] pt-2 pb-[0.375rem] text-center bg-transparent border-none border-b-2 cursor-pointer shrink-0 -mb-px ${active ? 'font-bold text-pulse-accent border-pulse-accent' : 'font-normal text-pulse-dim border-transparent'}`}>
+                            className={`font-pulse text-sm min-w-[2.25rem] pt-2 pb-[0.375rem] text-center bg-transparent border-none border-b-2 cursor-pointer shrink-0 -mb-px ${active ? 'font-bold text-pulse-accent border-pulse-accent' : 'font-normal text-pulse-dim border-transparent'}`}>
                             {w}
                             <span
                                 className={`block w-1 h-1 rounded-full mt-0.5 mx-auto ${weekHasData(w, logs) ? 'bg-pulse-accent' : 'bg-transparent'}`}
@@ -61,11 +61,11 @@ export default function LogView() {
             </div>
 
             <div className="flex items-baseline gap-3 pt-[0.875rem] px-4 pb-2">
-                <span className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-dim">
+                <span className="font-pulse text-[0.8125rem] tracking-[0.1em] uppercase text-pulse-dim">
                     {phase.label}
                 </span>
-                <span className="font-pulse text-xs font-bold text-pulse-accent tracking-[0.04em]">{rir} RIR</span>
-                <span className="text-[0.8125rem] text-pulse-dim ml-auto">{workout.description}</span>
+                <span className="font-pulse text-sm font-bold text-pulse-accent tracking-[0.04em]">{rir} RIR</span>
+                <span className="text-[0.9375rem] text-pulse-dim ml-auto">{workout.description}</span>
             </div>
 
             <div
@@ -89,7 +89,7 @@ export default function LogView() {
                 ))}
                 {!hasData && (
                     <div className="pt-6 text-center">
-                        <div className="font-pulse text-[0.6875rem] text-[#333] tracking-[0.04em]">
+                        <div className="font-pulse text-[0.8125rem] text-[#333] tracking-[0.04em]">
                             Tap an exercise to start logging.
                         </div>
                     </div>

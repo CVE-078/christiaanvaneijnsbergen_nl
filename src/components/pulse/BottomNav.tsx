@@ -1,4 +1,4 @@
-import type { View } from '@/lib/pulse/types';
+﻿import type { View } from '@/lib/pulse/types';
 
 const ITEMS: { id: View; label: string }[] = [
     { id: 'log', label: 'Log' },
@@ -28,7 +28,7 @@ export default function BottomNav({ view, onNavigate }: Props) {
                         aria-current={active ? 'page' : undefined}
                         aria-label={label}
                         className={`flex-1 flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer py-2 ${active ? 'text-pulse-accent' : 'text-pulse-muted'}`}>
-                        <span className="font-pulse text-[0.5625rem] font-semibold tracking-[0.06em] uppercase">
+                        <span className="font-pulse text-[0.6875rem] font-semibold tracking-[0.06em] uppercase">
                             {label}
                         </span>
                     </button>

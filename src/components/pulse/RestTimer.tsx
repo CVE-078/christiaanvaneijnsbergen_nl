@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useRef, useState } from 'react';
 
 const DURATIONS = [60, 90, 120, 180];
@@ -90,7 +90,7 @@ export default function RestTimer({ trigger }: Props) {
         <div className="border-b border-pulse-border bg-pulse-surface overflow-hidden">
             <div className="flex items-center gap-3 py-2 px-4">
                 <span
-                    className={`font-pulse text-[0.625rem] tracking-[0.12em] uppercase ${done ? 'text-pulse-accent' : 'text-pulse-dim'}`}>
+                    className={`font-pulse text-[0.75rem] tracking-[0.12em] uppercase ${done ? 'text-pulse-accent' : 'text-pulse-dim'}`}>
                     {done ? 'Go!' : 'Rest'}
                 </span>
                 <span
@@ -102,20 +102,20 @@ export default function RestTimer({ trigger }: Props) {
                         <button
                             onClick={addTime}
                             aria-label="Add 30 seconds"
-                            className="font-pulse text-[0.625rem] tracking-[0.06em] text-pulse-dim bg-transparent border border-[#2a2a2a] rounded-sm py-[0.2rem] px-[0.4rem] cursor-pointer">
+                            className="font-pulse text-[0.75rem] tracking-[0.06em] text-pulse-dim bg-transparent border border-[#2a2a2a] rounded-sm py-[0.2rem] px-[0.4rem] cursor-pointer">
                             +30s
                         </button>
                     )}
                     <button
                         onClick={cycleDuration}
                         aria-label={`Rest duration: ${DURATIONS[durationIdx]}s. Click to change.`}
-                        className="font-pulse text-[0.625rem] tracking-[0.06em] text-pulse-dim bg-transparent border border-[#2a2a2a] rounded-sm py-[0.2rem] px-[0.4rem] cursor-pointer">
+                        className="font-pulse text-[0.75rem] tracking-[0.06em] text-pulse-dim bg-transparent border border-[#2a2a2a] rounded-sm py-[0.2rem] px-[0.4rem] cursor-pointer">
                         {DURATIONS[durationIdx]}s
                     </button>
                     <button
                         onClick={skip}
                         aria-label="Skip rest timer"
-                        className="font-pulse text-[0.625rem] tracking-[0.06em] text-[#444] bg-transparent border-none cursor-pointer py-[0.2rem] px-0">
+                        className="font-pulse text-[0.75rem] tracking-[0.06em] text-[#444] bg-transparent border-none cursor-pointer py-[0.2rem] px-0">
                         Skip
                     </button>
                 </div>

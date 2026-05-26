@@ -1,4 +1,4 @@
-const shimmer: React.CSSProperties = {
+﻿const shimmer: React.CSSProperties = {
     background: `linear-gradient(90deg, #141414 25%, #1c1c1c 50%, #141414 75%)`,
     backgroundSize: '200% 100%',
     animation: 'pulse-shimmer 1.4s ease infinite',
@@ -9,7 +9,7 @@ export default function Loading() {
         <div className="min-h-screen bg-pulse-bg text-pulse-text">
             {/* Header */}
             <div className="border-b border-pulse-border px-4 h-14 flex items-center gap-3">
-                <span className="font-pulse font-bold text-[0.8125rem] tracking-[0.08em] text-white uppercase">
+                <span className="font-pulse font-bold text-[0.9375rem] tracking-[0.08em] text-white uppercase">
                     Pulse<span className="text-pulse-accent">.</span>
                 </span>
                 <div style={{ width: 60, height: 12, borderRadius: 2, ...shimmer }} />
@@ -21,7 +21,7 @@ export default function Loading() {
                 {['Push', 'Pull', 'Legs'].map((label) => (
                     <div
                         key={label}
-                        className="flex-1 py-[0.875rem] text-center font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-[#333]">
+                        className="flex-1 py-[0.875rem] text-center font-pulse text-[0.8125rem] tracking-[0.12em] uppercase text-[#333]">
                         {label}
                     </div>
                 ))}

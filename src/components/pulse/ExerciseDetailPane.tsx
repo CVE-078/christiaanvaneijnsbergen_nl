@@ -1,4 +1,4 @@
-import { logKey, parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
+﻿import { logKey, parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
 import SetLogger from './SetLogger';
 import RestTimer from './RestTimer';
 import type { Exercise, Logs, LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
@@ -36,14 +36,14 @@ export default function ExerciseDetailPane({
             {/* Header */}
             <div className="py-5 px-6 pb-[0.875rem] border-b border-pulse-border shrink-0">
                 <div className="text-white font-semibold text-[1.0625rem] mb-1 truncate">{exercise.name}</div>
-                <div className="font-pulse text-[0.625rem] tracking-[0.06em] text-pulse-dim uppercase">
+                <div className="font-pulse text-[0.75rem] tracking-[0.06em] text-pulse-dim uppercase">
                     {exercise.sets} sets · {exercise.reps} reps
                 </div>
             </div>
 
             {/* Scrollable set list */}
             <div className="flex-1 overflow-y-auto px-6 pb-4">
-                <p className="font-pulse text-[0.6875rem] text-pulse-dim pt-3 pb-1.5 leading-[1.6]">
+                <p className="font-pulse text-[0.8125rem] text-pulse-dim pt-3 pb-1.5 leading-[1.6]">
                     {exercise.load} · {exercise.note}
                 </p>
                 {Array.from({ length: maxSets }, (_, i) => {

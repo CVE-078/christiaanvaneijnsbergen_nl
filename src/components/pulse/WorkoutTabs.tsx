@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { WORKOUTS } from '@/lib/pulse/data';
 import { logKey, parseMaxSets } from '@/lib/pulse/utils';
 import type { WorkoutType, Logs } from '@/lib/pulse/types';
@@ -53,11 +53,11 @@ export default function WorkoutTabs({ activeTab, onSelect, logs, week }: Props) 
                             active ? 'border-pulse-accent' : 'border-transparent'
                         }`}>
                         <span
-                            className={`font-pulse text-[0.6875rem] tracking-[0.12em] uppercase ${active ? 'text-white' : 'text-pulse-dim'}`}>
+                            className={`font-pulse text-[0.8125rem] tracking-[0.12em] uppercase ${active ? 'text-white' : 'text-pulse-dim'}`}>
                             {label}
                         </span>
                         <span
-                            className={`font-pulse text-[0.5625rem] tracking-[0.04em] ${active ? 'text-pulse-dim' : 'text-pulse-muted'}`}>
+                            className={`font-pulse text-[0.6875rem] tracking-[0.04em] ${active ? 'text-pulse-dim' : 'text-pulse-muted'}`}>
                             {done} / {total}
                         </span>
                     </button>

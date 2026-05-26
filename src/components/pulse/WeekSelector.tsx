@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { PHASES } from '@/lib/pulse/data';
 import { weekHasData } from '@/lib/pulse/utils';
 import type { Logs } from '@/lib/pulse/types';
@@ -14,7 +14,7 @@ export default function WeekSelector({ activeWeek, onSelect, logs }: Props) {
         <div className="flex flex-col gap-4">
             {PHASES.map((phase) => (
                 <div key={phase.label}>
-                    <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
+                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
                         {phase.label} · {phase.subtitle}
                     </div>
                     <div className="flex gap-1.5">
@@ -24,7 +24,7 @@ export default function WeekSelector({ activeWeek, onSelect, logs }: Props) {
                                 <button
                                     key={w}
                                     onClick={() => onSelect(w)}
-                                    className={`flex-1 pt-2 pb-1.5 px-2 rounded-sm cursor-pointer font-pulse text-[0.8125rem] font-bold border transition-all duration-[120ms] ${
+                                    className={`flex-1 pt-2 pb-1.5 px-2 rounded-sm cursor-pointer font-pulse text-[0.9375rem] font-bold border transition-all duration-[120ms] ${
                                         active
                                             ? 'bg-pulse-accent text-black border-pulse-accent'
                                             : 'bg-pulse-surface text-pulse-dim border-pulse-border'

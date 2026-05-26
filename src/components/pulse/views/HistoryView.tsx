@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useMemo } from 'react';
 import { buildHistory, calcE1RM, toDisplay } from '@/lib/pulse/utils';
 import { WORKOUTS } from '@/lib/pulse/data';
@@ -12,10 +12,10 @@ export default function HistoryView() {
     if (sessions.length === 0) {
         return (
             <div className="py-16 px-4 text-center">
-                <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
+                <div className="font-pulse text-[0.8125rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
                     No sessions yet
                 </div>
-                <div className="font-pulse text-[0.625rem] text-[#333] tracking-[0.04em]">
+                <div className="font-pulse text-[0.75rem] text-[#333] tracking-[0.04em]">
                     Head to Log to get started.
                 </div>
             </div>
@@ -31,13 +31,13 @@ export default function HistoryView() {
                         key={`${session.week}-${session.type}`}
                         className="bg-pulse-surface border border-pulse-border rounded overflow-hidden">
                         <div className="py-3 px-4 border-b border-pulse-border flex items-center gap-3">
-                            <span className="font-pulse text-[0.625rem] tracking-[0.1em] uppercase font-bold text-pulse-accent">
+                            <span className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase font-bold text-pulse-accent">
                                 {workout.label}
                             </span>
-                            <span className="font-pulse text-[0.625rem] text-pulse-dim tracking-[0.04em]">
+                            <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
                                 Week {session.week}
                             </span>
-                            <span className="font-pulse text-[0.5625rem] text-pulse-muted ml-auto">
+                            <span className="font-pulse text-[0.6875rem] text-pulse-muted ml-auto">
                                 {session.sets.length} sets
                             </span>
                         </div>
@@ -51,21 +51,21 @@ export default function HistoryView() {
                                     <div
                                         key={i}
                                         className={`flex items-center gap-3 py-1 ${i < session.sets.length - 1 ? 'border-b border-[#111]' : ''}`}>
-                                        <span className="font-pulse text-[0.5625rem] text-pulse-muted w-5 shrink-0">
+                                        <span className="font-pulse text-[0.6875rem] text-pulse-muted w-5 shrink-0">
                                             {String(set.setIdx + 1).padStart(2, '0')}
                                         </span>
-                                        <span className="text-pulse-dim text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                                        <span className="text-pulse-dim text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                                             {exercise?.name ?? `Exercise ${set.exIdx + 1}`}
                                         </span>
-                                        <span className="font-pulse text-white font-semibold text-xs shrink-0">
+                                        <span className="font-pulse text-white font-semibold text-sm shrink-0">
                                             {toDisplay(set.kg, unit)} {unit} × {set.reps}
                                         </span>
                                         {isPR && (
-                                            <span className="font-pulse text-[0.5rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
+                                            <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
                                                 PR
                                             </span>
                                         )}
-                                        <span className="font-pulse text-pulse-muted text-[0.625rem] shrink-0">
+                                        <span className="font-pulse text-pulse-muted text-[0.75rem] shrink-0">
                                             {set.rir} RIR
                                         </span>
                                     </div>

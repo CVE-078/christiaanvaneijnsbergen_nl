@@ -1,4 +1,4 @@
-import { logKey, parseMaxSets } from '@/lib/pulse/utils';
+﻿import { logKey, parseMaxSets } from '@/lib/pulse/utils';
 import type { Exercise, Logs, WorkoutType } from '@/lib/pulse/types';
 
 const GREEN = '#22c55e';
@@ -49,7 +49,7 @@ export default function ExerciseListItem({ exercise, exIdx, week, type, logs, is
                     ))}
                 </div>
             </div>
-            {complete && <span className="font-pulse text-[0.625rem] text-[#22c55e] shrink-0">✓</span>}
+            {complete && <span className="font-pulse text-[0.75rem] text-[#22c55e] shrink-0">✓</span>}
         </button>
     );
 }
