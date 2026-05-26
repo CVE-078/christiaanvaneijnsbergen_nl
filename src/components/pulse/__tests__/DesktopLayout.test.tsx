@@ -23,6 +23,20 @@ const mockContext = {
     logBodyWeight: vi.fn(),
     deleteBodyWeight: vi.fn(),
     isLoading: false,
+    exercises: [],
+    routines: [],
+    activeRoutine: null,
+    routineExercisesByType: { push: [], pull: [], legs: [] },
+    createRoutine: vi.fn(),
+    deleteRoutine: vi.fn(),
+    setActiveRoutine: vi.fn(),
+    addExerciseToRoutine: vi.fn(),
+    removeExerciseFromRoutine: vi.fn(),
+    updateRoutineExercise: vi.fn(),
+    reorderRoutineExercises: vi.fn(),
+    createExercise: vi.fn(),
+    updateExercise: vi.fn(),
+    deleteExercise: vi.fn(),
 };
 
 vi.mock('@/context/PulseContext', () => ({

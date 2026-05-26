@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/pulse/validation';
 import TrackerClient from '@/components/pulse/TrackerClient';
-import type { Logs, Profile, BodyweightEntry } from '@/lib/pulse/types';
+import type { Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
 
 export const metadata: Metadata = {
     title: 'Pulse',
@@ -19,7 +19,7 @@ export default async function PulsePage() {
     } = await supabase.auth.getUser();
     if (!user) redirect('/pulse/login');
 
-    const [logsResult, profileResult, bwResult] = await Promise.all([
+    const [logsResult, profileResult, bwResult, exercisesResult, routinesResult] = await Promise.all([
         supabase
             .from('set_logs')
             .select('week, routine_exercise_id, set_idx, kg, reps, rir, saved')
@@ -31,6 +31,22 @@ export default async function PulsePage() {
             .eq('user_id', user.id)
             .order('logged_at', { ascending: false })
             .limit(90),
+        supabase
+            .from('exercises')
+            .select('id, name, category, default_sets, default_reps, user_id')
+            .or(`user_id.is.null,user_id.eq.${user.id}`)
+            .order('name', { ascending: true }),
+        supabase
+            .from('workout_routines')
+            .select(`
+                id, user_id, name, created_at,
+                exercises:routine_exercises (
+                    id, routine_id, exercise_id, order, sets, reps, starting_weight_kg,
+                    exercise:exercises ( id, name, category, default_sets, default_reps, user_id )
+                )
+            `)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: true }),
     ]);
 
     let logs: Logs = {};
@@ -65,11 +81,28 @@ export default async function PulsePage() {
         }),
     );
 
+    // Sort: global exercises first (user_id IS NULL), then user's own, both alphabetically
+    const rawExercises = (exercisesResult.data ?? []) as DbExercise[];
+    const exercises: DbExercise[] = rawExercises.sort((a, b) => {
+        if (a.user_id === null && b.user_id !== null) return -1;
+        if (a.user_id !== null && b.user_id === null) return 1;
+        return a.name.localeCompare(b.name);
+    });
+
+    const routines: RoutineWithExercises[] = (
+        (routinesResult.data ?? []) as unknown as RoutineWithExercises[]
+    ).map((routine) => ({
+        ...routine,
+        exercises: [...(routine.exercises ?? [])].sort((a, b) => a.order - b.order),
+    }));
+
     return (
         <TrackerClient
             initialLogs={logs}
             initialProfile={profile}
             initialBodyweightLogs={bodyweightLogs}
+            initialExercises={exercises}
+            initialRoutines={routines}
             email={user.email ?? ''}
         />
     );
