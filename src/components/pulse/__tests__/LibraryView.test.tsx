@@ -131,7 +131,7 @@ describe('LibraryView', () => {
 
     it('calls updateExercise when a user exercise is renamed', async () => {
         render(<LibraryView />);
-        await userEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+        await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
         const input = screen.getByLabelText(/rename cable fly/i);
         await userEvent.clear(input);
         await userEvent.type(input, 'Cable Crossover');
@@ -175,6 +175,45 @@ describe('LibraryView', () => {
         await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
         await waitFor(() => {
             expect(mocks.addExerciseToRoutine).toHaveBeenCalledWith('r1', 'g2', '3', '8-12', null);
+        });
+    });
+
+    it('calls updateRoutineExercise with kg value when a routine exercise is edited', async () => {
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: /edit bench press/i }));
+        const setsInput = screen.getByLabelText(/bench press sets/i);
+        await userEvent.clear(setsInput);
+        await userEvent.type(setsInput, '4');
+        await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+        await waitFor(() => {
+            expect(mocks.updateRoutineExercise).toHaveBeenCalledWith('re1', '4', '8-12', 60);
+        });
+    });
+
+    it('calls deleteExercise when a user exercise delete is confirmed', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('button', { name: /delete cable fly/i }));
+        await waitFor(() => {
+            expect(mocks.deleteExercise).toHaveBeenCalledWith('u1');
+        });
+    });
+
+    it('does not call deleteExercise when delete is cancelled', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('button', { name: /delete cable fly/i }));
+        expect(mocks.deleteExercise).not.toHaveBeenCalled();
+    });
+
+    it('calls deleteRoutine when routine delete is confirmed', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: /delete pull day/i }));
+        await waitFor(() => {
+            expect(mocks.deleteRoutine).toHaveBeenCalledWith('r2');
         });
     });
 });

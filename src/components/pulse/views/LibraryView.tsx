@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { usePulse } from '@/context/PulseContext';
 import { toDisplay, toKg } from '@/lib/pulse/utils';
 import type { DbExercise, ExerciseCategory, RoutineExercise, Unit } from '@/lib/pulse/types';
@@ -78,7 +78,8 @@ function ExercisesTab() {
         });
     }
 
-    function handleDelete(id: string) {
+    function handleDelete(id: string, name: string) {
+        if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
         startTransition(async () => {
             await deleteExercise(id);
         });
@@ -215,11 +216,12 @@ function ExercisesTab() {
                                             <>
                                                 <button
                                                     onClick={() => startEdit(ex)}
+                                                    aria-label={`Edit ${ex.name}`}
                                                     className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
                                                     Edit
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(ex.id)}
+                                                    onClick={() => handleDelete(ex.id, ex.name)}
                                                     aria-label={`Delete ${ex.name}`}
                                                     className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
                                                     Delete
@@ -262,10 +264,19 @@ function RoutineExerciseRow({
         re.starting_weight_kg !== null ? String(toDisplay(re.starting_weight_kg, unit)) : '',
     );
 
+    useEffect(() => {
+        if (!editing) {
+            setSets(re.sets);
+            setReps(re.reps);
+            setWeight(re.starting_weight_kg !== null ? String(toDisplay(re.starting_weight_kg, unit)) : '');
+        }
+    }, [re.id, re.sets, re.reps, re.starting_weight_kg, unit, editing]);
+
     function handleSave() {
         const trimmed = weight.trim();
-        const parsed = trimmed === '' ? null : toKg(parseFloat(trimmed), unit);
-        onUpdate(re.id, sets, reps, Number.isNaN(parsed as number) ? null : parsed);
+        const raw = trimmed === '' ? NaN : parseFloat(trimmed);
+        const kgValue = Number.isNaN(raw) ? null : toKg(raw, unit);
+        onUpdate(re.id, sets, reps, kgValue);
         setEditing(false);
     }
 
@@ -298,6 +309,7 @@ function RoutineExerciseRow({
                 </button>
                 <button
                     onClick={() => setEditing((v) => !v)}
+                    aria-label={`Edit ${re.exercise.name}`}
                     className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
                     Edit
                 </button>
@@ -388,7 +400,8 @@ function RoutinesTab() {
         });
     }
 
-    function handleDeleteRoutine(id: string) {
+    function handleDeleteRoutine(id: string, name: string) {
+        if (!window.confirm(`Delete routine "${name}"? This cannot be undone.`)) return;
         startTransition(async () => {
             await deleteRoutine(id);
         });
@@ -397,27 +410,32 @@ function RoutinesTab() {
     function handleAddExercise() {
         if (!activeRoutine || !pickExerciseId) return;
         const trimmed = addWeight.trim();
-        const parsed = trimmed === '' ? null : toKg(parseFloat(trimmed), unit);
+        const raw = trimmed === '' ? NaN : parseFloat(trimmed);
+        const kgValue = Number.isNaN(raw) ? null : toKg(raw, unit);
         startTransition(async () => {
             await addExerciseToRoutine(
                 activeRoutine.id,
                 pickExerciseId,
                 addSets,
                 addReps,
-                Number.isNaN(parsed as number) ? null : parsed,
+                kgValue,
             );
             setPickExerciseId('');
             setAddWeight('');
         });
     }
 
+    const sortedActiveExercises = activeRoutine
+        ? [...activeRoutine.exercises].sort((a, b) => a.order - b.order)
+        : [];
+
     function handleMove(index: number, dir: -1 | 1) {
         if (!activeRoutine) return;
-        const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
         const target = index + dir;
-        if (target < 0 || target >= sorted.length) return;
-        [sorted[index], sorted[target]] = [sorted[target], sorted[index]];
-        const orderedIds = sorted.map((re) => re.id);
+        if (target < 0 || target >= sortedActiveExercises.length) return;
+        const reordered = [...sortedActiveExercises];
+        [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+        const orderedIds = reordered.map((re) => re.id);
         startTransition(async () => {
             await reorderRoutineExercises(activeRoutine.id, orderedIds);
         });
@@ -434,10 +452,6 @@ function RoutinesTab() {
             await updateRoutineExercise(id, sets, reps, startingWeightKg);
         });
     }
-
-    const sortedActiveExercises = activeRoutine
-        ? [...activeRoutine.exercises].sort((a, b) => a.order - b.order)
-        : [];
 
     return (
         <div className="flex flex-col gap-4">
@@ -494,7 +508,7 @@ function RoutinesTab() {
                                     </button>
                                 )}
                                 <button
-                                    onClick={() => handleDeleteRoutine(r.id)}
+                                    onClick={() => handleDeleteRoutine(r.id, r.name)}
                                     aria-label={`Delete ${r.name}`}
                                     className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
                                     Delete
