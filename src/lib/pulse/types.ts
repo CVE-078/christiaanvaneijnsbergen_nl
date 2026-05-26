@@ -14,6 +14,7 @@ export type Unit = 'kg' | 'lbs';
 export interface Profile {
     display_name: string | null;
     unit: Unit;
+    active_routine_id: string | null;
 }
 
 export interface BodyweightEntry {

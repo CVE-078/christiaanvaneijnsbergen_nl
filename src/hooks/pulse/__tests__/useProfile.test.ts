@@ -13,7 +13,7 @@ import { updateProfile, logBodyWeight, deleteBodyWeight } from '@/app/pulse/acti
 import { useProfile } from '../useProfile';
 import type { Profile, BodyweightEntry } from '@/lib/pulse/types';
 
-const defaultProfile: Profile = { display_name: 'Test User', unit: 'kg' };
+const defaultProfile: Profile = { display_name: 'Test User', unit: 'kg', active_routine_id: null };
 const defaultBWLogs: BodyweightEntry[] = [];
 
 const profileMutate = vi.fn();
@@ -51,7 +51,7 @@ describe('useProfile', () => {
             await result.current.updateProfile('New Name', 'lbs');
         });
 
-        expect(profileMutate).toHaveBeenCalledWith({ display_name: 'New Name', unit: 'lbs' }, false);
+        expect(profileMutate).toHaveBeenCalledWith({ display_name: 'New Name', unit: 'lbs', active_routine_id: null }, false);
         expect(updateProfile).toHaveBeenCalledWith('New Name', 'lbs');
     });
 

@@ -22,9 +22,9 @@ export default async function PulsePage() {
     const [logsResult, profileResult, bwResult] = await Promise.all([
         supabase
             .from('set_logs')
-            .select('week, workout_type, ex_idx, set_idx, kg, reps, rir, saved')
+            .select('week, routine_exercise_id, set_idx, kg, reps, rir, saved')
             .eq('user_id', user.id),
-        supabase.from('profiles').select('display_name, unit').eq('id', user.id).single(),
+        supabase.from('profiles').select('display_name, unit, active_routine_id').eq('id', user.id).single(),
         supabase
             .from('bodyweight_logs')
             .select('id, logged_at, weight_kg')
@@ -38,7 +38,7 @@ export default async function PulsePage() {
         if (logsResult.error) throw logsResult.error;
         const raw: Record<string, unknown> = {};
         for (const row of logsResult.data ?? []) {
-            raw[`${row.week}-${row.workout_type}-${row.ex_idx}-${row.set_idx}`] = {
+            raw[`${row.week}-${row.routine_exercise_id}-${row.set_idx}`] = {
                 kg: Number(row.kg),
                 reps: row.reps,
                 rir: row.rir,
@@ -54,6 +54,7 @@ export default async function PulsePage() {
     const profile: Profile = {
         display_name: profileRow?.display_name ?? null,
         unit: profileRow?.unit === 'lbs' ? 'lbs' : 'kg',
+        active_routine_id: profileRow?.active_routine_id ?? null,
     };
 
     const bodyweightLogs: BodyweightEntry[] = (bwResult.data ?? []).map(

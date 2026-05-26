@@ -11,7 +11,7 @@ const mockContext = {
     setActiveTab: vi.fn(),
     setActiveWeek: vi.fn(),
     logs: {},
-    profile: { unit: 'kg' as const, display_name: null },
+    profile: { unit: 'kg' as const, display_name: null, active_routine_id: null },
     prMap: {},
     updateLog: vi.fn(),
     deleteLog: vi.fn(),
