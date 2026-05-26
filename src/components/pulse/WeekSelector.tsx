@@ -1,7 +1,6 @@
-﻿'use client';
+'use client';
 import { PHASES } from '@/lib/pulse/data';
 import { weekHasData } from '@/lib/pulse/utils';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import type { Logs } from '@/lib/pulse/types';
 
 interface Props {
@@ -12,54 +11,33 @@ interface Props {
 
 export default function WeekSelector({ activeWeek, onSelect, logs }: Props) {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="flex flex-col gap-4">
             {PHASES.map((phase) => (
                 <div key={phase.label}>
-                    <div
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.5625rem',
-                            letterSpacing: '0.1em',
-                            textTransform: 'uppercase',
-                            color: MUTED,
-                            marginBottom: '0.5rem',
-                        }}>
-                        {phase.label} Â· {phase.subtitle}
+                    <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
+                        {phase.label} · {phase.subtitle}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.375rem' }}>
+                    <div className="flex gap-1.5">
                         {phase.weeks.map((w) => {
                             const active = activeWeek === w;
                             return (
                                 <button
                                     key={w}
                                     onClick={() => onSelect(w)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.5rem 0.5rem 0.375rem',
-                                        borderRadius: '3px',
-                                        cursor: 'pointer',
-                                        fontFamily: MONO,
-                                        fontSize: '0.8125rem',
-                                        fontWeight: 700,
-                                        background: active ? ACCENT : SURFACE,
-                                        color: active ? '#000' : DIM,
-                                        border: `1px solid ${active ? ACCENT : BORDER}`,
-                                        transition: 'all 0.12s',
-                                    }}>
+                                    className={`flex-1 pt-2 pb-1.5 px-2 rounded-sm cursor-pointer font-pulse text-[0.8125rem] font-bold border transition-all duration-[120ms] ${
+                                        active
+                                            ? 'bg-pulse-accent text-black border-pulse-accent'
+                                            : 'bg-pulse-surface text-pulse-dim border-pulse-border'
+                                    }`}>
                                     {w}
                                     <span
-                                        style={{
-                                            display: 'block',
-                                            width: 4,
-                                            height: 4,
-                                            borderRadius: '50%',
-                                            background: weekHasData(w, logs)
+                                        className={`block w-1 h-1 rounded-full mx-auto mt-0.5 ${
+                                            weekHasData(w, logs)
                                                 ? active
-                                                    ? '#000'
-                                                    : ACCENT
-                                                : 'transparent',
-                                            margin: '2px auto 0',
-                                        }}
+                                                    ? 'bg-black'
+                                                    : 'bg-pulse-accent'
+                                                : 'bg-transparent'
+                                        }`}
                                     />
                                 </button>
                             );

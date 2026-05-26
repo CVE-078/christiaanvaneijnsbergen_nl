@@ -18,10 +18,10 @@ describe('WeekSelector', () => {
         expect(onSelect).toHaveBeenCalledWith(5);
     });
 
-    it('applies a distinct background to the active week button', () => {
+    it('applies a distinct class to the active week button', () => {
         render(<WeekSelector activeWeek={3} onSelect={vi.fn()} logs={{}} />);
         const activeBtn = screen.getByRole('button', { name: '3' }) as HTMLElement;
         const inactiveBtn = screen.getByRole('button', { name: '1' }) as HTMLElement;
-        expect(activeBtn.style.background).not.toBe(inactiveBtn.style.background);
+        expect(activeBtn.className).not.toBe(inactiveBtn.className);
     });
 });
