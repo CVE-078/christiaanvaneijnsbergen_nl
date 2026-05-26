@@ -26,7 +26,7 @@ describe('SetLogger', () => {
         const savedEntry: LogEntry = { kg: 60, reps: 10, rir: 3, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} />);
         expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
-        expect(screen.getByText('âœ“')).toBeInTheDocument();
+        expect(screen.getByText('✓')).toBeInTheDocument();
     });
 
     it('pre-fills inputs with saved values when Edit is clicked', async () => {
@@ -47,7 +47,7 @@ describe('SetLogger', () => {
         await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
         // Back to saved view â€” no Cancel button visible
         expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
-        expect(screen.getByText('âœ“')).toBeInTheDocument();
+        expect(screen.getByText('✓')).toBeInTheDocument();
     });
 
     it('calls onSave with a valid LogEntry when Save is clicked', async () => {
@@ -72,7 +72,7 @@ describe('SetLogger', () => {
         const onDelete = vi.fn();
         const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} onDelete={onDelete} />);
-        await userEvent.click(screen.getByRole('button', { name: /âœ•/i }));
+        await userEvent.click(screen.getByRole('button', { name: /✕/i }));
         expect(onDelete).toHaveBeenCalledTimes(1);
     });
 
@@ -89,7 +89,7 @@ describe('SetLogger', () => {
     it('shows previous week reference when previousEntry is provided and set is unsaved', () => {
         const prev: LogEntry = { kg: 60, reps: 8, rir: 3, saved: true };
         render(<SetLogger {...defaultProps} previousEntry={prev} />);
-        expect(screen.getByText(/60 kg Ã— 8/)).toBeInTheDocument();
+        expect(screen.getByText(/60 kg × 8/)).toBeInTheDocument();
     });
 
     it('pre-fills kg input with suggested weight when previous RIR exceeded target', () => {

@@ -1,7 +1,6 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { getRIR, computeSuggestion, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
-import { MONO, ACCENT, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import type { LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
 interface Props {
@@ -16,18 +15,8 @@ interface Props {
     onDelete?: () => void;
 }
 
-const inputStyle = {
-    width: '3.75rem',
-    padding: '0.375rem 0.5rem',
-    background: '#0a0a0a',
-    border: `1px solid #1f1f1f`,
-    borderRadius: '3px',
-    color: '#fff',
-    fontFamily: MONO,
-    fontSize: '0.8125rem',
-    textAlign: 'center' as const,
-    outline: 'none',
-};
+const inputClass =
+    'w-[3.75rem] py-1.5 px-2 bg-[#0a0a0a] border border-[#1f1f1f] rounded-sm text-white font-pulse text-[0.8125rem] text-center outline-none';
 
 export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, unit, onSave, onDelete }: Props) {
     const suggestion = computeSuggestion(previousEntry, week);
@@ -44,15 +33,13 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
     const targetRIR = getRIR(week);
     const saved = entry?.saved ?? false;
 
-    // Sync display value when unit changes while input is visible
+    // Intentionally only [unit]: re-syncs display value when unit changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!saved || editing) {
             const base = entry?.kg ?? (suggestion !== null ? suggestion : null);
             if (base !== null) setKg(String(toDisplay(base, unit)));
         }
-        // Intentionally only [unit]: re-syncs display value when unit changes.
-        // entry and suggestion are captured at mount; they don't change independently.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [unit]);
 
     const displayMin = toDisplay(MIN_KG, unit);
@@ -86,15 +73,9 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
 
     return (
         <div
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.4375rem 0',
-                borderBottom: '1px solid #111',
-                opacity: saved && !editing ? 0.55 : 1,
-            }}>
-            <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: MUTED, width: '1.5rem', flexShrink: 0 }}>
+            className="flex items-center gap-2 py-[0.4375rem] border-b border-[#111]"
+            style={{ opacity: saved && !editing ? 0.55 : 1 }}>
+            <span className="font-pulse text-[0.6875rem] text-pulse-muted w-6 shrink-0">
                 {String(setIdx + 1).padStart(2, '0')}
             </span>
 
@@ -109,9 +90,9 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         max={displayMax}
                         step={displayStep}
                         onChange={(e) => setKg(e.target.value)}
-                        style={inputStyle}
+                        className={inputClass}
                     />
-                    <span style={{ fontFamily: MONO, color: MUTED, fontSize: '0.75rem' }}>Ã—</span>
+                    <span className="font-pulse text-pulse-muted text-xs">×</span>
                     <input
                         type="number"
                         aria-label="Repetitions"
@@ -120,116 +101,54 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         min={1}
                         max={100}
                         onChange={(e) => setReps(e.target.value)}
-                        style={inputStyle}
+                        className={inputClass}
                     />
-                    <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, flexShrink: 0 }}>
+                    <span className="font-pulse text-[0.6875rem] text-pulse-dim shrink-0">
                         {targetRIR} RIR
                     </span>
                     {previousEntry && (
-                        <span
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.5625rem',
-                                color: '#444',
-                                letterSpacing: '0.04em',
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0,
-                            }}>
-                            â†‘ {toDisplay(previousEntry.kg, unit)} {unit} Ã— {previousEntry.reps}
+                        <span className="font-pulse text-[0.5625rem] text-[#444] tracking-[0.04em] whitespace-nowrap shrink-0">
+                            → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
                         </span>
                     )}
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.375rem' }}>
+                    <div className="ml-auto flex gap-1.5">
                         {editing && (
                             <button
                                 onClick={handleCancel}
-                                style={{
-                                    fontFamily: MONO,
-                                    fontSize: '0.625rem',
-                                    letterSpacing: '0.06em',
-                                    textTransform: 'uppercase',
-                                    color: DIM,
-                                    background: 'none',
-                                    border: `1px solid ${BORDER}`,
-                                    borderRadius: '3px',
-                                    padding: '0.25rem 0.5rem',
-                                    cursor: 'pointer',
-                                    flexShrink: 0,
-                                }}>
+                                className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border border-pulse-border rounded-sm py-1 px-2 cursor-pointer shrink-0">
                                 Cancel
                             </button>
                         )}
                         <button
                             onClick={handleSave}
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.625rem',
-                                letterSpacing: '0.06em',
-                                textTransform: 'uppercase',
-                                padding: '0.25rem 0.625rem',
-                                background: 'transparent',
-                                border: `1px solid #3a3a3a`,
-                                borderRadius: '3px',
-                                color: '#aaa',
-                                cursor: 'pointer',
-                                flexShrink: 0,
-                            }}>
+                            className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase py-1 px-2.5 bg-transparent border border-[#3a3a3a] rounded-sm text-[#aaa] cursor-pointer shrink-0">
                             {editing ? 'Update' : 'Save'}
                         </button>
                     </div>
                 </>
             ) : (
                 <>
-                    <span style={{ fontFamily: MONO, fontSize: '0.8125rem', color: '#d4d4d4' }}>
-                        {toDisplay(entry!.kg, unit)} {unit} Ã— {entry!.reps}
+                    <span className="font-pulse text-[0.8125rem] text-pulse-text">
+                        {toDisplay(entry!.kg, unit)} {unit} × {entry!.reps}
                     </span>
                     {isPR && (
-                        <span
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.5rem',
-                                letterSpacing: '0.08em',
-                                textTransform: 'uppercase',
-                                color: ACCENT,
-                                background: `${ACCENT}18`,
-                                border: `1px solid ${ACCENT}44`,
-                                borderRadius: '2px',
-                                padding: '0.1rem 0.3rem',
-                                flexShrink: 0,
-                            }}>
+                        <span className="font-pulse text-[0.5rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
                             PR
                         </span>
                     )}
-                    <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM }}>{entry!.rir} RIR</span>
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontFamily: MONO, fontSize: '0.75rem', color: ACCENT }}>âœ“</span>
+                    <span className="font-pulse text-[0.6875rem] text-pulse-dim">{entry!.rir} RIR</span>
+                    <div className="ml-auto flex items-center gap-2">
+                        <span className="font-pulse text-xs text-pulse-accent">✓</span>
                         <button
                             onClick={handleEdit}
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.625rem',
-                                letterSpacing: '0.06em',
-                                textTransform: 'uppercase',
-                                color: DIM,
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 0,
-                            }}>
+                            className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer p-0">
                             Edit
                         </button>
                         {onDelete && (
                             <button
                                 onClick={onDelete}
-                                style={{
-                                    fontFamily: MONO,
-                                    fontSize: '0.625rem',
-                                    color: '#444',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    padding: 0,
-                                }}>
-                                âœ•
+                                className="font-pulse text-[0.625rem] text-[#444] bg-transparent border-none cursor-pointer p-0">
+                                ✕
                             </button>
                         )}
                     </div>
