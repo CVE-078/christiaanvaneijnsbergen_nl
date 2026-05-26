@@ -61,7 +61,7 @@ function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 
                         y={PT + ch}
                         textAnchor="end"
                         fontSize={8}
-                        fontFamily="monospace"
+                        fontFamily="Outfit, sans-serif"
                         fill="var(--color-pulse-dim)"
                         dy="0">
                         {fmt(minVal)}
@@ -71,7 +71,7 @@ function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 
                         y={PT}
                         textAnchor="end"
                         fontSize={8}
-                        fontFamily="monospace"
+                        fontFamily="Outfit, sans-serif"
                         fill="var(--color-pulse-dim)"
                         dy="8">
                         {fmt(maxVal)}
@@ -239,7 +239,7 @@ export default function ProfileView() {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleLogBodyweight();
                                     }}
-                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-[#0a0a0a] rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
+                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-pulse-bg rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
                                 />
                                 <span className="font-pulse text-[0.8125rem] text-pulse-dim">{fmtDate(today)}</span>
                             </div>
@@ -250,7 +250,7 @@ export default function ProfileView() {
                             disabled={isPending}
                             /* opacity/cursor are runtime booleans — must stay inline */
                             style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
-                            className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase py-[0.4375rem] px-3 bg-transparent border border-pulse-muted rounded-[3px] text-[#aaa] shrink-0">
+                            className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase py-[0.4375rem] px-3 bg-transparent border border-pulse-border rounded-[3px] text-pulse-dim shrink-0">
                             Log
                         </button>
                     </div>
@@ -277,14 +277,14 @@ export default function ProfileView() {
                                         onClick={() => handleDeleteBodyweight(entry.id)}
                                         disabled={isPending}
                                         aria-label={`Delete entry for ${entry.logged_at}`}
-                                        className="font-pulse text-[0.75rem] text-[#444] bg-transparent border-none cursor-pointer p-0 shrink-0">
+                                        className="font-pulse text-[0.75rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0 shrink-0">
                                         ✕
                                     </button>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="font-pulse text-[0.75rem] text-[#333] tracking-[0.04em]">No entries yet.</div>
+                        <div className="font-pulse text-[0.75rem] text-pulse-muted tracking-[0.04em]">No entries yet.</div>
                     )}
                 </div>
             </div>

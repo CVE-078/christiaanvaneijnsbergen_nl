@@ -40,36 +40,41 @@ export default function LogView() {
         <div>
             <WorkoutTabs activeTab={activeTab} onSelect={setActiveTab} logs={logs} week={activeWeek} />
 
-            <div className="flex px-4 overflow-x-auto [scrollbar-width:none] border-b border-pulse-border">
+            <div className="flex px-4 gap-1 overflow-x-auto [scrollbar-width:none] pb-3">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => {
                     const active = w === activeWeek;
+                    const hasData = weekHasData(w, logs);
                     return (
                         <button
                             key={w}
                             onClick={() => setActiveWeek(w)}
-                            className={`font-pulse text-sm min-w-[2.25rem] pt-2 pb-[0.375rem] text-center bg-transparent border-none border-b-2 cursor-pointer shrink-0 -mb-px ${active ? 'font-bold text-pulse-accent border-pulse-accent' : 'font-normal text-pulse-dim border-transparent'}`}>
+                            className={`font-pulse text-sm min-w-[2.25rem] h-8 flex flex-col items-center justify-center rounded-full border cursor-pointer shrink-0 transition-all duration-150 ${
+                                active
+                                    ? 'font-bold text-pulse-accent bg-pulse-accent/10 border-pulse-accent/25'
+                                    : 'font-normal text-pulse-dim bg-transparent border-transparent hover:border-pulse-border'
+                            }`}>
                             {w}
                             <span
-                                className={`block w-1 h-1 rounded-full mt-0.5 mx-auto ${weekHasData(w, logs) ? 'bg-pulse-accent' : 'bg-transparent'}`}
+                                className={`block w-1 h-1 rounded-full -mt-0.5 ${hasData ? 'bg-pulse-accent' : 'bg-transparent'}`}
                             />
                         </button>
                     );
                 })}
             </div>
 
-            <div className="flex items-baseline gap-3 pt-[0.875rem] px-4 pb-2">
-                <span className="font-pulse text-[0.8125rem] tracking-[0.1em] uppercase text-pulse-dim">
+            <div className="flex items-center gap-3 px-4 pb-3">
+                <span className="font-pulse text-xs font-semibold tracking-[0.08em] uppercase text-pulse-dim">
                     {phase.label}
                 </span>
-                <span className="font-pulse text-sm font-bold text-pulse-accent tracking-[0.04em]">{rir} RIR</span>
-                <span className="text-[0.9375rem] text-pulse-dim ml-auto">{workout.description}</span>
+                <span className="font-pulse text-xs font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-full px-2 py-0.5">{rir} RIR</span>
+                <span className="font-pulse text-sm text-pulse-dim ml-auto">{workout.description}</span>
             </div>
 
             <div
                 id={`panel-${activeTab}`}
                 role="tabpanel"
                 aria-labelledby={`tab-${activeTab}`}
-                className="pt-1 px-4 pb-8 max-w-[600px] mx-auto flex flex-col gap-1">
+                className="pt-1 px-4 pb-8 max-w-[600px] lg:max-w-[820px] mx-auto flex flex-col gap-2">
                 {workout.exercises.map((exercise, i) => (
                     <ExerciseCard
                         key={`${activeTab}-${i}`}
@@ -86,7 +91,7 @@ export default function LogView() {
                 ))}
                 {!hasData && (
                     <div className="pt-6 text-center">
-                        <div className="font-pulse text-[0.8125rem] text-[#333] tracking-[0.04em]">
+                        <div className="font-pulse text-[0.8125rem] text-pulse-muted tracking-[0.04em]">
                             Tap an exercise to start logging.
                         </div>
                     </div>

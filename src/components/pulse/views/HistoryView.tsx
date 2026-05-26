@@ -15,7 +15,7 @@ export default function HistoryView() {
                 <div className="font-pulse text-[0.8125rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
                     No sessions yet
                 </div>
-                <div className="font-pulse text-[0.75rem] text-[#333] tracking-[0.04em]">
+                <div className="font-pulse text-[0.75rem] text-pulse-muted tracking-[0.04em]">
                     Head to Log to get started.
                 </div>
             </div>
@@ -50,7 +50,7 @@ export default function HistoryView() {
                                 return (
                                     <div
                                         key={i}
-                                        className={`flex items-center gap-3 py-1 ${i < session.sets.length - 1 ? 'border-b border-[#111]' : ''}`}>
+                                        className={`flex items-center gap-3 py-1 ${i < session.sets.length - 1 ? 'border-b border-pulse-border' : ''}`}>
                                         <span className="font-pulse text-[0.6875rem] text-pulse-muted w-5 shrink-0">
                                             {String(set.setIdx + 1).padStart(2, '0')}
                                         </span>

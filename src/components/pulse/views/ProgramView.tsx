@@ -38,11 +38,11 @@ export default function ProgramView() {
                     {VOLUME.map(({ week, sets }) => (
                         <div key={week} className="flex-1 flex flex-col items-center gap-0.5">
                             <div
-                                className={`w-full rounded-t-sm transition-colors duration-150 ${activeWeek === week ? 'bg-pulse-accent' : 'bg-[#1f1f1f]'}`}
+                                className={`w-full rounded-t-sm transition-colors duration-150 ${activeWeek === week ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}
                                 /* height is a runtime ratio — must stay inline */
                                 style={{ height: `${(sets / maxSets) * BAR_MAX_HEIGHT_PX}px` }}
                             />
-                            <span className="font-pulse text-[#333] text-[0.625rem]">{week}</span>
+                            <span className="font-pulse text-pulse-muted text-[0.625rem]">{week}</span>
                         </div>
                     ))}
                 </div>
@@ -58,9 +58,9 @@ export default function ProgramView() {
                         const label = isRest ? '—' : type.charAt(0).toUpperCase();
                         return (
                             <div key={day} className="flex-1 text-center">
-                                <div className="font-pulse text-[#333] text-[0.625rem] mb-1 uppercase">{day}</div>
+                                <div className="font-pulse text-pulse-muted text-[0.625rem] mb-1 uppercase">{day}</div>
                                 <div
-                                    className={`py-[0.375rem] rounded-[3px] font-pulse text-[0.75rem] font-bold ${isRest ? 'bg-[#0f0f0f] text-[#222] border border-pulse-border' : 'bg-pulse-accent/10 text-pulse-accent border border-pulse-accent/20'}`}>
+                                    className={`py-[0.375rem] rounded-[3px] font-pulse text-[0.75rem] font-bold ${isRest ? 'bg-pulse-bg text-pulse-muted border border-pulse-border' : 'bg-pulse-accent/10 text-pulse-accent border border-pulse-accent/20'}`}>
                                     {label}
                                 </div>
                             </div>
