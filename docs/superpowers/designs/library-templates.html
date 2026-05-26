@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Library with Templates</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0b0d12;
+    color: #e8eaf0;
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 14px;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 80px;
+  }
+
+  /* Top nav */
+  .top-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .nav-tab {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.35);
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .nav-tab.active {
+    color: #3ecf8e;
+    background: rgba(62,207,142,0.1);
+  }
+
+  /* Section header */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 16px 10px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .section-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 2px 8px;
+  }
+
+  /* Equipment filter pills */
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    padding: 0 16px 12px;
+  }
+  .filter-pill {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+  }
+  .filter-pill.active {
+    border-color: #3ecf8e;
+    color: #3ecf8e;
+    background: rgba(62,207,142,0.08);
+  }
+
+  /* Template card */
+  .template-card {
+    background: #131720;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    margin: 0 16px 8px;
+    padding: 14px 14px 12px;
+  }
+  .template-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .template-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e8eaf0;
+    line-height: 1.2;
+  }
+  .use-btn {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3ecf8e;
+    background: rgba(62,207,142,0.1);
+    border: 1px solid rgba(62,207,142,0.2);
+    border-radius: 8px;
+    padding: 5px 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .template-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .meta-tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+  .meta-tag.level-beginner { color: #3ecf8e; background: rgba(62,207,142,0.08); }
+  .meta-tag.level-intermediate { color: #f59e0b; background: rgba(245,158,11,0.08); }
+  .meta-tag.level-advanced { color: #ef4444; background: rgba(239,68,68,0.08); }
+  .template-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  /* Exercise preview chips */
+  .exercise-preview {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .ex-chip {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+  .ex-chip.push { border-color: rgba(239,68,68,0.2); color: rgba(239,100,80,0.7); }
+  .ex-chip.pull { border-color: rgba(99,102,241,0.2); color: rgba(129,140,248,0.7); }
+  .ex-chip.legs { border-color: rgba(245,158,11,0.2); color: rgba(245,158,11,0.7); }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.04);
+    margin: 8px 16px 0;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    background: #0f1118;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 8px 0 12px;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.25);
+    cursor: pointer;
+  }
+  .nav-item.active { color: #3ecf8e; }
+  .nav-icon { font-size: 16px; }
+
+  /* Note box */
+  .note {
+    margin: 12px 16px 0;
+    background: rgba(62,207,142,0.06);
+    border: 1px solid rgba(62,207,142,0.15);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+  }
+  .note strong { color: #3ecf8e; }
+</style>
+</head>
+<body>
+
+<!-- Top nav context -->
+<div class="top-nav">
+  <div class="nav-tab">Exercises</div>
+  <div class="nav-tab">Routines</div>
+  <div class="nav-tab active">Templates</div>
+</div>
+
+<!-- Templates section header -->
+<div class="section-header">
+  <span class="section-title">Routine Templates</span>
+  <span class="section-badge">8 templates</span>
+</div>
+
+<!-- Equipment filter -->
+<div class="filter-row">
+  <div class="filter-pill active">All</div>
+  <div class="filter-pill">🏠 Dumbbells</div>
+  <div class="filter-pill">🏋️ Full gym</div>
+</div>
+
+<!-- Full Body DB -->
+<div class="template-card">
+  <div class="template-card-header">
+    <div class="template-name">Full Body — Dumbbells</div>
+    <div class="use-btn">Use this</div>
+  </div>
+  <div class="template-meta">
+    <span class="meta-tag level-beginner">Beginner</span>
+    <span class="meta-tag">2–3×/week</span>
+    <span class="meta-tag">30–45 min</span>
+    <span class="meta-tag">🏠 Dumbbells</span>
+  </div>
+  <div class="template-desc">One session works everything. Great for building the habit and learning the movements.</div>
+  <div class="exercise-preview">
+    <span class="ex-chip push">DB Bench Press</span>
+    <span class="ex-chip pull">DB Row</span>
+    <span class="ex-chip legs">Goblet Squat</span>
+    <span class="ex-chip push">DB OHP</span>
+    <span class="ex-chip pull">DB Bicep Curl</span>
+    <span class="ex-chip legs">RDL</span>
+  </div>
+</div>
+
+<!-- Full Body Gym -->
+<div class="template-card">
+  <div class="template-card-header">
+    <div class="template-name">Full Body — Gym</div>
+    <div class="use-btn">Use this</div>
+  </div>
+  <div class="template-meta">
+    <span class="meta-tag level-beginner">Beginner</span>
+    <span class="meta-tag">2–3×/week</span>
+    <span class="meta-tag">45–60 min</span>
+    <span class="meta-tag">🏋️ Full gym</span>
+  </div>
+  <div class="template-desc">Full body compound lifts. Barbells and machines let you progress faster with heavier loads.</div>
+  <div class="exercise-preview">
+    <span class="ex-chip push">Bench Press</span>
+    <span class="ex-chip pull">Barbell Row</span>
+    <span class="ex-chip legs">Squat</span>
+    <span class="ex-chip push">OHP</span>
+    <span class="ex-chip pull">Lat Pulldown</span>
+    <span class="ex-chip legs">Leg Press</span>
+  </div>
+</div>
+
+<!-- Upper/Lower DB -->
+<div class="template-card">
+  <div class="template-card-header">
+    <div class="template-name">Upper / Lower — Dumbbells</div>
+    <div class="use-btn">Use this</div>
+  </div>
+  <div class="template-meta">
+    <span class="meta-tag level-intermediate">Intermediate</span>
+    <span class="meta-tag">4×/week</span>
+    <span class="meta-tag">45–60 min</span>
+    <span class="meta-tag">🏠 Dumbbells</span>
+  </div>
+  <div class="template-desc">Alternate upper and lower days for more volume per muscle group each week.</div>
+  <div class="exercise-preview">
+    <span class="ex-chip push">DB Bench</span>
+    <span class="ex-chip pull">DB Row</span>
+    <span class="ex-chip push">Lateral Raise</span>
+    <span class="ex-chip legs">Bulgarian Split</span>
+    <span class="ex-chip legs">RDL</span>
+    <span class="ex-chip legs">Calf Raise</span>
+  </div>
+</div>
+
+<!-- PPL DB -->
+<div class="template-card">
+  <div class="template-card-header">
+    <div class="template-name">PPL — Dumbbells</div>
+    <div class="use-btn">Use this</div>
+  </div>
+  <div class="template-meta">
+    <span class="meta-tag level-intermediate">Intermediate</span>
+    <span class="meta-tag">3×/week</span>
+    <span class="meta-tag">45–60 min</span>
+    <span class="meta-tag">🏠 Dumbbells</span>
+  </div>
+  <div class="template-desc">Push, pull, and legs split. Run once for 3×/week or repeat for a 6-day programme.</div>
+  <div class="exercise-preview">
+    <span class="ex-chip push">DB Bench</span>
+    <span class="ex-chip push">Incline DB</span>
+    <span class="ex-chip pull">DB Row</span>
+    <span class="ex-chip pull">DB Curl</span>
+    <span class="ex-chip legs">Goblet Squat</span>
+    <span class="ex-chip legs">RDL</span>
+  </div>
+</div>
+
+<!-- PPL Gym -->
+<div class="template-card">
+  <div class="template-card-header">
+    <div class="template-name">PPL — Gym</div>
+    <div class="use-btn">Use this</div>
+  </div>
+  <div class="template-meta">
+    <span class="meta-tag level-intermediate">Intermediate</span>
+    <span class="meta-tag">3–6×/week</span>
+    <span class="meta-tag">60–90 min</span>
+    <span class="meta-tag">🏋️ Full gym</span>
+  </div>
+  <div class="template-desc">Classic gym PPL with barbells and cables. Run once for 3×/week or twice for 6×/week.</div>
+  <div class="exercise-preview">
+    <span class="ex-chip push">Bench Press</span>
+    <span class="ex-chip push">Cable Fly</span>
+    <span class="ex-chip pull">Barbell Row</span>
+    <span class="ex-chip pull">Lat Pulldown</span>
+    <span class="ex-chip legs">Squat</span>
+    <span class="ex-chip legs">Leg Press</span>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Note:</strong> Upper/Lower and PPL templates each have a Push, Pull, and Legs day — Pulse tracks all three as separate workout types within one routine.
+</div>
+
+</body>
+</html>

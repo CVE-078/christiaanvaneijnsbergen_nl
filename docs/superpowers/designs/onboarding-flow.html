@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Onboarding Flow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0b0d12;
+    color: #e8eaf0;
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 14px;
+    padding: 24px 16px 48px;
+  }
+
+  .page-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  /* Step container */
+  .step {
+    background: #131720;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 20px 18px;
+    margin-bottom: 16px;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .step.result {
+    border-color: rgba(62,207,142,0.2);
+    background: rgba(62,207,142,0.04);
+  }
+
+  /* Progress bar */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #3ecf8e;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+  .step-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.3);
+    white-space: nowrap;
+  }
+
+  /* Question */
+  .question {
+    font-size: 17px;
+    font-weight: 600;
+    color: #e8eaf0;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+  .question-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  /* Option rows */
+  .options-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .option-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+  }
+  .option-row.selected {
+    border-color: #3ecf8e;
+    background: rgba(62,207,142,0.08);
+  }
+  .option-icon {
+    font-size: 18px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .option-text { flex: 1; }
+  .option-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8eaf0;
+    line-height: 1.2;
+  }
+  .option-row.selected .option-label { color: #3ecf8e; }
+  .option-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+  .option-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+  .option-row.selected .option-check {
+    background: #3ecf8e;
+    border-color: #3ecf8e;
+    position: relative;
+  }
+
+  /* Next button */
+  .next-btn {
+    width: 100%;
+    margin-top: 16px;
+    background: #3ecf8e;
+    color: #0b0d12;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    cursor: pointer;
+  }
+  .next-btn.ghost {
+    background: transparent;
+    color: rgba(255,255,255,0.3);
+    font-weight: 500;
+    font-size: 13px;
+    padding: 8px;
+    margin-top: 4px;
+  }
+
+  /* Result step */
+  .result-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #3ecf8e;
+    margin-bottom: 6px;
+  }
+  .result-heading {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e8eaf0;
+    margin-bottom: 4px;
+  }
+  .result-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .result-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .meta-tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+  .meta-tag.highlight { color: #3ecf8e; background: rgba(62,207,142,0.08); }
+
+  .other-option {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    text-align: center;
+    margin-top: 12px;
+  }
+  .other-option a {
+    color: rgba(255,255,255,0.5);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* Arrow connector */
+  .connector {
+    text-align: center;
+    color: rgba(255,255,255,0.15);
+    font-size: 18px;
+    margin: 4px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">Onboarding flow — all 5 steps</div>
+
+<!-- Step 1: Equipment -->
+<div class="step">
+  <div class="progress-row">
+    <div class="progress-bar"><div class="progress-fill" style="width:20%"></div></div>
+    <div class="step-label">1 of 5</div>
+  </div>
+  <div class="question">What equipment do you have?</div>
+  <div class="question-sub">We'll build your routine around what's available.</div>
+  <div class="options-col">
+    <div class="option-row selected">
+      <div class="option-icon">🏠</div>
+      <div class="option-text">
+        <div class="option-label">Dumbbells only</div>
+        <div class="option-desc">At home or a basic gym</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row">
+      <div class="option-icon">🏋️</div>
+      <div class="option-text">
+        <div class="option-label">Full gym</div>
+        <div class="option-desc">Barbells, cables, machines</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+  </div>
+  <button class="next-btn">Next</button>
+</div>
+
+<div class="connector">↓</div>
+
+<!-- Step 2: Experience -->
+<div class="step">
+  <div class="progress-row">
+    <div class="progress-bar"><div class="progress-fill" style="width:40%"></div></div>
+    <div class="step-label">2 of 5</div>
+  </div>
+  <div class="question">How long have you been training?</div>
+  <div class="question-sub">Be honest — it helps us pick the right programme structure.</div>
+  <div class="options-col">
+    <div class="option-row">
+      <div class="option-icon">🌱</div>
+      <div class="option-text">
+        <div class="option-label">Beginner</div>
+        <div class="option-desc">Less than 1 year, or returning after a long break</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row selected">
+      <div class="option-icon">💪</div>
+      <div class="option-text">
+        <div class="option-label">Intermediate</div>
+        <div class="option-desc">1–3 years of consistent training</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row">
+      <div class="option-icon">🔥</div>
+      <div class="option-text">
+        <div class="option-label">Advanced</div>
+        <div class="option-desc">3+ years, comfortable with progressive overload</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+  </div>
+  <button class="next-btn">Next</button>
+</div>
+
+<div class="connector">↓</div>
+
+<!-- Step 3: Goal -->
+<div class="step">
+  <div class="progress-row">
+    <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+    <div class="step-label">3 of 5</div>
+  </div>
+  <div class="question">What's your main goal?</div>
+  <div class="options-col">
+    <div class="option-row selected">
+      <div class="option-icon">📈</div>
+      <div class="option-text">
+        <div class="option-label">Build muscle</div>
+        <div class="option-desc">Hypertrophy focus, progressive overload</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row">
+      <div class="option-icon">🔥</div>
+      <div class="option-text">
+        <div class="option-label">Lose fat</div>
+        <div class="option-desc">Maintain strength while in a deficit</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row">
+      <div class="option-icon">⚡</div>
+      <div class="option-text">
+        <div class="option-label">General fitness</div>
+        <div class="option-desc">Stay healthy, feel good, stay consistent</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+  </div>
+  <button class="next-btn">Next</button>
+</div>
+
+<div class="connector">↓</div>
+
+<!-- Step 4: Days per week -->
+<div class="step">
+  <div class="progress-row">
+    <div class="progress-bar"><div class="progress-fill" style="width:80%"></div></div>
+    <div class="step-label">4 of 5</div>
+  </div>
+  <div class="question">How many days per week can you train?</div>
+  <div class="options-col">
+    <div class="option-row">
+      <div class="option-icon">📅</div>
+      <div class="option-text">
+        <div class="option-label">2–3 days</div>
+        <div class="option-desc">Full body each session</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row selected">
+      <div class="option-icon">📅</div>
+      <div class="option-text">
+        <div class="option-label">4 days</div>
+        <div class="option-desc">Upper / lower split</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row">
+      <div class="option-icon">📅</div>
+      <div class="option-text">
+        <div class="option-label">5–6 days</div>
+        <div class="option-desc">Push / pull / legs split</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+  </div>
+  <button class="next-btn">Next</button>
+</div>
+
+<div class="connector">↓</div>
+
+<!-- Step 5: Session time -->
+<div class="step">
+  <div class="progress-row">
+    <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+    <div class="step-label">5 of 5</div>
+  </div>
+  <div class="question">How long is each session?</div>
+  <div class="options-col">
+    <div class="option-row">
+      <div class="option-icon">⏱</div>
+      <div class="option-text">
+        <div class="option-label">~30 min</div>
+        <div class="option-desc">Compact, high-efficiency</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row selected">
+      <div class="option-icon">⏱</div>
+      <div class="option-text">
+        <div class="option-label">45–60 min</div>
+        <div class="option-desc">Standard session length</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+    <div class="option-row">
+      <div class="option-icon">⏱</div>
+      <div class="option-text">
+        <div class="option-label">90+ min</div>
+        <div class="option-desc">Plenty of time, more volume</div>
+      </div>
+      <div class="option-check"></div>
+    </div>
+  </div>
+  <button class="next-btn">See my routine</button>
+</div>
+
+<div class="connector">↓</div>
+
+<!-- Result: Recommendation -->
+<div class="step result">
+  <div class="result-label">Recommended for you</div>
+  <div class="result-heading">PPL — Dumbbells</div>
+  <div class="result-sub">
+    Based on your answers: intermediate, muscle building, 4 days, 45–60 min with dumbbells.
+  </div>
+  <div class="result-meta">
+    <span class="meta-tag highlight">Intermediate</span>
+    <span class="meta-tag">3–6×/week</span>
+    <span class="meta-tag">45–60 min</span>
+    <span class="meta-tag">🏠 Dumbbells</span>
+  </div>
+  <button class="next-btn">Start with this routine</button>
+  <div class="other-option">Not quite right? <a>Browse all templates</a></div>
+</div>
+
+</body>
+</html>
