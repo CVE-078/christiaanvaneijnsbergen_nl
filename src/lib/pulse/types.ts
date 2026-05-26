@@ -64,7 +64,7 @@ export interface HistorySession {
 
 export type View = 'log' | 'program' | 'history' | 'profile' | 'library';
 
-// Maps exercise key (workoutType-exIdx) to best E1RM value
+// Maps routine_exercise_id to best E1RM value
 export type PRMap = Record<string, number>;
 
 // ── Exercise Library ──────────────────────────────────────────────────────────
@@ -82,6 +82,7 @@ export interface DbExercise {
 
 export interface WorkoutRoutine {
     id: string;
+    user_id: string;
     name: string;
     created_at: string;
 }
