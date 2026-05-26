@@ -1,7 +1,6 @@
 ﻿'use client';
 import { useMemo } from 'react';
 import { buildHistory, calcE1RM, toDisplay } from '@/lib/pulse/utils';
-import { WORKOUTS } from '@/lib/pulse/data';
 import { usePulse } from '@/context/PulseContext';
 
 export default function HistoryView() {
@@ -25,16 +24,12 @@ export default function HistoryView() {
     return (
         <div className="p-4 max-w-[600px] mx-auto flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:max-w-[1100px] lg:items-start">
             {sessions.map((session) => {
-                const workout = WORKOUTS[session.type];
                 return (
                     <div
-                        key={`${session.week}-${session.type}`}
+                        key={session.week}
                         className="bg-pulse-surface border border-pulse-border rounded overflow-hidden">
                         <div className="py-3 px-4 border-b border-pulse-border flex items-center gap-3">
                             <span className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase font-bold text-pulse-accent">
-                                {workout.label}
-                            </span>
-                            <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
                                 Week {session.week}
                             </span>
                             <span className="font-pulse text-[0.6875rem] text-pulse-muted ml-auto">

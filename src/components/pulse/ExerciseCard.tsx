@@ -27,6 +27,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
         (k) => logs[k]?.saved,
     ).length;
     const complete = savedCount >= maxSets;
+    // TODO(4.5): prMap now keys by routineExerciseId — PR badge will always show 0 until 4.5
     const bestE1RM = prMap[`${type}-${exIdx}`] ?? 0;
 
     return (

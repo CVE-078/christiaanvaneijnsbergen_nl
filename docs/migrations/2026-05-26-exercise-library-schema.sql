@@ -40,19 +40,26 @@ CREATE TABLE routine_exercises (
 ALTER TABLE profiles
     ADD COLUMN active_routine_id uuid REFERENCES workout_routines(id) ON DELETE SET NULL;
 
--- set_logs: drop old columns and unique constraint, add new column
-ALTER TABLE set_logs
-    DROP COLUMN workout_type,
-    DROP COLUMN ex_idx;
-
-ALTER TABLE set_logs
-    ADD COLUMN routine_exercise_id uuid REFERENCES routine_exercises(id) NOT NULL;
-
+-- Drop the old positional unique constraint first, then remove stale columns
 ALTER TABLE set_logs
     DROP CONSTRAINT IF EXISTS set_logs_user_id_week_workout_type_ex_idx_set_idx_key;
 
 ALTER TABLE set_logs
-    ADD CONSTRAINT set_logs_user_id_week_routine_exercise_id_set_idx_key
+    DROP COLUMN IF EXISTS workout_type,
+    DROP COLUMN IF EXISTS ex_idx;
+
+-- Add routine_exercise_id as nullable first (safe if table has rows), then tighten to NOT NULL
+ALTER TABLE set_logs
+    ADD COLUMN routine_exercise_id uuid REFERENCES routine_exercises(id);
+
+-- NOTE: The following SET NOT NULL requires set_logs to have no rows with NULL
+-- routine_exercise_id. On a fresh/wiped database this is safe. On a database
+-- with existing rows a data migration would be needed first.
+ALTER TABLE set_logs
+    ALTER COLUMN routine_exercise_id SET NOT NULL;
+
+ALTER TABLE set_logs
+    ADD CONSTRAINT set_logs_unique_per_routine_set
     UNIQUE (user_id, week, routine_exercise_id, set_idx);
 
 -- ============================================================
@@ -106,6 +113,10 @@ CREATE POLICY "routine_exercises_all"
               AND wr.user_id = auth.uid()
         )
     );
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_exercises_user_id ON exercises(user_id);
+CREATE INDEX IF NOT EXISTS idx_workout_routines_user_id ON workout_routines(user_id);
 
 -- ============================================================
 -- 4. Seed global exercises (user_id = NULL)

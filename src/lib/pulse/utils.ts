@@ -1,5 +1,5 @@
 import { PHASES } from './data';
-import type { Phase, Logs, WorkoutType, HistorySession, LogEntry, Unit } from './types';
+import type { Phase, Logs, HistorySession, LogEntry, Unit } from './types';
 
 // UUID v4 pattern used in new log keys
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -115,7 +115,7 @@ export function buildHistory(logs: Logs): HistorySession[] {
         // Group by week only — type is no longer encoded in the key
         const sessionKey = weekStr;
         if (!sessions[sessionKey]) {
-            sessions[sessionKey] = { week, type: 'push', sets: [] };
+            sessions[sessionKey] = { week, sets: [] };
         }
         sessions[sessionKey].sets.push({ routineExerciseId, setIdx: Number(setIdxStr), ...val });
     }

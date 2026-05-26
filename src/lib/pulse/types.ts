@@ -58,7 +58,6 @@ export interface ScheduleDay {
 
 export interface HistorySession {
     week: number;
-    type: WorkoutType;
     sets: Array<LogEntry & { routineExerciseId: string; setIdx: number }>;
 }
 
