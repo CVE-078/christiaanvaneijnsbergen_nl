@@ -1,7 +1,6 @@
-﻿'use client';
+'use client';
 import { useState } from 'react';
 import { logKey, parseMaxSets, calcE1RM } from '@/lib/pulse/utils';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import SetLogger from './SetLogger';
 import type { Exercise, Logs, LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
@@ -27,98 +26,47 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
     const bestE1RM = prMap[`${type}-${exIdx}`] ?? 0;
 
     return (
-        <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: '4px', overflow: 'hidden' }}>
+        <div className="bg-pulse-surface border border-pulse-border rounded overflow-hidden">
             <button
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
-                aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}${complete ? ' â€” all sets done' : ''}`}
-                style={{
-                    width: '100%',
-                    padding: '0.875rem 1rem',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    textAlign: 'left',
-                }}>
-                <span
-                    style={{
-                        fontFamily: MONO,
-                        fontSize: '1.75rem',
-                        fontWeight: 700,
-                        color: '#222',
-                        lineHeight: 1,
-                        width: '2.25rem',
-                        flexShrink: 0,
-                        letterSpacing: '-0.04em',
-                        userSelect: 'none',
-                    }}>
+                aria-label={`${open ? 'Collapse' : 'Expand'} ${exercise.name}${complete ? ' — all sets done' : ''}`}
+                className="w-full py-3.5 px-4 bg-transparent border-none cursor-pointer flex items-center gap-4 text-left">
+                <span className="font-pulse text-[1.75rem] font-bold text-[#222] leading-none w-9 shrink-0 tracking-[-0.04em] select-none">
                     {String(exIdx + 1).padStart(2, '0')}
                 </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                        style={{
-                            color: '#fff',
-                            fontWeight: 600,
-                            fontSize: '0.9375rem',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                        }}>
+                <div className="flex-1 min-w-0">
+                    <div className="text-white font-semibold text-[0.9375rem] truncate">
                         {exercise.name}
                     </div>
-                    <div
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.625rem',
-                            letterSpacing: '0.06em',
-                            color: DIM,
-                            marginTop: '0.25rem',
-                            textTransform: 'uppercase',
-                        }}>
-                        {exercise.sets} sets Â· {exercise.reps} reps
+                    <div className="font-pulse text-[0.625rem] tracking-[0.06em] text-pulse-dim mt-1 uppercase">
+                        {exercise.sets} sets · {exercise.reps} reps
                     </div>
                 </div>
-                <span style={{ fontFamily: MONO, fontSize: '0.875rem', letterSpacing: '0.05em', flexShrink: 0 }}>
+                <span className="font-pulse text-[0.875rem] tracking-[0.05em] shrink-0">
                     {Array.from({ length: maxSets }, (_, i) => (
-                        <span key={i} style={{ color: i < savedCount ? ACCENT : MUTED }}>
-                            {i < savedCount ? 'â–ˆ' : 'â–‘'}
+                        <span key={i} className={i < savedCount ? 'text-pulse-accent' : 'text-pulse-muted'}>
+                            {i < savedCount ? '█' : '░'}
                         </span>
                     ))}
                 </span>
                 {complete && (
                     <span
                         aria-label="All sets done"
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.625rem',
-                            color: ACCENT,
-                            marginLeft: '0.375rem',
-                            flexShrink: 0,
-                        }}>
-                        âœ“
+                        className="font-pulse text-[0.625rem] text-pulse-accent ml-1.5 shrink-0">
+                        ✓
                     </span>
                 )}
             </button>
 
             {open && (
-                <div style={{ borderTop: `1px solid ${BORDER}`, padding: '0.25rem 1rem 0.875rem' }}>
-                    <p
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.6875rem',
-                            color: DIM,
-                            padding: '0.625rem 0 0.375rem',
-                            lineHeight: 1.6,
-                        }}>
-                        {exercise.load} Â· {exercise.note}
+                <div className="border-t border-pulse-border px-4 pt-1 pb-3.5">
+                    <p className="font-pulse text-[0.6875rem] text-pulse-dim pt-[0.625rem] pb-1.5 leading-[1.6]">
+                        {exercise.load} · {exercise.note}
                     </p>
                     {Array.from({ length: maxSets }, (_, i) => {
                         const entry = logs[logKey(week, type, exIdx, i)];
                         const isPR = !!(entry?.saved && bestE1RM > 0 && calcE1RM(entry.kg, entry.reps) >= bestE1RM);
-                        // Only pass saved previous entries to avoid driving suggestions from unsaved drafts
                         const prevEntry = week > 1 ? logs[logKey(week - 1, type, exIdx, i)] : undefined;
                         return (
                             <SetLogger
