@@ -12,7 +12,9 @@ export default function LogView() {
         logs,
         profile,
         prMap,
+        activeRoutine,
         routineExercisesByType,
+        navigate,
         updateLog,
         deleteLog,
         fireTrigger,
@@ -32,6 +34,24 @@ export default function LogView() {
     function handleSave(key: string, entry: LogEntry) {
         updateLog(key, entry);
         fireTrigger();
+    }
+
+    if (!activeRoutine) {
+        return (
+            <div className="py-16 px-6 flex flex-col items-center gap-4 text-center">
+                <div className="font-pulse text-[0.8125rem] tracking-[0.1em] uppercase text-pulse-muted">
+                    No routine active
+                </div>
+                <div className="font-pulse text-sm text-pulse-dim max-w-[260px]">
+                    Create a routine in the Library to start logging your workouts.
+                </div>
+                <button
+                    onClick={() => navigate('library')}
+                    className="font-pulse text-sm font-semibold bg-pulse-accent text-black rounded-lg px-5 py-2.5 cursor-pointer border-none">
+                    Go to Library
+                </button>
+            </div>
+        );
     }
 
     return (

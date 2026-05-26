@@ -27,15 +27,19 @@ const mockRE: RoutineExercise = {
     },
 };
 
+const navigate = vi.fn();
+
 const defaultContext = {
     activeWeek: 1,
     setActiveWeek: vi.fn(),
     activeTab: 'push' as const,
     setActiveTab: vi.fn(),
     logs: {},
-    profile: { display_name: null, unit: 'kg' as const, active_routine_id: null },
+    profile: { display_name: null, unit: 'kg' as const, active_routine_id: 'r1' },
     prMap: {},
+    activeRoutine: { id: 'r1', user_id: 'u1', name: 'Push Day', created_at: '', exercises: [mockRE] },
     routineExercisesByType: { push: [mockRE], pull: [], legs: [] },
+    navigate,
     updateLog: vi.fn(),
     deleteLog: vi.fn(),
     timerTrigger: 0,
@@ -47,6 +51,18 @@ beforeEach(() => {
 });
 
 describe('LogView', () => {
+    it('shows the no-routine onboarding state when activeRoutine is null', async () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: null,
+        } as unknown as ReturnType<typeof usePulse>);
+        const { default: userEvent } = await import('@testing-library/user-event');
+        render(<LogView />);
+        expect(screen.getByText(/no routine active/i)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /go to library/i }));
+        expect(navigate).toHaveBeenCalledWith('library');
+    });
+
     it('shows an empty state hint when no sets are logged for the current week', () => {
         render(<LogView />);
         expect(screen.getByText(/tap an exercise/i)).toBeInTheDocument();
