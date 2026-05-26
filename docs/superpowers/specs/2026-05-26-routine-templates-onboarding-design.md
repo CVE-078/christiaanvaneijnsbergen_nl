@@ -267,6 +267,9 @@ export type ExerciseCategory =
   | 'back'
   | 'biceps'
   | 'legs'
+  | 'glutes'
+  | 'calves'
+  | 'abs'
   | 'other';
 ```
 
@@ -277,36 +280,179 @@ export function categoryToWorkoutType(cat: ExerciseCategory): WorkoutType | null
   const map: Record<ExerciseCategory, WorkoutType | null> = {
     chest: 'push', shoulders: 'push', triceps: 'push',
     back: 'pull', biceps: 'pull',
-    legs: 'legs',
+    legs: 'legs', glutes: 'legs', calves: 'legs',
+    abs: null,   // accessory — user assigns to any day
     other: null,
   };
   return map[cat];
 }
 ```
 
-`WorkoutType = 'push' | 'pull' | 'legs'` is unchanged — it drives the log tabs.
+`WorkoutType = 'push' | 'pull' | 'legs'` is unchanged — it drives the log tabs. Abs exercises map to `null` because they are accessories added to whichever session the user prefers; they do not appear in templates automatically.
 
-**DB impact:** The `exercises.category` CHECK constraint must be updated to the new set. Existing seeded exercises need their categories re-mapped:
+**DB impact:** The `exercises.category` CHECK constraint is updated to the new set. Existing seeded exercises are re-categorised:
 
-| Old category | Exercise | New category |
-|---|---|---|
-| push | Dumbbell Bench Press | chest |
-| push | Incline DB Press | chest |
-| push | DB Lateral Raise | shoulders |
-| push | DB Overhead Press | shoulders |
-| push | DB Tricep Overhead Extension | triceps |
-| push | Diamond / Close-Grip Push-Up | triceps |
-| pull | DB Bent-Over Row | back |
-| pull | DB Single-Arm Row | back |
-| pull | DB Reverse Fly | back |
-| pull | DB Face Pull bent-over | back |
-| pull | DB Bicep Curl | biceps |
-| pull | DB Hammer Curl | biceps |
-| legs | (all existing leg exercises) | legs |
+| Exercise | New category |
+|---|---|
+| Dumbbell Bench Press | chest |
+| Incline DB Press | chest |
+| DB Lateral Raise | shoulders |
+| DB Overhead Press | shoulders |
+| DB Tricep Overhead Extension | triceps |
+| Diamond / Close-Grip Push-Up | triceps |
+| DB Bent-Over Row | back |
+| DB Single-Arm Row | back |
+| DB Reverse Fly | back |
+| DB Face Pull bent-over | back |
+| DB Bicep Curl | biceps |
+| DB Hammer Curl | biceps |
+| DB Goblet Squat | legs |
+| DB Romanian Deadlift | legs |
+| DB Bulgarian Split Squat | glutes |
+| DB Sumo Squat | legs |
+| DB Leg Curl lying on bench | legs |
+| DB Calf Raise | calves |
 
-New gym exercises seeded with the new categories accordingly (Bench Press → chest, OHP → shoulders, Row → back, Lat Pulldown → back, Squat/Leg Press/etc → legs, Tricep Pushdown → triceps, Bicep Curl → biceps).
+### Global exercise seed expansion
 
-**Library impact:** The category filter in the Exercises tab currently shows push/pull/legs/other pills. These are updated to show the new categories (chest, shoulders, triceps, back, biceps, legs, other).
+The existing dumbbell-only seed is kept as-is. The following exercises are added (`user_id = NULL`). Near-duplicates of existing exercises are noted but kept as separate entries since they refer to different equipment or variations.
+
+**Chest**
+
+| Name | Category |
+|---|---|
+| Barbell Bench Press | chest |
+| Incline Barbell Press | chest |
+| Chest Fly | chest |
+| Cable Fly | chest |
+| Push-Up | chest |
+| Dips | triceps |
+| Machine Chest Press | chest |
+| Decline Bench Press | chest |
+| Pec Deck | chest |
+| Smith Machine Bench Press | chest |
+
+*Note: Dips appears in both chest and triceps — seeded once as triceps (primary mover).*
+
+**Back**
+
+| Name | Category |
+|---|---|
+| Deadlift | back |
+| Pull-Up | back |
+| Lat Pulldown | back |
+| Barbell Row | back |
+| Seated Cable Row | back |
+| T-Bar Row | back |
+| Chest-Supported Row | back |
+| Straight-Arm Pulldown | back |
+| Rack Pull | back |
+
+*Note: Single-Arm Dumbbell Row already exists as "DB Single-Arm Row". Seated Cable Row and Straight-Arm Pulldown are new.*
+
+**Shoulders**
+
+| Name | Category |
+|---|---|
+| Barbell Overhead Press | shoulders |
+| Lateral Raise | shoulders |
+| Rear Delt Fly | back |
+| Face Pull | back |
+| Arnold Press | shoulders |
+| Front Raise | shoulders |
+| Upright Row | shoulders |
+| Machine Shoulder Press | shoulders |
+| Cable Lateral Raise | shoulders |
+
+*Note: DB Overhead Press and DB Lateral Raise already exist. Rear Delt Fly and Face Pull are categorised as back (rear deltoid is anatomically back). Cable Lateral Raise already seeded as a gym exercise.*
+
+**Biceps**
+
+| Name | Category |
+|---|---|
+| Barbell Curl | biceps |
+| Dumbbell Curl | biceps |
+| Preacher Curl | biceps |
+| Cable Curl | biceps |
+| Incline Dumbbell Curl | biceps |
+| EZ-Bar Curl | biceps |
+| Concentration Curl | biceps |
+| Spider Curl | biceps |
+| Chin-Up | back |
+
+*Note: DB Bicep Curl and DB Hammer Curl already exist. Hammer Curl already exists. Chin-Up is categorised as back (primary mover). Barbell Curl differs from existing "Barbell Bicep Curl" — both kept.*
+
+**Triceps**
+
+| Name | Category |
+|---|---|
+| Tricep Pushdown | triceps |
+| Close-Grip Bench Press | triceps |
+| Skull Crusher | triceps |
+| Cable Overhead Tricep Extension | triceps |
+| Single-Arm Tricep Pushdown | triceps |
+| JM Press | triceps |
+| Tricep Kickback | triceps |
+
+*Note: DB Tricep Overhead Extension and Diamond Push-Up already exist. Dips already added under Chest. Cable Tricep Pushdown already seeded as a gym exercise.*
+
+**Legs**
+
+| Name | Category |
+|---|---|
+| Barbell Squat | legs |
+| Romanian Deadlift | legs |
+| Leg Press | legs |
+| Walking Lunge | legs |
+| Leg Extension | legs |
+| Leg Curl | legs |
+| Hack Squat | legs |
+
+*Note: DB Bulgarian Split Squat, DB Goblet Squat, DB Sumo Squat, DB Romanian Deadlift, DB Leg Curl, DB Calf Raise, Barbell Squat, Leg Press, Leg Extension Machine, Leg Curl Machine, Calf Raise Machine already exist.*
+
+**Glutes**
+
+| Name | Category |
+|---|---|
+| Hip Thrust | glutes |
+| Glute Bridge | glutes |
+| Cable Kickback | glutes |
+| Step-Up | glutes |
+| Sumo Deadlift | glutes |
+| Abduction Machine | glutes |
+
+*Note: Bulgarian Split Squat and Walking Lunge are in Legs above. Romanian Deadlift already covered.*
+
+**Calves**
+
+| Name | Category |
+|---|---|
+| Standing Calf Raise | calves |
+| Seated Calf Raise | calves |
+| Leg Press Calf Raise | calves |
+| Single-Leg Calf Raise | calves |
+| Donkey Calf Raise | calves |
+| Smith Machine Calf Raise | calves |
+
+*Note: DB Calf Raise and Calf Raise Machine already exist. Farmer's Walk, Jump Rope, Box Jump, Sprint omitted — these are conditioning/cardio, not strength exercises consistent with the app's tracking model.*
+
+**Abs**
+
+| Name | Category |
+|---|---|
+| Crunch | abs |
+| Cable Crunch | abs |
+| Hanging Leg Raise | abs |
+| Plank | abs |
+| Russian Twist | abs |
+| Ab Wheel Rollout | abs |
+| Reverse Crunch | abs |
+| Mountain Climber | abs |
+| Sit-Up | abs |
+
+*Note: Toe Touch omitted (near-duplicate of Crunch). Abs exercises are not included in templates — users add them manually to any day.*
+
+**Library impact:** The category filter in the Exercises tab is updated to show all new categories as filter pills.
 
 ---
 
