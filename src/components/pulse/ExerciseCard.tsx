@@ -36,9 +36,7 @@ export default function ExerciseCard({ exercise, exIdx, week, type, logs, prMap,
                     {String(exIdx + 1).padStart(2, '0')}
                 </span>
                 <div className="flex-1 min-w-0">
-                    <div className="text-white font-semibold text-[0.9375rem] truncate">
-                        {exercise.name}
-                    </div>
+                    <div className="text-white font-semibold text-[0.9375rem] truncate">{exercise.name}</div>
                     <div className="font-pulse text-[0.625rem] tracking-[0.06em] text-pulse-dim mt-1 uppercase">
                         {exercise.sets} sets · {exercise.reps} reps
                     </div>

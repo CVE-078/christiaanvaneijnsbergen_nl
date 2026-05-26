@@ -26,12 +26,3 @@
     outline-offset: 2px;
 }
 
-/* Pulse tracker responsive nav — inline display styles must not be set on
-   these elements or they will override the media query rules below */
-.pulse-desktop-nav { display: contents; }
-.pulse-hamburger   { display: none !important; }
-
-@media (max-width: 639px) {
-  .pulse-desktop-nav { display: none !important; }
-  .pulse-hamburger   { display: flex !important; }
-}

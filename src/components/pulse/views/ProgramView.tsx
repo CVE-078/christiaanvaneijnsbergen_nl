@@ -1,6 +1,5 @@
 import { WORKOUTS, VOLUME, SCHEDULE, WEEK_NOTES } from '@/lib/pulse/data';
 import { getPhase } from '@/lib/pulse/utils';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import { usePulse } from '@/context/PulseContext';
 import WeekSelector from '../WeekSelector';
 
@@ -17,112 +16,51 @@ export default function ProgramView() {
     }
 
     return (
-        <div style={{ padding: '1rem', maxWidth: 600, margin: '0 auto' }}>
+        <div className="p-4 max-w-[600px] mx-auto">
             <WeekSelector activeWeek={activeWeek} onSelect={handleSelectWeek} logs={logs} />
 
-            <div
-                style={{
-                    margin: '1.25rem 0',
-                    padding: '0.875rem 1rem',
-                    background: SURFACE,
-                    borderRadius: '4px',
-                    borderLeft: `3px solid ${ACCENT}`,
-                }}>
-                <div
-                    style={{
-                        fontFamily: MONO,
-                        fontWeight: 700,
-                        fontSize: '0.75rem',
-                        letterSpacing: '0.06em',
-                        textTransform: 'uppercase',
-                        color: ACCENT,
-                    }}>
+            <div className="my-5 py-[0.875rem] px-4 bg-pulse-surface rounded border-l-[3px] border-pulse-accent">
+                <div className="font-pulse font-bold text-xs tracking-[0.06em] uppercase text-pulse-accent">
                     {phase.label} — {phase.subtitle}
                 </div>
                 {WEEK_NOTES[activeWeek] && (
-                    <div style={{ color: DIM, fontSize: '0.8125rem', marginTop: '0.375rem', lineHeight: 1.6 }}>
+                    <div className="text-pulse-dim text-[0.8125rem] mt-[0.375rem] leading-[1.6]">
                         {WEEK_NOTES[activeWeek]}
                     </div>
                 )}
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-                <div
-                    style={{
-                        fontFamily: MONO,
-                        fontSize: '0.5625rem',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                        color: MUTED,
-                        marginBottom: '0.5rem',
-                    }}>
+            <div className="mb-6">
+                <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
                     Weekly Volume
                 </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '54px' }}>
+                <div className="flex items-end gap-[3px] h-[54px]">
                     {VOLUME.map(({ week, sets }) => (
-                        <div
-                            key={week}
-                            style={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '2px',
-                            }}>
+                        <div key={week} className="flex-1 flex flex-col items-center gap-0.5">
                             <div
-                                style={{
-                                    width: '100%',
-                                    background: activeWeek === week ? ACCENT : '#1f1f1f',
-                                    height: `${(sets / maxSets) * BAR_MAX_HEIGHT_PX}px`,
-                                    borderRadius: '2px 2px 0 0',
-                                    transition: 'background 0.15s',
-                                }}
+                                className={`w-full rounded-t-sm transition-colors duration-150 ${activeWeek === week ? 'bg-pulse-accent' : 'bg-[#1f1f1f]'}`}
+                                /* height is a runtime ratio — must stay inline */
+                                style={{ height: `${(sets / maxSets) * BAR_MAX_HEIGHT_PX}px` }}
                             />
-                            <span style={{ fontFamily: MONO, color: '#333', fontSize: '0.5rem' }}>{week}</span>
+                            <span className="font-pulse text-[#333] text-[0.5rem]">{week}</span>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-                <div
-                    style={{
-                        fontFamily: MONO,
-                        fontSize: '0.5625rem',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                        color: MUTED,
-                        marginBottom: '0.5rem',
-                    }}>
+            <div className="mb-6">
+                <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
                     Weekly Schedule
                 </div>
-                <div style={{ display: 'flex', gap: '0.375rem' }}>
+                <div className="flex gap-[0.375rem]">
                     {SCHEDULE.map(({ day, type }) => {
                         const isRest = type === 'rest';
                         const label = isRest ? '—' : type.charAt(0).toUpperCase();
                         return (
-                            <div key={day} style={{ flex: 1, textAlign: 'center' }}>
+                            <div key={day} className="flex-1 text-center">
+                                <div className="font-pulse text-[#333] text-[0.5rem] mb-1 uppercase">{day}</div>
                                 <div
-                                    style={{
-                                        fontFamily: MONO,
-                                        color: '#333',
-                                        fontSize: '0.5rem',
-                                        marginBottom: '0.25rem',
-                                        textTransform: 'uppercase',
-                                    }}>
-                                    {day}
-                                </div>
-                                <div
-                                    style={{
-                                        padding: '0.375rem 0',
-                                        borderRadius: '3px',
-                                        fontFamily: MONO,
-                                        fontSize: '0.625rem',
-                                        fontWeight: 700,
-                                        background: isRest ? '#0f0f0f' : `${ACCENT}18`,
-                                        color: isRest ? '#222' : ACCENT,
-                                        border: `1px solid ${isRest ? BORDER : `${ACCENT}33`}`,
-                                    }}>
+                                    className={`py-[0.375rem] rounded-[3px] font-pulse text-[0.625rem] font-bold ${isRest ? 'bg-[#0f0f0f] text-[#222] border border-pulse-border' : 'bg-pulse-accent/10 text-pulse-accent border border-pulse-accent/20'}`}>
                                     {label}
                                 </div>
                             </div>
@@ -134,51 +72,18 @@ export default function ProgramView() {
             {(['push', 'pull', 'legs'] as const).map((type) => {
                 const workout = WORKOUTS[type];
                 return (
-                    <div key={type} style={{ marginBottom: '1.5rem' }}>
-                        <div
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.625rem',
-                                letterSpacing: '0.1em',
-                                textTransform: 'uppercase',
-                                color: ACCENT,
-                                fontWeight: 700,
-                                marginBottom: '0.75rem',
-                            }}>
+                    <div key={type} className="mb-6">
+                        <div className="font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-accent font-bold mb-3">
                             {workout.label} — {workout.description}
                         </div>
                         {workout.exercises.map((ex, i) => (
-                            <div
-                                key={i}
-                                style={{
-                                    padding: '0.5rem 0',
-                                    borderBottom: `1px solid ${BORDER}`,
-                                    display: 'flex',
-                                    gap: '1rem',
-                                    alignItems: 'baseline',
-                                }}>
-                                <span
-                                    style={{
-                                        fontFamily: MONO,
-                                        fontSize: '0.625rem',
-                                        color: MUTED,
-                                        flexShrink: 0,
-                                        width: '1.25rem',
-                                    }}>
+                            <div key={i} className="py-2 border-b border-pulse-border flex gap-4 items-baseline">
+                                <span className="font-pulse text-[0.625rem] text-pulse-muted shrink-0 w-5">
                                     {String(i + 1).padStart(2, '0')}
                                 </span>
                                 <div>
-                                    <div style={{ color: '#d4d4d4', fontSize: '0.875rem', fontWeight: 500 }}>
-                                        {ex.name}
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontFamily: MONO,
-                                            color: DIM,
-                                            fontSize: '0.5625rem',
-                                            letterSpacing: '0.04em',
-                                            marginTop: '0.125rem',
-                                        }}>
+                                    <div className="text-pulse-text text-[0.875rem] font-medium">{ex.name}</div>
+                                    <div className="font-pulse text-pulse-dim text-[0.5625rem] tracking-[0.04em] mt-0.5">
                                         {ex.sets} sets · {ex.reps} reps · {ex.load}
                                     </div>
                                 </div>

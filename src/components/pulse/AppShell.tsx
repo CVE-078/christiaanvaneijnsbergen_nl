@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { logout } from '@/app/pulse/actions';
-import { MONO, ACCENT, BG, BORDER, DIM } from '@/lib/pulse/theme';
 import { usePulse } from '@/context/PulseContext';
 import LogView from './views/LogView';
 import ProgramView from './views/ProgramView';
@@ -32,232 +31,109 @@ export function AppShell() {
         return () => document.removeEventListener('pointerdown', onPointerDown);
     }, [menuOpen]);
 
-    const hamburgerLineStyle = {
-        display: 'block',
-        width: '18px',
-        height: '1.5px',
-        background: DIM,
-        borderRadius: '1px',
-        transition: 'transform 0.2s, opacity 0.2s',
-    };
-
     function handleNavigate(v: View) {
         navigate(v);
         setMenuOpen(false);
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: BG, color: '#d4d4d4' }}>
+        <div className="min-h-screen bg-pulse-bg text-pulse-text">
             {/* Header */}
-            <div ref={menuRef} style={{ position: 'sticky', top: 0, zIndex: 10, background: BG }}>
+            <div ref={menuRef} className="sticky top-0 z-10 bg-pulse-bg">
                 <div
-                    style={{
-                        borderBottom: `1px solid ${menuOpen ? 'transparent' : BORDER}`,
-                        padding: '0 1rem',
-                        height: 56,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                    }}>
-                    <span
-                        style={{
-                            fontFamily: MONO,
-                            fontWeight: 700,
-                            fontSize: '0.8125rem',
-                            letterSpacing: '0.08em',
-                            color: '#fff',
-                            textTransform: 'uppercase',
-                            flexShrink: 0,
-                        }}>
-                        Pulse<span style={{ color: ACCENT }}>.</span>
+                    className={`px-4 h-14 flex items-center gap-3 border-b ${menuOpen ? 'border-transparent' : 'border-pulse-border'}`}>
+                    <span className="font-pulse font-bold text-[0.8125rem] tracking-[0.08em] text-white uppercase shrink-0">
+                        Pulse<span className="text-pulse-accent">.</span>
                     </span>
-                    <span
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.75rem',
-                            color: DIM,
-                            letterSpacing: '0.05em',
-                            flexShrink: 0,
-                        }}>
+                    <span className="font-pulse text-xs text-pulse-dim tracking-[0.05em] shrink-0">
                         WK{' '}
-                        <strong style={{ color: ACCENT, fontWeight: 700 }}>
-                            {String(activeWeek).padStart(2, '0')}
-                        </strong>{' '}
-                        / 12
+                        <strong className="text-pulse-accent font-bold">{String(activeWeek).padStart(2, '0')}</strong> /
+                        12
                     </span>
                     {streak > 0 && (
-                        <span
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.6875rem',
-                                color: '#555',
-                                letterSpacing: '0.05em',
-                                flexShrink: 0,
-                            }}>
+                        <span className="font-pulse text-[0.6875rem] text-[#555] tracking-[0.05em] shrink-0">
                             · {streak}WK
                         </span>
                     )}
-                    <nav
-                        style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', alignItems: 'center' }}
-                        aria-label="Main navigation">
-                        <span className="pulse-desktop-nav">
+                    <nav className="ml-auto flex gap-5 items-center" aria-label="Main navigation">
+                        {/* Desktop nav — hidden on mobile, shown as contents on sm+ */}
+                        <span className="hidden sm:contents">
                             {NAV.map(({ id, label }) => {
                                 const active = view === id;
                                 return (
                                     <button
                                         key={id}
                                         onClick={() => handleNavigate(id)}
-                                        style={{
-                                            fontFamily: MONO,
-                                            fontSize: '0.8125rem',
-                                            fontWeight: 500,
-                                            color: active ? '#fff' : DIM,
-                                            background: 'none',
-                                            border: 'none',
-                                            borderBottom: active ? `1px solid ${ACCENT}` : '1px solid transparent',
-                                            paddingBottom: '1px',
-                                            cursor: 'pointer',
-                                            letterSpacing: '0.02em',
-                                        }}>
+                                        className={`font-pulse text-[0.8125rem] font-medium bg-transparent border-none border-b pb-px cursor-pointer tracking-[0.02em] ${active ? 'text-white border-pulse-accent' : 'text-pulse-dim border-transparent'}`}>
                                         {label}
                                     </button>
                                 );
                             })}
-                            <span style={{ color: '#2a2a2a', paddingBottom: '1px' }}>|</span>
+                            <span className="text-[#2a2a2a] pb-px">|</span>
                             <button
                                 onClick={handleExport}
                                 aria-label="Export workout logs as JSON"
-                                style={{
-                                    fontFamily: MONO,
-                                    fontSize: '0.8125rem',
-                                    fontWeight: 500,
-                                    color: DIM,
-                                    background: 'none',
-                                    border: 'none',
-                                    borderBottom: '1px solid transparent',
-                                    paddingBottom: '1px',
-                                    cursor: 'pointer',
-                                    letterSpacing: '0.02em',
-                                }}>
+                                className="font-pulse text-[0.8125rem] font-medium text-pulse-dim bg-transparent border-none border-b border-transparent pb-px cursor-pointer tracking-[0.02em]">
                                 Export
                             </button>
-                            <form action={logout} style={{ display: 'inline' }}>
+                            <form action={logout} className="inline">
                                 <button
                                     type="submit"
                                     aria-label="Sign out of Pulse"
-                                    style={{
-                                        fontFamily: MONO,
-                                        fontSize: '0.75rem',
-                                        fontWeight: 500,
-                                        color: '#444',
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        letterSpacing: '0.02em',
-                                        paddingBottom: '1px',
-                                    }}>
+                                    className="font-pulse text-xs font-medium text-[#444] bg-transparent border-none cursor-pointer tracking-[0.02em] pb-px">
                                     Sign out
                                 </button>
                             </form>
                         </span>
+                        {/* Hamburger — shown on mobile, hidden on sm+ */}
                         <button
-                            className="pulse-hamburger"
+                            className="flex flex-col gap-1 sm:hidden bg-transparent border-none cursor-pointer p-1 shrink-0"
                             onClick={() => setMenuOpen((o) => !o)}
                             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-                            aria-expanded={menuOpen}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '0.25rem',
-                                flexDirection: 'column',
-                                gap: '4px',
-                                flexShrink: 0,
-                            }}>
+                            aria-expanded={menuOpen}>
+                            {/* transform is runtime state — must stay inline */}
                             <span
-                                style={{
-                                    ...hamburgerLineStyle,
-                                    transform: menuOpen ? 'translateY(5.5px) rotate(45deg)' : 'none',
-                                }}
+                                className="block w-[18px] h-[1.5px] bg-pulse-dim rounded-sm transition-transform duration-200"
+                                style={{ transform: menuOpen ? 'translateY(5.5px) rotate(45deg)' : 'none' }}
                             />
-                            <span style={{ ...hamburgerLineStyle, opacity: menuOpen ? 0 : 1 }} />
                             <span
-                                style={{
-                                    ...hamburgerLineStyle,
-                                    transform: menuOpen ? 'translateY(-5.5px) rotate(-45deg)' : 'none',
-                                }}
+                                className="block w-[18px] h-[1.5px] bg-pulse-dim rounded-sm transition-opacity duration-200"
+                                style={{ opacity: menuOpen ? 0 : 1 }}
+                            />
+                            <span
+                                className="block w-[18px] h-[1.5px] bg-pulse-dim rounded-sm transition-transform duration-200"
+                                style={{ transform: menuOpen ? 'translateY(-5.5px) rotate(-45deg)' : 'none' }}
                             />
                         </button>
                     </nav>
                 </div>
 
                 {menuOpen && (
-                    <div
-                        style={{
-                            borderBottom: `1px solid ${BORDER}`,
-                            padding: '0.5rem 0 0.75rem',
-                            display: 'flex',
-                            flexDirection: 'column',
-                        }}>
+                    <div className="border-b border-pulse-border py-2 pb-3 flex flex-col">
                         {NAV.map(({ id, label }) => {
                             const active = view === id;
                             return (
                                 <button
                                     key={id}
                                     onClick={() => handleNavigate(id)}
-                                    style={{
-                                        fontFamily: MONO,
-                                        fontSize: '0.9375rem',
-                                        fontWeight: active ? 700 : 400,
-                                        color: active ? '#fff' : DIM,
-                                        background: 'none',
-                                        border: 'none',
-                                        borderLeft: `2px solid ${active ? ACCENT : 'transparent'}`,
-                                        textAlign: 'left',
-                                        padding: '0.75rem 1.25rem',
-                                        cursor: 'pointer',
-                                        letterSpacing: '0.02em',
-                                    }}>
+                                    className={`font-pulse text-[0.9375rem] bg-transparent border-none border-l-2 text-left py-3 px-5 cursor-pointer tracking-[0.02em] ${active ? 'font-bold text-white border-pulse-accent' : 'font-normal text-pulse-dim border-transparent'}`}>
                                     {label}
                                 </button>
                             );
                         })}
-                        <div style={{ height: '1px', background: '#1a1a1a', margin: '0.25rem 1rem' }} />
+                        <div className="h-px bg-[#1a1a1a] mx-4 my-1" />
                         <button
                             onClick={() => {
                                 handleExport();
                                 setMenuOpen(false);
                             }}
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.875rem',
-                                color: DIM,
-                                background: 'none',
-                                border: 'none',
-                                borderLeft: '2px solid transparent',
-                                textAlign: 'left',
-                                padding: '0.75rem 1.25rem',
-                                cursor: 'pointer',
-                                letterSpacing: '0.02em',
-                            }}>
+                            className="font-pulse text-[0.875rem] text-pulse-dim bg-transparent border-none border-l-2 border-transparent text-left py-3 px-5 cursor-pointer tracking-[0.02em]">
                             Export
                         </button>
                         <form action={logout}>
                             <button
                                 type="submit"
-                                style={{
-                                    fontFamily: MONO,
-                                    fontSize: '0.875rem',
-                                    color: '#444',
-                                    background: 'none',
-                                    border: 'none',
-                                    borderLeft: '2px solid transparent',
-                                    textAlign: 'left',
-                                    padding: '0.75rem 1.25rem',
-                                    cursor: 'pointer',
-                                    letterSpacing: '0.02em',
-                                    width: '100%',
-                                }}>
+                                className="font-pulse text-[0.875rem] text-[#444] bg-transparent border-none border-l-2 border-transparent text-left py-3 px-5 cursor-pointer tracking-[0.02em] w-full">
                                 Sign out
                             </button>
                         </form>
@@ -268,16 +144,7 @@ export function AppShell() {
             {saveError && (
                 <div
                     role="alert"
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: '#f43f5e18',
-                        borderBottom: '1px solid #f43f5e33',
-                        color: '#f43f5e',
-                        fontFamily: MONO,
-                        fontSize: '0.6875rem',
-                        letterSpacing: '0.04em',
-                        textAlign: 'center',
-                    }}>
+                    className="py-2 px-4 bg-[#f43f5e18] border-b border-[#f43f5e33] text-[#f43f5e] font-pulse text-[0.6875rem] tracking-[0.04em] text-center">
                     {saveError}
                 </div>
             )}

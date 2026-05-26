@@ -103,9 +103,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                         onChange={(e) => setReps(e.target.value)}
                         className={inputClass}
                     />
-                    <span className="font-pulse text-[0.6875rem] text-pulse-dim shrink-0">
-                        {targetRIR} RIR
-                    </span>
+                    <span className="font-pulse text-[0.6875rem] text-pulse-dim shrink-0">{targetRIR} RIR</span>
                     {previousEntry && (
                         <span className="font-pulse text-[0.5625rem] text-[#444] tracking-[0.04em] whitespace-nowrap shrink-0">
                             → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}

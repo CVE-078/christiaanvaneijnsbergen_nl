@@ -2,7 +2,6 @@
 import { useMemo } from 'react';
 import { buildHistory, calcE1RM, toDisplay } from '@/lib/pulse/utils';
 import { WORKOUTS } from '@/lib/pulse/data';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import { usePulse } from '@/context/PulseContext';
 
 export default function HistoryView() {
@@ -12,19 +11,11 @@ export default function HistoryView() {
 
     if (sessions.length === 0) {
         return (
-            <div style={{ padding: '4rem 1rem', textAlign: 'center' }}>
-                <div
-                    style={{
-                        fontFamily: MONO,
-                        fontSize: '0.6875rem',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                        color: MUTED,
-                        marginBottom: '0.75rem',
-                    }}>
+            <div className="py-16 px-4 text-center">
+                <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
                     No sessions yet
                 </div>
-                <div style={{ fontFamily: MONO, fontSize: '0.625rem', color: '#333', letterSpacing: '0.04em' }}>
+                <div className="font-pulse text-[0.625rem] text-[#333] tracking-[0.04em]">
                     Head to Log to get started.
                 </div>
             </div>
@@ -32,54 +23,25 @@ export default function HistoryView() {
     }
 
     return (
-        <div
-            style={{
-                padding: '1rem',
-                maxWidth: 600,
-                margin: '0 auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-            }}>
+        <div className="p-4 max-w-[600px] mx-auto flex flex-col gap-2">
             {sessions.map((session) => {
                 const workout = WORKOUTS[session.type];
                 return (
                     <div
                         key={`${session.week}-${session.type}`}
-                        style={{
-                            background: SURFACE,
-                            border: `1px solid ${BORDER}`,
-                            borderRadius: '4px',
-                            overflow: 'hidden',
-                        }}>
-                        <div
-                            style={{
-                                padding: '0.75rem 1rem',
-                                borderBottom: `1px solid ${BORDER}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                            }}>
-                            <span
-                                style={{
-                                    fontFamily: MONO,
-                                    fontSize: '0.625rem',
-                                    letterSpacing: '0.1em',
-                                    textTransform: 'uppercase',
-                                    fontWeight: 700,
-                                    color: ACCENT,
-                                }}>
+                        className="bg-pulse-surface border border-pulse-border rounded overflow-hidden">
+                        <div className="py-3 px-4 border-b border-pulse-border flex items-center gap-3">
+                            <span className="font-pulse text-[0.625rem] tracking-[0.1em] uppercase font-bold text-pulse-accent">
                                 {workout.label}
                             </span>
-                            <span
-                                style={{ fontFamily: MONO, fontSize: '0.625rem', color: DIM, letterSpacing: '0.04em' }}>
+                            <span className="font-pulse text-[0.625rem] text-pulse-dim tracking-[0.04em]">
                                 Week {session.week}
                             </span>
-                            <span style={{ fontFamily: MONO, fontSize: '0.5625rem', color: MUTED, marginLeft: 'auto' }}>
+                            <span className="font-pulse text-[0.5625rem] text-pulse-muted ml-auto">
                                 {session.sets.length} sets
                             </span>
                         </div>
-                        <div style={{ padding: '0.5rem 1rem 0.75rem' }}>
+                        <div className="py-2 px-4 pb-3">
                             {session.sets.map((set, i) => {
                                 const exercise = workout.exercises[set.exIdx];
                                 const exKey = `${session.type}-${set.exIdx}`;
@@ -88,68 +50,22 @@ export default function HistoryView() {
                                 return (
                                     <div
                                         key={i}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.75rem',
-                                            padding: '0.25rem 0',
-                                            borderBottom: i < session.sets.length - 1 ? '1px solid #111' : 'none',
-                                        }}>
-                                        <span
-                                            style={{
-                                                fontFamily: MONO,
-                                                fontSize: '0.5625rem',
-                                                color: MUTED,
-                                                width: '1.25rem',
-                                                flexShrink: 0,
-                                            }}>
+                                        className={`flex items-center gap-3 py-1 ${i < session.sets.length - 1 ? 'border-b border-[#111]' : ''}`}>
+                                        <span className="font-pulse text-[0.5625rem] text-pulse-muted w-5 shrink-0">
                                             {String(set.setIdx + 1).padStart(2, '0')}
                                         </span>
-                                        <span
-                                            style={{
-                                                color: DIM,
-                                                fontSize: '0.75rem',
-                                                flex: 1,
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                            }}>
+                                        <span className="text-pulse-dim text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                                             {exercise?.name ?? `Exercise ${set.exIdx + 1}`}
                                         </span>
-                                        <span
-                                            style={{
-                                                fontFamily: MONO,
-                                                color: '#fff',
-                                                fontWeight: 600,
-                                                fontSize: '0.75rem',
-                                                flexShrink: 0,
-                                            }}>
+                                        <span className="font-pulse text-white font-semibold text-xs shrink-0">
                                             {toDisplay(set.kg, unit)} {unit} × {set.reps}
                                         </span>
                                         {isPR && (
-                                            <span
-                                                style={{
-                                                    fontFamily: MONO,
-                                                    fontSize: '0.5rem',
-                                                    letterSpacing: '0.08em',
-                                                    textTransform: 'uppercase',
-                                                    color: ACCENT,
-                                                    background: `${ACCENT}18`,
-                                                    border: `1px solid ${ACCENT}44`,
-                                                    borderRadius: '2px',
-                                                    padding: '0.1rem 0.3rem',
-                                                    flexShrink: 0,
-                                                }}>
+                                            <span className="font-pulse text-[0.5rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
                                                 PR
                                             </span>
                                         )}
-                                        <span
-                                            style={{
-                                                fontFamily: MONO,
-                                                color: MUTED,
-                                                fontSize: '0.625rem',
-                                                flexShrink: 0,
-                                            }}>
+                                        <span className="font-pulse text-pulse-muted text-[0.625rem] shrink-0">
                                             {set.rir} RIR
                                         </span>
                                     </div>

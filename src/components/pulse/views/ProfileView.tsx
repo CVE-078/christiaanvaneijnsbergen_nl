@@ -1,7 +1,6 @@
 'use client';
 import { useTransition, useState } from 'react';
 import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
-import { MONO, ACCENT, SURFACE, BORDER, DIM, MUTED } from '@/lib/pulse/theme';
 import { usePulse } from '@/context/PulseContext';
 import type { BodyweightEntry } from '@/lib/pulse/types';
 
@@ -41,26 +40,40 @@ function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80, display: 'block' }} aria-hidden>
             <defs>
                 <linearGradient id="bw-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={ACCENT} stopOpacity={0.2} />
-                    <stop offset="100%" stopColor={ACCENT} stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--color-pulse-accent)" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="var(--color-pulse-accent)" stopOpacity={0} />
                 </linearGradient>
             </defs>
             <path d={areaPath} fill="url(#bw-fill)" />
             <polyline
                 points={pts.join(' ')}
                 fill="none"
-                stroke={ACCENT}
+                stroke="var(--color-pulse-accent)"
                 strokeWidth={1.5}
                 strokeLinejoin="round"
                 strokeLinecap="round"
             />
-            <circle cx={lastX} cy={lastY} r={3} fill={ACCENT} />
+            <circle cx={lastX} cy={lastY} r={3} fill="var(--color-pulse-accent)" />
             {range > 0 && (
                 <>
-                    <text x={PL - 3} y={PT + ch} textAnchor="end" fontSize={8} fontFamily="monospace" fill={DIM} dy="0">
+                    <text
+                        x={PL - 3}
+                        y={PT + ch}
+                        textAnchor="end"
+                        fontSize={8}
+                        fontFamily="monospace"
+                        fill="var(--color-pulse-dim)"
+                        dy="0">
                         {fmt(minVal)}
                     </text>
-                    <text x={PL - 3} y={PT} textAnchor="end" fontSize={8} fontFamily="monospace" fill={DIM} dy="8">
+                    <text
+                        x={PL - 3}
+                        y={PT}
+                        textAnchor="end"
+                        fontSize={8}
+                        fontFamily="monospace"
+                        fill="var(--color-pulse-dim)"
+                        dy="8">
                         {fmt(maxVal)}
                     </text>
                 </>
@@ -140,37 +153,13 @@ export default function ProfileView() {
     const today = new Date().toISOString().slice(0, 10);
 
     return (
-        <div
-            style={{
-                padding: '1.25rem 1rem 3rem',
-                maxWidth: 480,
-                margin: '0 auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1.75rem',
-            }}>
+        <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto flex flex-col gap-7">
             {/* Identity */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div
-                    style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 6,
-                        flexShrink: 0,
-                        background: SURFACE,
-                        border: `1px solid ${BORDER}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontFamily: MONO,
-                        fontSize: '1.25rem',
-                        fontWeight: 700,
-                        color: ACCENT,
-                        letterSpacing: '-0.02em',
-                    }}>
+            <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-[6px] shrink-0 bg-pulse-surface border border-pulse-border flex items-center justify-center font-pulse text-xl font-bold text-pulse-accent tracking-[-0.02em]">
                     {initials}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                     {editingName ? (
                         <input
                             autoFocus
@@ -179,18 +168,7 @@ export default function ProfileView() {
                             onBlur={handleNameSave}
                             onKeyDown={handleNameKeyDown}
                             placeholder="Display name"
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.9375rem',
-                                fontWeight: 600,
-                                color: '#fff',
-                                background: 'transparent',
-                                border: 'none',
-                                borderBottom: `1px solid ${ACCENT}`,
-                                outline: 'none',
-                                width: '100%',
-                                padding: '0 0 2px',
-                            }}
+                            className="font-pulse text-[0.9375rem] font-semibold text-white bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
                         />
                     ) : (
                         <button
@@ -198,44 +176,15 @@ export default function ProfileView() {
                                 setNameInput(displayName ?? '');
                                 setEditingName(true);
                             }}
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.9375rem',
-                                fontWeight: 600,
-                                color: displayName ? '#fff' : DIM,
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                cursor: 'text',
-                                textAlign: 'left',
-                                display: 'block',
-                                width: '100%',
-                            }}>
+                            className={`font-pulse text-[0.9375rem] font-semibold bg-transparent border-none p-0 cursor-text text-left block w-full ${displayName ? 'text-white' : 'text-pulse-dim'}`}>
                             {displayName ?? 'Add display name'}
                         </button>
                     )}
-                    <div
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.6875rem',
-                            color: DIM,
-                            marginTop: '0.25rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        }}>
+                    <div className="font-pulse text-[0.6875rem] text-pulse-dim mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
                         {email}
                     </div>
                     {nameSaved && !editingName && (
-                        <span
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.5625rem',
-                                color: '#4ade80',
-                                letterSpacing: '0.04em',
-                                marginTop: '0.125rem',
-                                display: 'block',
-                            }}>
+                        <span className="font-pulse text-[0.5625rem] text-[#4ade80] tracking-[0.04em] mt-0.5 block">
                             Saved ✓
                         </span>
                     )}
@@ -244,35 +193,15 @@ export default function ProfileView() {
 
             {/* Unit toggle */}
             <div>
-                <div
-                    style={{
-                        fontFamily: MONO,
-                        fontSize: '0.5625rem',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                        color: MUTED,
-                        marginBottom: '0.5rem',
-                    }}>
+                <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
                     Weight Unit
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="flex gap-2">
                     {(['kg', 'lbs'] as const).map((u) => (
                         <button
                             key={u}
                             onClick={() => handleUnitChange(u)}
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.8125rem',
-                                fontWeight: 600,
-                                letterSpacing: '0.06em',
-                                textTransform: 'uppercase',
-                                padding: '0.375rem 1rem',
-                                background: unit === u ? ACCENT : 'transparent',
-                                border: `1px solid ${unit === u ? ACCENT : BORDER}`,
-                                borderRadius: 3,
-                                color: unit === u ? '#000' : DIM,
-                                cursor: 'pointer',
-                            }}>
+                            className={`font-pulse text-[0.8125rem] font-semibold tracking-[0.06em] uppercase py-[0.375rem] px-4 rounded-[3px] cursor-pointer ${unit === u ? 'bg-pulse-accent border border-pulse-accent text-black' : 'bg-transparent border border-pulse-border text-pulse-dim'}`}>
                             {u}
                         </button>
                     ))}
@@ -281,20 +210,12 @@ export default function ProfileView() {
 
             {/* Body weight */}
             <div>
-                <div
-                    style={{
-                        fontFamily: MONO,
-                        fontSize: '0.5625rem',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                        color: MUTED,
-                        marginBottom: '0.75rem',
-                    }}>
+                <div className="font-pulse text-[0.5625rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
                     Body Weight
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', marginBottom: '0.875rem' }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div className="flex gap-2 items-start mb-[0.875rem]">
+                    <div className="flex-1">
+                        <div className="flex gap-2 items-center">
                             <input
                                 type="number"
                                 aria-label={`Body weight in ${unit}`}
@@ -310,62 +231,24 @@ export default function ProfileView() {
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleLogBodyweight();
                                 }}
-                                style={{
-                                    width: '5.5rem',
-                                    padding: '0.375rem 0.5rem',
-                                    background: '#0a0a0a',
-                                    border: `1px solid ${bwError ? '#f43f5e' : BORDER}`,
-                                    borderRadius: 3,
-                                    color: '#fff',
-                                    fontFamily: MONO,
-                                    fontSize: '0.8125rem',
-                                    outline: 'none',
-                                }}
+                                className={`w-[5.5rem] py-[0.375rem] px-2 bg-[#0a0a0a] rounded-[3px] text-white font-pulse text-[0.8125rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
                             />
-                            <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM }}>{today}</span>
+                            <span className="font-pulse text-[0.6875rem] text-pulse-dim">{today}</span>
                         </div>
-                        {bwError && (
-                            <div
-                                style={{
-                                    fontFamily: MONO,
-                                    fontSize: '0.625rem',
-                                    color: '#f43f5e',
-                                    marginTop: '0.25rem',
-                                }}>
-                                {bwError}
-                            </div>
-                        )}
+                        {bwError && <div className="font-pulse text-[0.625rem] text-[#f43f5e] mt-1">{bwError}</div>}
                     </div>
                     <button
                         onClick={handleLogBodyweight}
                         disabled={isPending}
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.625rem',
-                            letterSpacing: '0.06em',
-                            textTransform: 'uppercase',
-                            padding: '0.4375rem 0.75rem',
-                            background: 'transparent',
-                            border: `1px solid ${MUTED}`,
-                            borderRadius: 3,
-                            color: '#aaa',
-                            cursor: isPending ? 'not-allowed' : 'pointer',
-                            opacity: isPending ? 0.5 : 1,
-                            flexShrink: 0,
-                        }}>
+                        /* opacity/cursor are runtime booleans — must stay inline */
+                        style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
+                        className="font-pulse text-[0.625rem] tracking-[0.06em] uppercase py-[0.4375rem] px-3 bg-transparent border border-pulse-muted rounded-[3px] text-[#aaa] shrink-0">
                         Log
                     </button>
                 </div>
 
                 {bodyweightLogs.length >= 2 && (
-                    <div
-                        style={{
-                            background: SURFACE,
-                            border: `1px solid ${BORDER}`,
-                            borderRadius: 4,
-                            padding: '0.625rem 0.5rem 0.5rem',
-                            marginBottom: '0.75rem',
-                        }}>
+                    <div className="bg-pulse-surface border border-pulse-border rounded pt-[0.625rem] px-2 pb-2 mb-3">
                         <BodyweightChart entries={bodyweightLogs} unit={unit} />
                     </div>
                 )}
@@ -375,48 +258,25 @@ export default function ProfileView() {
                         {bodyweightLogs.map((entry) => (
                             <div
                                 key={entry.id}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    padding: '0.4375rem 0',
-                                    borderBottom: '1px solid #111',
-                                }}>
-                                <span style={{ fontFamily: MONO, fontSize: '0.6875rem', color: DIM, flex: 1 }}>
+                                className="flex items-center gap-3 py-[0.4375rem] border-b border-[#111]">
+                                <span className="font-pulse text-[0.6875rem] text-pulse-dim flex-1">
                                     {entry.logged_at}
                                 </span>
-                                <span
-                                    style={{
-                                        fontFamily: MONO,
-                                        fontSize: '0.8125rem',
-                                        color: '#d4d4d4',
-                                        fontWeight: 600,
-                                    }}>
+                                <span className="font-pulse text-[0.8125rem] text-pulse-text font-semibold">
                                     {toDisplay(entry.weight_kg, unit)} {unit}
                                 </span>
                                 <button
                                     onClick={() => handleDeleteBodyweight(entry.id)}
                                     disabled={isPending}
                                     aria-label={`Delete entry for ${entry.logged_at}`}
-                                    style={{
-                                        fontFamily: MONO,
-                                        fontSize: '0.625rem',
-                                        color: '#444',
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: 0,
-                                        flexShrink: 0,
-                                    }}>
+                                    className="font-pulse text-[0.625rem] text-[#444] bg-transparent border-none cursor-pointer p-0 shrink-0">
                                     ✕
                                 </button>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div style={{ fontFamily: MONO, fontSize: '0.625rem', color: '#333', letterSpacing: '0.04em' }}>
-                        No entries yet.
-                    </div>
+                    <div className="font-pulse text-[0.625rem] text-[#333] tracking-[0.04em]">No entries yet.</div>
                 )}
             </div>
         </div>

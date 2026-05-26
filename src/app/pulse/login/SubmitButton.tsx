@@ -1,6 +1,5 @@
 'use client';
 import { useFormStatus } from 'react-dom';
-import { MONO } from '@/lib/pulse/theme';
 
 export default function SubmitButton() {
     const { pending } = useFormStatus();
@@ -9,22 +8,7 @@ export default function SubmitButton() {
             type="submit"
             disabled={pending}
             aria-busy={pending}
-            style={{
-                display: 'block',
-                width: '100%',
-                padding: '0.75rem',
-                background: pending ? '#cc5522' : '#ff6c2f',
-                border: 'none',
-                borderRadius: '3px',
-                color: '#fff',
-                fontFamily: MONO,
-                fontWeight: 700,
-                fontSize: '0.75rem',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                cursor: pending ? 'not-allowed' : 'pointer',
-                transition: 'background 0.15s',
-            }}>
+            className={`block w-full py-3 px-0 border-none rounded-[3px] text-white font-pulse font-bold text-xs tracking-[0.08em] uppercase transition-colors duration-150 ${pending ? 'bg-[#cc5522] cursor-not-allowed' : 'bg-pulse-accent cursor-pointer'}`}>
             {pending ? 'Signing in…' : 'Sign in'}
         </button>
     );
