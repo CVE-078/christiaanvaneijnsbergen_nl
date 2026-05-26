@@ -34,7 +34,7 @@ CREATE TABLE template_exercises (
   id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   template_id  uuid REFERENCES routine_templates(id) ON DELETE CASCADE NOT NULL,
   exercise_id  uuid REFERENCES exercises(id) NOT NULL,
-  workout_type text NOT NULL CHECK (workout_type IN ('push', 'pull', 'legs')),
+  workout_type text NOT NULL CHECK (workout_type IN ('push', 'pull', 'legs', 'chest', 'back', 'shoulders', 'arms')),
   "order"      integer NOT NULL,
   sets         text NOT NULL,
   reps         text NOT NULL
@@ -43,7 +43,21 @@ CREATE TABLE template_exercises (
 
 RLS: `routine_templates` and `template_exercises` are read-only for all authenticated users (no insert/update/delete policies for users). No `user_id` column — these are global.
 
-### 1.2 Profiles change
+### 1.2 `routine_exercises` — add `workout_type` column
+
+This is an architectural change required to support templates whose sessions don't map to push/pull/legs (Bro Split, Arnold Split). Previously, workout_type was derived at runtime from `exercises.category`. It must now be stored explicitly so each routine can define its own tab structure.
+
+```sql
+ALTER TABLE routine_exercises
+  ADD COLUMN workout_type text NOT NULL DEFAULT 'push'
+    CHECK (workout_type IN ('push', 'pull', 'legs', 'chest', 'back', 'shoulders', 'arms'));
+```
+
+The `DEFAULT 'push'` is only needed for the migration (to satisfy NOT NULL on existing rows). After migration, the application always supplies the value explicitly.
+
+`addExerciseToRoutine` server action gains a `workoutType: WorkoutType` parameter. The `PulseProvider` computation of `routineExercisesByType` switches from category-lookup to a direct groupBy on `routine_exercises.workout_type`. `WorkoutTabs` renders tabs dynamically based on which workout types are present in the active routine (instead of hardcoded push/pull/legs).
+
+### 1.3 Profiles change
 
 ```sql
 ALTER TABLE profiles
@@ -67,7 +81,11 @@ Added to the existing `exercises` seeding block (`user_id = NULL`):
 
 ## 2. Templates
 
-Eight templates seeded at migration time with stable explicit UUIDs. A "home" tier sits between dumbbell-only and full-gym to cover users with a barbell + bench at home.
+Thirteen templates seeded at migration time with stable explicit UUIDs. Three routine structures are added beyond the original 8: Push/Pull, Bro Split, Arnold Split.
+
+**Skipped from the top-10 list:** PHUL and PHAT (require distinct power/hypertrophy day schemes not supported by the current tracking model), Body Part Specialization (too individual to template), Hybrid Strength + Cardio (includes non-gym activities the app doesn't track).
+
+A "home" tier sits between dumbbell-only and full-gym.
 
 **Equipment vocabulary** (used in `required_equipment` and the onboarding multi-select):
 
@@ -90,9 +108,30 @@ Eight templates seeded at migration time with stable explicit UUIDs. A "home" ti
 | `ppl-home` | PPL — Home Gym | `[dumbbells, barbell, bench]` | 3–6 | 60–90 min | intermediate | Classic PPL with a barbell. 3× or 6×/week. |
 | `ppl-gym` | PPL — Gym | `[barbell, bench, cables, machines]` | 3–6 | 60–90 min | intermediate | Classic PPL with full gym access. 3× or 6×/week. |
 
+**New templates:**
+
+| Slug | Name | Required equipment | Days | Session | Experience | Description |
+|---|---|---|---|---|---|---|
+| `push-pull-db` | Push/Pull — Dumbbells | `[dumbbells, bench]` | 4 | 45–60 min | intermediate | Push and pull days, no dedicated legs session. |
+| `push-pull-gym` | Push/Pull — Gym | `[barbell, bench, cables, machines]` | 4 | 45–60 min | intermediate | Push/pull with full gym. |
+| `bro-split-gym` | Bro Split — Gym | `[barbell, bench, cables, machines]` | 5 | 60–90 min | intermediate | One muscle group per day: Chest / Back / Shoulders / Arms / Legs. |
+| `arnold-split-gym` | Arnold Split — Gym | `[barbell, bench, cables, machines]` | 6 | 60–90 min | advanced | Arnold's classic: Chest+Back / Shoulders+Arms / Legs, repeated twice. |
+| `arnold-split-home` | Arnold Split — Home Gym | `[dumbbells, barbell, bench]` | 6 | 60–90 min | advanced | Arnold split with home gym barbells. |
+
 **Template matching:** a template is eligible when the user's selected equipment set is a superset of the template's `required_equipment`.
 
-Each template has exercises covering all three `workout_type` values (push/pull/legs). This matches the existing `WorkoutType = 'push' | 'pull' | 'legs'` in the app — each workout type is a tab in the Log view.
+**Workout types per template structure:**
+
+| Structure | Tab labels | Workout type values used |
+|---|---|---|
+| Full Body | Push / Pull / Legs | push, pull, legs |
+| Upper/Lower | Push / Pull / Legs | push (upper), pull (upper), legs (lower) |
+| PPL | Push / Pull / Legs | push, pull, legs |
+| Push/Pull | Push / Pull | push, pull |
+| Bro Split | Chest / Back / Shoulders / Arms / Legs | chest, back, shoulders, arms, legs |
+| Arnold Split | Chest / Back / Shoulders / Arms / Legs | chest, back, shoulders, arms, legs |
+
+`WorkoutTabs` renders tabs dynamically based on which workout_type values are present in the active routine's exercises — not hardcoded to push/pull/legs.
 
 ---
 
@@ -276,12 +315,17 @@ export type ExerciseCategory =
 A pure utility function maps category → workout tab type:
 
 ```typescript
-export function categoryToWorkoutType(cat: ExerciseCategory): WorkoutType | null {
+// WorkoutType is expanded to cover Bro Split and Arnold Split tabs
+export type WorkoutType = 'push' | 'pull' | 'legs' | 'chest' | 'back' | 'shoulders' | 'arms';
+
+// Default workout_type suggestion when a user manually adds an exercise to a routine.
+// Not used for templates (workout_type is explicit per template_exercise).
+export function defaultWorkoutType(cat: ExerciseCategory): WorkoutType | null {
   const map: Record<ExerciseCategory, WorkoutType | null> = {
-    chest: 'push', shoulders: 'push', triceps: 'push',
-    back: 'pull', biceps: 'pull',
+    chest: 'chest', shoulders: 'shoulders', triceps: 'arms',
+    back: 'back', biceps: 'arms',
     legs: 'legs', glutes: 'legs', calves: 'legs',
-    abs: null,   // accessory — user assigns to any day
+    abs: null,
     other: null,
   };
   return map[cat];
