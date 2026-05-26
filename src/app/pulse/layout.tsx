@@ -1,17 +1,9 @@
-import { JetBrains_Mono, Inter } from 'next/font/google';
+import { Outfit } from 'next/font/google';
 import type { Metadata } from 'next';
 
-const mono = JetBrains_Mono({
+const outfit = Outfit({
     subsets: ['latin'],
-    weight: ['400', '700'],
-    variable: '--pulse-mono',
-    display: 'swap',
-});
-
-// Only weights actually used across Pulse components
-const inter = Inter({
-    subsets: ['latin'],
-    weight: ['400', '700'],
+    weight: ['300', '400', '500', '600', '700', '800'],
     variable: '--pulse-sans',
     display: 'swap',
 });
@@ -22,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function PulseLayout({ children }: { children: React.ReactNode }) {
-    return <div className={`${mono.variable} ${inter.variable}`}>{children}</div>;
+    return <div className={outfit.variable}>{children}</div>;
 }
