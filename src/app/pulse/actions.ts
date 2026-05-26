@@ -2,8 +2,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { validateLogs } from '@/lib/weight-tracker/validation';
-import type { Logs, Unit, BodyweightEntry } from '@/lib/weight-tracker/types';
+import { validateLogs } from '@/lib/pulse/validation';
+import type { Logs, Unit, BodyweightEntry } from '@/lib/pulse/types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

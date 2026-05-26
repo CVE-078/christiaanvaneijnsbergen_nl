@@ -1,7 +1,6 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { login } from './actions';
 import SubmitButton from './SubmitButton';
-import { MONO } from '@/lib/weight-tracker/theme';
 
 export const metadata: Metadata = {
     title: 'Pulse — Login',
@@ -12,55 +11,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     const params = await searchParams;
     const hasError = params.error === '1';
 
-    const fieldStyle = {
-        display: 'block',
-        width: '100%',
-        padding: '0.75rem',
-        background: '#141414',
-        border: `1px solid ${hasError ? '#f43f5e44' : '#1f1f1f'}`,
-        borderRadius: '3px',
-        color: '#fff',
-        fontFamily: MONO,
-        fontSize: '0.9375rem',
-        marginBottom: '1rem',
-        boxSizing: 'border-box' as const,
-    };
-
-    const labelStyle = {
-        display: 'block',
-        fontFamily: MONO,
-        fontSize: '0.625rem',
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase' as const,
-        color: '#555',
-        marginBottom: '0.5rem',
-    };
-
     return (
-        <div
-            style={{
-                minHeight: '100vh',
-                background: '#0a0a0a',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '1rem',
-            }}>
-            <form action={login} style={{ width: '100%', maxWidth: '360px' }}>
-                <div style={{ marginBottom: '2rem' }}>
-                    <div
-                        style={{
-                            fontFamily: MONO,
-                            fontWeight: 700,
-                            fontSize: '0.8125rem',
-                            letterSpacing: '0.08em',
-                            textTransform: 'uppercase',
-                            color: '#fff',
-                            marginBottom: '0.25rem',
-                        }}>
-                        Pulse<span style={{ color: '#ff6c2f' }}>.</span>
+        <div className="min-h-screen bg-pulse-bg flex items-center justify-center p-4">
+            <form action={login} className="w-full max-w-[360px]">
+                <div className="mb-8">
+                    <div className="font-pulse font-bold text-[0.9375rem] tracking-[0.08em] uppercase text-white mb-1">
+                        Pulse<span className="text-pulse-accent">.</span>
                     </div>
-                    <div style={{ fontFamily: MONO, fontSize: '0.6875rem', letterSpacing: '0.06em', color: '#555' }}>
+                    <div className="font-pulse text-[0.8125rem] tracking-[0.06em] text-pulse-dim">
                         12-week PPL programme
                     </div>
                 </div>
@@ -69,18 +27,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                     <p
                         id="login-error"
                         role="alert"
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.6875rem',
-                            letterSpacing: '0.04em',
-                            color: '#f43f5e',
-                            marginBottom: '1.25rem',
-                        }}>
+                        className="font-pulse text-[0.8125rem] tracking-[0.04em] text-[#f43f5e] mb-5">
                         Invalid email or password.
                     </p>
                 )}
 
-                <label htmlFor="email" style={labelStyle}>
+                <label
+                    htmlFor="email"
+                    className="block font-pulse text-[0.75rem] tracking-[0.08em] uppercase text-pulse-dim mb-2">
                     Email
                 </label>
                 <input
@@ -92,10 +46,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                     autoComplete="email"
                     aria-invalid={hasError ? true : undefined}
                     aria-describedby={hasError ? 'login-error' : undefined}
-                    style={fieldStyle}
+                    className={`block w-full py-3 px-3 bg-pulse-surface rounded-[3px] text-white font-pulse text-base mb-4 border box-border outline-none ${hasError ? 'border-[#f43f5e44]' : 'border-pulse-border'}`}
                 />
 
-                <label htmlFor="password" style={labelStyle}>
+                <label
+                    htmlFor="password"
+                    className="block font-pulse text-[0.75rem] tracking-[0.08em] uppercase text-pulse-dim mb-2">
                     Password
                 </label>
                 <input
@@ -106,7 +62,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                     autoComplete="current-password"
                     aria-invalid={hasError ? true : undefined}
                     aria-describedby={hasError ? 'login-error' : undefined}
-                    style={fieldStyle}
+                    className={`block w-full py-3 px-3 bg-pulse-surface rounded-[3px] text-white font-pulse text-base mb-4 border box-border outline-none ${hasError ? 'border-[#f43f5e44]' : 'border-pulse-border'}`}
                 />
 
                 <SubmitButton />
