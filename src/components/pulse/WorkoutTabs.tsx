@@ -1,6 +1,5 @@
-﻿'use client';
+'use client';
 import type { WorkoutType } from '@/lib/pulse/types';
-import { MONO, ACCENT, BORDER } from '@/lib/pulse/theme';
 
 interface Props {
     activeTab: WorkoutType;
@@ -25,7 +24,7 @@ export default function WorkoutTabs({ activeTab, onSelect }: Props) {
     }
 
     return (
-        <div role="tablist" style={{ display: 'flex', borderBottom: `1px solid ${BORDER}` }}>
+        <div role="tablist" className="flex border-b border-pulse-border">
             {TABS.map(({ type, label }, idx) => {
                 const active = activeTab === type;
                 return (
@@ -37,21 +36,9 @@ export default function WorkoutTabs({ activeTab, onSelect }: Props) {
                         aria-controls={`panel-${type}`}
                         onClick={() => onSelect(type)}
                         onKeyDown={(e) => handleKeyDown(e, idx)}
-                        style={{
-                            flex: 1,
-                            padding: '0.875rem 0',
-                            textAlign: 'center',
-                            fontFamily: MONO,
-                            fontSize: '0.6875rem',
-                            letterSpacing: '0.12em',
-                            textTransform: 'uppercase',
-                            color: active ? '#fff' : '#555',
-                            cursor: 'pointer',
-                            background: 'none',
-                            border: 'none',
-                            borderBottom: `2px solid ${active ? ACCENT : 'transparent'}`,
-                            marginBottom: '-1px',
-                        }}>
+                        className={`flex-1 py-3.5 text-center font-pulse text-[0.6875rem] tracking-[0.12em] uppercase bg-transparent border-0 border-b-2 -mb-px cursor-pointer ${
+                            active ? 'text-white border-pulse-accent' : 'text-pulse-dim border-transparent'
+                        }`}>
                         {label}
                     </button>
                 );
