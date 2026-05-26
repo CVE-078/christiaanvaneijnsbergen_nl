@@ -1,12 +1,11 @@
-﻿'use client';
+'use client';
 import { useEffect, useRef, useState } from 'react';
-import { MONO, ACCENT, BORDER, SURFACE, DIM } from '@/lib/pulse/theme';
 
 const DURATIONS = [60, 90, 120, 180];
-const DEFAULT_IDX = 1; // 90s
+const DEFAULT_IDX = 1;
 
 interface Props {
-    trigger: number; // increment to start/restart the timer
+    trigger: number;
 }
 
 function fmt(s: number) {
@@ -40,19 +39,16 @@ export default function RestTimer({ trigger }: Props) {
     const [remaining, setRemaining] = useState<number | null>(null);
     const totalRef = useRef(DURATIONS[durationIdx]);
 
-    // Start/restart when a set is saved
     useEffect(() => {
         if (trigger === 0) return;
         totalRef.current = DURATIONS[durationIdx];
         setRemaining(DURATIONS[durationIdx]);
     }, [trigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Persist selected duration index
     useEffect(() => {
         localStorage.setItem('pulse_timer_idx', String(durationIdx));
     }, [durationIdx]);
 
-    // Countdown tick
     useEffect(() => {
         if (remaining === null || remaining <= 0) {
             if (remaining === 0) {
@@ -91,90 +87,44 @@ export default function RestTimer({ trigger }: Props) {
     const pct = Math.max(0, remaining / totalRef.current);
 
     return (
-        <div style={{ borderBottom: `1px solid ${BORDER}`, background: SURFACE, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem' }}>
+        <div className="border-b border-pulse-border bg-pulse-surface overflow-hidden">
+            <div className="flex items-center gap-3 py-2 px-4">
                 <span
-                    style={{
-                        fontFamily: MONO,
-                        fontSize: '0.625rem',
-                        letterSpacing: '0.12em',
-                        textTransform: 'uppercase',
-                        color: done ? ACCENT : DIM,
-                    }}>
+                    className={`font-pulse text-[0.625rem] tracking-[0.12em] uppercase ${done ? 'text-pulse-accent' : 'text-pulse-dim'}`}>
                     {done ? 'Go!' : 'Rest'}
                 </span>
                 <span
-                    style={{
-                        fontFamily: MONO,
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        color: done ? ACCENT : '#fff',
-                        letterSpacing: '0.04em',
-                        minWidth: '2.75rem',
-                    }}>
+                    className={`font-pulse text-base font-bold tracking-[0.04em] min-w-[2.75rem] ${done ? 'text-pulse-accent' : 'text-white'}`}>
                     {fmt(remaining)}
                 </span>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div className="ml-auto flex gap-2 items-center">
                     {!done && (
                         <button
                             onClick={addTime}
                             aria-label="Add 30 seconds"
-                            style={{
-                                fontFamily: MONO,
-                                fontSize: '0.625rem',
-                                letterSpacing: '0.06em',
-                                color: DIM,
-                                background: 'none',
-                                border: '1px solid #2a2a2a',
-                                borderRadius: '3px',
-                                padding: '0.2rem 0.4rem',
-                                cursor: 'pointer',
-                            }}>
+                            className="font-pulse text-[0.625rem] tracking-[0.06em] text-pulse-dim bg-transparent border border-[#2a2a2a] rounded-sm py-[0.2rem] px-[0.4rem] cursor-pointer">
                             +30s
                         </button>
                     )}
                     <button
                         onClick={cycleDuration}
                         aria-label={`Rest duration: ${DURATIONS[durationIdx]}s. Click to change.`}
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.625rem',
-                            letterSpacing: '0.06em',
-                            color: DIM,
-                            background: 'none',
-                            border: '1px solid #2a2a2a',
-                            borderRadius: '3px',
-                            padding: '0.2rem 0.4rem',
-                            cursor: 'pointer',
-                        }}>
+                        className="font-pulse text-[0.625rem] tracking-[0.06em] text-pulse-dim bg-transparent border border-[#2a2a2a] rounded-sm py-[0.2rem] px-[0.4rem] cursor-pointer">
                         {DURATIONS[durationIdx]}s
                     </button>
                     <button
                         onClick={skip}
                         aria-label="Skip rest timer"
-                        style={{
-                            fontFamily: MONO,
-                            fontSize: '0.625rem',
-                            letterSpacing: '0.06em',
-                            color: '#444',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: '0.2rem 0',
-                        }}>
+                        className="font-pulse text-[0.625rem] tracking-[0.06em] text-[#444] bg-transparent border-none cursor-pointer py-[0.2rem] px-0">
                         Skip
                     </button>
                 </div>
             </div>
-            {/* Progress bar depletes left to right */}
-            <div style={{ height: '2px', background: '#1a1a1a' }}>
+            <div className="h-[2px] bg-[#1a1a1a]">
+                {/* width is a runtime ratio — must stay inline */}
                 <div
-                    style={{
-                        height: '100%',
-                        width: `${pct * 100}%`,
-                        background: done ? ACCENT : `${ACCENT}99`,
-                        transition: 'width 1s linear, background 0.3s',
-                    }}
+                    className={`h-full transition-[width] duration-1000 ease-linear ${done ? 'bg-pulse-accent' : 'bg-pulse-accent/60'}`}
+                    style={{ width: `${pct * 100}%` }}
                 />
             </div>
         </div>
