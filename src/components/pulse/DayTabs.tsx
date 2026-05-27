@@ -54,7 +54,7 @@ export default function DayTabs() {
                             </span>
                         )}
                         {isToday && (
-                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pulse-accent" />
+                            <span aria-label="today" className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pulse-accent" />
                         )}
                     </button>
                 );
