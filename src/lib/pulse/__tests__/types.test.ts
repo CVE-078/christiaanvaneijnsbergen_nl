@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { RoutineTemplate } from '../types';
 import { defaultWorkoutType, templateMatchesEquipment } from '../types';
 
 describe('defaultWorkoutType', () => {
@@ -15,11 +16,13 @@ describe('defaultWorkoutType', () => {
 });
 
 describe('templateMatchesEquipment', () => {
-  const t = { required_equipment: ['dumbbells', 'barbell'] } as any;
+  const t = { required_equipment: ['dumbbells', 'barbell'] } satisfies Pick<RoutineTemplate, 'required_equipment'>;
   it('matches when user has all required', () =>
     expect(templateMatchesEquipment(t, new Set(['dumbbells','barbell','bench']))).toBe(true));
   it('rejects when user missing one', () =>
     expect(templateMatchesEquipment(t, new Set(['dumbbells']))).toBe(false));
   it('matches exact set', () =>
     expect(templateMatchesEquipment(t, new Set(['dumbbells','barbell']))).toBe(true));
+  it('matches when no equipment required', () =>
+    expect(templateMatchesEquipment({ required_equipment: [] }, new Set(['dumbbells']))).toBe(true));
 });
