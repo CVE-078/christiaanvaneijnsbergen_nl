@@ -157,7 +157,9 @@ ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS onboarding_completed boolean NOT NULL DEFAULT false;
 
 -- STEP 8: Create routine_templates table
-CREATE TABLE IF NOT EXISTS routine_templates (
+DROP TABLE IF EXISTS template_exercises CASCADE;
+DROP TABLE IF EXISTS routine_templates CASCADE;
+CREATE TABLE routine_templates (
   id                 uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   name               text NOT NULL,
   slug               text NOT NULL UNIQUE,
@@ -169,7 +171,7 @@ CREATE TABLE IF NOT EXISTS routine_templates (
 );
 
 -- STEP 9: Create template_exercises table
-CREATE TABLE IF NOT EXISTS template_exercises (
+CREATE TABLE template_exercises (
   id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   template_id  uuid REFERENCES routine_templates(id) ON DELETE CASCADE NOT NULL,
   exercise_id  uuid REFERENCES exercises(id) NOT NULL,
