@@ -16,19 +16,19 @@ export async function GET() {
             exercises:routine_exercises (
                 id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg,
                 exercise:exercises ( id, name, category, default_sets, default_reps, user_id )
-            )
+            ),
+            schedule:routine_schedule ( day_of_week, workout_type )
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
     if (error) return NextResponse.json(null, { status: 500 });
 
-    // Sort each routine's exercises by "order" ascending
+    // Sort each routine's exercises by "order" ascending and schedule by day_of_week
     const routines: RoutineWithExercises[] = (data ?? []).map((routine) => ({
         ...routine,
-        exercises: [...(routine.exercises ?? [])].sort(
-            (a, b) => (a.order as number) - (b.order as number),
-        ),
+        exercises: [...(routine.exercises ?? [])].sort((a, b) => (a.order as number) - (b.order as number)),
+        schedule: [...(routine.schedule ?? [])].sort((a, b) => a.day_of_week - b.day_of_week),
     })) as unknown as RoutineWithExercises[];
 
     return NextResponse.json(routines);

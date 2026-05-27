@@ -43,7 +43,8 @@ export default async function PulsePage() {
                 exercises:routine_exercises (
                     id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg,
                     exercise:exercises ( id, name, category, default_sets, default_reps, user_id )
-                )
+                ),
+                schedule:routine_schedule ( day_of_week, workout_type )
             `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: true }),
@@ -95,6 +96,7 @@ export default async function PulsePage() {
     ).map((routine) => ({
         ...routine,
         exercises: [...(routine.exercises ?? [])].sort((a, b) => a.order - b.order),
+        schedule: [...(routine.schedule ?? [])].sort((a, b) => a.day_of_week - b.day_of_week),
     }));
 
     return (

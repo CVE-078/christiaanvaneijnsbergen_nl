@@ -465,7 +465,7 @@ export async function reorderRoutineExercises(
     if (failed?.error) throw new Error('Failed to reorder exercises');
 }
 
-export async function cloneTemplate(slug: string): Promise<WorkoutRoutine> {
+export async function cloneTemplate(slug: string, trainingDays?: number[]): Promise<WorkoutRoutine> {
     if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid slug');
 
     const supabase = await createClient();
@@ -474,7 +474,7 @@ export async function cloneTemplate(slug: string): Promise<WorkoutRoutine> {
 
     const { data: template } = await supabase
         .from('routine_templates')
-        .select('id, name, template_exercises(exercise_id, workout_type, order, sets, reps)')
+        .select('id, name, schedule_pattern, default_days, template_exercises(exercise_id, workout_type, order, sets, reps)')
         .eq('slug', slug)
         .single();
     if (!template) throw new Error('Template not found');
@@ -505,12 +505,29 @@ export async function cloneTemplate(slug: string): Promise<WorkoutRoutine> {
         if (exErr) throw new Error('Failed to clone template exercises');
     }
 
-    // Side effect by design: cloning a template immediately activates it for onboarding flow.
+    // Create schedule — zip user's chosen days with the template pattern
+    const pattern: string[] = (template as any).schedule_pattern ?? [];
+    const defaultDays: number[] = (template as any).default_days ?? [];
+    const daysToUse = trainingDays ?? defaultDays;
+
+    if (daysToUse.length > 0 && pattern.length > 0) {
+        const sortedDays = [...daysToUse].sort((a, b) => a - b);
+        const scheduleRows = sortedDays.map((day, i) => ({
+            routine_id: routine.id,
+            day_of_week: day,
+            workout_type: pattern[i % pattern.length],
+        }));
+        const { error: schedErr } = await supabase.from('routine_schedule').insert(scheduleRows);
+        if (schedErr) throw new Error('Failed to create schedule');
+    }
+
+    // Set as active routine
     const { error: profileErr } = await supabase
         .from('profiles')
         .update({ active_routine_id: routine.id })
         .eq('id', user.id);
-    if (profileErr) throw new Error('Failed to activate cloned routine');
+    if (profileErr) throw new Error('Failed to set active routine');
+
     revalidatePath('/pulse');
     return routine as WorkoutRoutine;
 }
