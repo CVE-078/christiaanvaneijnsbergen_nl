@@ -183,8 +183,10 @@ CREATE TABLE IF NOT EXISTS template_exercises (
 -- STEP 10: Enable RLS
 ALTER TABLE routine_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE template_exercises ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "routine_templates_select" ON routine_templates FOR SELECT TO authenticated USING (true);
-CREATE POLICY IF NOT EXISTS "template_exercises_select" ON template_exercises FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "routine_templates_select" ON routine_templates;
+CREATE POLICY "routine_templates_select" ON routine_templates FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "template_exercises_select" ON template_exercises;
+CREATE POLICY "template_exercises_select" ON template_exercises FOR SELECT TO authenticated USING (true);
 
 -- STEP 11: Seed 14 routine_templates (explicit stable UUIDs)
 INSERT INTO routine_templates (id, name, slug, required_equipment, days_per_week, experience_level, session_time, description)
