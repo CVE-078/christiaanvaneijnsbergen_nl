@@ -48,6 +48,11 @@ export default async function Layout({ children }: { children: ReactNode }) {
         if (validateLogs(raw)) logs = raw;
     } catch { throw new Error('Failed to load training data.'); }
 
+    if (profileResult.error) throw new Error('Failed to load profile data.');
+    if (bwResult.error) throw new Error('Failed to load body weight data.');
+    if (exercisesResult.error) throw new Error('Failed to load exercises.');
+    if (routinesResult.error) throw new Error('Failed to load routines.');
+
     const profileRow = profileResult.data;
     const profile: Profile = {
         display_name: profileRow?.display_name ?? null,

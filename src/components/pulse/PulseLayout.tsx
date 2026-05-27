@@ -1,4 +1,5 @@
 'use client';
+import { useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { PulseProvider } from './PulseProvider';
 import { AppShell } from './AppShell';
@@ -27,9 +28,9 @@ export default function PulseLayout({ children, ...providerProps }: Props) {
     const pathname = usePathname();
     const view = (pathname ? PATH_TO_VIEW[pathname] : undefined) ?? 'train';
 
-    function navigate(v: View) {
+    const navigate = useCallback((v: View) => {
         router.push(`/pulse/${v}`);
-    }
+    }, [router]);
 
     return (
         <PulseProvider {...providerProps} navigate={navigate}>
