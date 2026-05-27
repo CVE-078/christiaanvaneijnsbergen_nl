@@ -35,6 +35,7 @@ const defaultContext = {
     setActiveWeek: vi.fn(),
     activeTab: 'chest' as const,
     setActiveTab: vi.fn(),
+    activeSchedule: [],
     logs: {},
     profile: { display_name: null, unit: 'kg' as const, active_routine_id: 'r1' },
     prMap: {},

@@ -1,6 +1,7 @@
 import { logKey, getPhase, getRIR, weekHasData, parseMaxSets } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
+import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
 import type { LogEntry } from '@/lib/pulse/types';
 
@@ -9,6 +10,7 @@ export default function LogView() {
         activeWeek,
         setActiveWeek,
         activeTab,
+        activeSchedule,
         logs,
         profile,
         prMap,
@@ -56,7 +58,7 @@ export default function LogView() {
 
     return (
         <div>
-            <WorkoutTabs />
+            {activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}
 
             <div className="flex px-4 gap-1 overflow-x-auto [scrollbar-width:none] pb-3">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => {

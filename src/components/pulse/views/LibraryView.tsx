@@ -369,6 +369,19 @@ function RoutineExerciseRow({
     );
 }
 
+const WORKOUT_TYPE_OPTIONS: { value: WorkoutType; label: string }[] = [
+    { value: 'push', label: 'Push' },
+    { value: 'pull', label: 'Pull' },
+    { value: 'legs', label: 'Legs' },
+    { value: 'upper', label: 'Upper' },
+    { value: 'lower', label: 'Lower' },
+    { value: 'full_body', label: 'Full Body' },
+    { value: 'chest', label: 'Chest' },
+    { value: 'back', label: 'Back' },
+    { value: 'shoulders', label: 'Shoulders' },
+    { value: 'arms', label: 'Arms' },
+];
+
 // ── Routines tab ───────────────────────────────────────────────────────────────
 function RoutinesTab() {
     const {
@@ -567,8 +580,8 @@ function RoutinesTab() {
                             value={addWorkoutType}
                             onChange={(e) => setAddWorkoutType(e.target.value as WorkoutType)}
                             className={INPUT}>
-                            {(['push', 'pull', 'legs', 'chest', 'back', 'shoulders', 'arms'] as WorkoutType[]).map((wt) => (
-                                <option key={wt} value={wt}>{wt.charAt(0).toUpperCase() + wt.slice(1)}</option>
+                            {WORKOUT_TYPE_OPTIONS.map(({ value, label }) => (
+                                <option key={value} value={value}>{label}</option>
                             ))}
                         </select>
                         <div className="flex flex-wrap items-end gap-2">
