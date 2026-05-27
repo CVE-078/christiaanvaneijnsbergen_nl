@@ -144,6 +144,10 @@ WHERE NOT EXISTS (
   SELECT 1 FROM exercises WHERE name = t.name AND user_id IS NULL
 );
 
+-- Remap user-created exercises from old push/pull categories before CHECK is added
+UPDATE exercises SET category = 'other'
+WHERE user_id IS NOT NULL AND category IN ('push', 'pull');
+
 -- STEP 6: Add new exercises category CHECK constraint
 ALTER TABLE exercises ADD CONSTRAINT exercises_category_check
   CHECK (category IN ('chest','shoulders','triceps','back','biceps','legs','glutes','calves','abs','other'));
@@ -172,14 +176,15 @@ CREATE TABLE IF NOT EXISTS template_exercises (
   workout_type text NOT NULL CHECK (workout_type IN ('push','pull','legs','chest','back','shoulders','arms')),
   "order"      integer NOT NULL,
   sets         text NOT NULL,
-  reps         text NOT NULL
+  reps         text NOT NULL,
+  UNIQUE (template_id, "order")
 );
 
 -- STEP 10: Enable RLS
 ALTER TABLE routine_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE template_exercises ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "routine_templates_select" ON routine_templates FOR SELECT TO authenticated USING (true);
-CREATE POLICY "template_exercises_select" ON template_exercises FOR SELECT TO authenticated USING (true);
+CREATE POLICY IF NOT EXISTS "routine_templates_select" ON routine_templates FOR SELECT TO authenticated USING (true);
+CREATE POLICY IF NOT EXISTS "template_exercises_select" ON template_exercises FOR SELECT TO authenticated USING (true);
 
 -- STEP 11: Seed 14 routine_templates (explicit stable UUIDs)
 INSERT INTO routine_templates (id, name, slug, required_equipment, days_per_week, experience_level, session_time, description)
@@ -399,4 +404,5 @@ FROM (VALUES
   ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Bulgarian Split Squat', 'legs',      19,'3','10-12 per leg'),
   ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Calf Raise',            'legs',      20,'3','15-20')
 ) AS t(tid, ename, wt, ord, sets, reps)
-JOIN exercises e ON e.name = t.ename AND e.user_id IS NULL;
+JOIN exercises e ON e.name = t.ename AND e.user_id IS NULL
+ON CONFLICT (template_id, "order") DO NOTHING;
