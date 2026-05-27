@@ -54,7 +54,7 @@ export function AppShell() {
             {saveError && (
                 <div
                     role="alert"
-                    className="py-2 px-4 bg-[#f43f5e18] border-b border-[#f43f5e33] text-[#f43f5e] font-pulse text-[0.8125rem] tracking-[0.04em] text-center">
+                    className="py-2 px-4 bg-pulse-error/10 border-b border-pulse-error/20 text-pulse-error font-pulse text-[0.8125rem] tracking-[0.04em] text-center">
                     {saveError}
                 </div>
             )}

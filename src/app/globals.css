@@ -19,6 +19,8 @@
     --color-pulse-border: rgba(255,255,255,0.06);
     --color-pulse-dim: #5e6a80;
     --color-pulse-muted: #2c3445;
+    --color-pulse-error: #f43f5e;
+    --color-pulse-success: #4ade80;
     --color-pulse-text: #eef0f6;
 }
 

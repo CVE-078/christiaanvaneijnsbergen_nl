@@ -192,7 +192,7 @@ export default function ProfileView() {
                             {email}
                         </div>
                         {nameSaved && !editingName && (
-                            <span className="font-pulse text-[0.6875rem] text-[#4ade80] tracking-[0.04em] mt-0.5 block">
+                            <span className="font-pulse text-[0.6875rem] text-pulse-success tracking-[0.04em] mt-0.5 block">
                                 Saved ✓
                             </span>
                         )}
@@ -246,11 +246,11 @@ export default function ProfileView() {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleLogBodyweight();
                                     }}
-                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-pulse-bg rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
+                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-pulse-bg rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-pulse-error' : 'border-pulse-border'}`}
                                 />
                                 <span className="font-pulse text-[0.8125rem] text-pulse-dim">{fmtDate(today)}</span>
                             </div>
-                            {bwError && <div className="font-pulse text-[0.75rem] text-[#f43f5e] mt-1">{bwError}</div>}
+                            {bwError && <div className="font-pulse text-[0.75rem] text-pulse-error mt-1">{bwError}</div>}
                         </div>
                         <button
                             onClick={handleLogBodyweight}
