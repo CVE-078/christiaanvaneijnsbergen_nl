@@ -7,10 +7,12 @@ export interface LogEntry {
 
 export type Logs = Record<string, LogEntry>;
 
-export type WorkoutType =
-  | 'push' | 'pull' | 'legs'
-  | 'chest' | 'back' | 'shoulders' | 'arms'
-  | 'upper' | 'lower' | 'full_body';
+export const WORKOUT_TYPES = [
+    'push', 'pull', 'legs',
+    'chest', 'back', 'shoulders', 'arms',
+    'upper', 'lower', 'full_body',
+] as const;
+export type WorkoutType = typeof WORKOUT_TYPES[number];
 
 export interface ScheduleEntry {
     day_of_week: number; // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
@@ -71,15 +73,18 @@ export interface HistorySession {
     sets: Array<LogEntry & { routineExerciseId: string; setIdx: number }>;
 }
 
-export type View = 'log' | 'program' | 'history' | 'profile' | 'library';
+export const VIEWS = ['log', 'program', 'history', 'profile', 'library'] as const;
+export type View = typeof VIEWS[number];
 
 export type PRMap = Record<string, number>;
 
-export type ExerciseCategory =
-  | 'chest' | 'shoulders' | 'triceps'
-  | 'back' | 'biceps'
-  | 'legs' | 'glutes' | 'calves'
-  | 'abs' | 'other';
+export const EXERCISE_CATEGORIES = [
+    'chest', 'shoulders', 'triceps',
+    'back', 'biceps',
+    'legs', 'glutes', 'calves',
+    'abs', 'other',
+] as const;
+export type ExerciseCategory = typeof EXERCISE_CATEGORIES[number];
 
 export interface DbExercise {
     id: string;
@@ -114,7 +119,8 @@ export interface RoutineWithExercises extends WorkoutRoutine {
     schedule: ScheduleEntry[];
 }
 
-export type EquipmentKey = 'dumbbells' | 'barbell' | 'bench' | 'cables' | 'machines';
+export const EQUIPMENT_KEYS = ['dumbbells', 'barbell', 'bench', 'cables', 'machines'] as const;
+export type EquipmentKey = typeof EQUIPMENT_KEYS[number];
 
 export interface RoutineTemplate {
     id: string;
