@@ -22,12 +22,16 @@ const templates: RoutineTemplate[] = [
         required_equipment: ['dumbbells'], days_per_week: '2-3',
         experience_level: 'beginner', session_time: '30-45 min',
         description: 'One session works everything.',
+        schedule_pattern: ['full_body'],
+        default_days: [1, 3, 5],
     },
     {
         id: '2', name: 'PPL — Gym', slug: 'ppl-gym',
         required_equipment: ['barbell','bench','cables','machines'], days_per_week: '3-6',
         experience_level: 'intermediate', session_time: '60-90 min',
         description: 'Classic PPL with full gym access.',
+        schedule_pattern: ['push', 'pull', 'legs'],
+        default_days: [1, 2, 3, 4, 5, 6],
     },
 ];
 

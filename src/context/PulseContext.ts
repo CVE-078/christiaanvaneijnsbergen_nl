@@ -14,6 +14,7 @@ import type {
     RoutineExercise,
     RoutineTemplate,
     ExerciseCategory,
+    ScheduleEntry,
 } from '@/lib/pulse/types';
 
 export interface PulseContextValue {
@@ -48,6 +49,9 @@ export interface PulseContextValue {
     setActiveWeek: (week: number) => void;
     activeTab: WorkoutType;
     setActiveTab: (tab: WorkoutType) => void;
+    activeDay: number | null;
+    setActiveDay: (day: number) => void;
+    activeSchedule: ScheduleEntry[];
     showOnboarding: boolean;
     triggerOnboarding: () => void;
     dismissOnboarding: () => void;
@@ -82,7 +86,7 @@ export interface PulseContextValue {
         startingWeightKg: number | null,
     ) => Promise<void>;
     reorderRoutineExercises: (routineId: string, orderedIds: string[]) => Promise<void>;
-    cloneTemplate: (slug: string) => Promise<WorkoutRoutine>;
+    cloneTemplate: (slug: string, trainingDays?: number[]) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
 
     // Exercise library mutations

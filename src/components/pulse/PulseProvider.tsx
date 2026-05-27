@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { PulseContext } from '@/context/PulseContext';
 import { useWorkoutLogs } from '@/hooks/pulse/useWorkoutLogs';
 import { useProfile } from '@/hooks/pulse/useProfile';
@@ -7,7 +7,7 @@ import { useRoutines } from '@/hooks/pulse/useRoutines';
 import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { computeStreak, computePRMap } from '@/lib/pulse/utils';
-import type { Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType } from '@/lib/pulse/types';
+import type { Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, ScheduleEntry } from '@/lib/pulse/types';
 
 interface Props {
     initialLogs: Logs;
@@ -64,6 +64,34 @@ export function PulseProvider({
         return result;
     }, [activeRoutine]);
 
+    const activeSchedule = useMemo(
+        (): ScheduleEntry[] =>
+            [...(activeRoutine?.schedule ?? [])].sort((a, b) => a.day_of_week - b.day_of_week),
+        [activeRoutine],
+    );
+
+    const [activeDay, _setActiveDay] = useState<number | null>(null);
+
+    // Auto-select today's training day (or the next upcoming one) when schedule changes
+    useEffect(() => {
+        if (activeSchedule.length === 0) return;
+        const today = new Date().getDay();
+        const sorted = [...activeSchedule].sort((a, b) => {
+            const dA = (a.day_of_week - today + 7) % 7;
+            const dB = (b.day_of_week - today + 7) % 7;
+            return dA - dB;
+        });
+        _setActiveDay(sorted[0].day_of_week);
+        setActiveTab(sorted[0].workout_type);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeSchedule.map((e) => `${e.day_of_week}:${e.workout_type}`).join(',')]);
+
+    const setActiveDay = useCallback((day: number) => {
+        _setActiveDay(day);
+        const entry = activeSchedule.find((e) => e.day_of_week === day);
+        if (entry) setActiveTab(entry.workout_type);
+    }, [activeSchedule, setActiveTab]);
+
     const contextValue = useMemo(
         () => ({
             logs,
@@ -86,6 +114,9 @@ export function PulseProvider({
             setActiveWeek,
             activeTab,
             setActiveTab,
+            activeDay,
+            setActiveDay,
+            activeSchedule,
             timerTrigger,
             fireTrigger,
             exercises,
@@ -128,6 +159,9 @@ export function PulseProvider({
             setActiveWeek,
             activeTab,
             setActiveTab,
+            activeDay,
+            setActiveDay,
+            activeSchedule,
             timerTrigger,
             fireTrigger,
             exercises,

@@ -106,8 +106,8 @@ export function useRoutines(
         await mutateRoutines();
     }, [mutateRoutines]);
 
-    const cloneTemplate = useCallback(async (slug: string): Promise<WorkoutRoutine> => {
-        const routine = await serverCloneTemplate(slug);
+    const cloneTemplate = useCallback(async (slug: string, trainingDays?: number[]): Promise<WorkoutRoutine> => {
+        const routine = await serverCloneTemplate(slug, trainingDays);
         await mutateRoutines();
         await globalMutate(PROFILE_KEY);
         return routine;

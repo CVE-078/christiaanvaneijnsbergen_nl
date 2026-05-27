@@ -55,6 +55,7 @@ const activeRoutine: RoutineWithExercises = {
             exercise: globalExercise,
         },
     ],
+    schedule: [],
 };
 
 const inactiveRoutine: RoutineWithExercises = {
@@ -63,6 +64,7 @@ const inactiveRoutine: RoutineWithExercises = {
     name: 'Pull Day',
     created_at: '2026-05-02',
     exercises: [],
+    schedule: [],
 };
 
 const mocks = {

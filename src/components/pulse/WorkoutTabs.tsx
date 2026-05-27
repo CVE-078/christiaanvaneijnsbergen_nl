@@ -7,8 +7,9 @@ import type { WorkoutType } from '@/lib/pulse/types';
 const LABELS: Record<WorkoutType, string> = {
     push: 'Push', pull: 'Pull', legs: 'Legs',
     chest: 'Chest', back: 'Back', shoulders: 'Shoulders', arms: 'Arms',
+    upper: 'Upper', lower: 'Lower', full_body: 'Full Body',
 };
-const ORDER: WorkoutType[] = ['push','pull','legs','chest','back','shoulders','arms'];
+const ORDER: WorkoutType[] = ['push','pull','legs','chest','back','shoulders','arms','upper','lower','full_body'];
 
 export default function WorkoutTabs() {
     const { activeTab, setActiveTab, routineExercisesByType, logs, activeWeek } = usePulse();

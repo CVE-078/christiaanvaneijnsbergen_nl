@@ -7,7 +7,15 @@ import { recommendTemplate } from '@/lib/pulse/recommendation';
 import type { EquipmentKey, RoutineTemplate } from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
-type Step = 1 | 2 | 3 | 4 | 5 | 'result';
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 'result';
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const SUGGESTED_DAYS: Record<string, number[]> = {
+    '2-3': [1, 3],
+    '4':   [1, 2, 4, 5],
+    '5-6': [1, 2, 3, 4, 5],
+};
 
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
 const CARD = 'bg-pulse-surface border border-pulse-border rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
@@ -17,7 +25,7 @@ const BTN_PRIMARY = 'font-pulse text-sm font-semibold bg-pulse-accent text-black
 function ProgressBar({ current }: { current: number }) {
     return (
         <div className="h-1 bg-pulse-border rounded-full overflow-hidden">
-            <div className="h-full bg-pulse-accent rounded-full transition-all" style={{ width: `${current * 20}%` }} />
+            <div className="h-full bg-pulse-accent rounded-full transition-all" style={{ width: `${Math.round(current * (100 / 6))}%` }} />
         </div>
     );
 }
@@ -30,7 +38,7 @@ function Header({ stepNum, onBack }: { stepNum: number; onBack?: () => void }) {
                 : <div className="w-5" />
             }
             <div className="flex-1"><ProgressBar current={stepNum} /></div>
-            <span className="font-pulse text-xs text-pulse-muted shrink-0">{stepNum}/5</span>
+            <span className="font-pulse text-xs text-pulse-muted shrink-0">{stepNum}/6</span>
         </div>
     );
 }
@@ -60,6 +68,7 @@ export default function OnboardingModal() {
     const [recommendedSlug, setRecommendedSlug] = useState<string | null | undefined>(undefined);
     const [pickedSlug, setPickedSlug] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [trainingDays, setTrainingDays] = useState<number[]>([]);
 
     const { data: templates = [] } = useSWR<RoutineTemplate[]>(
         '/api/pulse/templates',
@@ -86,7 +95,7 @@ export default function OnboardingModal() {
         setLoading(true);
         void startTransition(() => {
             void (async () => {
-                await cloneTemplate(slug);
+                await cloneTemplate(slug, trainingDays.length > 0 ? trainingDays : undefined);
                 await completeOnboarding();
                 dismissOnboarding();
                 navigate('log');
@@ -171,7 +180,10 @@ export default function OnboardingModal() {
                     <OptionRow label="4 days" active={days === '4'} onClick={() => setDays('4')} />
                     <OptionRow label="5–6 days" active={days === '5-6'} onClick={() => setDays('5-6')} />
                 </div>
-                <button onClick={() => setStep(5)} disabled={!days} className={BTN_PRIMARY}>Next</button>
+                <button onClick={() => {
+                    setTrainingDays(days ? (SUGGESTED_DAYS[days] ?? []) : []);
+                    setStep(5);
+                }} disabled={!days} className={BTN_PRIMARY}>Next</button>
             </div>
         </div>
     );
@@ -180,6 +192,34 @@ export default function OnboardingModal() {
         <div className={WRAP}>
             <div className={CARD}>
                 <Header stepNum={5} onBack={() => setStep(4)} />
+                <p className={Q}>Which days will you train?</p>
+                <div className="flex gap-2 flex-wrap">
+                    {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                        <button
+                            key={d}
+                            onClick={() =>
+                                setTrainingDays((prev) =>
+                                    prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
+                                )
+                            }
+                            className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border cursor-pointer transition-colors ${
+                                trainingDays.includes(d)
+                                    ? 'bg-pulse-accent text-black border-pulse-accent'
+                                    : 'bg-transparent text-pulse-dim border-pulse-border'
+                            }`}>
+                            {DAY_NAMES[d]}
+                        </button>
+                    ))}
+                </div>
+                <button onClick={() => setStep(6)} disabled={trainingDays.length === 0} className={BTN_PRIMARY}>Next</button>
+            </div>
+        </div>
+    );
+
+    if (step === 6) return (
+        <div className={WRAP}>
+            <div className={CARD}>
+                <Header stepNum={6} onBack={() => setStep(5)} />
                 <p className={Q}>How long are your sessions?</p>
                 <div className="flex flex-col gap-2">
                     <OptionRow label="~30 min" desc="Short and focused" active={sessionTime === '~30 min'} onClick={() => setSessionTime('~30 min')} />
