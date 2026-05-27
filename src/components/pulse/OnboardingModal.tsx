@@ -4,18 +4,11 @@ import useSWR from 'swr';
 import { usePulse } from '@/context/PulseContext';
 import { templateMatchesEquipment } from '@/lib/pulse/types';
 import { recommendTemplate } from '@/lib/pulse/recommendation';
+import { DAY_NAMES, SUGGESTED_DAYS, EXPERIENCE_LEVEL_COLOR } from '@/lib/pulse/constants';
 import type { EquipmentKey, RoutineTemplate } from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 'result';
-
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const SUGGESTED_DAYS: Record<string, number[]> = {
-    '2-3': [1, 3],
-    '4':   [1, 2, 4, 5],
-    '5-6': [1, 2, 3, 4, 5],
-};
 
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
 const CARD = 'bg-pulse-surface border border-pulse-border rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
@@ -273,7 +266,6 @@ export default function OnboardingModal() {
 
         // General fitness — show filtered template picker
         const filteredTemplates = templates.filter((t) => templateMatchesEquipment(t, equipment));
-        const LEVEL_CLASS = { beginner: 'text-emerald-400', intermediate: 'text-amber-400', advanced: 'text-red-400' };
         return (
             <div className={WRAP}>
                 <div className={`${CARD} max-h-[80vh] overflow-y-auto`}>
@@ -288,7 +280,7 @@ export default function OnboardingModal() {
                                 }`}>
                                 <div className="font-pulse text-sm font-semibold text-white">{t.name}</div>
                                 <div className="flex gap-2 mt-1">
-                                    <span className={`font-pulse text-[0.625rem] tracking-[0.08em] uppercase ${LEVEL_CLASS[t.experience_level]}`}>{t.experience_level}</span>
+                                    <span className={`font-pulse text-[0.625rem] tracking-[0.08em] uppercase ${EXPERIENCE_LEVEL_COLOR[t.experience_level]}`}>{t.experience_level}</span>
                                     <span className="font-pulse text-[0.625rem] text-pulse-dim">{t.days_per_week}×/week · {t.session_time}</span>
                                 </div>
                                 <p className="font-pulse text-xs text-pulse-muted mt-1">{t.description}</p>

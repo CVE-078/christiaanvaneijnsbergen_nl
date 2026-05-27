@@ -1,15 +1,7 @@
 'use client';
 import { usePulse } from '@/context/PulseContext';
 import { logKey, parseMaxSets } from '@/lib/pulse/utils';
-import type { WorkoutType } from '@/lib/pulse/types';
-
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const TYPE_LABEL: Record<WorkoutType, string> = {
-    push: 'Push', pull: 'Pull', legs: 'Legs',
-    chest: 'Chest', back: 'Back', shoulders: 'Shoulders', arms: 'Arms',
-    upper: 'Upper', lower: 'Lower', full_body: 'Full Body',
-};
+import { DAY_NAMES, WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 
 export default function DayTabs() {
     const { activeDay, setActiveDay, activeSchedule, activeWeek, logs, routineExercisesByType } = usePulse();
@@ -44,7 +36,7 @@ export default function DayTabs() {
                         }`}>
                         <span className="font-pulse text-sm font-semibold">{DAY_NAMES[entry.day_of_week]}</span>
                         <span className={`font-pulse text-[0.625rem] tracking-[0.04em] ${active ? 'text-pulse-accent' : 'text-pulse-muted'}`}>
-                            {TYPE_LABEL[entry.workout_type]}
+                            {WORKOUT_TYPE_LABELS[entry.workout_type]}
                         </span>
                         {total > 0 && (
                             <span className={`font-pulse text-[0.625rem] rounded-full px-1.5 py-0.5 ${
