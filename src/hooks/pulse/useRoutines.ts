@@ -11,9 +11,12 @@ import {
     createExercise as serverCreateExercise,
     updateExercise as serverUpdateExercise,
     deleteExercise as serverDeleteExercise,
+    cloneTemplate as serverCloneTemplate,
+    completeOnboarding as serverCompleteOnboarding,
 } from '@/app/pulse/actions';
 import type {
     DbExercise,
+    WorkoutType,
     WorkoutRoutine,
     RoutineWithExercises,
     RoutineExercise,
@@ -76,8 +79,9 @@ export function useRoutines(
         sets: string,
         reps: string,
         startingWeightKg: number | null,
+        workoutType: WorkoutType,
     ): Promise<RoutineExercise> => {
-        const re = await serverAddExerciseToRoutine(routineId, exerciseId, sets, reps, startingWeightKg);
+        const re = await serverAddExerciseToRoutine(routineId, exerciseId, sets, reps, startingWeightKg, workoutType);
         await mutateRoutines();
         return re;
     }, [mutateRoutines]);
@@ -101,6 +105,18 @@ export function useRoutines(
         await serverReorderRoutineExercises(routineId, orderedIds);
         await mutateRoutines();
     }, [mutateRoutines]);
+
+    const cloneTemplate = useCallback(async (slug: string): Promise<WorkoutRoutine> => {
+        const routine = await serverCloneTemplate(slug);
+        await mutateRoutines();
+        await globalMutate(PROFILE_KEY);
+        return routine;
+    }, [mutateRoutines, globalMutate]);
+
+    const completeOnboarding = useCallback(async (): Promise<void> => {
+        await serverCompleteOnboarding();
+        await globalMutate(PROFILE_KEY);
+    }, [globalMutate]);
 
     const createExercise = useCallback(async (name: string, category: ExerciseCategory, defaultSets: string, defaultReps: string): Promise<DbExercise> => {
         const exercise = await serverCreateExercise(name, category, defaultSets, defaultReps);
@@ -129,6 +145,8 @@ export function useRoutines(
         removeExerciseFromRoutine,
         updateRoutineExercise,
         reorderRoutineExercises,
+        cloneTemplate,
+        completeOnboarding,
         createExercise,
         updateExercise,
         deleteExercise,

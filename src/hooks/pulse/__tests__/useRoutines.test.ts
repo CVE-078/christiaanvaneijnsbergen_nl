@@ -42,7 +42,7 @@ const exercisesMutate = vi.fn().mockResolvedValue(undefined);
 const routinesMutate = vi.fn().mockResolvedValue(undefined);
 
 const defaultExercises: DbExercise[] = [
-    { id: 'ex-1', name: 'Bench Press', category: 'push', default_sets: '3', default_reps: '8', user_id: null },
+    { id: 'ex-1', name: 'Bench Press', category: 'chest', default_sets: '3', default_reps: '8', user_id: null },
 ];
 
 const defaultRoutine: RoutineWithExercises = {
@@ -180,6 +180,7 @@ describe('useRoutines', () => {
             id: 're-1',
             routine_id: 'r-1',
             exercise_id: 'ex-1',
+            workout_type: 'push',
             order: 0,
             sets: '3',
             reps: '8',
@@ -191,11 +192,11 @@ describe('useRoutines', () => {
         const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
 
         await act(async () => {
-            const returned = await result.current.addExerciseToRoutine('r-1', 'ex-1', '3', '8', 60);
+            const returned = await result.current.addExerciseToRoutine('r-1', 'ex-1', '3', '8', 60, 'push');
             expect(returned).toEqual(newRoutineExercise);
         });
 
-        expect(serverAddExerciseToRoutine).toHaveBeenCalledWith('r-1', 'ex-1', '3', '8', 60);
+        expect(serverAddExerciseToRoutine).toHaveBeenCalledWith('r-1', 'ex-1', '3', '8', 60, 'push');
         expect(routinesMutate).toHaveBeenCalled();
     });
 

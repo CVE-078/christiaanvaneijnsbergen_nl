@@ -8,6 +8,7 @@ const routineExercise: RoutineExercise = {
     id: 're-uuid-001',
     routine_id: 'r-1',
     exercise_id: 'ex-1',
+    workout_type: 'chest',
     order: 0,
     sets: '3-4',
     reps: '8-12',
@@ -15,7 +16,7 @@ const routineExercise: RoutineExercise = {
     exercise: {
         id: 'ex-1',
         name: 'Dumbbell Bench Press',
-        category: 'push',
+        category: 'chest',
         default_sets: '3-4',
         default_reps: '8-12',
         user_id: null,

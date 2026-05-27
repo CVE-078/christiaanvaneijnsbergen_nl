@@ -7,7 +7,7 @@ export interface LogEntry {
 
 export type Logs = Record<string, LogEntry>;
 
-export type WorkoutType = 'push' | 'pull' | 'legs';
+export type WorkoutType = 'push' | 'pull' | 'legs' | 'chest' | 'back' | 'shoulders' | 'arms';
 
 export type Unit = 'kg' | 'lbs';
 
@@ -15,11 +15,12 @@ export interface Profile {
     display_name: string | null;
     unit: Unit;
     active_routine_id: string | null;
+    onboarding_completed: boolean;
 }
 
 export interface BodyweightEntry {
     id: string;
-    logged_at: string; // YYYY-MM-DD
+    logged_at: string;
     weight_kg: number;
 }
 
@@ -64,12 +65,13 @@ export interface HistorySession {
 
 export type View = 'log' | 'program' | 'history' | 'profile' | 'library';
 
-// Maps routine_exercise_id to best E1RM value
 export type PRMap = Record<string, number>;
 
-// ── Exercise Library ──────────────────────────────────────────────────────────
-
-export type ExerciseCategory = 'push' | 'pull' | 'legs' | 'other';
+export type ExerciseCategory =
+  | 'chest' | 'shoulders' | 'triceps'
+  | 'back' | 'biceps'
+  | 'legs' | 'glutes' | 'calves'
+  | 'abs' | 'other';
 
 export interface DbExercise {
     id: string;
@@ -77,7 +79,7 @@ export interface DbExercise {
     category: ExerciseCategory;
     default_sets: string;
     default_reps: string;
-    user_id: string | null; // null = global
+    user_id: string | null;
 }
 
 export interface WorkoutRoutine {
@@ -88,16 +90,47 @@ export interface WorkoutRoutine {
 }
 
 export interface RoutineExercise {
-    id: string;            // routine_exercise_id — used as log key component
+    id: string;
     routine_id: string;
     exercise_id: string;
+    workout_type: WorkoutType;
     order: number;
     sets: string;
     reps: string;
     starting_weight_kg: number | null;
-    exercise: DbExercise;  // joined
+    exercise: DbExercise;
 }
 
 export interface RoutineWithExercises extends WorkoutRoutine {
     exercises: RoutineExercise[];
+}
+
+export type EquipmentKey = 'dumbbells' | 'barbell' | 'bench' | 'cables' | 'machines';
+
+export interface RoutineTemplate {
+    id: string;
+    name: string;
+    slug: string;
+    required_equipment: EquipmentKey[];
+    days_per_week: string;
+    experience_level: 'beginner' | 'intermediate' | 'advanced';
+    session_time: string;
+    description: string;
+}
+
+export function defaultWorkoutType(cat: ExerciseCategory): WorkoutType | null {
+    const map: Record<ExerciseCategory, WorkoutType | null> = {
+        chest: 'chest', shoulders: 'shoulders', triceps: 'arms',
+        back: 'back', biceps: 'arms',
+        legs: 'legs', glutes: 'legs', calves: 'legs',
+        abs: null, other: null,
+    };
+    return map[cat];
+}
+
+export function templateMatchesEquipment(
+    template: Pick<RoutineTemplate, 'required_equipment'>,
+    userEquipment: Set<EquipmentKey>,
+): boolean {
+    return template.required_equipment.every((e) => userEquipment.has(e));
 }

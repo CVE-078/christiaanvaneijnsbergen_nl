@@ -24,7 +24,7 @@ export default async function PulsePage() {
             .from('set_logs')
             .select('week, routine_exercise_id, set_idx, kg, reps, rir, saved')
             .eq('user_id', user.id),
-        supabase.from('profiles').select('display_name, unit, active_routine_id').eq('id', user.id).single(),
+        supabase.from('profiles').select('display_name, unit, active_routine_id, onboarding_completed').eq('id', user.id).single(),
         supabase
             .from('bodyweight_logs')
             .select('id, logged_at, weight_kg')
@@ -41,7 +41,7 @@ export default async function PulsePage() {
             .select(`
                 id, user_id, name, created_at,
                 exercises:routine_exercises (
-                    id, routine_id, exercise_id, order, sets, reps, starting_weight_kg,
+                    id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg,
                     exercise:exercises ( id, name, category, default_sets, default_reps, user_id )
                 )
             `)
@@ -71,6 +71,7 @@ export default async function PulsePage() {
         display_name: profileRow?.display_name ?? null,
         unit: profileRow?.unit === 'lbs' ? 'lbs' : 'kg',
         active_routine_id: profileRow?.active_routine_id ?? null,
+        onboarding_completed: profileRow?.onboarding_completed ?? false,
     };
 
     const bodyweightLogs: BodyweightEntry[] = (bwResult.data ?? []).map(

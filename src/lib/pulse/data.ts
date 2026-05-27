@@ -22,6 +22,9 @@ export const VOLUME: VolumeEntry[] = [
     { week: 12, sets: 10 },
 ];
 
+// Legacy push/pull/legs workout definitions used by the program view.
+// New granular types (chest, back, shoulders, arms) fall back to their
+// parent push/pull workout definitions.
 export const WORKOUTS: Record<WorkoutType, Workout> = {
     push: {
         label: 'PUSH',
@@ -173,6 +176,11 @@ export const WORKOUTS: Record<WorkoutType, Workout> = {
             },
         ],
     },
+    // Granular types alias into their parent push/pull definitions
+    get chest() { return this.push; },
+    get shoulders() { return this.push; },
+    get back() { return this.pull; },
+    get arms() { return this.pull; },
 };
 
 export const WEEK_NOTES: Record<number, string> = {

@@ -13,7 +13,7 @@ import { usePulse } from '@/context/PulseContext';
 const globalExercise: DbExercise = {
     id: 'g1',
     name: 'Bench Press',
-    category: 'push',
+    category: 'chest',
     default_sets: '3',
     default_reps: '8-12',
     user_id: null,
@@ -22,7 +22,7 @@ const globalExercise: DbExercise = {
 const userExercise: DbExercise = {
     id: 'u1',
     name: 'Cable Fly',
-    category: 'push',
+    category: 'chest',
     default_sets: '3',
     default_reps: '12-15',
     user_id: 'user-123',
@@ -31,7 +31,7 @@ const userExercise: DbExercise = {
 const pullExercise: DbExercise = {
     id: 'g2',
     name: 'Barbell Row',
-    category: 'pull',
+    category: 'back',
     default_sets: '4',
     default_reps: '6-10',
     user_id: null,
@@ -47,6 +47,7 @@ const activeRoutine: RoutineWithExercises = {
             id: 're1',
             routine_id: 'r1',
             exercise_id: 'g1',
+            workout_type: 'chest' as const,
             order: 0,
             sets: '3',
             reps: '8-12',
@@ -106,7 +107,7 @@ describe('LibraryView', () => {
 
     it('filters exercises by category', async () => {
         render(<LibraryView />);
-        await userEvent.click(screen.getByRole('button', { name: /^pull$/i }));
+        await userEvent.click(screen.getByRole('button', { name: /^back$/i }));
         expect(screen.getByText('Barbell Row')).toBeInTheDocument();
         expect(screen.queryByText('Bench Press')).not.toBeInTheDocument();
     });
@@ -125,7 +126,7 @@ describe('LibraryView', () => {
         await userEvent.type(screen.getByLabelText(/exercise name/i), 'Incline Press');
         await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
         await waitFor(() => {
-            expect(mocks.createExercise).toHaveBeenCalledWith('Incline Press', 'push', '3', '8-12');
+            expect(mocks.createExercise).toHaveBeenCalledWith('Incline Press', 'chest', '3', '8-12');
         });
     });
 
@@ -174,7 +175,7 @@ describe('LibraryView', () => {
         await userEvent.selectOptions(screen.getByLabelText(/^exercise$/i), 'g2');
         await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
         await waitFor(() => {
-            expect(mocks.addExerciseToRoutine).toHaveBeenCalledWith('r1', 'g2', '3', '8-12', null);
+            expect(mocks.addExerciseToRoutine).toHaveBeenCalledWith('r1', 'g2', '3', '8-12', null, 'back');
         });
     });
 

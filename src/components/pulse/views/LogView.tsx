@@ -23,7 +23,7 @@ export default function LogView() {
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
     const unit = profile.unit;
-    const routineExercises = routineExercisesByType[activeTab];
+    const routineExercises = routineExercisesByType[activeTab] ?? [];
 
     const hasData = routineExercises.some((re) =>
         Array.from({ length: parseMaxSets(re.sets) }, (_, s) => logKey(activeWeek, re.id, s)).some(

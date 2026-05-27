@@ -12,6 +12,7 @@ import type {
     WorkoutRoutine,
     RoutineWithExercises,
     RoutineExercise,
+    RoutineTemplate,
     ExerciseCategory,
 } from '@/lib/pulse/types';
 
@@ -47,6 +48,9 @@ export interface PulseContextValue {
     setActiveWeek: (week: number) => void;
     activeTab: WorkoutType;
     setActiveTab: (tab: WorkoutType) => void;
+    showOnboarding: boolean;
+    triggerOnboarding: () => void;
+    dismissOnboarding: () => void;
 
     // Rest timer
     timerTrigger: number;
@@ -56,7 +60,7 @@ export interface PulseContextValue {
     exercises: DbExercise[];
     routines: RoutineWithExercises[];
     activeRoutine: RoutineWithExercises | null;
-    routineExercisesByType: Record<WorkoutType, RoutineExercise[]>;
+    routineExercisesByType: Partial<Record<WorkoutType, RoutineExercise[]>>;
 
     // Routine mutations
     createRoutine: (name: string) => Promise<WorkoutRoutine>;
@@ -68,6 +72,7 @@ export interface PulseContextValue {
         sets: string,
         reps: string,
         startingWeightKg: number | null,
+        workoutType: WorkoutType,
     ) => Promise<RoutineExercise>;
     removeExerciseFromRoutine: (routineExerciseId: string) => Promise<void>;
     updateRoutineExercise: (
@@ -77,6 +82,8 @@ export interface PulseContextValue {
         startingWeightKg: number | null,
     ) => Promise<void>;
     reorderRoutineExercises: (routineId: string, orderedIds: string[]) => Promise<void>;
+    cloneTemplate: (slug: string) => Promise<WorkoutRoutine>;
+    completeOnboarding: () => Promise<void>;
 
     // Exercise library mutations
     createExercise: (name: string, category: ExerciseCategory, defaultSets: string, defaultReps: string) => Promise<DbExercise>;
