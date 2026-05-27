@@ -26,6 +26,16 @@ export interface Profile {
     unit: Unit;
     active_routine_id: string | null;
     onboarding_completed: boolean;
+    goal_weight_kg: number | null;
+}
+
+export interface BodyMeasurement {
+    id: string;
+    measured_at: string;
+    waist_cm: number | null;
+    hips_cm: number | null;
+    chest_cm: number | null;
+    arms_cm: number | null;
 }
 
 export interface BodyweightEntry {

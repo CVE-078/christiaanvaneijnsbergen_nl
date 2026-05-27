@@ -28,7 +28,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
 
     const [logsResult, profileResult, bwResult, exercisesResult, routinesResult] = await Promise.all([
         supabase.from('set_logs').select('week, routine_exercise_id, set_idx, kg, reps, rir, saved').eq('user_id', user.id),
-        supabase.from('profiles').select('display_name, unit, active_routine_id, onboarding_completed').eq('id', user.id).single(),
+        supabase.from('profiles').select('display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg').eq('id', user.id).single(),
         supabase.from('bodyweight_logs').select('id, logged_at, weight_kg').eq('user_id', user.id).order('logged_at', { ascending: false }).limit(90),
         supabase.from('exercises').select('id, name, category, default_sets, default_reps, user_id').or(`user_id.is.null,user_id.eq.${user.id}`).order('name', { ascending: true }),
         supabase.from('workout_routines').select(`
@@ -59,6 +59,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
         unit: profileRow?.unit === 'lbs' ? 'lbs' : 'kg',
         active_routine_id: profileRow?.active_routine_id ?? null,
         onboarding_completed: profileRow?.onboarding_completed ?? false,
+        goal_weight_kg: profileRow?.goal_weight_kg ? Number(profileRow.goal_weight_kg) : null,
     };
 
     const bodyweightLogs: BodyweightEntry[] = (bwResult.data ?? []).map((r: { id: string; logged_at: string; weight_kg: number }) => ({ id: r.id, logged_at: r.logged_at, weight_kg: Number(r.weight_kg) }));

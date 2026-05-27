@@ -7,6 +7,12 @@ vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
 }));
 
+vi.mock('@/app/pulse/actions', () => ({
+    updateGoalWeight: vi.fn().mockResolvedValue(undefined),
+    logBodyMeasurement: vi.fn().mockResolvedValue(undefined),
+    logBodyWeight: vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 }),
+}));
+
 import { usePulse } from '@/context/PulseContext';
 
 const mockUpdateProfile = vi.fn().mockResolvedValue(undefined);
@@ -15,11 +21,15 @@ const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
 
 const defaultContext = {
     email: 'test@example.com',
-    profile: { display_name: 'Test User', unit: 'kg' as const },
+    profile: { display_name: 'Test User', unit: 'kg' as const, active_routine_id: null, onboarding_completed: false, goal_weight_kg: null },
     bodyweightLogs: [],
     updateProfile: mockUpdateProfile,
     logBodyWeight: mockLogBodyWeight,
     deleteBodyWeight: mockDeleteBodyWeight,
+    streak: 0,
+    prMap: {},
+    exercises: [],
+    triggerOnboarding: vi.fn(),
 };
 
 beforeEach(() => {
@@ -42,15 +52,17 @@ describe('ProfileView', () => {
         });
     });
 
-    it('displays "Today" for the current date next to the bodyweight input', () => {
+    it('renders a date picker for body weight with today as the default', () => {
         render(<ProfileView />);
-        expect(screen.getByText('Today')).toBeInTheDocument();
+        const today = new Date().toISOString().split('T')[0];
+        const datePicker = screen.getAllByDisplayValue(today);
+        expect(datePicker.length).toBeGreaterThan(0);
     });
 
     it('renders initials from displayName', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            profile: { display_name: 'John Doe', unit: 'kg' },
+            profile: { display_name: 'John Doe', unit: 'kg', active_routine_id: null, onboarding_completed: false, goal_weight_kg: null },
         } as unknown as ReturnType<typeof usePulse>);
         render(<ProfileView />);
         expect(screen.getByText('JD')).toBeInTheDocument();
@@ -59,7 +71,7 @@ describe('ProfileView', () => {
     it('renders first email letter as initials when displayName is null', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            profile: { display_name: null, unit: 'kg' },
+            profile: { display_name: null, unit: 'kg', active_routine_id: null, onboarding_completed: false, goal_weight_kg: null },
         } as unknown as ReturnType<typeof usePulse>);
         render(<ProfileView />);
         expect(screen.getByText('T')).toBeInTheDocument();

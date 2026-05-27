@@ -135,7 +135,7 @@ export async function updateProfile(
     if (error) throw new Error('Failed to update profile');
 }
 
-export async function logBodyWeight(weightKg: number): Promise<BodyweightEntry> {
+export async function logBodyWeight(weightKg: number, date?: string): Promise<BodyweightEntry> {
     if (typeof weightKg !== 'number' || isNaN(weightKg) || weightKg < 0.5 || weightKg > 500)
         throw new Error('Invalid weight');
 
@@ -145,15 +145,48 @@ export async function logBodyWeight(weightKg: number): Promise<BodyweightEntry> 
     } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
 
-    const today = new Date().toISOString().slice(0, 10);
+    const logged_at = date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().slice(0, 10);
     const { data, error } = await supabase
         .from('bodyweight_logs')
-        .upsert({ user_id: user.id, logged_at: today, weight_kg: weightKg }, { onConflict: 'user_id,logged_at' })
+        .upsert({ user_id: user.id, logged_at, weight_kg: weightKg }, { onConflict: 'user_id,logged_at' })
         .select('id, logged_at, weight_kg')
         .single();
 
     if (error || !data) throw new Error('Failed to log body weight');
     return { id: data.id, logged_at: data.logged_at, weight_kg: Number(data.weight_kg) };
+}
+
+export async function updateGoalWeight(goalWeightKg: number | null): Promise<void> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
+
+    const { error } = await supabase.from('profiles').update({ goal_weight_kg: goalWeightKg }).eq('id', user.id);
+    if (error) throw new Error('Failed to update goal weight');
+    revalidatePath('/pulse');
+}
+
+export async function logBodyMeasurement(data: {
+    measured_at?: string;
+    waist_cm?: number;
+    hips_cm?: number;
+    chest_cm?: number;
+    arms_cm?: number;
+}): Promise<void> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
+
+    const { error } = await supabase.from('body_measurements').insert({
+        user_id: user.id,
+        measured_at: data.measured_at ?? new Date().toISOString().split('T')[0],
+        waist_cm: data.waist_cm ?? null,
+        hips_cm: data.hips_cm ?? null,
+        chest_cm: data.chest_cm ?? null,
+        arms_cm: data.arms_cm ?? null,
+    });
+    if (error) throw new Error('Failed to log measurements');
+    revalidatePath('/pulse');
 }
 
 export async function deleteBodyWeight(id: string) {

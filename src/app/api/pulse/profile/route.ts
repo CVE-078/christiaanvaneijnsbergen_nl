@@ -11,7 +11,7 @@ export async function GET() {
 
     const { data } = await supabase
         .from('profiles')
-        .select('display_name, unit, active_routine_id, onboarding_completed')
+        .select('display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg')
         .eq('id', user.id)
         .single();
 
@@ -20,6 +20,7 @@ export async function GET() {
         unit: data?.unit === 'lbs' ? 'lbs' : 'kg',
         active_routine_id: data?.active_routine_id ?? null,
         onboarding_completed: data?.onboarding_completed ?? false,
+        goal_weight_kg: data?.goal_weight_kg ? Number(data.goal_weight_kg) : null,
     };
 
     return NextResponse.json(profile);

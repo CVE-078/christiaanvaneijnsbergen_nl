@@ -13,7 +13,7 @@ const mockContext = {
     activeSchedule: [],
     setActiveWeek: vi.fn(),
     logs: {},
-    profile: { unit: 'kg' as const, display_name: null, active_routine_id: null, onboarding_completed: false },
+    profile: { unit: 'kg' as const, display_name: null, active_routine_id: null, onboarding_completed: false, goal_weight_kg: null },
     prMap: {},
     updateLog: vi.fn(),
     deleteLog: vi.fn(),
