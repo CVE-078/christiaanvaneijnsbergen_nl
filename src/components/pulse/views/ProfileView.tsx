@@ -83,7 +83,7 @@ function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 
 }
 
 export default function ProfileView() {
-    const { email, profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight } = usePulse();
+    const { email, profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight, triggerOnboarding } = usePulse();
 
     const { display_name: displayName, unit } = profile;
 
@@ -213,6 +213,18 @@ export default function ProfileView() {
                             </button>
                         ))}
                     </div>
+                </div>
+
+                {/* Routine quiz */}
+                <div>
+                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
+                        Routine
+                    </div>
+                    <button
+                        onClick={triggerOnboarding}
+                        className="font-pulse text-xs text-pulse-accent bg-transparent border-none cursor-pointer underline">
+                        Retake quiz
+                    </button>
                 </div>
             </div>
             <div className="lg:flex-1 lg:min-w-0">

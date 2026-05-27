@@ -6,6 +6,7 @@ import ProgramView from './views/ProgramView';
 import HistoryView from './views/HistoryView';
 import ProfileView from './views/ProfileView';
 import LibraryView from './views/LibraryView';
+import OnboardingModal from './OnboardingModal';
 import type { View } from '@/lib/pulse/types';
 
 const NAV: { id: View; label: string }[] = [
@@ -17,7 +18,7 @@ const NAV: { id: View; label: string }[] = [
 ];
 
 export default function DesktopLayout() {
-    const { view, navigate, activeWeek, streak, saveError, handleExport } = usePulse();
+    const { view, navigate, activeWeek, streak, saveError, handleExport, showOnboarding } = usePulse();
 
     return (
         <div className="min-h-screen bg-pulse-bg text-pulse-text flex flex-col">
@@ -82,6 +83,8 @@ export default function DesktopLayout() {
                 {view === 'profile' && <ProfileView />}
                 {view === 'library' && <LibraryView />}
             </main>
+
+            {showOnboarding && <OnboardingModal />}
         </div>
     );
 }

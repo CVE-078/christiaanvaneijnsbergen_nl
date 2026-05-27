@@ -10,9 +10,10 @@ import HistoryView from './views/HistoryView';
 import ProfileView from './views/ProfileView';
 import LibraryView from './views/LibraryView';
 import BottomNav from './BottomNav';
+import OnboardingModal from './OnboardingModal';
 
 export function AppShell() {
-    const { activeWeek, streak, view, navigate, handleExport, saveError, timerTrigger } = usePulse();
+    const { activeWeek, streak, view, navigate, handleExport, saveError, timerTrigger, showOnboarding } = usePulse();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
 
     if (isDesktop) {
@@ -69,6 +70,7 @@ export function AppShell() {
                 <RestTimer trigger={timerTrigger} />
             </div>
 
+            {showOnboarding && <OnboardingModal />}
             <BottomNav view={view} onNavigate={navigate} />
         </div>
     );
