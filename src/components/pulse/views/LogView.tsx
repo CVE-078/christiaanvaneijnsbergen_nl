@@ -10,6 +10,7 @@ export default function LogView() {
         activeWeek,
         setActiveWeek,
         activeTab,
+        activeDay,
         activeSchedule,
         logs,
         profile,
@@ -92,7 +93,7 @@ export default function LogView() {
             <div
                 id={`panel-${activeTab}`}
                 role="tabpanel"
-                aria-labelledby={`tab-${activeTab}`}
+                aria-labelledby={activeSchedule.length > 0 ? `tab-day-${activeDay}` : `tab-${activeTab}`}
                 className="pt-1 px-4 pb-8 max-w-[600px] lg:max-w-[820px] mx-auto flex flex-col gap-2">
                 {routineExercises.map((re, i) => (
                     <ExerciseCard
