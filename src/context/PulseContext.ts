@@ -68,6 +68,7 @@ export interface PulseContextValue {
         sets: string,
         reps: string,
         startingWeightKg: number | null,
+        workoutType: WorkoutType,
     ) => Promise<RoutineExercise>;
     removeExerciseFromRoutine: (routineExerciseId: string) => Promise<void>;
     updateRoutineExercise: (

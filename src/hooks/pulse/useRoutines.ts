@@ -14,6 +14,7 @@ import {
 } from '@/app/pulse/actions';
 import type {
     DbExercise,
+    WorkoutType,
     WorkoutRoutine,
     RoutineWithExercises,
     RoutineExercise,
@@ -76,8 +77,9 @@ export function useRoutines(
         sets: string,
         reps: string,
         startingWeightKg: number | null,
+        workoutType: WorkoutType,
     ): Promise<RoutineExercise> => {
-        const re = await serverAddExerciseToRoutine(routineId, exerciseId, sets, reps, startingWeightKg);
+        const re = await serverAddExerciseToRoutine(routineId, exerciseId, sets, reps, startingWeightKg, workoutType);
         await mutateRoutines();
         return re;
     }, [mutateRoutines]);

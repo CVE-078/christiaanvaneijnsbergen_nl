@@ -14,11 +14,12 @@ const mockRE = (id: string): RoutineExercise => ({
     id,
     routine_id: 'r1',
     exercise_id: id,
+    workout_type: 'push',
     order: 0,
     sets: '3',
     reps: '8-12',
     starting_weight_kg: null,
-    exercise: { id, name: `Exercise ${id}`, category: 'push', default_sets: '3', default_reps: '8-12', user_id: null },
+    exercise: { id, name: `Exercise ${id}`, category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null },
 });
 
 const defaultContext = {
@@ -30,6 +31,10 @@ const defaultContext = {
         push: [mockRE('ex-1'), mockRE('ex-2'), mockRE('ex-3')],
         pull: [mockRE('ex-4')],
         legs: [],
+        chest: [],
+        back: [],
+        shoulders: [],
+        arms: [],
     },
 };
 

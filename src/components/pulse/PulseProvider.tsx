@@ -55,13 +55,16 @@ export function PulseProvider({
     const prMap = useMemo(() => computePRMap(logs), [logs]);
 
     const routineExercisesByType = useMemo((): Record<WorkoutType, RoutineExercise[]> => {
-        if (!activeRoutine) return { push: [], pull: [], legs: [] };
-        const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
-        return {
-            push: sorted.filter((re) => re.exercise.category === 'push'),
-            pull: sorted.filter((re) => re.exercise.category === 'pull'),
-            legs: sorted.filter((re) => re.exercise.category === 'legs'),
+        const empty: Record<WorkoutType, RoutineExercise[]> = {
+            push: [], pull: [], legs: [], chest: [], back: [], shoulders: [], arms: [],
         };
+        if (!activeRoutine) return empty;
+        const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
+        const result = { ...empty };
+        for (const re of sorted) {
+            result[re.workout_type].push(re);
+        }
+        return result;
     }, [activeRoutine]);
 
     const contextValue = useMemo(

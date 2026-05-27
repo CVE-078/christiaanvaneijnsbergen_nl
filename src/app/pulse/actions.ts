@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/pulse/validation';
-import type { Logs, Unit, BodyweightEntry, DbExercise, WorkoutRoutine, RoutineExercise, ExerciseCategory } from '@/lib/pulse/types';
+import type { Logs, Unit, BodyweightEntry, DbExercise, WorkoutType, WorkoutRoutine, RoutineExercise, ExerciseCategory } from '@/lib/pulse/types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -171,7 +171,9 @@ export async function deleteBodyWeight(id: string) {
 
 // ── Exercise actions ──────────────────────────────────────────────────────────
 
-const VALID_CATEGORIES: ExerciseCategory[] = ['push', 'pull', 'legs', 'other'];
+const VALID_CATEGORIES: ExerciseCategory[] = [
+  'chest','shoulders','triceps','back','biceps','legs','glutes','calves','abs','other',
+];
 
 export async function createExercise(
     name: string,
@@ -317,6 +319,7 @@ export async function addExerciseToRoutine(
     sets: string,
     reps: string,
     startingWeightKg: number | null,
+    workoutType: WorkoutType,
 ): Promise<RoutineExercise> {
     if (!UUID_RE.test(routineId)) throw new Error('Invalid routine id');
     if (!UUID_RE.test(exerciseId)) throw new Error('Invalid exercise id');
@@ -351,12 +354,13 @@ export async function addExerciseToRoutine(
         .insert({
             routine_id: routineId,
             exercise_id: exerciseId,
+            workout_type: workoutType,
             order: nextOrder,
             sets,
             reps,
             starting_weight_kg: startingWeightKg,
         })
-        .select('id, routine_id, exercise_id, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id )')
+        .select('id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id )')
         .single();
 
     if (error || !data) throw new Error('Failed to add exercise to routine');
@@ -459,4 +463,56 @@ export async function reorderRoutineExercises(
     );
     const failed = results.find((r) => r.error);
     if (failed?.error) throw new Error('Failed to reorder exercises');
+}
+
+export async function cloneTemplate(slug: string): Promise<WorkoutRoutine> {
+    if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid slug');
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
+
+    const { data: template } = await supabase
+        .from('routine_templates')
+        .select('id, name, template_exercises(exercise_id, workout_type, order, sets, reps)')
+        .eq('slug', slug)
+        .single();
+    if (!template) throw new Error('Template not found');
+
+    const { data: routine, error: routineErr } = await supabase
+        .from('workout_routines')
+        .insert({ user_id: user.id, name: template.name })
+        .select('id, user_id, name, created_at')
+        .single();
+    if (routineErr || !routine) throw new Error('Failed to create routine');
+
+    const exercises = (template as any).template_exercises as Array<{
+        exercise_id: string; workout_type: string; order: number; sets: string; reps: string;
+    }>;
+
+    if (exercises.length > 0) {
+        await supabase.from('routine_exercises').insert(
+            exercises.map((te) => ({
+                routine_id: routine.id,
+                exercise_id: te.exercise_id,
+                workout_type: te.workout_type,
+                order: te.order,
+                sets: te.sets,
+                reps: te.reps,
+                starting_weight_kg: null,
+            })),
+        );
+    }
+
+    await supabase.from('profiles').update({ active_routine_id: routine.id }).eq('id', user.id);
+    revalidatePath('/pulse');
+    return routine as WorkoutRoutine;
+}
+
+export async function completeOnboarding(): Promise<void> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
+    await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id);
+    revalidatePath('/pulse');
 }

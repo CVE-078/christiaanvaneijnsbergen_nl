@@ -2,7 +2,8 @@
 import { useEffect, useState, useTransition } from 'react';
 import { usePulse } from '@/context/PulseContext';
 import { toDisplay, toKg } from '@/lib/pulse/utils';
-import type { DbExercise, ExerciseCategory, RoutineExercise, Unit } from '@/lib/pulse/types';
+import { defaultWorkoutType } from '@/lib/pulse/types';
+import type { DbExercise, ExerciseCategory, RoutineExercise, Unit, WorkoutType } from '@/lib/pulse/types';
 
 // ── Shared styles ──────────────────────────────────────────────────────────────
 const INPUT =
@@ -14,12 +15,20 @@ const BTN_GHOST =
 const CARD = 'bg-pulse-surface border border-pulse-border rounded-xl p-4';
 const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
 
-const CATEGORIES: ExerciseCategory[] = ['push', 'pull', 'legs', 'other'];
+const CATEGORIES: ExerciseCategory[] = [
+    'chest', 'shoulders', 'triceps', 'back', 'biceps', 'legs', 'glutes', 'calves', 'abs', 'other',
+];
 
 const CATEGORY_COLOR: Record<ExerciseCategory, string> = {
-    push: 'text-orange-400',
-    pull: 'text-sky-400',
+    chest: 'text-orange-400',
+    shoulders: 'text-orange-300',
+    triceps: 'text-yellow-400',
+    back: 'text-sky-400',
+    biceps: 'text-sky-300',
     legs: 'text-violet-400',
+    glutes: 'text-violet-300',
+    calves: 'text-purple-400',
+    abs: 'text-emerald-400',
     other: 'text-pulse-dim',
 };
 
@@ -40,7 +49,7 @@ function ExercisesTab() {
     const [filter, setFilter] = useState<'all' | ExerciseCategory>('all');
     const [adding, setAdding] = useState(false);
     const [newName, setNewName] = useState('');
-    const [newCategory, setNewCategory] = useState<ExerciseCategory>('push');
+    const [newCategory, setNewCategory] = useState<ExerciseCategory>('chest');
     const [newDefaultSets, setNewDefaultSets] = useState('3');
     const [newDefaultReps, setNewDefaultReps] = useState('8-12');
 
@@ -57,7 +66,7 @@ function ExercisesTab() {
         startTransition(async () => {
             await createExercise(name, newCategory, sets, reps);
             setNewName('');
-            setNewCategory('push');
+            setNewCategory('chest');
             setNewDefaultSets('3');
             setNewDefaultReps('8-12');
             setAdding(false);
@@ -412,6 +421,8 @@ function RoutinesTab() {
         const trimmed = addWeight.trim();
         const raw = trimmed === '' ? NaN : parseFloat(trimmed);
         const kgValue = Number.isNaN(raw) ? null : toKg(raw, unit);
+        const selectedExercise = exercises.find((e) => e.id === pickExerciseId);
+        const workoutType: WorkoutType = (selectedExercise ? defaultWorkoutType(selectedExercise.category) : null) ?? 'push';
         startTransition(async () => {
             await addExerciseToRoutine(
                 activeRoutine.id,
@@ -419,6 +430,7 @@ function RoutinesTab() {
                 addSets,
                 addReps,
                 kgValue,
+                workoutType,
             );
             setPickExerciseId('');
             setAddWeight('');
