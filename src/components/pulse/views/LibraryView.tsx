@@ -4,6 +4,7 @@ import { usePulse } from '@/context/PulseContext';
 import { toDisplay, toKg } from '@/lib/pulse/utils';
 import { defaultWorkoutType } from '@/lib/pulse/types';
 import type { DbExercise, ExerciseCategory, RoutineExercise, Unit, WorkoutType } from '@/lib/pulse/types';
+import TemplatesTab from './TemplatesTab';
 
 // ── Shared styles ──────────────────────────────────────────────────────────────
 const INPUT =
@@ -20,15 +21,15 @@ const CATEGORIES: ExerciseCategory[] = [
 ];
 
 const CATEGORY_COLOR: Record<ExerciseCategory, string> = {
-    chest: 'text-orange-400',
-    shoulders: 'text-orange-300',
-    triceps: 'text-yellow-400',
+    chest: 'text-rose-400',
+    shoulders: 'text-orange-400',
+    triceps: 'text-amber-400',
     back: 'text-sky-400',
-    biceps: 'text-sky-300',
+    biceps: 'text-indigo-400',
     legs: 'text-violet-400',
-    glutes: 'text-violet-300',
-    calves: 'text-purple-400',
-    abs: 'text-emerald-400',
+    glutes: 'text-pink-400',
+    calves: 'text-teal-400',
+    abs: 'text-lime-400',
     other: 'text-pulse-dim',
 };
 
@@ -393,6 +394,15 @@ function RoutinesTab() {
     const [addSets, setAddSets] = useState('3');
     const [addReps, setAddReps] = useState('8-12');
     const [addWeight, setAddWeight] = useState('');
+    const [addWorkoutType, setAddWorkoutType] = useState<WorkoutType>('push');
+
+    const selectedEx = exercises.find((e) => e.id === pickExerciseId);
+    useEffect(() => {
+        if (selectedEx) {
+            const suggested = defaultWorkoutType(selectedEx.category as ExerciseCategory);
+            if (suggested) setAddWorkoutType(suggested);
+        }
+    }, [pickExerciseId]);
 
     function handleCreateRoutine() {
         const name = routineName.trim();
@@ -421,8 +431,6 @@ function RoutinesTab() {
         const trimmed = addWeight.trim();
         const raw = trimmed === '' ? NaN : parseFloat(trimmed);
         const kgValue = Number.isNaN(raw) ? null : toKg(raw, unit);
-        const selectedExercise = exercises.find((e) => e.id === pickExerciseId);
-        const workoutType: WorkoutType = (selectedExercise ? defaultWorkoutType(selectedExercise.category) : null) ?? 'push';
         startTransition(async () => {
             await addExerciseToRoutine(
                 activeRoutine.id,
@@ -430,10 +438,11 @@ function RoutinesTab() {
                 addSets,
                 addReps,
                 kgValue,
-                workoutType,
+                addWorkoutType,
             );
             setPickExerciseId('');
             setAddWeight('');
+            setAddWorkoutType('push');
         });
     }
 
@@ -553,6 +562,15 @@ function RoutinesTab() {
                                 </option>
                             ))}
                         </select>
+                        <select
+                            aria-label="Workout type"
+                            value={addWorkoutType}
+                            onChange={(e) => setAddWorkoutType(e.target.value as WorkoutType)}
+                            className={INPUT}>
+                            {(['push', 'pull', 'legs', 'chest', 'back', 'shoulders', 'arms'] as WorkoutType[]).map((wt) => (
+                                <option key={wt} value={wt}>{wt.charAt(0).toUpperCase() + wt.slice(1)}</option>
+                            ))}
+                        </select>
                         <div className="flex flex-wrap items-end gap-2">
                             <label className="flex flex-col gap-1">
                                 <span className={SECTION_LABEL}>Sets</span>
@@ -621,13 +639,13 @@ function RoutinesTab() {
 
 // ── LibraryView ──────────────────────────────────────────────────────────────
 export default function LibraryView() {
-    const [tab, setTab] = useState<'exercises' | 'routines'>('exercises');
+    const [tab, setTab] = useState<'exercises' | 'routines' | 'templates'>('exercises');
 
     return (
         <div className="pt-5 px-4 pb-12 max-w-[600px] lg:max-w-[820px] mx-auto flex flex-col gap-5">
             {/* Tab switcher */}
             <div className="flex gap-2" role="tablist" aria-label="Library sections">
-                {(['exercises', 'routines'] as const).map((t) => {
+                {(['exercises', 'routines', 'templates'] as const).map((t) => {
                     const active = tab === t;
                     return (
                         <button
@@ -646,7 +664,9 @@ export default function LibraryView() {
                 })}
             </div>
 
-            {tab === 'exercises' ? <ExercisesTab /> : <RoutinesTab />}
+            {tab === 'exercises' && <ExercisesTab />}
+            {tab === 'routines' && <RoutinesTab />}
+            {tab === 'templates' && <TemplatesTab />}
         </div>
     );
 }
