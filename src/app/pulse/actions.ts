@@ -491,7 +491,7 @@ export async function cloneTemplate(slug: string): Promise<WorkoutRoutine> {
     }>;
 
     if (exercises.length > 0) {
-        await supabase.from('routine_exercises').insert(
+        const { error: exErr } = await supabase.from('routine_exercises').insert(
             exercises.map((te) => ({
                 routine_id: routine.id,
                 exercise_id: te.exercise_id,
@@ -502,9 +502,15 @@ export async function cloneTemplate(slug: string): Promise<WorkoutRoutine> {
                 starting_weight_kg: null,
             })),
         );
+        if (exErr) throw new Error('Failed to clone template exercises');
     }
 
-    await supabase.from('profiles').update({ active_routine_id: routine.id }).eq('id', user.id);
+    // Side effect by design: cloning a template immediately activates it for onboarding flow.
+    const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ active_routine_id: routine.id })
+        .eq('id', user.id);
+    if (profileErr) throw new Error('Failed to activate cloned routine');
     revalidatePath('/pulse');
     return routine as WorkoutRoutine;
 }
