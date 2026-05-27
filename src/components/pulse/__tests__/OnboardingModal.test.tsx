@@ -20,6 +20,8 @@ const mockTemplates: RoutineTemplate[] = [
         required_equipment: ['dumbbells'], days_per_week: '2-3',
         experience_level: 'beginner', session_time: '30-45 min',
         description: 'One session works everything.',
+        schedule_pattern: ['full_body'],
+        default_days: [1, 3, 5],
     },
 ];
 

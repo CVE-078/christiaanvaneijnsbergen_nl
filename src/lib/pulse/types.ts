@@ -7,7 +7,15 @@ export interface LogEntry {
 
 export type Logs = Record<string, LogEntry>;
 
-export type WorkoutType = 'push' | 'pull' | 'legs' | 'chest' | 'back' | 'shoulders' | 'arms';
+export type WorkoutType =
+  | 'push' | 'pull' | 'legs'
+  | 'chest' | 'back' | 'shoulders' | 'arms'
+  | 'upper' | 'lower' | 'full_body';
+
+export interface ScheduleEntry {
+    day_of_week: number; // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
+    workout_type: WorkoutType;
+}
 
 export type Unit = 'kg' | 'lbs';
 
@@ -103,6 +111,7 @@ export interface RoutineExercise {
 
 export interface RoutineWithExercises extends WorkoutRoutine {
     exercises: RoutineExercise[];
+    schedule: ScheduleEntry[];
 }
 
 export type EquipmentKey = 'dumbbells' | 'barbell' | 'bench' | 'cables' | 'machines';
@@ -116,6 +125,8 @@ export interface RoutineTemplate {
     experience_level: 'beginner' | 'intermediate' | 'advanced';
     session_time: string;
     description: string;
+    schedule_pattern: WorkoutType[];
+    default_days: number[];
 }
 
 export function defaultWorkoutType(cat: ExerciseCategory): WorkoutType | null {

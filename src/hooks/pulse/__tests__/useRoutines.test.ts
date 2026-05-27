@@ -51,6 +51,7 @@ const defaultRoutine: RoutineWithExercises = {
     name: 'PPL',
     created_at: '2026-01-01T00:00:00Z',
     exercises: [],
+    schedule: [],
 };
 
 const defaultRoutines: RoutineWithExercises[] = [defaultRoutine];
