@@ -2,6 +2,7 @@
 import { getPhase } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import WeekSelector from '../WeekSelector';
+import SectionLabel from '../SectionLabel';
 
 const BAR_MAX_HEIGHT_PX = 44;
 
@@ -31,9 +32,7 @@ export default function ProgramView() {
             </div>
 
             <div className="mb-6">
-                <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
-                    Weekly Volume
-                </div>
+                <SectionLabel className="mb-2">Weekly Volume</SectionLabel>
                 <div className="flex items-end gap-[3px] h-[54px]">
                     {VOLUME.map(({ week, sets }) => (
                         <div key={week} className="flex-1 flex flex-col items-center gap-0.5">
@@ -49,9 +48,7 @@ export default function ProgramView() {
             </div>
 
             <div className="mb-6">
-                <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
-                    Weekly Schedule
-                </div>
+                <SectionLabel className="mb-2">Weekly Schedule</SectionLabel>
                 <div className="flex gap-[0.375rem]">
                     {SCHEDULE.map(({ day, type }) => {
                         const isRest = type === 'rest';

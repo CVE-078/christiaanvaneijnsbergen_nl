@@ -1,15 +1,8 @@
 'use client';
 import { usePulse } from '@/context/PulseContext';
 import { logKey, parseMaxSets } from '@/lib/pulse/utils';
-import type { WorkoutType } from '@/lib/pulse/types';
-
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const TYPE_LABEL: Record<WorkoutType, string> = {
-    push: 'Push', pull: 'Pull', legs: 'Legs',
-    chest: 'Chest', back: 'Back', shoulders: 'Shoulders', arms: 'Arms',
-    upper: 'Upper', lower: 'Lower', full_body: 'Full Body',
-};
+import { DAY_NAMES, WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
+import TabButton from './TabButton';
 
 export default function DayTabs() {
     const { activeDay, setActiveDay, activeSchedule, activeWeek, logs, routineExercisesByType } = usePulse();
@@ -30,33 +23,22 @@ export default function DayTabs() {
                 const total = exercises.length;
 
                 return (
-                    <button
+                    <TabButton
                         key={entry.day_of_week}
-                        role="tab"
                         id={`tab-day-${entry.day_of_week}`}
-                        aria-selected={active}
-                        aria-controls={`panel-${entry.workout_type}`}
+                        active={active}
+                        controls={`panel-${entry.workout_type}`}
                         onClick={() => setActiveDay(entry.day_of_week)}
-                        className={`relative flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl border cursor-pointer transition-all duration-150 shrink-0 ${
-                            active
-                                ? 'bg-pulse-accent/10 border-pulse-accent/25 text-pulse-accent'
-                                : 'bg-transparent border-pulse-border text-pulse-dim hover:text-pulse-text'
-                        }`}>
+                        badge={total > 0 ? `${done}/${total}` : undefined}
+                        className="relative flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl shrink-0">
                         <span className="font-pulse text-sm font-semibold">{DAY_NAMES[entry.day_of_week]}</span>
                         <span className={`font-pulse text-[0.625rem] tracking-[0.04em] ${active ? 'text-pulse-accent' : 'text-pulse-muted'}`}>
-                            {TYPE_LABEL[entry.workout_type]}
+                            {WORKOUT_TYPE_LABELS[entry.workout_type]}
                         </span>
-                        {total > 0 && (
-                            <span className={`font-pulse text-[0.625rem] rounded-full px-1.5 py-0.5 ${
-                                active ? 'bg-pulse-accent/15 text-pulse-accent' : 'bg-pulse-surface-2 text-pulse-dim'
-                            }`}>
-                                {done}/{total}
-                            </span>
-                        )}
                         {isToday && (
                             <span aria-label="today" className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pulse-accent" />
                         )}
-                    </button>
+                    </TabButton>
                 );
             })}
         </div>

@@ -3,17 +3,12 @@ import { useEffect } from 'react';
 import { logKey, parseMaxSets } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import type { WorkoutType } from '@/lib/pulse/types';
-
-const LABELS: Record<WorkoutType, string> = {
-    push: 'Push', pull: 'Pull', legs: 'Legs',
-    chest: 'Chest', back: 'Back', shoulders: 'Shoulders', arms: 'Arms',
-    upper: 'Upper', lower: 'Lower', full_body: 'Full Body',
-};
-const ORDER: WorkoutType[] = ['push','pull','legs','chest','back','shoulders','arms','upper','lower','full_body'];
+import { WORKOUT_TYPE_LABELS, WORKOUT_TYPE_ORDER } from '@/lib/pulse/constants';
+import TabButton from './TabButton';
 
 export default function WorkoutTabs() {
     const { activeTab, setActiveTab, routineExercisesByType, logs, activeWeek } = usePulse();
-    const tabs = ORDER.filter((t) => routineExercisesByType[t] !== undefined);
+    const tabs = WORKOUT_TYPE_ORDER.filter((t) => routineExercisesByType[t] !== undefined);
 
     useEffect(() => {
         if (tabs.length > 0 && !tabs.includes(activeTab as WorkoutType)) {
@@ -45,28 +40,17 @@ export default function WorkoutTabs() {
                 }).length;
                 const total = exercises.length;
                 return (
-                    <button
+                    <TabButton
                         key={type}
-                        role="tab"
                         id={`tab-${type}`}
-                        aria-selected={active}
-                        aria-controls={`panel-${type}`}
+                        active={active}
+                        controls={`panel-${type}`}
                         onClick={() => setActiveTab(type)}
                         onKeyDown={(e) => handleKeyDown(e, idx)}
-                        className={`flex items-center gap-2 py-2 px-4 rounded-full border cursor-pointer transition-all duration-150 ${
-                            active
-                                ? 'bg-pulse-accent/10 border-pulse-accent/25 text-pulse-accent'
-                                : 'bg-transparent border-pulse-border text-pulse-dim hover:text-pulse-text'
-                        }`}>
-                        <span className="font-pulse text-sm font-semibold">{LABELS[type]}</span>
-                        {total > 0 && (
-                            <span className={`font-pulse text-xs rounded-full px-1.5 py-0.5 ${
-                                active ? 'bg-pulse-accent/15 text-pulse-accent' : 'bg-pulse-surface-2 text-pulse-dim'
-                            }`}>
-                                {done}/{total}
-                            </span>
-                        )}
-                    </button>
+                        badge={total > 0 ? `${done}/${total}` : undefined}
+                        className="flex items-center gap-2 py-2 px-4 rounded-full">
+                        <span className="font-pulse text-sm font-semibold">{WORKOUT_TYPE_LABELS[type]}</span>
+                    </TabButton>
                 );
             })}
         </div>

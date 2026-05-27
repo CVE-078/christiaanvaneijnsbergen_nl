@@ -3,6 +3,7 @@ import { useTransition, useState } from 'react';
 import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import type { BodyweightEntry } from '@/lib/pulse/types';
+import SectionLabel from '../SectionLabel';
 
 function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 'kg' | 'lbs' }) {
     const sorted = [...entries].reverse().slice(-30);
@@ -191,7 +192,7 @@ export default function ProfileView() {
                             {email}
                         </div>
                         {nameSaved && !editingName && (
-                            <span className="font-pulse text-[0.6875rem] text-[#4ade80] tracking-[0.04em] mt-0.5 block">
+                            <span className="font-pulse text-[0.6875rem] text-pulse-success tracking-[0.04em] mt-0.5 block">
                                 Saved ✓
                             </span>
                         )}
@@ -200,9 +201,7 @@ export default function ProfileView() {
 
                 {/* Unit toggle */}
                 <div>
-                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
-                        Weight Unit
-                    </div>
+                    <SectionLabel className="mb-2">Weight Unit</SectionLabel>
                     <div className="flex gap-2">
                         {(['kg', 'lbs'] as const).map((u) => (
                             <button
@@ -217,9 +216,7 @@ export default function ProfileView() {
 
                 {/* Routine quiz */}
                 <div>
-                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
-                        Routine
-                    </div>
+                    <SectionLabel className="mb-2">Routine</SectionLabel>
                     <button
                         onClick={triggerOnboarding}
                         className="font-pulse text-xs text-pulse-accent bg-transparent border-none cursor-pointer underline">
@@ -230,9 +227,7 @@ export default function ProfileView() {
             <div className="lg:flex-1 lg:min-w-0">
                 {/* Body weight */}
                 <div>
-                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
-                        Body Weight
-                    </div>
+                    <SectionLabel className="mb-3">Body Weight</SectionLabel>
                     <div className="flex gap-2 items-start mb-[0.875rem]">
                         <div className="flex-1">
                             <div className="flex gap-2 items-center">
@@ -251,11 +246,11 @@ export default function ProfileView() {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleLogBodyweight();
                                     }}
-                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-pulse-bg rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-[#f43f5e]' : 'border-pulse-border'}`}
+                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-pulse-bg rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-pulse-error' : 'border-pulse-border'}`}
                                 />
                                 <span className="font-pulse text-[0.8125rem] text-pulse-dim">{fmtDate(today)}</span>
                             </div>
-                            {bwError && <div className="font-pulse text-[0.75rem] text-[#f43f5e] mt-1">{bwError}</div>}
+                            {bwError && <div className="font-pulse text-[0.75rem] text-pulse-error mt-1">{bwError}</div>}
                         </div>
                         <button
                             onClick={handleLogBodyweight}
