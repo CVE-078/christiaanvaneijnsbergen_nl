@@ -32,13 +32,20 @@ beforeEach(() => {
 });
 
 describe('DayTabs', () => {
-    it('renders a tab for each scheduled day', () => {
+    it('renders all 7 days, with non-training days disabled', () => {
         render(<DayTabs />);
         expect(screen.getByRole('tab', { name: /mon/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /tue/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /thu/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /fri/i })).toBeInTheDocument();
-        expect(screen.queryByRole('tab', { name: /wed/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /wed/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /wed/i })).toBeDisabled();
+    });
+
+    it('shows "Rest" label for non-training days', () => {
+        render(<DayTabs />);
+        const wedTab = screen.getByRole('tab', { name: /wed/i });
+        expect(wedTab).toHaveTextContent('Rest');
     });
 
     it('marks the active day tab as aria-selected', () => {

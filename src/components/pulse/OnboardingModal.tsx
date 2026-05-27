@@ -187,7 +187,7 @@ export default function OnboardingModal() {
                 <Header stepNum={5} onBack={() => setStep(4)} />
                 <p className={Q}>Which days will you train?</p>
                 <div className="flex gap-2 flex-wrap">
-                    {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                    {[1, 2, 3, 4, 5, 6, 0].map((d) => (
                         <button
                             key={d}
                             onClick={() =>
