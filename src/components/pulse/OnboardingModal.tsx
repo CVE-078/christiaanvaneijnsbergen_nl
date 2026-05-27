@@ -88,7 +88,11 @@ export default function OnboardingModal() {
         setLoading(true);
         void startTransition(() => {
             void (async () => {
-                await cloneTemplate(slug, trainingDays.length > 0 ? trainingDays : undefined);
+                await cloneTemplate(
+                    slug,
+                    trainingDays.length > 0 ? trainingDays : undefined,
+                    sessionTime ?? undefined,
+                );
                 await completeOnboarding();
                 dismissOnboarding();
                 navigate('train');

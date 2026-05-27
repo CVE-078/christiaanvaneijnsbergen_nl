@@ -85,7 +85,7 @@ export interface PulseContextValue {
         startingWeightKg: number | null,
     ) => Promise<void>;
     reorderRoutineExercises: (routineId: string, orderedIds: string[]) => Promise<void>;
-    cloneTemplate: (slug: string, trainingDays?: number[]) => Promise<WorkoutRoutine>;
+    cloneTemplate: (slug: string, trainingDays?: number[], sessionTime?: string) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
 
     // Exercise library mutations

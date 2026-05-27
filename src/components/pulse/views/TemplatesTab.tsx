@@ -41,8 +41,12 @@ export default function TemplatesTab() {
             routines.length > 0 &&
             !window.confirm(`This will replace your active routine with "${t.name}". Continue?`)
         ) return;
+        const sessionTime = window.prompt(
+            'How long are your sessions?\nEnter: ~30 min | 45–60 min | 90+ min',
+            '45–60 min',
+        );
         setLoading(t.slug);
-        await cloneTemplate(t.slug);
+        await cloneTemplate(t.slug, undefined, sessionTime ?? undefined);
         navigate('train');
         setLoading(null);
     }

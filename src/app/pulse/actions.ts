@@ -465,7 +465,35 @@ export async function reorderRoutineExercises(
     if (failed?.error) throw new Error('Failed to reorder exercises');
 }
 
-export async function cloneTemplate(slug: string, trainingDays?: number[]): Promise<WorkoutRoutine> {
+function adjustSets(sets: string, delta: number): string {
+    const parts = sets.split('-').map(Number);
+    if (parts.length === 1) {
+        return String(Math.min(5, Math.max(2, parts[0] + delta)));
+    }
+    return `${Math.min(5, Math.max(2, parts[0] + delta))}-${Math.min(5, Math.max(2, parts[1] + delta))}`;
+}
+
+function applyVolume(
+    exercises: Array<{ exercise_id: string; workout_type: string; order: number; sets: string; reps: string }>,
+    sessionTime: string,
+): typeof exercises {
+    if (sessionTime === '~30 min') {
+        const groups: Record<string, typeof exercises> = {};
+        for (const ex of exercises) {
+            groups[ex.workout_type] = groups[ex.workout_type] ?? [];
+            groups[ex.workout_type].push(ex);
+        }
+        return Object.values(groups)
+            .flatMap((group) => group.slice(0, 4))
+            .map((ex) => ({ ...ex, sets: adjustSets(ex.sets, -1) }));
+    }
+    if (sessionTime === '90+ min') {
+        return exercises.map((ex) => ({ ...ex, sets: adjustSets(ex.sets, 1) }));
+    }
+    return exercises;
+}
+
+export async function cloneTemplate(slug: string, trainingDays?: number[], sessionTime?: string): Promise<WorkoutRoutine> {
     if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid slug');
 
     const supabase = await createClient();
@@ -486,9 +514,10 @@ export async function cloneTemplate(slug: string, trainingDays?: number[]): Prom
         .single();
     if (routineErr || !routine) throw new Error('Failed to create routine');
 
-    const exercises = (template as any).template_exercises as Array<{
+    const rawExercises = (template as any).template_exercises as Array<{
         exercise_id: string; workout_type: string; order: number; sets: string; reps: string;
     }>;
+    const exercises = sessionTime ? applyVolume(rawExercises, sessionTime) : rawExercises;
 
     if (exercises.length > 0) {
         const { error: exErr } = await supabase.from('routine_exercises').insert(

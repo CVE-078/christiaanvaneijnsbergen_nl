@@ -60,10 +60,11 @@ describe('TemplatesTab', () => {
     });
 
     it('clones template and navigates when no active routine', async () => {
+        vi.spyOn(window, 'prompt').mockReturnValue('45–60 min');
         render(<TemplatesTab />);
         const buttons = screen.getAllByText('Use this');
         fireEvent.click(buttons[0]);
-        await waitFor(() => expect(mockCloneTemplate).toHaveBeenCalledWith('full-body-db'));
+        await waitFor(() => expect(mockCloneTemplate).toHaveBeenCalledWith('full-body-db', undefined, '45–60 min'));
         expect(mockNavigate).toHaveBeenCalledWith('train');
     });
 
