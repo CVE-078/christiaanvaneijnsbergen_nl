@@ -1,4 +1,5 @@
-﻿import { VOLUME, WEEK_NOTES } from '@/lib/pulse/data';
+﻿'use client';
+import { VOLUME, WEEK_NOTES } from '@/lib/pulse/data';
 import { getPhase } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';

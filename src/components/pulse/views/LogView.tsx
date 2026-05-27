@@ -1,3 +1,4 @@
+'use client';
 import { logKey, getPhase, getRIR, weekHasData, parseMaxSets } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
