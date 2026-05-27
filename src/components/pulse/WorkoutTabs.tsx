@@ -26,7 +26,7 @@ export default function WorkoutTabs() {
         <div role="tablist" className="flex items-center gap-1.5 p-4 pb-3">
             {TABS.map(({ type, label }, idx) => {
                 const active = activeTab === type;
-                const exercises = routineExercisesByType[type];
+                const exercises = routineExercisesByType[type] ?? [];
                 const done = exercises.filter((re) => {
                     const maxSets = parseMaxSets(re.sets);
                     return Array.from({ length: maxSets }, (_, s) => logKey(activeWeek, re.id, s)).every(

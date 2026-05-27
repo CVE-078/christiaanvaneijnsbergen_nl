@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { PulseContext } from '@/context/PulseContext';
 import { useWorkoutLogs } from '@/hooks/pulse/useWorkoutLogs';
 import { useProfile } from '@/hooks/pulse/useProfile';
@@ -34,19 +34,12 @@ export function PulseProvider({
         initialBodyweightLogs,
     );
     const {
-        exercises,
-        routines,
-        activeRoutine,
-        createRoutine,
-        deleteRoutine,
-        setActiveRoutine,
-        addExerciseToRoutine,
-        removeExerciseFromRoutine,
-        updateRoutineExercise,
-        reorderRoutineExercises,
-        createExercise,
-        updateExercise,
-        deleteExercise,
+        exercises, routines, activeRoutine,
+        createRoutine, deleteRoutine, setActiveRoutine,
+        addExerciseToRoutine, removeExerciseFromRoutine,
+        updateRoutineExercise, reorderRoutineExercises,
+        cloneTemplate, completeOnboarding,
+        createExercise, updateExercise, deleteExercise,
     } = useRoutines(initialExercises, initialRoutines, profile.active_routine_id);
     const { view, navigate, activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
     const { timerTrigger, fireTrigger } = useRestTimer();
@@ -54,15 +47,19 @@ export function PulseProvider({
     const streak = useMemo(() => computeStreak(logs), [logs]);
     const prMap = useMemo(() => computePRMap(logs), [logs]);
 
-    const routineExercisesByType = useMemo((): Record<WorkoutType, RoutineExercise[]> => {
-        const empty: Record<WorkoutType, RoutineExercise[]> = {
-            push: [], pull: [], legs: [], chest: [], back: [], shoulders: [], arms: [],
-        };
-        if (!activeRoutine) return empty;
+    const [onboardingOverride, setOnboardingOverride] = useState<boolean | null>(null);
+    const showOnboarding = onboardingOverride ??
+        (!profile.onboarding_completed && routines.length === 0);
+    const triggerOnboarding = useCallback(() => setOnboardingOverride(true), []);
+    const dismissOnboarding = useCallback(() => setOnboardingOverride(false), []);
+
+    const routineExercisesByType = useMemo((): Partial<Record<WorkoutType, RoutineExercise[]>> => {
+        if (!activeRoutine) return {};
         const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
-        const result = { ...empty };
+        const result: Partial<Record<WorkoutType, RoutineExercise[]>> = {};
         for (const re of sorted) {
-            result[re.workout_type].push(re);
+            const type = re.workout_type;
+            (result[type] ??= []).push(re);
         }
         return result;
     }, [activeRoutine]);
@@ -102,9 +99,14 @@ export function PulseProvider({
             removeExerciseFromRoutine,
             updateRoutineExercise,
             reorderRoutineExercises,
+            cloneTemplate,
+            completeOnboarding,
             createExercise,
             updateExercise,
             deleteExercise,
+            showOnboarding,
+            triggerOnboarding,
+            dismissOnboarding,
         }),
         [
             logs,
@@ -139,9 +141,14 @@ export function PulseProvider({
             removeExerciseFromRoutine,
             updateRoutineExercise,
             reorderRoutineExercises,
+            cloneTemplate,
+            completeOnboarding,
             createExercise,
             updateExercise,
             deleteExercise,
+            showOnboarding,
+            triggerOnboarding,
+            dismissOnboarding,
         ],
     );
 

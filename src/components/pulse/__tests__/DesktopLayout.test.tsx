@@ -34,9 +34,14 @@ const mockContext = {
     removeExerciseFromRoutine: vi.fn(),
     updateRoutineExercise: vi.fn(),
     reorderRoutineExercises: vi.fn(),
+    cloneTemplate: vi.fn(),
+    completeOnboarding: vi.fn(),
     createExercise: vi.fn(),
     updateExercise: vi.fn(),
     deleteExercise: vi.fn(),
+    showOnboarding: false,
+    triggerOnboarding: vi.fn(),
+    dismissOnboarding: vi.fn(),
 };
 
 vi.mock('@/context/PulseContext', () => ({
