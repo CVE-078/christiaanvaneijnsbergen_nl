@@ -3,6 +3,7 @@ import { useTransition, useState } from 'react';
 import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import type { BodyweightEntry } from '@/lib/pulse/types';
+import SectionLabel from '../SectionLabel';
 
 function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 'kg' | 'lbs' }) {
     const sorted = [...entries].reverse().slice(-30);
@@ -200,9 +201,7 @@ export default function ProfileView() {
 
                 {/* Unit toggle */}
                 <div>
-                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
-                        Weight Unit
-                    </div>
+                    <SectionLabel className="mb-2">Weight Unit</SectionLabel>
                     <div className="flex gap-2">
                         {(['kg', 'lbs'] as const).map((u) => (
                             <button
@@ -217,9 +216,7 @@ export default function ProfileView() {
 
                 {/* Routine quiz */}
                 <div>
-                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-2">
-                        Routine
-                    </div>
+                    <SectionLabel className="mb-2">Routine</SectionLabel>
                     <button
                         onClick={triggerOnboarding}
                         className="font-pulse text-xs text-pulse-accent bg-transparent border-none cursor-pointer underline">
@@ -230,9 +227,7 @@ export default function ProfileView() {
             <div className="lg:flex-1 lg:min-w-0">
                 {/* Body weight */}
                 <div>
-                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-3">
-                        Body Weight
-                    </div>
+                    <SectionLabel className="mb-3">Body Weight</SectionLabel>
                     <div className="flex gap-2 items-start mb-[0.875rem]">
                         <div className="flex-1">
                             <div className="flex gap-2 items-center">
