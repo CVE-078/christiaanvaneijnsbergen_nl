@@ -49,7 +49,7 @@ export default function LogView() {
                     Create a routine in the Library to start logging your workouts.
                 </div>
                 <button
-                    onClick={() => navigate('library')}
+                    onClick={() => navigate('explore')}
                     className="font-pulse text-sm font-semibold bg-pulse-accent text-black rounded-lg px-5 py-2.5 cursor-pointer border-none">
                     Go to Library
                 </button>

@@ -107,7 +107,7 @@ describe('OnboardingModal', () => {
         advanceToResult();
         await screen.findByText(/Recommended for you/i);
         fireEvent.click(screen.getByText('Not quite right? Browse all templates'));
-        expect(mockNavigate).toHaveBeenCalledWith('library');
+        expect(mockNavigate).toHaveBeenCalledWith('explore');
         expect(mockDismissOnboarding).toHaveBeenCalled();
     });
 

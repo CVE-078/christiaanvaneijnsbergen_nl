@@ -64,7 +64,7 @@ describe('TemplatesTab', () => {
         const buttons = screen.getAllByText('Use this');
         fireEvent.click(buttons[0]);
         await waitFor(() => expect(mockCloneTemplate).toHaveBeenCalledWith('full-body-db'));
-        expect(mockNavigate).toHaveBeenCalledWith('log');
+        expect(mockNavigate).toHaveBeenCalledWith('train');
     });
 
     it('shows confirm dialog when user already has a routine', async () => {

@@ -43,7 +43,7 @@ export default function TemplatesTab() {
         ) return;
         setLoading(t.slug);
         await cloneTemplate(t.slug);
-        navigate('log');
+        navigate('train');
         setLoading(null);
     }
 

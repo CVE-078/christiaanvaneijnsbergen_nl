@@ -1,24 +1,25 @@
 'use client';
 import { logout } from '@/app/pulse/actions';
 import { usePulse } from '@/context/PulseContext';
-import LogView from './views/LogView';
-import ProgramView from './views/ProgramView';
-import HistoryView from './views/HistoryView';
-import ProfileView from './views/ProfileView';
-import LibraryView from './views/LibraryView';
 import OnboardingModal from './OnboardingModal';
 import type { View } from '@/lib/pulse/types';
 
 const NAV: { id: View; label: string }[] = [
-    { id: 'log', label: 'Log' },
-    { id: 'program', label: 'Program' },
-    { id: 'history', label: 'History' },
+    { id: 'train', label: 'Train' },
+    { id: 'plan', label: 'Plan' },
+    { id: 'progress', label: 'Progress' },
     { id: 'profile', label: 'Profile' },
-    { id: 'library', label: 'Library' },
+    { id: 'explore', label: 'Explore' },
 ];
 
-export default function DesktopLayout() {
-    const { view, navigate, activeWeek, streak, saveError, handleExport, showOnboarding } = usePulse();
+interface Props {
+    view: View;
+    navigate: (v: View) => void;
+    children: React.ReactNode;
+}
+
+export default function DesktopLayout({ view, navigate, children }: Props) {
+    const { activeWeek, streak, saveError, handleExport, showOnboarding } = usePulse();
 
     return (
         <div className="min-h-screen bg-pulse-bg text-pulse-text flex flex-col">
@@ -77,11 +78,7 @@ export default function DesktopLayout() {
             )}
 
             <main className="flex-1 overflow-auto">
-                {view === 'log' && <LogView />}
-                {view === 'program' && <ProgramView />}
-                {view === 'history' && <HistoryView />}
-                {view === 'profile' && <ProfileView />}
-                {view === 'library' && <LibraryView />}
+                {children}
             </main>
 
             {showOnboarding && <OnboardingModal />}

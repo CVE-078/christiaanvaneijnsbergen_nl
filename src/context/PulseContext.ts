@@ -43,7 +43,6 @@ export interface PulseContextValue {
     deleteBodyWeight: (id: string) => Promise<void>;
 
     // UI state
-    view: View;
     navigate: (view: View) => void;
     activeWeek: number;
     setActiveWeek: (week: number) => void;

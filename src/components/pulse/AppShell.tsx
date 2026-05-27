@@ -1,23 +1,19 @@
-﻿'use client';
+'use client';
 import { logout } from '@/app/pulse/actions';
 import { usePulse } from '@/context/PulseContext';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
 import DesktopLayout from './DesktopLayout';
 import RestTimer from './RestTimer';
-import LogView from './views/LogView';
-import ProgramView from './views/ProgramView';
-import HistoryView from './views/HistoryView';
-import ProfileView from './views/ProfileView';
-import LibraryView from './views/LibraryView';
 import BottomNav from './BottomNav';
 import OnboardingModal from './OnboardingModal';
+import type { View } from '@/lib/pulse/types';
 
-export function AppShell() {
-    const { activeWeek, streak, view, navigate, handleExport, saveError, timerTrigger, showOnboarding } = usePulse();
+export function AppShell({ view, navigate, children }: { view: View; navigate: (v: View) => void; children: React.ReactNode }) {
+    const { activeWeek, streak, handleExport, saveError, timerTrigger, showOnboarding } = usePulse();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
 
     if (isDesktop) {
-        return <DesktopLayout />;
+        return <DesktopLayout view={view} navigate={navigate}>{children}</DesktopLayout>;
     }
 
     return (
@@ -59,11 +55,8 @@ export function AppShell() {
                 </div>
             )}
 
-            {view === 'log' && <LogView />}
-            {view === 'program' && <ProgramView />}
-            {view === 'history' && <HistoryView />}
-            {view === 'profile' && <ProfileView />}
-            {view === 'library' && <LibraryView />}
+            {/* Page content comes from routing */}
+            <div className="pb-16">{children}</div>
 
             {/* Rest timer fixed above bottom nav — avoids layout shift in LogView */}
             <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-pulse-border">

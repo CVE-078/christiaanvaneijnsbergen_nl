@@ -91,7 +91,7 @@ export default function OnboardingModal() {
                 await cloneTemplate(slug, trainingDays.length > 0 ? trainingDays : undefined);
                 await completeOnboarding();
                 dismissOnboarding();
-                navigate('log');
+                navigate('train');
                 setLoading(false);
             })();
         });
@@ -254,7 +254,7 @@ export default function OnboardingModal() {
                                 {loading ? 'Setting up…' : 'Start with this routine'}
                             </button>
                             <button
-                                onClick={() => { navigate('library'); dismissOnboarding(); }}
+                                onClick={() => { navigate('explore'); dismissOnboarding(); }}
                                 className="font-pulse text-xs text-pulse-accent text-center bg-transparent border-none cursor-pointer">
                                 Not quite right? Browse all templates
                             </button>

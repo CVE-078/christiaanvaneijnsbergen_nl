@@ -13,7 +13,7 @@ export default function ProgramView() {
 
     function handleSelectWeek(w: number) {
         setActiveWeek(w);
-        navigate('log');
+        navigate('train');
     }
 
     return (

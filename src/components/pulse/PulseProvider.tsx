@@ -7,7 +7,7 @@ import { useRoutines } from '@/hooks/pulse/useRoutines';
 import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { computeStreak, computePRMap } from '@/lib/pulse/utils';
-import type { Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, ScheduleEntry } from '@/lib/pulse/types';
+import type { Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, ScheduleEntry, View } from '@/lib/pulse/types';
 
 interface Props {
     initialLogs: Logs;
@@ -16,6 +16,7 @@ interface Props {
     initialExercises: DbExercise[];
     initialRoutines: RoutineWithExercises[];
     email: string;
+    navigate: (view: View) => void;
     children: React.ReactNode;
 }
 
@@ -26,6 +27,7 @@ export function PulseProvider({
     initialExercises,
     initialRoutines,
     email,
+    navigate,
     children,
 }: Props) {
     const { logs, saveError, updateLog, deleteLog, handleExport } = useWorkoutLogs(initialLogs);
@@ -41,7 +43,7 @@ export function PulseProvider({
         cloneTemplate, completeOnboarding,
         createExercise, updateExercise, deleteExercise,
     } = useRoutines(initialExercises, initialRoutines, profile.active_routine_id);
-    const { view, navigate, activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
+    const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
     const { timerTrigger, fireTrigger } = useRestTimer();
 
     const streak = useMemo(() => computeStreak(logs), [logs]);
@@ -108,7 +110,6 @@ export function PulseProvider({
             updateProfile,
             logBodyWeight,
             deleteBodyWeight,
-            view,
             navigate,
             activeWeek,
             setActiveWeek,
@@ -153,7 +154,6 @@ export function PulseProvider({
             updateProfile,
             logBodyWeight,
             deleteBodyWeight,
-            view,
             navigate,
             activeWeek,
             setActiveWeek,

@@ -7,17 +7,6 @@ beforeEach(() => {
 });
 
 describe('useUIState', () => {
-    it('starts on the log view', () => {
-        const { result } = renderHook(() => useUIState());
-        expect(result.current.view).toBe('log');
-    });
-
-    it('navigate changes the view', () => {
-        const { result } = renderHook(() => useUIState());
-        act(() => result.current.navigate('profile'));
-        expect(result.current.view).toBe('profile');
-    });
-
     it('activeWeek defaults to 1', () => {
         const { result } = renderHook(() => useUIState());
         expect(result.current.activeWeek).toBe(1);
