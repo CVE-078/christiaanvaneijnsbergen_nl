@@ -13,6 +13,7 @@ import {
     computeVolumeByTypeAndWeek,
     computeE1RMHistory,
     computeBestSets,
+    computeLastSession,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType } from '../types';
 
@@ -380,5 +381,69 @@ describe('computeBestSets', () => {
         const result = computeBestSets(logs);
         expect(result[UUID_A].kg).toBe(60);
         expect(result[UUID_B].kg).toBe(40);
+    });
+});
+
+describe('computeLastSession', () => {
+    const UUID_A = 'aaaaaaaa-0000-4000-8000-000000000001';
+    const UUID_B = 'bbbbbbbb-0000-4000-8000-000000000002';
+
+    it('returns null when logs are empty', () => {
+        expect(computeLastSession({}, UUID_A, 2)).toBeNull();
+    });
+
+    it('returns null when currentWeek is 1 (no previous weeks possible)', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 80, reps: 8, rir: 2, saved: true },
+        };
+        expect(computeLastSession(logs, UUID_A, 1)).toBeNull();
+    });
+
+    it('returns null when only the current week has data for this exercise', () => {
+        const logs: Logs = {
+            [`2-${UUID_A}-0`]: { kg: 80, reps: 8, rir: 2, saved: true },
+        };
+        expect(computeLastSession(logs, UUID_A, 2)).toBeNull();
+    });
+
+    it('returns the previous week session data', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 80, reps: 8, rir: 2, saved: true },
+            [`1-${UUID_A}-1`]: { kg: 80, reps: 8, rir: 2, saved: true },
+            [`1-${UUID_A}-2`]: { kg: 75, reps: 10, rir: 3, saved: true },
+        };
+        const result = computeLastSession(logs, UUID_A, 2);
+        expect(result).toEqual({ kg: 80, reps: 8, setCount: 3 });
+    });
+
+    it('picks the most recent previous week when multiple weeks have data', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 10, rir: 3, saved: true },
+            [`3-${UUID_A}-0`]: { kg: 80, reps: 8, rir: 2, saved: true },
+        };
+        const result = computeLastSession(logs, UUID_A, 4);
+        expect(result).toEqual({ kg: 80, reps: 8, setCount: 1 });
+    });
+
+    it('ignores unsaved sets', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 80, reps: 8, rir: 2, saved: false },
+        };
+        expect(computeLastSession(logs, UUID_A, 2)).toBeNull();
+    });
+
+    it('ignores data for other exercises', () => {
+        const logs: Logs = {
+            [`1-${UUID_B}-0`]: { kg: 80, reps: 8, rir: 2, saved: true },
+        };
+        expect(computeLastSession(logs, UUID_A, 2)).toBeNull();
+    });
+
+    it('returns null if all previous-week sets for this exercise are unsaved', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 80, reps: 8, rir: 2, saved: false },
+            [`1-${UUID_A}-1`]: { kg: 80, reps: 8, rir: 2, saved: false },
+        };
+        expect(computeLastSession(logs, UUID_A, 2)).toBeNull();
     });
 });

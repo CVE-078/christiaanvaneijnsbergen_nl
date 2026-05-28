@@ -191,3 +191,29 @@ export function computeBestSets(logs: Logs): Record<string, BestSet> {
     }
     return best;
 }
+
+export function computeLastSession(
+    logs: Logs,
+    routineExerciseId: string,
+    currentWeek: number,
+): { kg: number; reps: number; setCount: number } | null {
+    const byWeek = new Map<number, Array<{ kg: number; reps: number }>>();
+
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const firstDash = key.indexOf('-');
+        const lastDash = key.lastIndexOf('-');
+        if (firstDash === -1 || firstDash === lastDash) continue;
+        const week = parseInt(key.slice(0, firstDash), 10);
+        if (isNaN(week) || week >= currentWeek) continue;
+        const rid = key.slice(firstDash + 1, lastDash);
+        if (rid !== routineExerciseId) continue;
+        if (!byWeek.has(week)) byWeek.set(week, []);
+        byWeek.get(week)!.push({ kg: val.kg, reps: val.reps });
+    }
+
+    if (byWeek.size === 0) return null;
+    const latestWeek = Math.max(...byWeek.keys());
+    const sets = byWeek.get(latestWeek)!;
+    return { kg: sets[0].kg, reps: sets[0].reps, setCount: sets.length };
+}
