@@ -32,6 +32,8 @@ const defaultProps = {
     unit: 'kg' as const,
     onSave: () => {},
     onDelete: () => {},
+    onSaveNote: vi.fn().mockResolvedValue(undefined),
+    onDeleteNote: vi.fn().mockResolvedValue(undefined),
 };
 
 // '3-4' → parseMaxSets returns 4 (takes upper bound)
@@ -77,5 +79,17 @@ describe('ExerciseCard', () => {
         await userEvent.type(repsInputs[0], '10');
         await userEvent.click(screen.getAllByRole('button', { name: /save/i })[0]);
         expect(onSave).toHaveBeenCalledWith(`1-${RE_ID}-0`, expect.objectContaining({ kg: 60, reps: 10, saved: true }));
+    });
+
+    it('shows "+ Add note" button when card is expanded and no note exists', async () => {
+        render(<ExerciseCard {...defaultProps} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        expect(screen.getByRole('button', { name: /\+ add note/i })).toBeInTheDocument();
+    });
+
+    it('shows the note text when a note is provided and card is expanded', async () => {
+        render(<ExerciseCard {...defaultProps} note="Left shoulder tight" />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        expect(screen.getByText('Left shoulder tight')).toBeInTheDocument();
     });
 });

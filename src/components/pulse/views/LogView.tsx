@@ -22,6 +22,9 @@ export default function LogView() {
         updateLog,
         deleteLog,
         fireTrigger,
+        notes,
+        saveNote,
+        deleteNote,
     } = usePulse();
 
     const rir = getRIR(activeWeek);
@@ -107,6 +110,9 @@ export default function LogView() {
                         unit={unit}
                         onSave={handleSave}
                         onDelete={deleteLog}
+                        note={notes[`${activeWeek}-${re.id}`]}
+                        onSaveNote={(n) => saveNote(activeWeek, re.id, n)}
+                        onDeleteNote={() => deleteNote(activeWeek, re.id)}
                     />
                 ))}
                 {!hasData && (

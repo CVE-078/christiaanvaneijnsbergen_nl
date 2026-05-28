@@ -14,10 +14,15 @@ interface Props {
     unit: Unit;
     onSave: (key: string, entry: LogEntry) => void;
     onDelete: (key: string) => void;
+    note?: string;
+    onSaveNote: (note: string) => Promise<void>;
+    onDeleteNote: () => Promise<void>;
 }
 
-export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, prMap, unit, onSave, onDelete }: Props) {
+export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, prMap, unit, onSave, onDelete, note, onSaveNote, onDeleteNote }: Props) {
     const [open, setOpen] = useState(false);
+    const [noteEditing, setNoteEditing] = useState(false);
+    const [noteDraft, setNoteDraft] = useState('');
     const maxSets = parseMaxSets(re.sets);
     const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, re.id, i)).filter(
         (k) => logs[k]?.saved,
@@ -121,6 +126,49 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                             />
                         );
                     })}
+                    <div className="border-t border-pulse-border pt-3 mt-1">
+                        {noteEditing ? (
+                            <textarea
+                                autoFocus
+                                value={noteDraft}
+                                onChange={(e) => setNoteDraft(e.target.value)}
+                                onBlur={async () => {
+                                    setNoteEditing(false);
+                                    const trimmed = noteDraft.trim();
+                                    if (trimmed) {
+                                        await onSaveNote(trimmed);
+                                    } else {
+                                        await onDeleteNote();
+                                    }
+                                }}
+                                placeholder="Add a note for this exercise…"
+                                maxLength={500}
+                                className="w-full bg-pulse-bg border border-pulse-border rounded-lg text-pulse-text font-pulse text-[0.8125rem] px-3 py-2 resize-none min-h-[60px] outline-none focus:border-pulse-accent/50"
+                            />
+                        ) : note ? (
+                            <div>
+                                <p className="font-pulse text-[0.8125rem] text-pulse-dim leading-relaxed">{note}</p>
+                                <div className="flex gap-3 mt-1 justify-end">
+                                    <button
+                                        onClick={() => { setNoteDraft(note); setNoteEditing(true); }}
+                                        className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer">
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={onDeleteNote}
+                                        className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer">
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => { setNoteDraft(''); setNoteEditing(true); }}
+                                className="w-full text-left font-pulse text-[0.8125rem] text-pulse-dim border border-dashed border-pulse-border rounded-lg px-3 py-2 cursor-pointer bg-transparent tracking-[0.02em]">
+                                + Add note
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
