@@ -339,8 +339,7 @@ export async function setActiveRoutine(routineId: string | null): Promise<void> 
 
     const { error } = await supabase
         .from('profiles')
-        .update({ active_routine_id: routineId })
-        .eq('id', user.id);
+        .upsert({ id: user.id, active_routine_id: routineId }, { onConflict: 'id' });
     if (error) throw new Error('Failed to set active routine');
 }
 
@@ -586,8 +585,7 @@ export async function cloneTemplate(slug: string, trainingDays?: number[], sessi
     // Set as active routine
     const { error: profileErr } = await supabase
         .from('profiles')
-        .update({ active_routine_id: routine.id })
-        .eq('id', user.id);
+        .upsert({ id: user.id, active_routine_id: routine.id }, { onConflict: 'id' });
     if (profileErr) throw new Error('Failed to set active routine');
 
     revalidatePath('/pulse');
@@ -598,6 +596,6 @@ export async function completeOnboarding(): Promise<void> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
-    await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id);
+    await supabase.from('profiles').upsert({ id: user.id, onboarding_completed: true }, { onConflict: 'id' });
     revalidatePath('/pulse');
 }
