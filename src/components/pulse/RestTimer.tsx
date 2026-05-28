@@ -30,7 +30,7 @@ function beep() {
     }
 }
 
-export default function RestTimer({ trigger }: Props) {
+export default function RestTimer({ trigger, duration }: Props) {
     const [durationIdx, setDurationIdx] = useState(() => {
         if (typeof window === 'undefined') return DEFAULT_IDX;
         const raw = localStorage.getItem('pulse_timer_idx') ?? localStorage.getItem('wt_timer_idx');
@@ -42,8 +42,9 @@ export default function RestTimer({ trigger }: Props) {
 
     useEffect(() => {
         if (trigger === 0) return;
-        totalRef.current = DURATIONS[durationIdx];
-        setRemaining(DURATIONS[durationIdx]);
+        const start = duration ?? DURATIONS[durationIdx];
+        totalRef.current = start;
+        setRemaining(start);
     }, [trigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {

@@ -23,4 +23,9 @@ describe('RestTimer', () => {
         render(<RestTimer trigger={1} />);
         expect(screen.getByText('3:00')).toBeInTheDocument();
     });
+
+    it('starts at the provided duration when duration prop is given', () => {
+        render(<RestTimer trigger={1} duration={120} />);
+        expect(screen.getByText('2:00')).toBeInTheDocument();
+    });
 });
