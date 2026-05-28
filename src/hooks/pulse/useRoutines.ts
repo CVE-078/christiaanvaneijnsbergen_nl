@@ -96,8 +96,9 @@ export function useRoutines(
         sets: string,
         reps: string,
         startingWeightKg: number | null,
+        restSeconds: number | null,
     ): Promise<void> => {
-        await serverUpdateRoutineExercise(routineExerciseId, sets, reps, startingWeightKg);
+        await serverUpdateRoutineExercise(routineExerciseId, sets, reps, startingWeightKg, restSeconds);
         await mutateRoutines();
     }, [mutateRoutines]);
 

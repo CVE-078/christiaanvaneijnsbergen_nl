@@ -216,10 +216,10 @@ describe('useRoutines', () => {
         const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
 
         await act(async () => {
-            await result.current.updateRoutineExercise('re-1', '4', '10', 80);
+            await result.current.updateRoutineExercise('re-1', '4', '10', 80, null);
         });
 
-        expect(serverUpdateRoutineExercise).toHaveBeenCalledWith('re-1', '4', '10', 80);
+        expect(serverUpdateRoutineExercise).toHaveBeenCalledWith('re-1', '4', '10', 80, null);
         expect(routinesMutate).toHaveBeenCalled();
     });
 

@@ -89,6 +89,7 @@ export interface PulseContextValue {
         sets: string,
         reps: string,
         startingWeightKg: number | null,
+        restSeconds: number | null,
     ) => Promise<void>;
     reorderRoutineExercises: (routineId: string, orderedIds: string[]) => Promise<void>;
     cloneTemplate: (slug: string, trainingDays?: number[], sessionTime?: string) => Promise<WorkoutRoutine>;

@@ -433,6 +433,7 @@ export async function updateRoutineExercise(
     sets: string,
     reps: string,
     startingWeightKg: number | null,
+    restSeconds: number | null,
 ): Promise<void> {
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid id');
     if (!sets.trim() || !reps.trim()) throw new Error('Sets and reps must not be empty');
@@ -458,7 +459,7 @@ export async function updateRoutineExercise(
 
     const { error } = await supabase
         .from('routine_exercises')
-        .update({ sets, reps, starting_weight_kg: startingWeightKg })
+        .update({ sets, reps, starting_weight_kg: startingWeightKg, rest_seconds: restSeconds })
         .eq('id', routineExerciseId);
     if (error) throw new Error('Failed to update routine exercise');
 }

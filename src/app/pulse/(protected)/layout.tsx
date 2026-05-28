@@ -19,7 +19,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
         supabase.from('exercises').select('id, name, category, default_sets, default_reps, user_id').or(`user_id.is.null,user_id.eq.${user.id}`).order('name', { ascending: true }),
         supabase.from('workout_routines').select(`
             id, user_id, name, created_at,
-            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
+            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg, rest_seconds, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
             schedule:routine_schedule ( day_of_week, workout_type )
         `).eq('user_id', user.id).order('created_at', { ascending: true }),
         supabase.from('exercise_notes').select('week, routine_exercise_id, note').eq('user_id', user.id),

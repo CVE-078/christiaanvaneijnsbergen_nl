@@ -194,7 +194,7 @@ describe('LibraryView', () => {
         await userEvent.type(setsInput, '4');
         await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
         await waitFor(() => {
-            expect(mocks.updateRoutineExercise).toHaveBeenCalledWith('re1', '4', '8-12', 60);
+            expect(mocks.updateRoutineExercise).toHaveBeenCalledWith('re1', '4', '8-12', 60, null);
         });
     });
 

@@ -265,7 +265,7 @@ function RoutineExerciseRow({
     unit: Unit;
     onMove: (index: number, dir: -1 | 1) => void;
     onRemove: (id: string) => void;
-    onUpdate: (id: string, sets: string, reps: string, startingWeightKg: number | null) => void;
+    onUpdate: (id: string, sets: string, reps: string, startingWeightKg: number | null, restSeconds: number | null) => void;
 }) {
     const [editing, setEditing] = useState(false);
     const [sets, setSets] = useState(re.sets);
@@ -273,20 +273,25 @@ function RoutineExerciseRow({
     const [weight, setWeight] = useState(
         re.starting_weight_kg !== null ? String(toDisplay(re.starting_weight_kg, unit)) : '',
     );
+    const [rest, setRest] = useState<string>(
+        re.rest_seconds != null ? String(re.rest_seconds) : ''
+    );
 
     useEffect(() => {
         if (!editing) {
             setSets(re.sets);
             setReps(re.reps);
             setWeight(re.starting_weight_kg !== null ? String(toDisplay(re.starting_weight_kg, unit)) : '');
+            setRest(re.rest_seconds != null ? String(re.rest_seconds) : '');
         }
-    }, [re.id, re.sets, re.reps, re.starting_weight_kg, unit, editing]);
+    }, [re.id, re.sets, re.reps, re.starting_weight_kg, re.rest_seconds, unit, editing]);
 
     function handleSave() {
         const trimmed = weight.trim();
         const raw = trimmed === '' ? NaN : parseFloat(trimmed);
         const kgValue = Number.isNaN(raw) ? null : toKg(raw, unit);
-        onUpdate(re.id, sets, reps, kgValue);
+        const restValue = rest !== '' ? Number(rest) : null;
+        onUpdate(re.id, sets, reps, kgValue, restValue);
         setEditing(false);
     }
 
@@ -359,6 +364,20 @@ function RoutineExerciseRow({
                             onChange={(e) => setWeight(e.target.value)}
                             className={`${INPUT} w-24`}
                         />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                        <span className={SECTION_LABEL}>Rest</span>
+                        <select
+                            aria-label={`${re.exercise.name} rest duration`}
+                            value={rest}
+                            onChange={(e) => setRest(e.target.value)}
+                            className={INPUT}>
+                            <option value="">Default</option>
+                            <option value="60">60 s</option>
+                            <option value="90">90 s</option>
+                            <option value="120">2 min</option>
+                            <option value="180">3 min</option>
+                        </select>
                     </label>
                     <button onClick={handleSave} className={BTN_PRIMARY}>
                         Save
@@ -481,9 +500,9 @@ function RoutinesTab() {
         });
     }
 
-    function handleUpdateExercise(id: string, sets: string, reps: string, startingWeightKg: number | null) {
+    function handleUpdateExercise(id: string, sets: string, reps: string, startingWeightKg: number | null, restSeconds: number | null) {
         startTransition(async () => {
-            await updateRoutineExercise(id, sets, reps, startingWeightKg);
+            await updateRoutineExercise(id, sets, reps, startingWeightKg, restSeconds);
         });
     }
 
