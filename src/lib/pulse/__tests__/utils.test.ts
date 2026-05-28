@@ -10,8 +10,9 @@ import {
     computePRMap,
     computeStreak,
     computeSuggestion,
+    computeVolumeByTypeAndWeek,
 } from '../utils';
-import type { Logs } from '../types';
+import type { Logs, RoutineExercise, WorkoutType } from '../types';
 
 describe('getPhase', () => {
     it('returns Phase 1 for weeks 1–3', () => {
@@ -228,5 +229,69 @@ describe('weekHasData', () => {
     it('returns false when entry exists but is not saved', () => {
         const logs: Logs = { [`3-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 2, saved: false } };
         expect(weekHasData(3, logs)).toBe(false);
+    });
+});
+
+describe('computeVolumeByTypeAndWeek', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+    const UUID_B = '550e8400-e29b-41d4-a716-446655440001';
+
+    function re(id: string, workout_type: WorkoutType): RoutineExercise {
+        return {
+            id,
+            routine_id: 'r1',
+            exercise_id: 'e1',
+            workout_type,
+            order: 0,
+            sets: '3',
+            reps: '8',
+            starting_weight_kg: null,
+            exercise: {
+                id: 'e1',
+                name: 'Bench Press',
+                category: 'chest',
+                default_sets: '3',
+                default_reps: '8',
+                user_id: null,
+            },
+        };
+    }
+
+    it('returns empty record for empty logs', () => {
+        expect(computeVolumeByTypeAndWeek({}, [])).toEqual({});
+    });
+
+    it('ignores unsaved entries', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: false },
+        };
+        expect(computeVolumeByTypeAndWeek(logs, [re(UUID_A, 'push')])).toEqual({});
+    });
+
+    it('counts one set per saved entry, grouped by workout type', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`1-${UUID_A}-1`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`1-${UUID_B}-0`]: { kg: 40, reps: 12, rir: 3, saved: true },
+        };
+        const result = computeVolumeByTypeAndWeek(logs, [re(UUID_A, 'push'), re(UUID_B, 'pull')]);
+        expect(result[1]).toEqual({ push: 2, pull: 1 });
+    });
+
+    it('separates weeks correctly', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`2-${UUID_A}-0`]: { kg: 62, reps: 8, rir: 3, saved: true },
+        };
+        const result = computeVolumeByTypeAndWeek(logs, [re(UUID_A, 'push')]);
+        expect(result[1]).toEqual({ push: 1 });
+        expect(result[2]).toEqual({ push: 1 });
+    });
+
+    it('skips entries whose routineExerciseId is not in the supplied list', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+        };
+        expect(computeVolumeByTypeAndWeek(logs, [])).toEqual({});
     });
 });

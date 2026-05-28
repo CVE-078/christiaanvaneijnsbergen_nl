@@ -1,5 +1,5 @@
 import { PHASES } from './data';
-import type { Phase, Logs, HistorySession, LogEntry, Unit } from './types';
+import type { Phase, Logs, HistorySession, LogEntry, Unit, RoutineExercise, WorkoutType } from './types';
 
 // UUID v4 pattern used in new log keys
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -121,4 +121,28 @@ export function buildHistory(logs: Logs): HistorySession[] {
     }
 
     return Object.values(sessions).sort((a, b) => b.week - a.week);
+}
+
+export function computeVolumeByTypeAndWeek(
+    logs: Logs,
+    routineExercises: RoutineExercise[],
+): Record<number, Partial<Record<WorkoutType, number>>> {
+    const typeMap = new Map<string, WorkoutType>(
+        routineExercises.map((re) => [re.id, re.workout_type]),
+    );
+    const result: Record<number, Partial<Record<WorkoutType, number>>> = {};
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const firstDash = key.indexOf('-');
+        const lastDash = key.lastIndexOf('-');
+        if (firstDash === -1 || lastDash === firstDash) continue;
+        const routineExerciseId = key.slice(firstDash + 1, lastDash);
+        if (!UUID_RE.test(routineExerciseId)) continue;
+        const week = Number(key.slice(0, firstDash));
+        const wt = typeMap.get(routineExerciseId);
+        if (!wt) continue;
+        if (!result[week]) result[week] = {};
+        result[week][wt] = (result[week][wt] ?? 0) + 1;
+    }
+    return result;
 }

@@ -88,6 +88,14 @@ export type View = typeof VIEWS[number];
 
 export type PRMap = Record<string, number>;
 
+export interface BestSet {
+    routineExerciseId: string;
+    week: number;
+    kg: number;
+    reps: number;
+    e1rm: number;
+}
+
 export const EXERCISE_CATEGORIES = [
     'chest', 'shoulders', 'triceps',
     'back', 'biceps',
