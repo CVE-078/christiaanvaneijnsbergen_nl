@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — SIGNAL concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;500;600;700&family=Martian+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/*
+  SIGNAL: Warm instrument. Like a mixing console or a precision field monitor.
+  Antonio (condensed display) + Martian Mono (data readouts).
+  Warm dark background — not the usual blue-tinted dark.
+  Amber phosphor glow. Workout types live in the sidebar, freeing the log pane.
+  Each exercise has a vertical level meter on its left edge.
+  The active exercise title is oversized — takes over the right pane.
+*/
+:root {
+  --bg:       #060507;
+  --surf:     #0D0B10;
+  --surf2:    #131019;
+  --surf3:    #191522;
+  --b:        rgba(255,255,255,.055);
+  --b2:       rgba(255,255,255,.1);
+  --t:        #EDE8E3;
+  --t2:       #AFA89E;
+  --dim:      #5A5468;
+  --muted:    #201D2A;
+  --acc:      #FF9500;
+  --acc-dim:  rgba(255,149,0,.1);
+  --acc-bdr:  rgba(255,149,0,.3);
+  --grn:      #00E87A;
+  --grn-dim:  rgba(0,232,122,.1);
+  --f:        'Antonio', sans-serif;
+  --m:        'Martian Mono', monospace;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+
+body {
+  background: var(--bg);
+  color: var(--t);
+  font-family: var(--f);
+  /* Barely-visible warm grid */
+  background-image:
+    linear-gradient(rgba(255,149,0,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,149,0,.018) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── APP ──────────────────────────────────── */
+.app { display:flex; height:100vh; overflow:hidden; }
+
+/* ── SIDEBAR ──────────────────────────────── */
+.sb {
+  width: 184px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--b);
+  display: flex;
+  flex-direction: column;
+  background: rgba(6,5,7,.8);
+}
+
+.sb-brand {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--b);
+}
+
+.sb-name {
+  font-family: var(--f);
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1;
+  color: var(--t);
+}
+
+.sb-name em { color: var(--acc); font-style: normal; }
+
+.sb-week {
+  font-family: var(--m);
+  font-size: .5rem;
+  color: var(--dim);
+  margin-top: 8px;
+  letter-spacing: .08em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb-wk-badge {
+  font-family: var(--m);
+  font-size: .5rem;
+  font-weight: 500;
+  color: var(--acc);
+  background: var(--acc-dim);
+  border: 1px solid var(--acc-bdr);
+  padding: 2px 7px;
+  letter-spacing: .08em;
+}
+
+/* Workout type selector — the structural departure */
+.wt-section {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--b);
+}
+
+.wt-label {
+  font-family: var(--m);
+  font-size: .45rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 8px;
+}
+
+.wt-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 10px;
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background .1s, border-color .12s;
+  margin-bottom: 2px;
+}
+
+.wt-btn:hover { background: var(--surf2); }
+
+.wt-btn.on {
+  background: var(--surf3);
+  border-left-color: var(--acc);
+}
+
+.wt-indicator {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dim);
+  border: 1px solid var(--muted);
+  flex-shrink: 0;
+  transition: color .1s, border-color .1s, background .1s;
+}
+
+.wt-btn.on .wt-indicator {
+  color: var(--acc);
+  border-color: var(--acc-bdr);
+  background: var(--acc-dim);
+}
+
+.wt-info { flex: 1; min-width: 0; }
+
+.wt-type {
+  font-family: var(--f);
+  font-size: .8125rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--dim);
+  transition: color .1s;
+}
+
+.wt-btn.on .wt-type { color: var(--t); }
+
+.wt-muscles {
+  font-family: var(--m);
+  font-size: .4rem;
+  color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: .04em;
+}
+
+.wt-btn.on .wt-muscles { color: var(--dim); }
+
+/* Bottom nav */
+nav {
+  flex: 1;
+  padding: 10px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.nb {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  color: var(--dim);
+  font-family: var(--f);
+  font-size: .8125rem;
+  font-weight: 500;
+  letter-spacing: .03em;
+  text-align: left;
+  cursor: pointer;
+  transition: color .1s, background .1s, border-color .1s;
+}
+
+.nb:hover { color: var(--t2); background: var(--surf2); }
+.nb.on { color: var(--t); background: var(--surf2); border-left-color: var(--dim); }
+
+.sb-foot {
+  padding: 10px;
+  border-top: 1px solid var(--b);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fb {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: var(--m);
+  font-size: .4375rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fb:hover { color: var(--dim); }
+
+/* ── MAIN ─────────────────────────────────── */
+main { flex: 1; display: flex; overflow: hidden; }
+
+.view { display: none; flex: 1; overflow: hidden; }
+.view.on { display: flex; }
+
+/* ── LOG ──────────────────────────────────── */
+#vlog { flex-direction: row; }
+
+.lp {
+  width: 372px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--b);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Week strip */
+.wks {
+  display: flex;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--b);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  background: rgba(6,5,7,.4);
+}
+
+.wks::-webkit-scrollbar { display: none; }
+
+.wk {
+  font-family: var(--m);
+  font-size: .5625rem;
+  min-width: 27px;
+  padding: 9px 0 7px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  text-align: center;
+  color: var(--muted);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: color .1s;
+}
+
+.wk.on { color: var(--acc); border-bottom-color: var(--acc); }
+
+.wkd { display: block; width: 3px; height: 3px; border-radius: 50%; }
+
+/* Context bar */
+.ctx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--b);
+  flex-shrink: 0;
+}
+
+.ctx-phase {
+  font-family: var(--f);
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--t2);
+  letter-spacing: .02em;
+}
+
+.ctx-rir {
+  font-family: var(--m);
+  font-size: .45rem;
+  font-weight: 500;
+  letter-spacing: .1em;
+  color: var(--acc);
+  border: 1px solid var(--acc-bdr);
+  background: var(--acc-dim);
+  padding: 2px 7px;
+}
+
+/* Exercise list */
+.exl { flex: 1; overflow-y: auto; }
+
+.exi {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px 14px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+  cursor: pointer;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background .1s;
+  overflow: hidden;
+}
+
+.exi:hover { background: var(--surf); }
+.exi.on { background: var(--surf2); }
+
+/* VU-meter level indicator on left edge */
+.exi::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  height: var(--fill, 0%);
+  background: var(--acc);
+  transition: height .4s ease;
+}
+
+.exi.complete::before { background: var(--grn); height: 100%; }
+
+.ex-num {
+  font-family: var(--f);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  width: 44px;
+  flex-shrink: 0;
+  color: var(--muted);
+  letter-spacing: -.03em;
+  user-select: none;
+  transition: color .15s;
+}
+
+.exi.on .ex-num { color: rgba(255,149,0,.35); }
+.exi.complete .ex-num { color: rgba(0,232,122,.2); }
+
+.ex-body { flex: 1; min-width: 0; }
+
+.ex-name {
+  font-family: var(--f);
+  font-size: .9375rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  transition: color .1s;
+}
+
+.exi.on .ex-name { color: var(--t); }
+.exi.complete .ex-name { color: var(--t2); }
+
+.ex-count {
+  font-family: var(--m);
+  font-size: .45rem;
+  color: var(--dim);
+  margin-top: 5px;
+  letter-spacing: .04em;
+}
+
+.exi.on .ex-count { color: var(--t2); }
+
+.ex-ck {
+  font-family: var(--m);
+  font-size: .625rem;
+  color: var(--grn);
+  flex-shrink: 0;
+}
+
+/* ── RIGHT PANE ───────────────────────────── */
+.rp { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* The big header — the "one memorable thing" */
+.dh {
+  padding: 22px 28px 20px;
+  border-bottom: 1px solid var(--b);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Giant watermark number */
+.dh-bg-num {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--f);
+  font-size: 6rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.025);
+  line-height: 1;
+  letter-spacing: -.04em;
+  user-select: none;
+  pointer-events: none;
+}
+
+.dn {
+  font-family: var(--f);
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  color: var(--t);
+  line-height: 1.1;
+  margin-bottom: 6px;
+  max-width: 420px;
+}
+
+.dm {
+  font-family: var(--m);
+  font-size: .5rem;
+  letter-spacing: .1em;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dm-sep { color: var(--muted); }
+
+.dm-rir {
+  color: var(--acc);
+  background: var(--acc-dim);
+  border: 1px solid var(--acc-bdr);
+  padding: 1px 7px;
+}
+
+/* Scrollable set area */
+.ds {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 28px 16px;
+  max-width: 560px;
+}
+
+.ln {
+  font-family: var(--m);
+  font-size: .5rem;
+  color: var(--dim);
+  padding: 12px 0 10px;
+  line-height: 1.9;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  margin-bottom: 4px;
+  letter-spacing: .03em;
+}
+
+/* Set rows */
+.sr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,.035);
+}
+
+.sr.sv {
+  background: rgba(0,232,122,.025);
+  border-radius: 3px;
+  padding: 9px 8px;
+  margin: 0 -8px;
+}
+
+.sn {
+  font-family: var(--m);
+  font-size: .5rem;
+  color: var(--muted);
+  width: 20px;
+  flex-shrink: 0;
+  letter-spacing: .06em;
+}
+
+/* Input styled as a precision readout window */
+.si {
+  width: 66px;
+  height: 42px;
+  background: #0A0910;
+  border: 1px solid rgba(255,255,255,.08);
+  border-bottom: 2px solid rgba(255,255,255,.12);
+  color: var(--t);
+  font-family: var(--m);
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  outline: none;
+  transition: border-color .12s, box-shadow .12s;
+  letter-spacing: -.01em;
+}
+
+.si:focus {
+  border-color: var(--acc-bdr);
+  border-bottom-color: var(--acc);
+  box-shadow: 0 2px 0 0 var(--acc), inset 0 0 12px rgba(255,149,0,.05);
+}
+
+.sx {
+  font-family: var(--m);
+  font-size: .75rem;
+  color: var(--muted);
+}
+
+.srir {
+  font-family: var(--m);
+  font-size: .45rem;
+  color: var(--dim);
+  flex-shrink: 0;
+  letter-spacing: .06em;
+}
+
+.sp {
+  font-family: var(--m);
+  font-size: .45rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  letter-spacing: .04em;
+}
+
+/* Save: tall, prominent, accent fill */
+.sav {
+  margin-left: auto;
+  font-family: var(--f);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  height: 42px;
+  padding: 0 20px;
+  background: var(--acc);
+  border: none;
+  color: #000;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity .1s, transform .07s;
+}
+
+.sav:hover { opacity: .88; }
+.sav:active { transform: scale(.97); }
+
+.sv-val {
+  font-family: var(--m);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--t);
+  letter-spacing: -.01em;
+}
+
+.pr-tag {
+  font-family: var(--m);
+  font-size: .4rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--acc);
+  border: 1px solid var(--acc-bdr);
+  background: var(--acc-dim);
+  padding: 2px 5px;
+  flex-shrink: 0;
+}
+
+.rv {
+  font-family: var(--m);
+  font-size: .45rem;
+  color: var(--dim);
+  letter-spacing: .04em;
+}
+
+.scg { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.sck { font-family: var(--m); font-size: .875rem; color: var(--grn); }
+.edb { font-family: var(--m); font-size: .4rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); background: transparent; border: none; cursor: pointer; padding: 0; }
+.delb { font-family: var(--m); font-size: .5rem; color: var(--muted); background: transparent; border: none; cursor: pointer; padding: 0; }
+
+/* Rest timer — more substantial */
+.rt {
+  border-top: 1px solid var(--b);
+  background: var(--surf);
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.rt-label {
+  font-family: var(--m);
+  font-size: .45rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
+  width: 28px;
+}
+
+.rt-time {
+  font-family: var(--f);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--acc);
+  letter-spacing: -.02em;
+  min-width: 56px;
+  line-height: 1;
+}
+
+.rt-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.rt-fill {
+  height: 100%;
+  width: 45%;
+  background: var(--acc);
+  transition: width 1s linear;
+}
+
+.rt-btns { display: flex; gap: 8px; align-items: center; }
+
+.rb {
+  font-family: var(--m);
+  font-size: .4rem;
+  letter-spacing: .08em;
+  color: var(--dim);
+  background: transparent;
+  border: 1px solid var(--b2);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.rs {
+  font-family: var(--m);
+  font-size: .4rem;
+  letter-spacing: .08em;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* ── PROGRAM ──────────────────────────────── */
+#vprog { overflow-y: auto; flex-direction: column; }
+#vprog.on { display: flex; }
+
+.pi { max-width: 660px; padding: 32px 36px; display: flex; flex-direction: column; gap: 32px; }
+
+.sec-title {
+  font-family: var(--m);
+  font-size: .45rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 12px;
+}
+
+.phase-card {
+  background: var(--surf);
+  border: 1px solid var(--b);
+  border-left: 3px solid var(--acc);
+  padding: 16px 20px;
+}
+
+.phase-name {
+  font-family: var(--f);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--t);
+  margin-bottom: 6px;
+  letter-spacing: .01em;
+}
+
+.phase-note {
+  font-family: var(--m);
+  font-size: .5rem;
+  color: var(--t2);
+  line-height: 1.9;
+  letter-spacing: .02em;
+}
+
+.vbars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 60px;
+}
+
+.vbw {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.vb {
+  width: 100%;
+  background: var(--muted);
+  transition: background .1s;
+}
+
+.vb.aw { background: var(--acc); }
+.vbl { font-family: var(--m); font-size: .4rem; color: var(--muted); }
+
+.sched-row { display: flex; gap: 6px; }
+.sched-day { flex: 1; text-align: center; }
+.sched-d { font-family: var(--m); font-size: .4rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+.sched-s { padding: 9px 0; font-family: var(--f); font-size: .625rem; font-weight: 600; text-align: center; }
+.sched-s.w { color: var(--acc); background: var(--acc-dim); border: 1px solid var(--acc-bdr); }
+.sched-s.r { color: var(--muted); background: var(--surf); border: 1px solid var(--b); }
+
+.wo-section { border-top: 1px solid var(--b); padding-top: 24px; }
+.wo-title { font-family: var(--f); font-size: 1rem; font-weight: 700; color: var(--acc); letter-spacing: .02em; margin-bottom: 12px; }
+.wo-ex { display: flex; gap: 14px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.03); }
+.wo-n { font-family: var(--m); font-size: .4rem; color: var(--muted); width: 20px; flex-shrink: 0; margin-top: 3px; }
+.wo-name { font-family: var(--f); font-size: .875rem; font-weight: 600; color: var(--t2); }
+.wo-meta { font-family: var(--m); font-size: .45rem; color: var(--dim); margin-top: 3px; line-height: 1.7; }
+
+/* ── HISTORY ──────────────────────────────── */
+#vhist { overflow-y: auto; flex-direction: column; }
+#vhist.on { display: flex; }
+
+.hist-inner { max-width: 900px; padding: 32px 36px; display: flex; flex-direction: column; gap: 2px; }
+
+/* History as a continuous logbook feed, not cards */
+.log-entry {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+
+.log-entry-head {
+  width: 140px;
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border-right: 1px solid rgba(255,255,255,.03);
+}
+
+.log-type {
+  font-family: var(--f);
+  font-size: .875rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--acc);
+}
+
+.log-wk {
+  font-family: var(--m);
+  font-size: .45rem;
+  color: var(--dim);
+  margin-top: 3px;
+  letter-spacing: .04em;
+}
+
+.log-sets-feed {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 8px 16px;
+}
+
+.log-set-chip {
+  font-family: var(--m);
+  font-size: .45rem;
+  color: var(--t2);
+  background: var(--surf2);
+  border: 1px solid var(--b);
+  padding: 4px 8px;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+
+.log-count {
+  font-family: var(--m);
+  font-size: .4rem;
+  color: var(--muted);
+  padding: 10px 14px;
+  flex-shrink: 0;
+  text-align: right;
+  align-self: center;
+}
+
+/* ── PROFILE ──────────────────────────────── */
+#vprof { overflow-y: auto; flex-direction: column; }
+#vprof.on { display: flex; }
+
+.prof-inner { max-width: 520px; padding: 32px 36px; display: flex; flex-direction: column; gap: 32px; }
+
+.p-identity { display: flex; align-items: center; gap: 18px; }
+
+.p-av {
+  width: 56px;
+  height: 56px;
+  background: var(--surf2);
+  border: 1px solid var(--b2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f);
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--acc);
+  flex-shrink: 0;
+  letter-spacing: -.01em;
+}
+
+.p-name { font-family: var(--f); font-size: 1.125rem; font-weight: 700; color: var(--t); letter-spacing: -.01em; }
+.p-email { font-family: var(--m); font-size: .4375rem; color: var(--dim); margin-top: 5px; }
+
+.utog { display: flex; gap: 8px; }
+
+.ub {
+  font-family: var(--f);
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  padding: 8px 24px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all .1s;
+}
+
+.ub.on { background: var(--acc); border-color: var(--acc); color: #000; }
+
+.bw-row { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+
+.bw-input {
+  width: 80px;
+  height: 42px;
+  background: #0A0910;
+  border: 1px solid rgba(255,255,255,.08);
+  border-bottom: 2px solid rgba(255,255,255,.12);
+  color: var(--t);
+  font-family: var(--m);
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  outline: none;
+  padding: 0 10px;
+  transition: border-color .12s, box-shadow .12s;
+}
+
+.bw-input:focus {
+  border-color: var(--acc-bdr);
+  border-bottom-color: var(--acc);
+  box-shadow: 0 2px 0 0 var(--acc);
+}
+
+.bw-date { font-family: var(--m); font-size: .45rem; color: var(--dim); }
+
+.lb {
+  font-family: var(--f);
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+  margin-left: auto;
+  transition: background .1s;
+}
+
+.lb:hover { background: var(--surf2); }
+
+.bw-chart { background: var(--surf); border: 1px solid var(--b); padding: 12px 12px 8px; margin-bottom: 12px; }
+
+.bw-entry { display: flex; align-items: center; gap: 14px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+.bw-d { font-family: var(--m); font-size: .5rem; color: var(--dim); flex: 1; letter-spacing: .04em; }
+.bw-v { font-family: var(--m); font-size: 1rem; font-weight: 500; color: var(--t); }
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--surf3); }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sb">
+    <div class="sb-brand">
+      <div class="sb-name">Pulse<em>.</em></div>
+      <div class="sb-week">
+        <span class="sb-wk-badge">WK 03</span>
+        <span style="color:var(--dim)">2WK streak</span>
+      </div>
+    </div>
+
+    <!-- Workout type selector — lives in sidebar, not a tab bar -->
+    <div class="wt-section">
+      <div class="wt-label">Workout</div>
+      <button class="wt-btn on" data-wt="push">
+        <div class="wt-indicator">P</div>
+        <div class="wt-info">
+          <div class="wt-type">Push</div>
+          <div class="wt-muscles">Chest · Shoulders · Tris</div>
+        </div>
+      </button>
+      <button class="wt-btn" data-wt="pull">
+        <div class="wt-indicator">PL</div>
+        <div class="wt-info">
+          <div class="wt-type">Pull</div>
+          <div class="wt-muscles">Back · Biceps · Rear Delts</div>
+        </div>
+      </button>
+      <button class="wt-btn" data-wt="legs">
+        <div class="wt-indicator">L</div>
+        <div class="wt-info">
+          <div class="wt-type">Legs</div>
+          <div class="wt-muscles">Quads · Hams · Glutes</div>
+        </div>
+      </button>
+    </div>
+
+    <nav>
+      <button class="nb on" data-v="log">Log</button>
+      <button class="nb" data-v="prog">Program</button>
+      <button class="nb" data-v="hist">History</button>
+      <button class="nb" data-v="prof">Profile</button>
+    </nav>
+
+    <div class="sb-foot">
+      <button class="fb">Export</button>
+      <button class="fb">Sign out</button>
+    </div>
+  </aside>
+
+  <main>
+
+    <!-- ── LOG ── -->
+    <div class="view on" id="vlog">
+      <div class="lp">
+
+        <!-- No workout tabs here — they're in the sidebar. Just weeks + exercises. -->
+        <div class="wks">
+          <button class="wk">1<span class="wkd"></span></button>
+          <button class="wk">2<span class="wkd" style="background:var(--acc)"></span></button>
+          <button class="wk on">3<span class="wkd" style="background:var(--acc)"></span></button>
+          <button class="wk">4<span class="wkd"></span></button>
+          <button class="wk">5<span class="wkd"></span></button>
+          <button class="wk">6<span class="wkd"></span></button>
+          <button class="wk">7<span class="wkd"></span></button>
+          <button class="wk">8<span class="wkd"></span></button>
+          <button class="wk">9<span class="wkd"></span></button>
+          <button class="wk">10<span class="wkd"></span></button>
+          <button class="wk">11<span class="wkd"></span></button>
+          <button class="wk">12<span class="wkd"></span></button>
+        </div>
+
+        <div class="ctx">
+          <span class="ctx-phase">Phase 1 — Accumulation</span>
+          <span class="ctx-rir">2 RIR</span>
+        </div>
+
+        <div class="exl">
+          <!-- VU meter fill controlled by --fill CSS variable -->
+          <button class="exi on" data-ex="0" style="--fill:50%">
+            <span class="ex-num">01</span>
+            <div class="ex-body">
+              <div class="ex-name">Dumbbell Bench Press</div>
+              <div class="ex-count">2 of 4 sets logged</div>
+            </div>
+          </button>
+          <button class="exi" data-ex="1" style="--fill:0%">
+            <span class="ex-num">02</span>
+            <div class="ex-body">
+              <div class="ex-name">Incline DB Press</div>
+              <div class="ex-count">0 of 3 sets logged</div>
+            </div>
+          </button>
+          <button class="exi" data-ex="2" style="--fill:0%">
+            <span class="ex-num">03</span>
+            <div class="ex-body">
+              <div class="ex-name">DB Lateral Raise</div>
+              <div class="ex-count">0 of 4 sets logged</div>
+            </div>
+          </button>
+          <button class="exi" data-ex="3" style="--fill:0%">
+            <span class="ex-num">04</span>
+            <div class="ex-body">
+              <div class="ex-name">DB Overhead Press</div>
+              <div class="ex-count">0 of 3 sets logged</div>
+            </div>
+          </button>
+          <button class="exi complete" data-ex="4" style="--fill:100%">
+            <span class="ex-num">05</span>
+            <div class="ex-body">
+              <div class="ex-name">Pec Deck / Cable Fly</div>
+              <div class="ex-count">4 of 4 sets logged</div>
+            </div>
+            <span class="ex-ck">✓</span>
+          </button>
+          <button class="exi" data-ex="5" style="--fill:0%">
+            <span class="ex-num">06</span>
+            <div class="ex-body">
+              <div class="ex-name">Tricep Pushdown</div>
+              <div class="ex-count">0 of 3 sets logged</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT PANE -->
+      <div class="rp">
+        <div class="dh">
+          <div class="dh-bg-num">01</div>
+          <div class="dn">Dumbbell Bench Press</div>
+          <div class="dm">
+            <span>3–4 sets</span>
+            <span class="dm-sep">·</span>
+            <span>8–12 reps</span>
+            <span class="dm-sep">·</span>
+            <span class="dm-rir">2 RIR</span>
+          </div>
+        </div>
+
+        <div class="ds">
+          <div class="ln">Start 18–20 kg per DB &nbsp;·&nbsp; Full ROM, slow eccentric (3s down). Stop short of lockout.</div>
+
+          <div class="sr sv">
+            <span class="sn">01</span>
+            <span class="sv-val">22 kg × 10</span>
+            <span class="pr-tag">PR</span>
+            <span class="rv">2 RIR</span>
+            <div class="scg"><span class="sck">✓</span><button class="edb">Edit</button><button class="delb">✕</button></div>
+          </div>
+
+          <div class="sr sv">
+            <span class="sn">02</span>
+            <span class="sv-val">22 kg × 9</span>
+            <span class="rv">2 RIR</span>
+            <div class="scg"><span class="sck">✓</span><button class="edb">Edit</button><button class="delb">✕</button></div>
+          </div>
+
+          <div class="sr">
+            <span class="sn">03</span>
+            <input class="si" type="number" placeholder="kg" value="22">
+            <span class="sx">×</span>
+            <input class="si" type="number" placeholder="reps">
+            <span class="srir">2 RIR</span>
+            <span class="sp">prev: 20 kg × 10</span>
+            <button class="sav">Save</button>
+          </div>
+
+          <div class="sr">
+            <span class="sn">04</span>
+            <input class="si" type="number" placeholder="kg">
+            <span class="sx">×</span>
+            <input class="si" type="number" placeholder="reps">
+            <span class="srir">2 RIR</span>
+            <button class="sav">Save</button>
+          </div>
+        </div>
+
+        <div class="rt">
+          <span class="rt-label">Rest</span>
+          <span class="rt-time">1:24</span>
+          <div class="rt-bar"><div class="rt-fill"></div></div>
+          <div class="rt-btns">
+            <button class="rb">+30s</button>
+            <button class="rb">90s</button>
+            <button class="rs">Skip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROGRAM ── -->
+    <div class="view" id="vprog">
+      <div class="pi">
+        <div>
+          <div class="sec-title">Current Phase</div>
+          <div class="phase-card">
+            <div class="phase-name">Phase 1 — Accumulation</div>
+            <div class="phase-note">Build work capacity. Focus on form and full range of motion. Add weight only when you can complete all reps with 2+ RIR to spare.</div>
+          </div>
+        </div>
+        <div>
+          <div class="sec-title">Volume Progression</div>
+          <div class="vbars" id="vbars"></div>
+        </div>
+        <div>
+          <div class="sec-title">Weekly Schedule</div>
+          <div class="sched-row">
+            <div class="sched-day"><div class="sched-d">M</div><div class="sched-s w">P</div></div>
+            <div class="sched-day"><div class="sched-d">T</div><div class="sched-s w">PL</div></div>
+            <div class="sched-day"><div class="sched-d">W</div><div class="sched-s r">—</div></div>
+            <div class="sched-day"><div class="sched-d">T</div><div class="sched-s w">L</div></div>
+            <div class="sched-day"><div class="sched-d">F</div><div class="sched-s w">P</div></div>
+            <div class="sched-day"><div class="sched-d">S</div><div class="sched-s w">PL</div></div>
+            <div class="sched-day"><div class="sched-d">S</div><div class="sched-s r">—</div></div>
+          </div>
+        </div>
+        <div class="wo-section">
+          <div class="wo-title">Push</div>
+          <div class="wo-ex"><span class="wo-n">01</span><div><div class="wo-name">Dumbbell Bench Press</div><div class="wo-meta">3–4 sets · 8–12 reps · Start 18–20 kg per DB</div></div></div>
+          <div class="wo-ex"><span class="wo-n">02</span><div><div class="wo-name">Incline DB Press</div><div class="wo-meta">3 sets · 10–14 reps · 14–16 kg per DB</div></div></div>
+          <div class="wo-ex"><span class="wo-n">03</span><div><div class="wo-name">DB Lateral Raise</div><div class="wo-meta">3–4 sets · 12–16 reps · 7–9 kg per DB</div></div></div>
+          <div class="wo-ex"><span class="wo-n">04</span><div><div class="wo-name">DB Overhead Press</div><div class="wo-meta">3 sets · 8–12 reps · 16–18 kg per DB seated</div></div></div>
+          <div class="wo-ex"><span class="wo-n">05</span><div><div class="wo-name">Pec Deck / Cable Fly</div><div class="wo-meta">3–4 sets · 12–15 reps</div></div></div>
+          <div class="wo-ex"><span class="wo-n">06</span><div><div class="wo-name">Tricep Pushdown</div><div class="wo-meta">3 sets · 12–15 reps · Cable, rope</div></div></div>
+        </div>
+        <div class="wo-section">
+          <div class="wo-title">Pull</div>
+          <div class="wo-ex"><span class="wo-n">01</span><div><div class="wo-name">Pull-ups / Lat Pulldown</div><div class="wo-meta">3–4 sets · 6–10 reps</div></div></div>
+          <div class="wo-ex"><span class="wo-n">02</span><div><div class="wo-name">DB Row</div><div class="wo-meta">3–4 sets · 10–12 reps</div></div></div>
+          <div class="wo-ex"><span class="wo-n">03</span><div><div class="wo-name">Seated Cable Row</div><div class="wo-meta">3 sets · 10–14 reps</div></div></div>
+          <div class="wo-ex"><span class="wo-n">04</span><div><div class="wo-name">Face Pulls</div><div class="wo-meta">3 sets · 15–20 reps</div></div></div>
+          <div class="wo-ex"><span class="wo-n">05</span><div><div class="wo-name">DB Bicep Curl</div><div class="wo-meta">3 sets · 10–14 reps</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <!-- Logbook feed instead of cards -->
+    <div class="view" id="vhist">
+      <div class="hist-inner">
+        <div class="log-entry">
+          <div class="log-entry-head"><div class="log-type">Push</div><div class="log-wk">Week 3</div></div>
+          <div class="log-sets-feed">
+            <span class="log-set-chip">Bench 22kg×10</span>
+            <span class="log-set-chip">Bench 22kg×9</span>
+            <span class="log-set-chip">Incline 16kg×12</span>
+            <span class="log-set-chip">Incline 16kg×11</span>
+            <span class="log-set-chip">Lateral 9kg×14</span>
+            <span class="log-set-chip">OHP 18kg×10</span>
+          </div>
+          <div class="log-count">14 sets</div>
+        </div>
+        <div class="log-entry">
+          <div class="log-entry-head"><div class="log-type">Pull</div><div class="log-wk">Week 2</div></div>
+          <div class="log-sets-feed">
+            <span class="log-set-chip">Pullups BW×8</span>
+            <span class="log-set-chip">Pullups BW×7</span>
+            <span class="log-set-chip">DB Row 28kg×11</span>
+            <span class="log-set-chip">DB Row 28kg×10</span>
+            <span class="log-set-chip">Cable Row 60kg×12</span>
+            <span class="log-set-chip">Face Pull 20kg×18</span>
+          </div>
+          <div class="log-count">12 sets</div>
+        </div>
+        <div class="log-entry">
+          <div class="log-entry-head"><div class="log-type">Push</div><div class="log-wk">Week 2</div></div>
+          <div class="log-sets-feed">
+            <span class="log-set-chip">Bench 20kg×10</span>
+            <span class="log-set-chip">Bench 20kg×9</span>
+            <span class="log-set-chip">Bench 20kg×8</span>
+            <span class="log-set-chip">Incline 14kg×12</span>
+            <span class="log-set-chip">Lateral 8kg×14</span>
+            <span class="log-set-chip">OHP 16kg×10</span>
+          </div>
+          <div class="log-count">16 sets</div>
+        </div>
+        <div class="log-entry">
+          <div class="log-entry-head"><div class="log-type">Legs</div><div class="log-wk">Week 2</div></div>
+          <div class="log-sets-feed">
+            <span class="log-set-chip">Squat 80kg×10</span>
+            <span class="log-set-chip">Squat 80kg×9</span>
+            <span class="log-set-chip">RDL 70kg×12</span>
+            <span class="log-set-chip">Leg Ext 60kg×14</span>
+            <span class="log-set-chip">Leg Curl 50kg×12</span>
+            <span class="log-set-chip">Calf 40kg×18</span>
+          </div>
+          <div class="log-count">18 sets</div>
+        </div>
+        <div class="log-entry">
+          <div class="log-entry-head"><div class="log-type">Push</div><div class="log-wk">Week 1</div></div>
+          <div class="log-sets-feed">
+            <span class="log-set-chip">Bench 18kg×10</span>
+            <span class="log-set-chip">Bench 18kg×10</span>
+            <span class="log-set-chip">Bench 18kg×9</span>
+            <span class="log-set-chip">Incline 12kg×12</span>
+            <span class="log-set-chip">Lateral 7kg×14</span>
+          </div>
+          <div class="log-count">12 sets</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROFILE ── -->
+    <div class="view" id="vprof">
+      <div class="prof-inner">
+        <div class="p-identity">
+          <div class="p-av">CV</div>
+          <div>
+            <div class="p-name">Christiaan</div>
+            <div class="p-email">christiaanvaneijnsbergen@gmail.com</div>
+          </div>
+        </div>
+        <div>
+          <div class="sec-title">Weight Unit</div>
+          <div class="utog">
+            <button class="ub on">kg</button>
+            <button class="ub">lbs</button>
+          </div>
+        </div>
+        <div>
+          <div class="sec-title">Body Weight</div>
+          <div class="bw-row">
+            <input class="bw-input" type="number" placeholder="kg">
+            <span class="bw-date">Today</span>
+            <button class="lb">Log</button>
+          </div>
+          <div class="bw-chart">
+            <svg viewBox="0 0 300 56" style="width:100%;height:56px;display:block" aria-hidden>
+              <defs>
+                <linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#FF9500" stop-opacity=".2"/>
+                  <stop offset="100%" stop-color="#FF9500" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M 16,46 L 72,42 L 128,36 L 184,38 L 240,48 L 240,50 L 16,50 Z" fill="url(#gfill)"/>
+              <polyline points="16,46 72,42 128,36 184,38 240,48" fill="none" stroke="#FF9500" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="240" cy="48" r="3" fill="#FF9500"/>
+            </svg>
+          </div>
+          <div class="bw-entry"><span class="bw-d">26 May</span><span class="bw-v">83.4 kg</span></div>
+          <div class="bw-entry"><span class="bw-d">24 May</span><span class="bw-v">83.8 kg</span></div>
+          <div class="bw-entry"><span class="bw-d">22 May</span><span class="bw-v">84.1 kg</span></div>
+          <div class="bw-entry"><span class="bw-d">20 May</span><span class="bw-v">84.0 kg</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// Volume bars
+const vols=[12,14,16,14,16,18,16,18,20,18,20,10];
+const maxV=Math.max(...vols);
+const vc=document.getElementById('vbars');
+vols.forEach((v,i)=>{
+  const w=document.createElement('div');w.className='vbw';
+  const b=document.createElement('div');b.className='vb'+(i===2?' aw':'');
+  b.style.height=`${(v/maxV)*48}px`;
+  const l=document.createElement('span');l.className='vbl';l.textContent=i+1;
+  w.appendChild(b);w.appendChild(l);vc.appendChild(w);
+});
+
+// Nav
+document.querySelectorAll('.nb').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('v'+b.dataset.v).classList.add('on');
+  });
+});
+
+// Workout type buttons
+document.querySelectorAll('.wt-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.wt-btn').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+  });
+});
+
+// Exercises
+document.querySelectorAll('.exi').forEach(i=>{
+  i.addEventListener('click',()=>{
+    document.querySelectorAll('.exi').forEach(x=>x.classList.remove('on'));
+    i.classList.add('on');
+  });
+});
+
+// Weeks
+document.querySelectorAll('.wk').forEach(w=>{
+  w.addEventListener('click',()=>{
+    document.querySelectorAll('.wk').forEach(x=>x.classList.remove('on'));
+    w.classList.add('on');
+  });
+});
+
+// Unit
+document.querySelectorAll('.ub').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.ub').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+  });
+});
+</script>
+</body>
+</html>

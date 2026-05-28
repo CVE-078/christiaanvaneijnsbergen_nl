@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0D0D10;
+  --card:    #16161A;
+  --card-2:  #1E1E24;
+  --card-3:  #26262E;
+  --border:  rgba(255,255,255,.07);
+  --border-2:rgba(255,255,255,.12);
+  --t:       #F2F2F4;
+  --t2:      #9898A6;
+  --dim:     #4A4A58;
+  --muted:   #222228;
+  --acc:     #F97316;
+  --acc-s:   #FB923C;
+  --acc-dim: rgba(249,115,22,.13);
+  --acc-bdr: rgba(249,115,22,.35);
+  --grn:     #22C55E;
+  --grn-dim: rgba(34,197,94,.1);
+  --grn-bdr: rgba(34,197,94,.3);
+  --f:       'Plus Jakarta Sans', sans-serif;
+  --mono:    'DM Mono', monospace;
+  --r:       10px;
+  --r-sm:    7px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--bg); color: var(--t); font-family: var(--f); font-size: 14px; }
+
+/* ─── APP SHELL ───────────────────────────── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ─── ICON NAV ────────────────────────────── */
+/* No text labels — just icons in a narrow rail */
+.icon-nav {
+  width: 60px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+}
+
+.nav-logo {
+  width: 60px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.nav-logo-mark {
+  width: 32px;
+  height: 32px;
+  background: var(--acc);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f);
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -.02em;
+}
+
+.nav-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.nav-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--dim);
+  transition: background .12s, color .12s;
+  position: relative;
+}
+
+.nav-icon:hover { background: var(--card-2); color: var(--t2); }
+
+.nav-icon.on {
+  background: var(--acc-dim);
+  color: var(--acc);
+}
+
+/* Active dot on icon */
+.nav-icon.on::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 5px;
+  height: 5px;
+  background: var(--acc);
+  border-radius: 50%;
+}
+
+.nav-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.nav-icon-sm {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  transition: background .12s, color .12s;
+}
+
+.nav-icon-sm:hover { background: var(--card-2); color: var(--dim); }
+
+/* ─── LIST PANE ───────────────────────────── */
+.list-pane {
+  width: 368px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Pane header: week + workout type */
+.list-header {
+  padding: 20px 20px 0;
+  flex-shrink: 0;
+}
+
+.list-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.week-label {
+  font-size: .6875rem;
+  font-weight: 600;
+  color: var(--t2);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.week-label span {
+  color: var(--acc);
+  font-size: .9375rem;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  text-transform: none;
+}
+
+.streak-chip {
+  font-size: .6875rem;
+  font-weight: 600;
+  color: var(--t2);
+  background: var(--muted);
+  border-radius: 99px;
+  padding: 3px 10px;
+}
+
+/* Week pills */
+.week-row {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 14px;
+}
+
+.week-row::-webkit-scrollbar { display: none; }
+
+.wk {
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: .625rem;
+  color: var(--dim);
+  flex-shrink: 0;
+  position: relative;
+  transition: background .1s, border-color .1s, color .1s;
+  gap: 0;
+}
+
+.wk:hover { background: var(--card-2); color: var(--t2); }
+
+.wk.on {
+  background: var(--acc);
+  color: #000;
+  font-weight: 500;
+  border-color: transparent;
+}
+
+.wk-dot {
+  position: absolute;
+  bottom: 4px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.wk.has-data:not(.on) .wk-dot { background: var(--acc); }
+.wk.on .wk-dot { background: rgba(0,0,0,.3); }
+
+/* Workout type chips — pills, not full-width tabs */
+.wt-chips {
+  display: flex;
+  gap: 6px;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.wt-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 99px;
+  background: var(--muted);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all .12s;
+}
+
+.wt-chip.on {
+  background: var(--acc-dim);
+  border-color: var(--acc-bdr);
+}
+
+.wt-chip-name {
+  font-size: .8125rem;
+  font-weight: 600;
+  color: var(--dim);
+  transition: color .12s;
+}
+
+.wt-chip.on .wt-chip-name { color: var(--acc); }
+
+.wt-chip-count {
+  font-family: var(--mono);
+  font-size: .5rem;
+  color: var(--dim);
+  background: var(--card-2);
+  border-radius: 99px;
+  padding: 1px 5px;
+  transition: all .12s;
+}
+
+.wt-chip.on .wt-chip-count {
+  background: var(--acc-dim);
+  color: var(--acc);
+}
+
+/* Context bar */
+.ctx-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ctx-phase {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--t2);
+}
+
+.ctx-rir {
+  font-family: var(--mono);
+  font-size: .5625rem;
+  font-weight: 500;
+  color: var(--acc);
+  background: var(--acc-dim);
+  border: 1px solid var(--acc-bdr);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.ctx-desc {
+  font-size: .6875rem;
+  color: var(--dim);
+  margin-left: auto;
+}
+
+/* Exercise cards */
+.ex-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ex-list::-webkit-scrollbar { width: 3px; }
+.ex-list::-webkit-scrollbar-thumb { background: var(--card-3); border-radius: 99px; }
+
+.ex-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--r);
+  background: var(--card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background .1s, border-color .15s, box-shadow .15s;
+}
+
+.ex-card:hover {
+  background: var(--card-2);
+  border-color: var(--border-2);
+}
+
+.ex-card.on {
+  background: var(--card-2);
+  border-color: var(--acc-bdr);
+  box-shadow: 0 0 0 1px var(--acc-bdr);
+}
+
+.ex-card.done {
+  border-color: var(--grn-bdr);
+}
+
+.ex-card-num {
+  font-family: var(--mono);
+  font-size: .5rem;
+  font-weight: 500;
+  color: var(--dim);
+  width: 18px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.ex-card-body { flex: 1; min-width: 0; }
+
+.ex-card-name {
+  font-size: .9375rem;
+  font-weight: 600;
+  color: var(--t2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  transition: color .1s;
+}
+
+.ex-card.on .ex-card-name { color: var(--t); }
+.ex-card.done .ex-card-name { color: var(--t2); }
+
+/* Progress bar under exercise name */
+.ex-card-prog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.prog-track {
+  flex: 1;
+  height: 3px;
+  background: var(--muted);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.prog-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--acc);
+  transition: width .3s ease;
+}
+
+.ex-card.done .prog-fill { background: var(--grn); }
+
+.prog-label {
+  font-family: var(--mono);
+  font-size: .5rem;
+  color: var(--dim);
+  flex-shrink: 0;
+  min-width: 24px;
+  text-align: right;
+}
+
+.ex-card-ck {
+  font-size: .75rem;
+  color: var(--grn);
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+/* ─── DETAIL PANE ─────────────────────────── */
+.detail-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Big, confident header */
+.detail-header {
+  padding: 28px 32px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.detail-ex-num {
+  font-family: var(--mono);
+  font-size: .5rem;
+  color: var(--dim);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.detail-name {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--t);
+  letter-spacing: -.025em;
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+
+.detail-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detail-pill {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--t2);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 4px 12px;
+}
+
+.detail-pill-rir {
+  font-family: var(--mono);
+  font-size: .5625rem;
+  font-weight: 500;
+  color: var(--acc);
+  background: var(--acc-dim);
+  border: 1px solid var(--acc-bdr);
+  border-radius: 99px;
+  padding: 4px 10px;
+}
+
+/* Scrollable body */
+.detail-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 32px;
+  max-width: 600px;
+}
+
+.detail-scroll::-webkit-scrollbar { width: 3px; }
+.detail-scroll::-webkit-scrollbar-thumb { background: var(--card-3); border-radius: 99px; }
+
+.detail-note {
+  font-size: .8125rem;
+  color: var(--t2);
+  line-height: 1.7;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--card);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+
+/* Set rows — spacious, clean */
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+
+.set-row.saved {
+  padding: 10px 14px;
+  margin: 0 -14px;
+  border-radius: var(--r-sm);
+  border-bottom: none;
+  margin-bottom: 2px;
+  background: rgba(34,197,94,.06);
+}
+
+.set-num {
+  font-family: var(--mono);
+  font-size: .5625rem;
+  color: var(--dim);
+  width: 20px;
+  flex-shrink: 0;
+}
+
+/* Clean form inputs — not terminal-style */
+.set-input {
+  width: 72px;
+  height: 46px;
+  background: var(--card);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-sm);
+  color: var(--t);
+  font-family: var(--f);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: border-color .12s, box-shadow .12s;
+  -moz-appearance: textfield;
+}
+
+.set-input::-webkit-inner-spin-button { display: none; }
+
+.set-input:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-dim);
+}
+
+.set-sep {
+  font-size: .875rem;
+  color: var(--dim);
+  font-weight: 500;
+}
+
+.set-rir-badge {
+  font-family: var(--mono);
+  font-size: .5rem;
+  color: var(--dim);
+  background: var(--muted);
+  border-radius: 99px;
+  padding: 3px 8px;
+  flex-shrink: 0;
+}
+
+.set-prev {
+  font-size: .6875rem;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+.set-save {
+  margin-left: auto;
+  height: 46px;
+  padding: 0 22px;
+  background: var(--acc);
+  border: none;
+  border-radius: var(--r-sm);
+  color: #fff;
+  font-family: var(--f);
+  font-size: .875rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .1s, transform .07s;
+}
+
+.set-save:hover { background: var(--acc-s); }
+.set-save:active { transform: scale(.97); }
+
+/* Saved set display */
+.set-saved-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--t);
+}
+
+.set-pr {
+  font-size: .5625rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--acc);
+  background: var(--acc-dim);
+  border: 1px solid var(--acc-bdr);
+  border-radius: 99px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+.set-rir-saved {
+  font-family: var(--mono);
+  font-size: .5625rem;
+  color: var(--dim);
+}
+
+.set-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.set-ck { font-size: 1rem; color: var(--grn); }
+
+.set-edit, .set-del {
+  font-size: .6875rem;
+  font-weight: 600;
+  color: var(--dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color .1s;
+}
+
+.set-edit:hover { color: var(--t2); }
+.set-del:hover { color: #f43f5e; }
+
+/* ─── REST TIMER ──────────────────────────── */
+/* More prominent — not just a tiny strip */
+.rest-timer {
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.rest-label {
+  font-size: .625rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.rest-countdown {
+  font-family: var(--f);
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: var(--acc);
+  letter-spacing: -.03em;
+  line-height: 1;
+  min-width: 60px;
+}
+
+.rest-track {
+  flex: 1;
+  height: 4px;
+  background: var(--muted);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.rest-fill {
+  height: 100%;
+  width: 48%;
+  background: var(--acc);
+  border-radius: 99px;
+  transition: width 1s linear;
+}
+
+.rest-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rest-btn {
+  font-size: .6875rem;
+  font-weight: 600;
+  color: var(--t2);
+  background: var(--card-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background .1s;
+}
+
+.rest-btn:hover { background: var(--card-3); }
+
+.rest-skip {
+  font-size: .6875rem;
+  font-weight: 600;
+  color: var(--dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* ─── VIEWS ───────────────────────────────── */
+main { flex: 1; display: flex; overflow: hidden; }
+.view { display: none; flex: 1; overflow: hidden; }
+.view.on { display: flex; }
+
+#vlog { flex-direction: row; }
+
+/* ─── PROGRAM VIEW ────────────────────────── */
+#vprog { overflow-y: auto; flex-direction: column; }
+#vprog.on { display: flex; }
+
+.prog-body { max-width: 640px; padding: 32px 36px; display: flex; flex-direction: column; gap: 28px; }
+
+.sec-label {
+  font-size: .625rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 12px;
+}
+
+.phase-banner {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--acc);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 16px 20px;
+}
+
+.phase-banner-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--t);
+  margin-bottom: 6px;
+}
+
+.phase-banner-desc {
+  font-size: .8125rem;
+  color: var(--t2);
+  line-height: 1.7;
+}
+
+.vol-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 64px;
+}
+
+.vol-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.vol-bar {
+  width: 100%;
+  background: var(--card-2);
+  border-radius: 4px 4px 0 0;
+  transition: background .1s;
+}
+
+.vol-bar.active { background: var(--acc); }
+.vol-bar-l { font-family: var(--mono); font-size: .425rem; color: var(--muted); }
+
+.sched-strip { display: flex; gap: 6px; }
+.sched-day { flex: 1; text-align: center; }
+.sched-d { font-size: .5625rem; font-weight: 600; color: var(--dim); margin-bottom: 6px; }
+.sched-s {
+  padding: 9px 0;
+  font-size: .6875rem;
+  font-weight: 700;
+  text-align: center;
+  border-radius: var(--r-sm);
+}
+
+.sched-s.w { color: var(--acc); background: var(--acc-dim); border: 1px solid var(--acc-bdr); }
+.sched-s.r { color: var(--muted); background: var(--card); border: 1px solid var(--border); }
+
+.wo-block { }
+.wo-block-title {
+  font-size: .875rem;
+  font-weight: 800;
+  color: var(--acc);
+  margin-bottom: 12px;
+  letter-spacing: .01em;
+}
+
+.wo-exercise {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+
+.wo-ex-num { font-family: var(--mono); font-size: .5rem; color: var(--dim); width: 18px; flex-shrink: 0; margin-top: 2px; }
+.wo-ex-name { font-size: .875rem; font-weight: 600; color: var(--t2); }
+.wo-ex-meta { font-size: .6875rem; color: var(--dim); margin-top: 3px; line-height: 1.6; }
+
+/* ─── HISTORY VIEW ────────────────────────── */
+#vhist { overflow-y: auto; flex-direction: column; }
+#vhist.on { display: flex; }
+
+.hist-body {
+  max-width: 900px;
+  padding: 32px 36px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.hist-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.hist-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hist-type {
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--acc);
+  letter-spacing: .03em;
+}
+
+.hist-week {
+  font-size: .6875rem;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+.hist-count {
+  font-family: var(--mono);
+  font-size: .5rem;
+  color: var(--dim);
+  margin-left: auto;
+}
+
+.hist-rows { padding: 8px 16px 12px; }
+
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+
+.hist-sn { font-family: var(--mono); font-size: .45rem; color: var(--muted); width: 16px; }
+.hist-en { font-size: .6875rem; font-weight: 500; color: var(--t2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-val { font-family: var(--mono); font-size: .6875rem; font-weight: 500; color: var(--t); flex-shrink: 0; }
+.hist-rir { font-family: var(--mono); font-size: .45rem; color: var(--dim); flex-shrink: 0; }
+
+/* ─── PROFILE VIEW ────────────────────────── */
+#vprof { overflow-y: auto; flex-direction: column; }
+#vprof.on { display: flex; }
+
+.prof-body { max-width: 560px; padding: 32px 36px; display: flex; flex-direction: column; gap: 28px; }
+
+.prof-identity { display: flex; align-items: center; gap: 18px; }
+
+.prof-avatar {
+  width: 58px;
+  height: 58px;
+  background: var(--acc-dim);
+  border: 1px solid var(--acc-bdr);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--acc);
+  flex-shrink: 0;
+}
+
+.prof-name { font-size: 1.125rem; font-weight: 800; color: var(--t); letter-spacing: -.01em; }
+.prof-email { font-size: .75rem; color: var(--t2); margin-top: 4px; }
+
+.unit-row { display: flex; gap: 8px; }
+
+.unit-btn {
+  font-size: .875rem;
+  font-weight: 700;
+  padding: 9px 28px;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--border-2);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all .1s;
+}
+
+.unit-btn.on { background: var(--acc); border-color: var(--acc); color: #fff; }
+
+.bw-form { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+
+.bw-input {
+  width: 88px;
+  height: 46px;
+  background: var(--card);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-sm);
+  color: var(--t);
+  font-family: var(--f);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: border-color .12s, box-shadow .12s;
+}
+
+.bw-input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-dim); }
+
+.bw-date { font-size: .6875rem; color: var(--dim); }
+
+.bw-log-btn {
+  font-size: .75rem;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: var(--r-sm);
+  background: var(--card-2);
+  border: 1px solid var(--border-2);
+  color: var(--t2);
+  cursor: pointer;
+  margin-left: auto;
+  transition: background .1s;
+}
+
+.bw-log-btn:hover { background: var(--card-3); }
+
+.bw-chart {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 12px 10px;
+  margin-bottom: 12px;
+}
+
+.bw-entry { display: flex; align-items: center; gap: 14px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+.bw-entry-date { font-size: .75rem; color: var(--t2); flex: 1; }
+.bw-entry-val { font-size: 1rem; font-weight: 700; color: var(--t); }
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--card-3); border-radius: 99px; }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── ICON NAV (60px rail — no text labels) ── -->
+  <aside class="icon-nav">
+    <div class="nav-logo">
+      <div class="nav-logo-mark">P</div>
+    </div>
+
+    <div class="nav-items">
+      <!-- Log icon: list lines -->
+      <button class="nav-icon on" data-v="log" title="Log">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+          <line x1="3" y1="5" x2="15" y2="5"/>
+          <line x1="3" y1="9" x2="15" y2="9"/>
+          <line x1="3" y1="13" x2="10" y2="13"/>
+        </svg>
+      </button>
+
+      <!-- Program icon: bar chart -->
+      <button class="nav-icon" data-v="prog" title="Program">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+          <line x1="3" y1="15" x2="3" y2="10"/>
+          <line x1="7.5" y1="15" x2="7.5" y2="6"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+          <line x1="2" y1="15" x2="13.5" y2="15"/>
+        </svg>
+      </button>
+
+      <!-- History icon: clock -->
+      <button class="nav-icon" data-v="hist" title="History">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+          <circle cx="9" cy="9" r="6.5"/>
+          <polyline points="9,5.5 9,9 11.5,11"/>
+        </svg>
+      </button>
+
+      <!-- Profile icon: person -->
+      <button class="nav-icon" data-v="prof" title="Profile">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+          <circle cx="9" cy="6.5" r="3"/>
+          <path d="M 2.5 16 C 2.5 12 15.5 12 15.5 16"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="nav-footer">
+      <!-- Export -->
+      <button class="nav-icon-sm" title="Export">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M8 2 L8 10 M5 7 L8 10 L11 7"/>
+          <path d="M3 12 L3 14 L13 14 L13 12"/>
+        </svg>
+      </button>
+      <!-- Sign out -->
+      <button class="nav-icon-sm" title="Sign out">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M6 3 L2 3 L2 13 L6 13"/>
+          <path d="M10 5 L14 8 L10 11"/>
+          <line x1="6" y1="8" x2="14" y2="8"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <main>
+
+    <!-- ── LOG VIEW ── -->
+    <div class="view on" id="vlog">
+
+      <!-- LIST PANE -->
+      <div class="list-pane">
+
+        <div class="list-header">
+          <div class="list-header-top">
+            <div class="week-label">Week <span>03</span> <span style="color:var(--dim);font-size:.6875rem;font-weight:500"> / 12</span></div>
+            <div class="streak-chip">2WK streak</div>
+          </div>
+
+          <div class="week-row">
+            <button class="wk">1</button>
+            <button class="wk has-data">2<span class="wk-dot"></span></button>
+            <button class="wk on has-data">3<span class="wk-dot"></span></button>
+            <button class="wk">4</button>
+            <button class="wk">5</button>
+            <button class="wk">6</button>
+            <button class="wk">7</button>
+            <button class="wk">8</button>
+            <button class="wk">9</button>
+            <button class="wk">10</button>
+            <button class="wk">11</button>
+            <button class="wk">12</button>
+          </div>
+        </div>
+
+        <div class="wt-chips">
+          <button class="wt-chip on" data-wt="push">
+            <span class="wt-chip-name">Push</span>
+            <span class="wt-chip-count">2/6</span>
+          </button>
+          <button class="wt-chip" data-wt="pull">
+            <span class="wt-chip-name">Pull</span>
+            <span class="wt-chip-count">0/6</span>
+          </button>
+          <button class="wt-chip" data-wt="legs">
+            <span class="wt-chip-name">Legs</span>
+            <span class="wt-chip-count">0/5</span>
+          </button>
+        </div>
+
+        <div class="ctx-bar">
+          <span class="ctx-phase">Phase 1 · Accumulation</span>
+          <span class="ctx-rir">2 RIR</span>
+          <span class="ctx-desc">Chest · Shoulders · Triceps</span>
+        </div>
+
+        <div class="ex-list">
+          <button class="ex-card on" data-ex="0">
+            <span class="ex-card-num">01</span>
+            <div class="ex-card-body">
+              <div class="ex-card-name">Dumbbell Bench Press</div>
+              <div class="ex-card-prog">
+                <div class="prog-track"><div class="prog-fill" style="width:50%"></div></div>
+                <span class="prog-label">2/4</span>
+              </div>
+            </div>
+          </button>
+
+          <button class="ex-card" data-ex="1">
+            <span class="ex-card-num">02</span>
+            <div class="ex-card-body">
+              <div class="ex-card-name">Incline DB Press</div>
+              <div class="ex-card-prog">
+                <div class="prog-track"><div class="prog-fill" style="width:0%"></div></div>
+                <span class="prog-label">0/3</span>
+              </div>
+            </div>
+          </button>
+
+          <button class="ex-card" data-ex="2">
+            <span class="ex-card-num">03</span>
+            <div class="ex-card-body">
+              <div class="ex-card-name">DB Lateral Raise</div>
+              <div class="ex-card-prog">
+                <div class="prog-track"><div class="prog-fill" style="width:0%"></div></div>
+                <span class="prog-label">0/4</span>
+              </div>
+            </div>
+          </button>
+
+          <button class="ex-card" data-ex="3">
+            <span class="ex-card-num">04</span>
+            <div class="ex-card-body">
+              <div class="ex-card-name">DB Overhead Press</div>
+              <div class="ex-card-prog">
+                <div class="prog-track"><div class="prog-fill" style="width:0%"></div></div>
+                <span class="prog-label">0/3</span>
+              </div>
+            </div>
+          </button>
+
+          <button class="ex-card done" data-ex="4">
+            <span class="ex-card-num">05</span>
+            <div class="ex-card-body">
+              <div class="ex-card-name">Pec Deck / Cable Fly</div>
+              <div class="ex-card-prog">
+                <div class="prog-track"><div class="prog-fill" style="width:100%"></div></div>
+                <span class="prog-label">4/4</span>
+              </div>
+            </div>
+            <span class="ex-card-ck">✓</span>
+          </button>
+
+          <button class="ex-card" data-ex="5">
+            <span class="ex-card-num">06</span>
+            <div class="ex-card-body">
+              <div class="ex-card-name">Tricep Pushdown</div>
+              <div class="ex-card-prog">
+                <div class="prog-track"><div class="prog-fill" style="width:0%"></div></div>
+                <span class="prog-label">0/3</span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- DETAIL PANE -->
+      <div class="detail-pane">
+        <div class="detail-header">
+          <div class="detail-ex-num">Exercise 01</div>
+          <div class="detail-name">Dumbbell Bench Press</div>
+          <div class="detail-pills">
+            <span class="detail-pill">3–4 sets</span>
+            <span class="detail-pill">8–12 reps</span>
+            <span class="detail-pill-rir">2 RIR</span>
+          </div>
+        </div>
+
+        <div class="detail-scroll">
+          <div class="detail-note">
+            Start 18–20 kg per DB · Full ROM, slow eccentric (3s down). Stop just short of lockout at the top.
+          </div>
+
+          <!-- Saved set -->
+          <div class="set-row saved">
+            <span class="set-num">01</span>
+            <span class="set-saved-val">22 kg × 10</span>
+            <span class="set-pr">PR</span>
+            <span class="set-rir-saved">2 RIR</span>
+            <div class="set-actions">
+              <span class="set-ck">✓</span>
+              <button class="set-edit">Edit</button>
+              <button class="set-del">✕</button>
+            </div>
+          </div>
+
+          <!-- Saved set -->
+          <div class="set-row saved">
+            <span class="set-num">02</span>
+            <span class="set-saved-val">22 kg × 9</span>
+            <span class="set-rir-saved">2 RIR</span>
+            <div class="set-actions">
+              <span class="set-ck">✓</span>
+              <button class="set-edit">Edit</button>
+              <button class="set-del">✕</button>
+            </div>
+          </div>
+
+          <!-- Input set -->
+          <div class="set-row">
+            <span class="set-num">03</span>
+            <input class="set-input" type="number" placeholder="kg" value="22">
+            <span class="set-sep">×</span>
+            <input class="set-input" type="number" placeholder="reps">
+            <span class="set-rir-badge">2 RIR</span>
+            <span class="set-prev">prev: 20 kg × 10</span>
+            <button class="set-save">Save</button>
+          </div>
+
+          <!-- Input set -->
+          <div class="set-row">
+            <span class="set-num">04</span>
+            <input class="set-input" type="number" placeholder="kg">
+            <span class="set-sep">×</span>
+            <input class="set-input" type="number" placeholder="reps">
+            <span class="set-rir-badge">2 RIR</span>
+            <button class="set-save">Save</button>
+          </div>
+        </div>
+
+        <div class="rest-timer">
+          <span class="rest-label">Rest</span>
+          <span class="rest-countdown">1:24</span>
+          <div class="rest-track"><div class="rest-fill"></div></div>
+          <div class="rest-actions">
+            <button class="rest-btn">+30s</button>
+            <button class="rest-btn">90s</button>
+            <button class="rest-skip">Skip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROGRAM ── -->
+    <div class="view" id="vprog">
+      <div class="prog-body">
+        <div>
+          <div class="sec-label">Current Phase</div>
+          <div class="phase-banner">
+            <div class="phase-banner-title">Phase 1 — Accumulation</div>
+            <div class="phase-banner-desc">Build work capacity. Focus on form and full range of motion. Add weight only when all reps complete with 2+ RIR to spare.</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sec-label">Volume (sets / week)</div>
+          <div class="vol-chart" id="vchart"></div>
+        </div>
+
+        <div>
+          <div class="sec-label">Weekly Schedule</div>
+          <div class="sched-strip">
+            <div class="sched-day"><div class="sched-d">Mon</div><div class="sched-s w">P</div></div>
+            <div class="sched-day"><div class="sched-d">Tue</div><div class="sched-s w">PL</div></div>
+            <div class="sched-day"><div class="sched-d">Wed</div><div class="sched-s r">—</div></div>
+            <div class="sched-day"><div class="sched-d">Thu</div><div class="sched-s w">L</div></div>
+            <div class="sched-day"><div class="sched-d">Fri</div><div class="sched-s w">P</div></div>
+            <div class="sched-day"><div class="sched-d">Sat</div><div class="sched-s w">PL</div></div>
+            <div class="sched-day"><div class="sched-d">Sun</div><div class="sched-s r">—</div></div>
+          </div>
+        </div>
+
+        <div class="wo-block">
+          <div class="wo-block-title">Push — Chest · Shoulders · Triceps</div>
+          <div class="wo-exercise"><span class="wo-ex-num">01</span><div><div class="wo-ex-name">Dumbbell Bench Press</div><div class="wo-ex-meta">3–4 sets · 8–12 reps · Start 18–20 kg per DB</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">02</span><div><div class="wo-ex-name">Incline DB Press</div><div class="wo-ex-meta">3 sets · 10–14 reps · 14–16 kg per DB</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">03</span><div><div class="wo-ex-name">DB Lateral Raise</div><div class="wo-ex-meta">3–4 sets · 12–16 reps · 7–9 kg per DB</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">04</span><div><div class="wo-ex-name">DB Overhead Press</div><div class="wo-ex-meta">3 sets · 8–12 reps · 16–18 kg per DB seated</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">05</span><div><div class="wo-ex-name">Pec Deck / Cable Fly</div><div class="wo-ex-meta">3–4 sets · 12–15 reps</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">06</span><div><div class="wo-ex-name">Tricep Pushdown</div><div class="wo-ex-meta">3 sets · 12–15 reps · Cable, rope</div></div></div>
+        </div>
+
+        <div class="wo-block">
+          <div class="wo-block-title">Pull — Back · Biceps · Rear Delts</div>
+          <div class="wo-exercise"><span class="wo-ex-num">01</span><div><div class="wo-ex-name">Pull-ups / Lat Pulldown</div><div class="wo-ex-meta">3–4 sets · 6–10 reps</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">02</span><div><div class="wo-ex-name">DB Row</div><div class="wo-ex-meta">3–4 sets · 10–12 reps · 26–30 kg per DB</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">03</span><div><div class="wo-ex-name">Seated Cable Row</div><div class="wo-ex-meta">3 sets · 10–14 reps</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">04</span><div><div class="wo-ex-name">Face Pulls</div><div class="wo-ex-meta">3 sets · 15–20 reps</div></div></div>
+          <div class="wo-exercise"><span class="wo-ex-num">05</span><div><div class="wo-ex-name">DB Bicep Curl</div><div class="wo-ex-meta">3 sets · 10–14 reps</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div class="view" id="vhist">
+      <div class="hist-body">
+        <div class="hist-card">
+          <div class="hist-card-head"><span class="hist-type">Push</span><span class="hist-week">Week 3</span><span class="hist-count">14 sets</span></div>
+          <div class="hist-rows">
+            <div class="hist-row"><span class="hist-sn">01</span><span class="hist-en">Dumbbell Bench Press</span><span class="hist-val">22 kg × 10</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">02</span><span class="hist-en">Dumbbell Bench Press</span><span class="hist-val">22 kg × 9</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">03</span><span class="hist-en">Incline DB Press</span><span class="hist-val">16 kg × 12</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">04</span><span class="hist-en">DB Lateral Raise</span><span class="hist-val">9 kg × 14</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">05</span><span class="hist-en">DB Overhead Press</span><span class="hist-val">18 kg × 10</span><span class="hist-rir">2 RIR</span></div>
+          </div>
+        </div>
+        <div class="hist-card">
+          <div class="hist-card-head"><span class="hist-type">Pull</span><span class="hist-week">Week 2</span><span class="hist-count">12 sets</span></div>
+          <div class="hist-rows">
+            <div class="hist-row"><span class="hist-sn">01</span><span class="hist-en">Pull-ups</span><span class="hist-val">BW × 8</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">02</span><span class="hist-en">DB Row</span><span class="hist-val">28 kg × 11</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">03</span><span class="hist-en">Seated Cable Row</span><span class="hist-val">60 kg × 12</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">04</span><span class="hist-en">Face Pulls</span><span class="hist-val">20 kg × 18</span><span class="hist-rir">3 RIR</span></div>
+          </div>
+        </div>
+        <div class="hist-card">
+          <div class="hist-card-head"><span class="hist-type">Push</span><span class="hist-week">Week 2</span><span class="hist-count">16 sets</span></div>
+          <div class="hist-rows">
+            <div class="hist-row"><span class="hist-sn">01</span><span class="hist-en">Dumbbell Bench Press</span><span class="hist-val">20 kg × 10</span><span class="hist-rir">3 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">02</span><span class="hist-en">Incline DB Press</span><span class="hist-val">14 kg × 12</span><span class="hist-rir">3 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">03</span><span class="hist-en">DB Lateral Raise</span><span class="hist-val">8 kg × 14</span><span class="hist-rir">3 RIR</span></div>
+          </div>
+        </div>
+        <div class="hist-card">
+          <div class="hist-card-head"><span class="hist-type">Legs</span><span class="hist-week">Week 2</span><span class="hist-count">18 sets</span></div>
+          <div class="hist-rows">
+            <div class="hist-row"><span class="hist-sn">01</span><span class="hist-en">Barbell Squat</span><span class="hist-val">80 kg × 10</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">02</span><span class="hist-en">Romanian Deadlift</span><span class="hist-val">70 kg × 12</span><span class="hist-rir">2 RIR</span></div>
+            <div class="hist-row"><span class="hist-sn">03</span><span class="hist-en">Leg Extension</span><span class="hist-val">60 kg × 14</span><span class="hist-rir">2 RIR</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROFILE ── -->
+    <div class="view" id="vprof">
+      <div class="prof-body">
+        <div class="prof-identity">
+          <div class="prof-avatar">CV</div>
+          <div>
+            <div class="prof-name">Christiaan</div>
+            <div class="prof-email">christiaanvaneijnsbergen@gmail.com</div>
+          </div>
+        </div>
+        <div>
+          <div class="sec-label">Weight Unit</div>
+          <div class="unit-row">
+            <button class="unit-btn on">kg</button>
+            <button class="unit-btn">lbs</button>
+          </div>
+        </div>
+        <div>
+          <div class="sec-label">Body Weight</div>
+          <div class="bw-form">
+            <input class="bw-input" type="number" placeholder="kg">
+            <span class="bw-date">Today</span>
+            <button class="bw-log-btn">Log</button>
+          </div>
+          <div class="bw-chart">
+            <svg viewBox="0 0 300 56" style="width:100%;height:56px;display:block" aria-hidden>
+              <defs>
+                <linearGradient id="gf" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#F97316" stop-opacity=".25"/>
+                  <stop offset="100%" stop-color="#F97316" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M 16,46 L 72,42 L 128,36 L 184,38 L 240,48 L 240,50 L 16,50 Z" fill="url(#gf)"/>
+              <polyline points="16,46 72,42 128,36 184,38 240,48" fill="none" stroke="#F97316" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="240" cy="48" r="3.5" fill="#F97316"/>
+            </svg>
+          </div>
+          <div class="bw-entry"><span class="bw-entry-date">26 May</span><span class="bw-entry-val">83.4 kg</span></div>
+          <div class="bw-entry"><span class="bw-entry-date">24 May</span><span class="bw-entry-val">83.8 kg</span></div>
+          <div class="bw-entry"><span class="bw-entry-date">22 May</span><span class="bw-entry-val">84.1 kg</span></div>
+          <div class="bw-entry"><span class="bw-entry-date">20 May</span><span class="bw-entry-val">84.0 kg</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// Volume chart
+const vols=[12,14,16,14,16,18,16,18,20,18,20,10];
+const maxV=Math.max(...vols);
+const vc=document.getElementById('vchart');
+vols.forEach((v,i)=>{
+  const w=document.createElement('div');w.className='vol-bar-wrap';
+  const b=document.createElement('div');b.className='vol-bar'+(i===2?' active':'');
+  b.style.height=`${(v/maxV)*50}px`;
+  const l=document.createElement('span');l.className='vol-bar-l';l.textContent=i+1;
+  w.appendChild(b);w.appendChild(l);vc.appendChild(w);
+});
+
+// Icon nav — navigate between views
+document.querySelectorAll('.nav-icon[data-v]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-icon[data-v]').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('v'+btn.dataset.v).classList.add('on');
+  });
+});
+
+// Workout type chips
+document.querySelectorAll('.wt-chip').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('.wt-chip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on');
+  });
+});
+
+// Exercise cards
+document.querySelectorAll('.ex-card').forEach(card=>{
+  card.addEventListener('click',()=>{
+    document.querySelectorAll('.ex-card').forEach(x=>x.classList.remove('on'));
+    card.classList.add('on');
+  });
+});
+
+// Week buttons
+document.querySelectorAll('.wk').forEach(w=>{
+  w.addEventListener('click',()=>{
+    document.querySelectorAll('.wk').forEach(x=>x.classList.remove('on'));
+    w.classList.add('on');
+  });
+});
+
+// Unit buttons
+document.querySelectorAll('.unit-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.unit-btn').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+  });
+});
+</script>
+</body>
+</html>

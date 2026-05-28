@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — RAZOR concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* RAZOR: Industrial Athletic. Acid accent. Data-dense. No radius. */
+:root {
+  --bg:       #080808;
+  --surf:     #0f0f0f;
+  --surf2:    #161616;
+  --b:        #1c1c1c;
+  --b2:       #242424;
+  --t:        #ededed;
+  --t2:       #999;
+  --dim:      #505050;
+  --muted:    #252525;
+  --acc:      #CAFF00;
+  --acc-dim:  rgba(202,255,0,.07);
+  --acc-bdr:  rgba(202,255,0,.22);
+  --grn:      #3DFFA0;
+  --f:        'Syne', sans-serif;
+  --m:        'DM Mono', monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--t);font-family:var(--f);overflow:hidden}
+
+/* ── APP ─────────────────────────────────── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ─────────────────────────────── */
+.sb{width:152px;flex-shrink:0;border-right:1px solid var(--b);display:flex;flex-direction:column}
+.sb-brand{padding:22px 18px 18px;border-bottom:1px solid var(--b)}
+.sb-logo{font-size:1.5rem;font-weight:800;letter-spacing:-.03em;line-height:1}
+.sb-logo span{color:var(--acc)}
+.sb-meta{font-family:var(--m);font-size:.5625rem;letter-spacing:.1em;color:var(--dim);margin-top:8px}
+.sb-meta b{color:var(--acc);font-weight:500}
+nav{flex:1;padding:8px;display:flex;flex-direction:column;gap:1px}
+.nb{display:block;width:100%;padding:9px 12px;background:transparent;border:none;border-left:2px solid transparent;color:var(--dim);font-family:var(--f);font-size:.6875rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:left;cursor:pointer;transition:color .1s,background .1s,border-color .1s}
+.nb:hover{color:var(--t2)}
+.nb.on{color:var(--acc);background:var(--acc-dim);border-left-color:var(--acc)}
+.sb-foot{padding:10px 8px;border-top:1px solid var(--b)}
+.fb{display:block;width:100%;padding:6px 12px;background:transparent;border:none;color:var(--muted);font-family:var(--m);font-size:.5625rem;letter-spacing:.1em;text-transform:uppercase;text-align:left;cursor:pointer}
+.fb:hover{color:var(--dim)}
+
+/* ── MAIN ────────────────────────────────── */
+main{flex:1;display:flex;overflow:hidden}
+.view{display:none;flex:1;overflow:hidden}
+.view.on{display:flex}
+
+/* ── LOG ─────────────────────────────────── */
+#vlog{flex-direction:row}
+.lp{width:390px;flex-shrink:0;border-right:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--b);flex-shrink:0}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:11px 6px 9px;background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.tab-l{font-family:var(--f);font-size:.625rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);transition:color .1s}
+.tab-c{font-family:var(--m);font-size:.5rem;color:var(--muted)}
+.tab.on .tab-l{color:var(--acc)}
+.tab.on{border-bottom-color:var(--acc)}
+.tab.on .tab-c{color:var(--dim)}
+
+/* Weeks */
+.wks{display:flex;padding:0 6px;border-bottom:1px solid var(--b);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.wks::-webkit-scrollbar{display:none}
+.wk{font-family:var(--m);font-size:.625rem;min-width:26px;padding:7px 0 5px;background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;text-align:center;color:var(--dim);flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.wk.on{color:var(--acc);border-bottom-color:var(--acc)}
+.wkd{display:block;width:3px;height:3px;border-radius:50%}
+
+/* Context */
+.ctx{display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--b);flex-shrink:0}
+.ctag{font-family:var(--m);font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.rtag{font-family:var(--m);font-size:.5rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);border:1px solid var(--acc-bdr);background:var(--acc-dim);padding:2px 7px}
+.dtag{font-family:var(--f);font-size:.6875rem;color:var(--dim);margin-left:auto}
+
+/* Exercise list */
+.exl{flex:1;overflow-y:auto}
+.exi{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #131313;border-left:2px solid transparent;cursor:pointer;background:transparent;width:100%;text-align:left;transition:background .08s,border-color .08s}
+.exi:hover{background:#0d0d0d}
+.exi.on{background:#0e0e0e;border-left-color:var(--acc)}
+.enum{font-family:var(--f);font-size:1.5rem;font-weight:800;line-height:1;width:36px;flex-shrink:0;color:#252525;letter-spacing:-.04em;user-select:none;transition:color .1s}
+.exi.on .enum{color:#333}
+.ebod{flex:1;min-width:0}
+.ename{font-family:var(--f);font-size:.8125rem;font-weight:600;color:#6a6a6a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .1s}
+.exi.on .ename{color:var(--t)}
+.edots{display:flex;gap:3px;margin-top:5px}
+.d{display:block;width:4px;height:4px;border-radius:50%;background:var(--muted)}
+.d.f{background:var(--acc)}
+.d.c{background:var(--grn)}
+.eck{font-family:var(--m);font-size:.625rem;color:var(--grn);flex-shrink:0}
+
+/* Right pane */
+.rp{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.dh{padding:20px 24px 16px;border-bottom:1px solid var(--b);flex-shrink:0}
+.dn{font-family:var(--f);font-size:1.0625rem;font-weight:700;color:var(--t);margin-bottom:4px}
+.dm{font-family:var(--m);font-size:.5625rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.ds{flex:1;overflow-y:auto;padding:0 24px 16px;max-width:540px}
+.ln{font-family:var(--m);font-size:.625rem;color:var(--dim);padding:10px 0 8px;line-height:1.7;border-bottom:1px solid #111;margin-bottom:2px}
+
+/* Set rows */
+.sr{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #0f0f0f}
+.sr.sv{background:rgba(61,255,160,.03)}
+.sn{font-family:var(--m);font-size:.625rem;color:var(--muted);width:20px;flex-shrink:0}
+.si{width:60px;height:38px;background:#111;border:1px solid var(--b);color:var(--t);font-family:var(--m);font-size:.875rem;font-weight:500;text-align:center;outline:none;transition:border-color .1s}
+.si:focus{border-color:var(--acc)}
+.sx{font-family:var(--m);font-size:.75rem;color:var(--muted)}
+.srir{font-family:var(--m);font-size:.5625rem;color:var(--dim);flex-shrink:0}
+.sp{font-family:var(--m);font-size:.5625rem;color:#2c2c2c;flex-shrink:0}
+.sav{margin-left:auto;font-family:var(--f);font-size:.5625rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;height:38px;padding:0 14px;background:var(--acc);border:none;color:#000;cursor:pointer;flex-shrink:0}
+.sav:hover{opacity:.85}
+.sv-val{font-family:var(--m);font-size:.875rem;color:var(--t)}
+.pr{font-family:var(--m);font-size:.45rem;letter-spacing:.1em;text-transform:uppercase;color:var(--acc);border:1px solid var(--acc-bdr);padding:1px 4px;flex-shrink:0}
+.rv{font-family:var(--m);font-size:.5625rem;color:var(--dim)}
+.scg{margin-left:auto;display:flex;align-items:center;gap:10px}
+.sck{font-family:var(--m);font-size:.875rem;color:var(--grn)}
+.edb{font-family:var(--m);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);background:transparent;border:none;cursor:pointer;padding:0}
+.delb{font-family:var(--m);font-size:.625rem;color:#2a2a2a;background:transparent;border:none;cursor:pointer;padding:0}
+
+/* Rest timer */
+.rt{border-top:1px solid var(--b);background:var(--surf);padding:9px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.rt-l{font-family:var(--m);font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.rt-t{font-family:var(--m);font-size:.9375rem;font-weight:500;color:var(--t);min-width:36px}
+.rt-bs{margin-left:auto;display:flex;gap:7px;align-items:center}
+.rb{font-family:var(--m);font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:transparent;border:1px solid var(--b2);padding:3px 6px;cursor:pointer}
+.rs{font-family:var(--m);font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;color:#282828;background:transparent;border:none;cursor:pointer}
+
+/* ── PROGRAM ─────────────────────────────── */
+#vprog{overflow-y:auto;flex-direction:column}
+#vprog.on{display:flex}
+.pi{max-width:640px;padding:28px 32px;display:flex;flex-direction:column;gap:28px}
+.pst{font-family:var(--m);font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.pc{background:var(--surf);border:1px solid var(--b);border-left:3px solid var(--acc);padding:14px 18px}
+.pc-n{font-family:var(--f);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);margin-bottom:5px}
+.pc-t{font-family:var(--m);font-size:.6875rem;color:var(--dim);line-height:1.7}
+.vbars{display:flex;align-items:flex-end;gap:3px;height:58px}
+.vbw{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.vb{width:100%;background:var(--surf2)}
+.vb.aw{background:var(--acc)}
+.vbl{font-family:var(--m);font-size:.45rem;color:#252525}
+.srow{display:flex;gap:5px}
+.sd{flex:1;text-align:center}
+.sdd{font-family:var(--m);font-size:.45rem;letter-spacing:.1em;text-transform:uppercase;color:#222;margin-bottom:5px}
+.ss{padding:8px 0;font-family:var(--f);font-size:.5625rem;font-weight:700;text-align:center}
+.ss.w{color:var(--acc);background:var(--acc-dim);border:1px solid var(--acc-bdr)}
+.ss.r{color:#1e1e1e;background:var(--muted);border:1px solid #161616}
+.ws{border-top:1px solid var(--b);padding-top:20px}
+.wsh{font-family:var(--f);font-size:.5625rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--acc);margin-bottom:10px}
+.we{display:flex;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px solid #111}
+.wen{font-family:var(--m);font-size:.5rem;color:var(--muted);width:18px;flex-shrink:0}
+.wename{font-family:var(--f);font-size:.75rem;font-weight:600;color:var(--t2)}
+.wemeta{font-family:var(--m);font-size:.5rem;color:var(--dim);letter-spacing:.04em;margin-top:3px}
+
+/* ── HISTORY ─────────────────────────────── */
+#vhist{overflow-y:auto;flex-direction:column}
+#vhist.on{display:flex}
+.hi{max-width:860px;padding:28px 32px;display:flex;flex-direction:column;gap:10px}
+.hc{background:var(--surf);border:1px solid var(--b)}
+.hh{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--b)}
+.ht{font-family:var(--f);font-size:.5625rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.hw{font-family:var(--m);font-size:.5625rem;color:var(--dim)}
+.hsc{font-family:var(--m);font-size:.5rem;color:var(--muted);margin-left:auto}
+.hb{padding:8px 16px 12px}
+.hr{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #0d0d0d}
+.hsn{font-family:var(--m);font-size:.5rem;color:var(--muted);width:18px}
+.hen{font-family:var(--f);font-size:.6875rem;color:var(--dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hv{font-family:var(--m);font-size:.6875rem;font-weight:500;color:var(--t);flex-shrink:0}
+.hrir{font-family:var(--m);font-size:.5rem;color:var(--muted);flex-shrink:0}
+
+/* ── PROFILE ─────────────────────────────── */
+#vprof{overflow-y:auto;flex-direction:column}
+#vprof.on{display:flex}
+.profi{max-width:520px;padding:28px 32px;display:flex;flex-direction:column;gap:28px}
+.pid{display:flex;align-items:center;gap:16px}
+.pav{width:52px;height:52px;background:var(--surf);border:1px solid var(--b);display:flex;align-items:center;justify-content:center;font-family:var(--f);font-size:1.125rem;font-weight:800;color:var(--acc);flex-shrink:0}
+.pn{font-family:var(--f);font-size:.9375rem;font-weight:700;color:var(--t)}
+.pe{font-family:var(--m);font-size:.5625rem;color:var(--dim);margin-top:4px}
+.utog{display:flex;gap:8px}
+.ub{font-family:var(--f);font-size:.6875rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:7px 20px;border:1px solid var(--b2);background:transparent;color:var(--dim);cursor:pointer;transition:all .1s}
+.ub.on{background:var(--acc);border-color:var(--acc);color:#000}
+.bwrow{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.bwi{width:76px;height:36px;background:#0a0a0a;border:1px solid var(--b);color:var(--t);font-family:var(--m);font-size:.875rem;text-align:center;outline:none;padding:0 8px}
+.bwi:focus{border-color:var(--acc)}
+.bwdate{font-family:var(--m);font-size:.5625rem;color:var(--dim)}
+.lb{font-family:var(--f);font-size:.5rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border:1px solid var(--b2);background:transparent;color:var(--dim);cursor:pointer;margin-left:auto}
+.bwe{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #0d0d0d}
+.bwed{font-family:var(--m);font-size:.5625rem;color:var(--dim);flex:1}
+.bwev{font-family:var(--m);font-size:.875rem;font-weight:500;color:var(--t)}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:#1e1e1e}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sb">
+    <div class="sb-brand">
+      <div class="sb-logo">Pulse<span>.</span></div>
+      <div class="sb-meta">WK <b>03</b> / 12 &nbsp;·&nbsp; 2WK streak</div>
+    </div>
+    <nav>
+      <button class="nb on" data-v="log">Log</button>
+      <button class="nb" data-v="prog">Program</button>
+      <button class="nb" data-v="hist">History</button>
+      <button class="nb" data-v="prof">Profile</button>
+    </nav>
+    <div class="sb-foot">
+      <button class="fb">Export</button>
+      <button class="fb">Sign out</button>
+    </div>
+  </aside>
+
+  <main>
+
+    <!-- ── LOG ── -->
+    <div class="view on" id="vlog">
+      <div class="lp">
+
+        <div class="tabs">
+          <button class="tab on" data-tab="push">
+            <span class="tab-l">Push</span>
+            <span class="tab-c">2 / 6</span>
+          </button>
+          <button class="tab" data-tab="pull">
+            <span class="tab-l">Pull</span>
+            <span class="tab-c">0 / 6</span>
+          </button>
+          <button class="tab" data-tab="legs">
+            <span class="tab-l">Legs</span>
+            <span class="tab-c">0 / 5</span>
+          </button>
+        </div>
+
+        <div class="wks">
+          <button class="wk">1<span class="wkd"></span></button>
+          <button class="wk">2<span class="wkd" style="background:var(--acc)"></span></button>
+          <button class="wk on">3<span class="wkd" style="background:var(--acc)"></span></button>
+          <button class="wk">4<span class="wkd"></span></button>
+          <button class="wk">5<span class="wkd"></span></button>
+          <button class="wk">6<span class="wkd"></span></button>
+          <button class="wk">7<span class="wkd"></span></button>
+          <button class="wk">8<span class="wkd"></span></button>
+          <button class="wk">9<span class="wkd"></span></button>
+          <button class="wk">10<span class="wkd"></span></button>
+          <button class="wk">11<span class="wkd"></span></button>
+          <button class="wk">12<span class="wkd"></span></button>
+        </div>
+
+        <div class="ctx">
+          <span class="ctag">Phase 1</span>
+          <span class="rtag">2 RIR</span>
+          <span class="dtag">Chest · Shoulders · Triceps</span>
+        </div>
+
+        <div class="exl">
+          <button class="exi on" data-ex="0">
+            <span class="enum">01</span>
+            <div class="ebod">
+              <div class="ename">Dumbbell Bench Press</div>
+              <div class="edots"><span class="d f"></span><span class="d f"></span><span class="d"></span><span class="d"></span></div>
+            </div>
+          </button>
+          <button class="exi" data-ex="1">
+            <span class="enum">02</span>
+            <div class="ebod">
+              <div class="ename">Incline DB Press</div>
+              <div class="edots"><span class="d"></span><span class="d"></span><span class="d"></span></div>
+            </div>
+          </button>
+          <button class="exi" data-ex="2">
+            <span class="enum">03</span>
+            <div class="ebod">
+              <div class="ename">DB Lateral Raise</div>
+              <div class="edots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></div>
+            </div>
+          </button>
+          <button class="exi" data-ex="3">
+            <span class="enum">04</span>
+            <div class="ebod">
+              <div class="ename">DB Overhead Press</div>
+              <div class="edots"><span class="d"></span><span class="d"></span><span class="d"></span></div>
+            </div>
+          </button>
+          <button class="exi" data-ex="4">
+            <span class="enum">05</span>
+            <div class="ebod">
+              <div class="ename">Pec Deck / Cable Fly</div>
+              <div class="edots"><span class="d c"></span><span class="d c"></span><span class="d c"></span><span class="d c"></span></div>
+            </div>
+            <span class="eck">✓</span>
+          </button>
+          <button class="exi" data-ex="5">
+            <span class="enum">06</span>
+            <div class="ebod">
+              <div class="ename">Tricep Pushdown</div>
+              <div class="edots"><span class="d"></span><span class="d"></span><span class="d"></span></div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- right pane -->
+      <div class="rp">
+        <div class="dh">
+          <div class="dn">Dumbbell Bench Press</div>
+          <div class="dm">3–4 sets &nbsp;·&nbsp; 8–12 reps</div>
+        </div>
+        <div class="ds">
+          <div class="ln">Start 18–20 kg per DB &nbsp;·&nbsp; Full ROM, slow eccentric (3s down).</div>
+
+          <div class="sr sv">
+            <span class="sn">01</span>
+            <span class="sv-val">22 kg × 10</span>
+            <span class="pr">PR</span>
+            <span class="rv">2 RIR</span>
+            <div class="scg"><span class="sck">✓</span><button class="edb">Edit</button><button class="delb">✕</button></div>
+          </div>
+          <div class="sr sv">
+            <span class="sn">02</span>
+            <span class="sv-val">22 kg × 9</span>
+            <span class="rv">2 RIR</span>
+            <div class="scg"><span class="sck">✓</span><button class="edb">Edit</button><button class="delb">✕</button></div>
+          </div>
+          <div class="sr">
+            <span class="sn">03</span>
+            <input class="si" type="number" placeholder="kg" value="22">
+            <span class="sx">×</span>
+            <input class="si" type="number" placeholder="reps">
+            <span class="srir">2 RIR</span>
+            <span class="sp">→ 20kg × 10</span>
+            <button class="sav">Save</button>
+          </div>
+          <div class="sr">
+            <span class="sn">04</span>
+            <input class="si" type="number" placeholder="kg">
+            <span class="sx">×</span>
+            <input class="si" type="number" placeholder="reps">
+            <span class="srir">2 RIR</span>
+            <button class="sav">Save</button>
+          </div>
+        </div>
+        <div class="rt">
+          <span class="rt-l">Rest</span>
+          <span class="rt-t">1:24</span>
+          <div class="rt-bs">
+            <button class="rb">+30s</button>
+            <button class="rb">90s</button>
+            <button class="rs">Skip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROGRAM ── -->
+    <div class="view" id="vprog">
+      <div class="pi">
+        <div>
+          <div class="pst">Current Phase</div>
+          <div class="pc">
+            <div class="pc-n">Phase 1 — Accumulation</div>
+            <div class="pc-t">Build work capacity. Focus on form and full range of motion. Add weight only when you can complete all reps with 2+ RIR to spare.</div>
+          </div>
+        </div>
+        <div>
+          <div class="pst">Volume Progression (sets / week)</div>
+          <div class="vbars" id="vbars"></div>
+        </div>
+        <div>
+          <div class="pst">Weekly Schedule</div>
+          <div class="srow">
+            <div class="sd"><div class="sdd">M</div><div class="ss w">P</div></div>
+            <div class="sd"><div class="sdd">T</div><div class="ss w">PL</div></div>
+            <div class="sd"><div class="sdd">W</div><div class="ss r">—</div></div>
+            <div class="sd"><div class="sdd">T</div><div class="ss w">L</div></div>
+            <div class="sd"><div class="sdd">F</div><div class="ss w">P</div></div>
+            <div class="sd"><div class="sdd">S</div><div class="ss w">PL</div></div>
+            <div class="sd"><div class="sdd">S</div><div class="ss r">—</div></div>
+          </div>
+        </div>
+        <div class="ws">
+          <div class="wsh">Push — Chest · Shoulders · Triceps</div>
+          <div class="we"><span class="wen">01</span><div><div class="wename">Dumbbell Bench Press</div><div class="wemeta">3–4 sets · 8–12 reps · Start 18–20 kg per DB</div></div></div>
+          <div class="we"><span class="wen">02</span><div><div class="wename">Incline DB Press</div><div class="wemeta">3 sets · 10–14 reps · 14–16 kg per DB</div></div></div>
+          <div class="we"><span class="wen">03</span><div><div class="wename">DB Lateral Raise</div><div class="wemeta">3–4 sets · 12–16 reps · 7–9 kg per DB</div></div></div>
+          <div class="we"><span class="wen">04</span><div><div class="wename">DB Overhead Press</div><div class="wemeta">3 sets · 8–12 reps · 16–18 kg per DB seated</div></div></div>
+          <div class="we"><span class="wen">05</span><div><div class="wename">Pec Deck / Cable Fly</div><div class="wemeta">3–4 sets · 12–15 reps · Machine or cable</div></div></div>
+          <div class="we"><span class="wen">06</span><div><div class="wename">Tricep Pushdown</div><div class="wemeta">3 sets · 12–15 reps · Cable, rope attachment</div></div></div>
+        </div>
+        <div class="ws">
+          <div class="wsh">Pull — Back · Biceps · Rear Delts</div>
+          <div class="we"><span class="wen">01</span><div><div class="wename">Pull-ups / Lat Pulldown</div><div class="wemeta">3–4 sets · 6–10 reps</div></div></div>
+          <div class="we"><span class="wen">02</span><div><div class="wename">DB Row</div><div class="wemeta">3–4 sets · 10–12 reps · 26–30 kg per DB</div></div></div>
+          <div class="we"><span class="wen">03</span><div><div class="wename">Seated Cable Row</div><div class="wemeta">3 sets · 10–14 reps · Mid-grip</div></div></div>
+          <div class="we"><span class="wen">04</span><div><div class="wename">Face Pulls</div><div class="wemeta">3 sets · 15–20 reps</div></div></div>
+          <div class="we"><span class="wen">05</span><div><div class="wename">DB Bicep Curl</div><div class="wemeta">3 sets · 10–14 reps</div></div></div>
+        </div>
+        <div class="ws">
+          <div class="wsh">Legs — Quads · Hamstrings · Glutes</div>
+          <div class="we"><span class="wen">01</span><div><div class="wename">Barbell Squat / Leg Press</div><div class="wemeta">3–4 sets · 8–12 reps</div></div></div>
+          <div class="we"><span class="wen">02</span><div><div class="wename">Romanian Deadlift</div><div class="wemeta">3 sets · 10–12 reps</div></div></div>
+          <div class="we"><span class="wen">03</span><div><div class="wename">Leg Extension</div><div class="wemeta">3–4 sets · 12–15 reps</div></div></div>
+          <div class="we"><span class="wen">04</span><div><div class="wename">Lying Leg Curl</div><div class="wemeta">3 sets · 12–15 reps</div></div></div>
+          <div class="we"><span class="wen">05</span><div><div class="wename">Calf Raise</div><div class="wemeta">3–4 sets · 15–20 reps</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div class="view" id="vhist">
+      <div class="hi">
+        <div class="hc">
+          <div class="hh"><span class="ht">Push</span><span class="hw">Week 3</span><span class="hsc">14 sets</span></div>
+          <div class="hb">
+            <div class="hr"><span class="hsn">01</span><span class="hen">Dumbbell Bench Press</span><span class="hv">22 kg × 10</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">02</span><span class="hen">Dumbbell Bench Press</span><span class="hv">22 kg × 9</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">03</span><span class="hen">Incline DB Press</span><span class="hv">16 kg × 12</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">04</span><span class="hen">DB Lateral Raise</span><span class="hv">9 kg × 14</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">05</span><span class="hen">DB Overhead Press</span><span class="hv">18 kg × 10</span><span class="hrir">2 RIR</span></div>
+          </div>
+        </div>
+        <div class="hc">
+          <div class="hh"><span class="ht">Pull</span><span class="hw">Week 2</span><span class="hsc">12 sets</span></div>
+          <div class="hb">
+            <div class="hr"><span class="hsn">01</span><span class="hen">Pull-ups</span><span class="hv">BW × 8</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">02</span><span class="hen">DB Row</span><span class="hv">28 kg × 11</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">03</span><span class="hen">Seated Cable Row</span><span class="hv">60 kg × 12</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">04</span><span class="hen">Face Pulls</span><span class="hv">20 kg × 18</span><span class="hrir">3 RIR</span></div>
+          </div>
+        </div>
+        <div class="hc">
+          <div class="hh"><span class="ht">Push</span><span class="hw">Week 2</span><span class="hsc">16 sets</span></div>
+          <div class="hb">
+            <div class="hr"><span class="hsn">01</span><span class="hen">Dumbbell Bench Press</span><span class="hv">20 kg × 10</span><span class="hrir">3 RIR</span></div>
+            <div class="hr"><span class="hsn">02</span><span class="hen">Incline DB Press</span><span class="hv">14 kg × 12</span><span class="hrir">3 RIR</span></div>
+            <div class="hr"><span class="hsn">03</span><span class="hen">DB Lateral Raise</span><span class="hv">8 kg × 14</span><span class="hrir">3 RIR</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROFILE ── -->
+    <div class="view" id="vprof">
+      <div class="profi">
+        <div class="pid">
+          <div class="pav">CV</div>
+          <div>
+            <div class="pn">Christiaan</div>
+            <div class="pe">christiaanvaneijnsbergen@gmail.com</div>
+          </div>
+        </div>
+        <div>
+          <div class="pst">Weight Unit</div>
+          <div class="utog">
+            <button class="ub on">kg</button>
+            <button class="ub">lbs</button>
+          </div>
+        </div>
+        <div>
+          <div class="pst">Body Weight</div>
+          <div class="bwrow">
+            <input class="bwi" type="number" placeholder="kg">
+            <span class="bwdate">Today</span>
+            <button class="lb">Log</button>
+          </div>
+          <div class="bwe"><span class="bwed">26 May</span><span class="bwev">83.4 kg</span></div>
+          <div class="bwe"><span class="bwed">24 May</span><span class="bwev">83.8 kg</span></div>
+          <div class="bwe"><span class="bwed">22 May</span><span class="bwev">84.1 kg</span></div>
+          <div class="bwe"><span class="bwed">20 May</span><span class="bwev">84.0 kg</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<script>
+// Volume bars
+const vols=[12,14,16,14,16,18,16,18,20,18,20,10];
+const maxV=Math.max(...vols);
+const vc=document.getElementById('vbars');
+vols.forEach((v,i)=>{
+  const w=document.createElement('div');w.className='vbw';
+  const b=document.createElement('div');b.className='vb'+(i===2?' aw':'');
+  b.style.height=`${(v/maxV)*44}px`;
+  const l=document.createElement('span');l.className='vbl';l.textContent=i+1;
+  w.appendChild(b);w.appendChild(l);vc.appendChild(w);
+});
+// Nav
+document.querySelectorAll('.nb').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('v'+b.dataset.v).classList.add('on');
+  });
+});
+// Exercises
+document.querySelectorAll('.exi').forEach(i=>{
+  i.addEventListener('click',()=>{
+    document.querySelectorAll('.exi').forEach(x=>x.classList.remove('on'));
+    i.classList.add('on');
+  });
+});
+// Tabs
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+  });
+});
+// Weeks
+document.querySelectorAll('.wk').forEach(w=>{
+  w.addEventListener('click',()=>{
+    document.querySelectorAll('.wk').forEach(x=>x.classList.remove('on'));
+    w.classList.add('on');
+  });
+});
+// Unit
+document.querySelectorAll('.ub').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.ub').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+  });
+});
+</script>
+</body>
+</html>

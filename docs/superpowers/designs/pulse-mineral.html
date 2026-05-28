@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — MINERAL concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* MINERAL: deep navy-black, electric blue accent, Bricolage Grotesque.
+   Rounded surfaces, generous space, subtle dot grid, pill controls. */
+:root {
+  --bg:      #06080F;
+  --surf:    #0C0F1A;
+  --surf2:   #111525;
+  --surf3:   #161B2E;
+  --b:       rgba(255,255,255,.06);
+  --b2:      rgba(255,255,255,.1);
+  --t:       #E4E8F5;
+  --t2:      #8A93B8;
+  --dim:     #434B6E;
+  --muted:   #1D2238;
+  --acc:     #4F9EFF;
+  --acc-dim: rgba(79,158,255,.1);
+  --acc-bdr: rgba(79,158,255,.25);
+  --grn:     #34D399;
+  --grn-dim: rgba(52,211,153,.1);
+  --f:       'Bricolage Grotesque', sans-serif;
+  --m:       'Fira Code', monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;color:var(--t);font-family:var(--f);overflow:hidden}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 25% 0%, rgba(79,158,255,.04) 0%, transparent 55%),
+    radial-gradient(rgba(79,158,255,.035) 1px, transparent 1px);
+  background-size: 100% 100%, 28px 28px;
+}
+
+/* ── APP ─────────────────────────────────── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ─────────────────────────────── */
+.sb{width:196px;flex-shrink:0;border-right:1px solid var(--b);display:flex;flex-direction:column;background:rgba(6,8,15,.7);backdrop-filter:blur(12px)}
+.sb-brand{padding:24px 20px 20px;border-bottom:1px solid var(--b)}
+.sb-logo{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;line-height:1;color:var(--t)}
+.sb-logo span{color:var(--acc)}
+.sb-meta{font-family:var(--m);font-size:.5rem;letter-spacing:.08em;color:var(--dim);margin-top:9px;display:flex;align-items:center;gap:8px}
+.sb-wk{background:var(--acc-dim);border:1px solid var(--acc-bdr);color:var(--acc);font-family:var(--m);font-size:.5rem;font-weight:500;padding:2px 8px;border-radius:99px;letter-spacing:.08em}
+nav{flex:1;padding:10px}
+.nb{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;background:transparent;border:none;border-radius:8px;color:var(--dim);font-family:var(--f);font-size:.8125rem;font-weight:500;text-align:left;cursor:pointer;transition:background .12s,color .12s;margin-bottom:2px}
+.nb:hover{background:var(--surf2);color:var(--t2)}
+.nb.on{background:var(--surf3);color:var(--t)}
+.nb .ni{width:4px;height:4px;border-radius:50%;background:var(--acc);opacity:0;flex-shrink:0;transition:opacity .15s}
+.nb.on .ni{opacity:1}
+.sb-foot{padding:10px;border-top:1px solid var(--b)}
+.fb{display:block;width:100%;padding:7px 12px;background:transparent;border:none;border-radius:6px;color:var(--dim);font-family:var(--f);font-size:.75rem;text-align:left;cursor:pointer}
+.fb:hover{background:var(--surf2);color:var(--t2)}
+
+/* ── MAIN ────────────────────────────────── */
+main{flex:1;display:flex;overflow:hidden}
+.view{display:none;flex:1;overflow:hidden}
+.view.on{display:flex}
+
+/* ── LOG ─────────────────────────────────── */
+#vlog{flex-direction:row}
+.lp{width:400px;flex-shrink:0;border-right:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden}
+
+/* Tabs — pill/segmented style */
+.tabs{padding:10px 12px;border-bottom:1px solid var(--b);flex-shrink:0}
+.tabs-inner{display:flex;background:var(--muted);border-radius:10px;padding:3px;gap:2px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;border:none;border-radius:7px;background:transparent;cursor:pointer;transition:background .15s,box-shadow .15s}
+.tab.on{background:var(--surf3);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.tab-l{font-family:var(--f);font-size:.6875rem;font-weight:600;letter-spacing:.04em;color:var(--dim);transition:color .15s}
+.tab-c{font-family:var(--m);font-size:.475rem;color:var(--muted);transition:color .15s}
+.tab.on .tab-l{color:var(--t)}
+.tab.on .tab-c{color:var(--t2)}
+
+/* Week strip */
+.wks{display:flex;padding:0 10px;border-bottom:1px solid var(--b);overflow-x:auto;scrollbar-width:none;flex-shrink:0;gap:2px}
+.wks::-webkit-scrollbar{display:none}
+.wk{font-family:var(--m);font-size:.5625rem;min-width:28px;padding:7px 0 5px;background:transparent;border:none;border-radius:4px;cursor:pointer;text-align:center;color:var(--dim);flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .1s}
+.wk.on{color:var(--acc)}
+.wkd{display:block;width:3px;height:3px;border-radius:50%}
+
+/* Context */
+.ctx{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--b);flex-shrink:0}
+.ctag{font-family:var(--f);font-size:.6875rem;font-weight:500;color:var(--t2)}
+.rtag{font-family:var(--m);font-size:.5rem;font-weight:500;letter-spacing:.06em;color:var(--acc);border:1px solid var(--acc-bdr);background:var(--acc-dim);padding:2px 8px;border-radius:99px}
+.dtag{font-family:var(--f);font-size:.625rem;color:var(--dim);margin-left:auto}
+
+/* Exercise list */
+.exl{flex:1;overflow-y:auto;padding:6px}
+.exi{position:relative;display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:8px;cursor:pointer;background:transparent;width:100%;text-align:left;transition:background .1s;margin-bottom:2px;border:none}
+.exi:hover{background:var(--surf2)}
+.exi.on{background:var(--surf3)}
+.enum{font-family:var(--f);font-size:.6875rem;font-weight:700;width:24px;flex-shrink:0;color:var(--muted);letter-spacing:-.01em;user-select:none}
+.exi.on .enum{color:var(--acc)}
+.ebod{flex:1;min-width:0}
+.ename{font-family:var(--f);font-size:.875rem;font-weight:600;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .1s}
+.exi.on .ename{color:var(--t)}
+/* Progress bar under each exercise */
+.eprog{height:2px;background:var(--muted);border-radius:2px;margin-top:7px;overflow:hidden}
+.eproginner{height:100%;background:var(--acc);border-radius:2px;transition:width .3s}
+.exi.on .eproginner{background:var(--acc)}
+.complete-ex .eproginner{background:var(--grn)}
+.eck{font-family:var(--m);font-size:.5625rem;color:var(--grn);flex-shrink:0}
+
+/* Right pane */
+.rp{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.dh{padding:22px 28px 18px;border-bottom:1px solid var(--b);flex-shrink:0}
+.dn{font-family:var(--f);font-size:1.125rem;font-weight:700;color:var(--t);margin-bottom:5px;letter-spacing:-.015em}
+.dm{font-family:var(--m);font-size:.5625rem;letter-spacing:.06em;color:var(--dim)}
+.ds{flex:1;overflow-y:auto;padding:0 28px 16px;max-width:560px}
+.ln{font-family:var(--m);font-size:.5625rem;color:var(--dim);padding:12px 0 10px;line-height:1.8;border-bottom:1px solid rgba(255,255,255,.04);margin-bottom:2px}
+
+/* Set rows */
+.sr{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sr.sv{background:rgba(52,211,153,.025);border-radius:4px;padding:8px 6px;margin:0 -6px}
+.sn{font-family:var(--m);font-size:.5625rem;color:var(--dim);width:20px;flex-shrink:0}
+.si{width:64px;height:40px;background:rgba(255,255,255,.04);border:1px solid var(--b2);color:var(--t);font-family:var(--m);font-size:.9375rem;font-weight:500;text-align:center;outline:none;border-radius:8px;transition:border-color .12s,box-shadow .12s}
+.si:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-dim)}
+.sx{font-family:var(--m);font-size:.75rem;color:var(--muted)}
+.srir{font-family:var(--m);font-size:.5rem;color:var(--dim);flex-shrink:0}
+.sp{font-family:var(--m);font-size:.5rem;color:var(--muted);flex-shrink:0}
+.sav{margin-left:auto;font-family:var(--f);font-size:.6875rem;font-weight:600;height:40px;padding:0 18px;background:var(--acc);border:none;color:#000;cursor:pointer;flex-shrink:0;border-radius:8px;transition:opacity .1s,transform .08s}
+.sav:hover{opacity:.9}
+.sav:active{transform:scale(.97)}
+.sv-val{font-family:var(--m);font-size:.9375rem;font-weight:500;color:var(--t)}
+.pr{font-family:var(--m);font-size:.45rem;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);border:1px solid var(--acc-bdr);background:var(--acc-dim);padding:1px 6px;border-radius:99px;flex-shrink:0}
+.rv{font-family:var(--m);font-size:.5rem;color:var(--dim)}
+.scg{margin-left:auto;display:flex;align-items:center;gap:10px}
+.sck{font-size:.875rem;color:var(--grn)}
+.edb{font-family:var(--m);font-size:.45rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:transparent;border:none;cursor:pointer;padding:0}
+.delb{font-family:var(--m);font-size:.5rem;color:var(--muted);background:transparent;border:none;cursor:pointer;padding:0}
+
+/* Rest timer */
+.rt{border-top:1px solid var(--b);background:var(--surf);padding:10px 28px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.rt-l{font-family:var(--m);font-size:.45rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.rt-t{font-family:var(--m);font-size:.9375rem;font-weight:500;color:var(--t);min-width:38px}
+.rt-bar{flex:1;height:3px;background:var(--muted);border-radius:99px;overflow:hidden}
+.rt-fill{height:100%;width:40%;background:var(--acc);border-radius:99px;transition:width 1s linear}
+.rt-bs{display:flex;gap:8px;align-items:center}
+.rb{font-family:var(--m);font-size:.45rem;letter-spacing:.06em;color:var(--dim);background:transparent;border:1px solid var(--b2);padding:3px 8px;border-radius:99px;cursor:pointer}
+.rs{font-family:var(--m);font-size:.45rem;letter-spacing:.06em;color:var(--muted);background:transparent;border:none;cursor:pointer}
+
+/* ── PROGRAM ─────────────────────────────── */
+#vprog{overflow-y:auto;flex-direction:column}
+#vprog.on{display:flex}
+.pi{max-width:660px;padding:32px 36px;display:flex;flex-direction:column;gap:32px}
+.pst{font-family:var(--m);font-size:.475rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:12px}
+.pc{background:var(--surf);border:1px solid var(--b);border-left:3px solid var(--acc);padding:16px 20px;border-radius:8px}
+.pc-n{font-family:var(--f);font-size:.875rem;font-weight:700;color:var(--t);margin-bottom:6px}
+.pc-t{font-family:var(--m);font-size:.5625rem;color:var(--t2);line-height:1.8}
+.vbars{display:flex;align-items:flex-end;gap:4px;height:60px}
+.vbw{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+.vb{width:100%;background:var(--surf2);border-radius:3px 3px 0 0;transition:background .1s}
+.vb.aw{background:var(--acc)}
+.vbl{font-family:var(--m);font-size:.425rem;color:var(--muted)}
+.srow{display:flex;gap:6px}
+.sd{flex:1;text-align:center}
+.sdd{font-family:var(--m);font-size:.425rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.ss{padding:9px 0;font-family:var(--f);font-size:.5625rem;font-weight:600;text-align:center;border-radius:6px}
+.ss.w{color:var(--acc);background:var(--acc-dim);border:1px solid var(--acc-bdr)}
+.ss.r{color:var(--muted);background:var(--surf);border:1px solid var(--b)}
+.ws{border-top:1px solid var(--b);padding-top:24px}
+.wsh{font-family:var(--f);font-size:.75rem;font-weight:700;color:var(--acc);margin-bottom:12px;letter-spacing:.01em}
+.we{display:flex;gap:14px;align-items:flex-start;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.wen{font-family:var(--m);font-size:.475rem;color:var(--dim);width:20px;flex-shrink:0;margin-top:2px}
+.wename{font-family:var(--f);font-size:.8125rem;font-weight:600;color:var(--t2)}
+.wemeta{font-family:var(--m);font-size:.5rem;color:var(--dim);margin-top:3px;line-height:1.6}
+
+/* ── HISTORY ─────────────────────────────── */
+#vhist{overflow-y:auto;flex-direction:column}
+#vhist.on{display:flex}
+.hi{max-width:900px;padding:32px 36px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.hc{background:var(--surf);border:1px solid var(--b);border-radius:10px;overflow:hidden}
+.hh{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--b)}
+.ht{font-family:var(--f);font-size:.6875rem;font-weight:700;letter-spacing:.04em;color:var(--acc)}
+.hw{font-family:var(--m);font-size:.5rem;color:var(--dim)}
+.hsc{font-family:var(--m);font-size:.475rem;color:var(--muted);margin-left:auto}
+.hb{padding:8px 16px 14px}
+.hr{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.hsn{font-family:var(--m);font-size:.475rem;color:var(--muted);width:18px}
+.hen{font-family:var(--f);font-size:.6875rem;font-weight:500;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hv{font-family:var(--m);font-size:.6875rem;font-weight:500;color:var(--t);flex-shrink:0}
+.hrir{font-family:var(--m);font-size:.425rem;color:var(--muted);flex-shrink:0}
+
+/* ── PROFILE ─────────────────────────────── */
+#vprof{overflow-y:auto;flex-direction:column}
+#vprof.on{display:flex}
+.profi{max-width:560px;padding:32px 36px;display:flex;flex-direction:column;gap:32px}
+.pid{display:flex;align-items:center;gap:18px}
+.pav{width:56px;height:56px;background:var(--surf3);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-family:var(--f);font-size:1.125rem;font-weight:700;color:var(--acc);flex-shrink:0;border-radius:12px}
+.pn{font-family:var(--f);font-size:1rem;font-weight:700;color:var(--t);letter-spacing:-.01em}
+.pe{font-family:var(--m);font-size:.5rem;color:var(--dim);margin-top:5px}
+.utog{display:flex;gap:8px}
+.ub{font-family:var(--f);font-size:.75rem;font-weight:600;letter-spacing:.02em;padding:8px 24px;border:1px solid var(--b2);background:transparent;color:var(--dim);cursor:pointer;border-radius:8px;transition:all .1s}
+.ub.on{background:var(--acc);border-color:var(--acc);color:#000}
+.bwrow{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.bwi{width:82px;height:40px;background:rgba(255,255,255,.04);border:1px solid var(--b2);color:var(--t);font-family:var(--m);font-size:.9375rem;text-align:center;outline:none;padding:0 10px;border-radius:8px;transition:border-color .12s,box-shadow .12s}
+.bwi:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-dim)}
+.bwdate{font-family:var(--m);font-size:.5rem;color:var(--dim)}
+.lb{font-family:var(--f);font-size:.625rem;font-weight:600;padding:8px 16px;border:1px solid var(--b2);background:transparent;color:var(--t2);cursor:pointer;border-radius:8px;margin-left:auto;transition:background .1s}
+.lb:hover{background:var(--surf2)}
+.bwe{display:flex;align-items:center;gap:14px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.bwed{font-family:var(--m);font-size:.5625rem;color:var(--dim);flex:1}
+.bwev{font-family:var(--m);font-size:.9375rem;font-weight:500;color:var(--t)}
+
+/* Bodyweight chart */
+.bwchart{background:var(--surf);border:1px solid var(--b);border-radius:10px;padding:14px 12px 10px;margin-bottom:14px}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--surf3)}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sb">
+    <div class="sb-brand">
+      <div class="sb-logo">Pulse<span>.</span></div>
+      <div class="sb-meta">
+        <span class="sb-wk">WK 03</span>
+        2WK streak
+      </div>
+    </div>
+    <nav>
+      <button class="nb on" data-v="log"><span class="ni"></span>Log</button>
+      <button class="nb" data-v="prog"><span class="ni"></span>Program</button>
+      <button class="nb" data-v="hist"><span class="ni"></span>History</button>
+      <button class="nb" data-v="prof"><span class="ni"></span>Profile</button>
+    </nav>
+    <div class="sb-foot">
+      <button class="fb">Export</button>
+      <button class="fb">Sign out</button>
+    </div>
+  </aside>
+
+  <main>
+
+    <!-- ── LOG ── -->
+    <div class="view on" id="vlog">
+      <div class="lp">
+
+        <div class="tabs">
+          <div class="tabs-inner">
+            <button class="tab on" data-tab="push">
+              <span class="tab-l">Push</span>
+              <span class="tab-c">2 / 6</span>
+            </button>
+            <button class="tab" data-tab="pull">
+              <span class="tab-l">Pull</span>
+              <span class="tab-c">0 / 6</span>
+            </button>
+            <button class="tab" data-tab="legs">
+              <span class="tab-l">Legs</span>
+              <span class="tab-c">0 / 5</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="wks">
+          <button class="wk">1<span class="wkd"></span></button>
+          <button class="wk">2<span class="wkd" style="background:var(--acc)"></span></button>
+          <button class="wk on">3<span class="wkd" style="background:var(--acc)"></span></button>
+          <button class="wk">4<span class="wkd"></span></button>
+          <button class="wk">5<span class="wkd"></span></button>
+          <button class="wk">6<span class="wkd"></span></button>
+          <button class="wk">7<span class="wkd"></span></button>
+          <button class="wk">8<span class="wkd"></span></button>
+          <button class="wk">9<span class="wkd"></span></button>
+          <button class="wk">10<span class="wkd"></span></button>
+          <button class="wk">11<span class="wkd"></span></button>
+          <button class="wk">12<span class="wkd"></span></button>
+        </div>
+
+        <div class="ctx">
+          <span class="ctag">Phase 1 · Accumulation</span>
+          <span class="rtag">2 RIR</span>
+          <span class="dtag">Chest · Shoulders · Triceps</span>
+        </div>
+
+        <div class="exl">
+          <button class="exi on" data-ex="0">
+            <span class="enum">01</span>
+            <div class="ebod">
+              <div class="ename">Dumbbell Bench Press</div>
+              <div class="eprog"><div class="eproginner" style="width:50%"></div></div>
+            </div>
+          </button>
+          <button class="exi" data-ex="1">
+            <span class="enum">02</span>
+            <div class="ebod">
+              <div class="ename">Incline DB Press</div>
+              <div class="eprog"><div class="eproginner" style="width:0%"></div></div>
+            </div>
+          </button>
+          <button class="exi" data-ex="2">
+            <span class="enum">03</span>
+            <div class="ebod">
+              <div class="ename">DB Lateral Raise</div>
+              <div class="eprog"><div class="eproginner" style="width:0%"></div></div>
+            </div>
+          </button>
+          <button class="exi" data-ex="3">
+            <span class="enum">04</span>
+            <div class="ebod">
+              <div class="ename">DB Overhead Press</div>
+              <div class="eprog"><div class="eproginner" style="width:0%"></div></div>
+            </div>
+          </button>
+          <button class="exi complete-ex" data-ex="4">
+            <span class="enum">05</span>
+            <div class="ebod">
+              <div class="ename">Pec Deck / Cable Fly</div>
+              <div class="eprog"><div class="eproginner" style="width:100%;background:var(--grn)"></div></div>
+            </div>
+            <span class="eck">✓</span>
+          </button>
+          <button class="exi" data-ex="5">
+            <span class="enum">06</span>
+            <div class="ebod">
+              <div class="ename">Tricep Pushdown</div>
+              <div class="eprog"><div class="eproginner" style="width:0%"></div></div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- right pane -->
+      <div class="rp">
+        <div class="dh">
+          <div class="dn">Dumbbell Bench Press</div>
+          <div class="dm">3–4 sets &nbsp;·&nbsp; 8–12 reps</div>
+        </div>
+        <div class="ds">
+          <div class="ln">Start 18–20 kg per DB &nbsp;·&nbsp; Full ROM, slow eccentric (3s down).</div>
+
+          <div class="sr sv">
+            <span class="sn">01</span>
+            <span class="sv-val">22 kg × 10</span>
+            <span class="pr">PR</span>
+            <span class="rv">2 RIR</span>
+            <div class="scg"><span class="sck">✓</span><button class="edb">Edit</button><button class="delb">✕</button></div>
+          </div>
+          <div class="sr sv">
+            <span class="sn">02</span>
+            <span class="sv-val">22 kg × 9</span>
+            <span class="rv">2 RIR</span>
+            <div class="scg"><span class="sck">✓</span><button class="edb">Edit</button><button class="delb">✕</button></div>
+          </div>
+          <div class="sr">
+            <span class="sn">03</span>
+            <input class="si" type="number" placeholder="kg" value="22">
+            <span class="sx">×</span>
+            <input class="si" type="number" placeholder="reps">
+            <span class="srir">2 RIR</span>
+            <span class="sp">→ 20kg × 10</span>
+            <button class="sav">Save</button>
+          </div>
+          <div class="sr">
+            <span class="sn">04</span>
+            <input class="si" type="number" placeholder="kg">
+            <span class="sx">×</span>
+            <input class="si" type="number" placeholder="reps">
+            <span class="srir">2 RIR</span>
+            <button class="sav">Save</button>
+          </div>
+        </div>
+        <div class="rt">
+          <span class="rt-l">Rest</span>
+          <span class="rt-t">1:24</span>
+          <div class="rt-bar"><div class="rt-fill"></div></div>
+          <div class="rt-bs">
+            <button class="rb">+30s</button>
+            <button class="rb">90s</button>
+            <button class="rs">Skip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROGRAM ── -->
+    <div class="view" id="vprog">
+      <div class="pi">
+        <div>
+          <div class="pst">Current Phase</div>
+          <div class="pc">
+            <div class="pc-n">Phase 1 — Accumulation</div>
+            <div class="pc-t">Build work capacity. Focus on form and full range of motion. Add weight only when you can complete all reps with 2+ RIR to spare.</div>
+          </div>
+        </div>
+        <div>
+          <div class="pst">Volume Progression (sets / week)</div>
+          <div class="vbars" id="vbars"></div>
+        </div>
+        <div>
+          <div class="pst">Weekly Schedule</div>
+          <div class="srow">
+            <div class="sd"><div class="sdd">M</div><div class="ss w">P</div></div>
+            <div class="sd"><div class="sdd">T</div><div class="ss w">PL</div></div>
+            <div class="sd"><div class="sdd">W</div><div class="ss r">—</div></div>
+            <div class="sd"><div class="sdd">T</div><div class="ss w">L</div></div>
+            <div class="sd"><div class="sdd">F</div><div class="ss w">P</div></div>
+            <div class="sd"><div class="sdd">S</div><div class="ss w">PL</div></div>
+            <div class="sd"><div class="sdd">S</div><div class="ss r">—</div></div>
+          </div>
+        </div>
+        <div class="ws">
+          <div class="wsh">Push — Chest · Shoulders · Triceps</div>
+          <div class="we"><span class="wen">01</span><div><div class="wename">Dumbbell Bench Press</div><div class="wemeta">3–4 sets · 8–12 reps · Start 18–20 kg per DB</div></div></div>
+          <div class="we"><span class="wen">02</span><div><div class="wename">Incline DB Press</div><div class="wemeta">3 sets · 10–14 reps · 14–16 kg per DB</div></div></div>
+          <div class="we"><span class="wen">03</span><div><div class="wename">DB Lateral Raise</div><div class="wemeta">3–4 sets · 12–16 reps · 7–9 kg per DB</div></div></div>
+          <div class="we"><span class="wen">04</span><div><div class="wename">DB Overhead Press</div><div class="wemeta">3 sets · 8–12 reps · 16–18 kg per DB seated</div></div></div>
+          <div class="we"><span class="wen">05</span><div><div class="wename">Pec Deck / Cable Fly</div><div class="wemeta">3–4 sets · 12–15 reps · Machine or cable</div></div></div>
+          <div class="we"><span class="wen">06</span><div><div class="wename">Tricep Pushdown</div><div class="wemeta">3 sets · 12–15 reps · Cable, rope attachment</div></div></div>
+        </div>
+        <div class="ws">
+          <div class="wsh">Pull — Back · Biceps · Rear Delts</div>
+          <div class="we"><span class="wen">01</span><div><div class="wename">Pull-ups / Lat Pulldown</div><div class="wemeta">3–4 sets · 6–10 reps</div></div></div>
+          <div class="we"><span class="wen">02</span><div><div class="wename">DB Row</div><div class="wemeta">3–4 sets · 10–12 reps · 26–30 kg per DB</div></div></div>
+          <div class="we"><span class="wen">03</span><div><div class="wename">Seated Cable Row</div><div class="wemeta">3 sets · 10–14 reps · Mid-grip</div></div></div>
+          <div class="we"><span class="wen">04</span><div><div class="wename">Face Pulls</div><div class="wemeta">3 sets · 15–20 reps</div></div></div>
+          <div class="we"><span class="wen">05</span><div><div class="wename">DB Bicep Curl</div><div class="wemeta">3 sets · 10–14 reps</div></div></div>
+        </div>
+        <div class="ws">
+          <div class="wsh">Legs — Quads · Hamstrings · Glutes</div>
+          <div class="we"><span class="wen">01</span><div><div class="wename">Barbell Squat / Leg Press</div><div class="wemeta">3–4 sets · 8–12 reps</div></div></div>
+          <div class="we"><span class="wen">02</span><div><div class="wename">Romanian Deadlift</div><div class="wemeta">3 sets · 10–12 reps</div></div></div>
+          <div class="we"><span class="wen">03</span><div><div class="wename">Leg Extension</div><div class="wemeta">3–4 sets · 12–15 reps</div></div></div>
+          <div class="we"><span class="wen">04</span><div><div class="wename">Lying Leg Curl</div><div class="wemeta">3 sets · 12–15 reps</div></div></div>
+          <div class="we"><span class="wen">05</span><div><div class="wename">Calf Raise</div><div class="wemeta">3–4 sets · 15–20 reps</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div class="view" id="vhist">
+      <div class="hi">
+        <div class="hc">
+          <div class="hh"><span class="ht">Push</span><span class="hw">Week 3</span><span class="hsc">14 sets</span></div>
+          <div class="hb">
+            <div class="hr"><span class="hsn">01</span><span class="hen">Dumbbell Bench Press</span><span class="hv">22 kg × 10</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">02</span><span class="hen">Dumbbell Bench Press</span><span class="hv">22 kg × 9</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">03</span><span class="hen">Incline DB Press</span><span class="hv">16 kg × 12</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">04</span><span class="hen">DB Lateral Raise</span><span class="hv">9 kg × 14</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">05</span><span class="hen">DB Overhead Press</span><span class="hv">18 kg × 10</span><span class="hrir">2 RIR</span></div>
+          </div>
+        </div>
+        <div class="hc">
+          <div class="hh"><span class="ht">Pull</span><span class="hw">Week 2</span><span class="hsc">12 sets</span></div>
+          <div class="hb">
+            <div class="hr"><span class="hsn">01</span><span class="hen">Pull-ups</span><span class="hv">BW × 8</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">02</span><span class="hen">DB Row</span><span class="hv">28 kg × 11</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">03</span><span class="hen">Seated Cable Row</span><span class="hv">60 kg × 12</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">04</span><span class="hen">Face Pulls</span><span class="hv">20 kg × 18</span><span class="hrir">3 RIR</span></div>
+          </div>
+        </div>
+        <div class="hc">
+          <div class="hh"><span class="ht">Push</span><span class="hw">Week 2</span><span class="hsc">16 sets</span></div>
+          <div class="hb">
+            <div class="hr"><span class="hsn">01</span><span class="hen">Dumbbell Bench Press</span><span class="hv">20 kg × 10</span><span class="hrir">3 RIR</span></div>
+            <div class="hr"><span class="hsn">02</span><span class="hen">Incline DB Press</span><span class="hv">14 kg × 12</span><span class="hrir">3 RIR</span></div>
+            <div class="hr"><span class="hsn">03</span><span class="hen">DB Lateral Raise</span><span class="hv">8 kg × 14</span><span class="hrir">3 RIR</span></div>
+          </div>
+        </div>
+        <div class="hc">
+          <div class="hh"><span class="ht">Legs</span><span class="hw">Week 2</span><span class="hsc">18 sets</span></div>
+          <div class="hb">
+            <div class="hr"><span class="hsn">01</span><span class="hen">Barbell Squat</span><span class="hv">80 kg × 10</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">02</span><span class="hen">Romanian Deadlift</span><span class="hv">70 kg × 12</span><span class="hrir">2 RIR</span></div>
+            <div class="hr"><span class="hsn">03</span><span class="hen">Leg Extension</span><span class="hv">60 kg × 14</span><span class="hrir">2 RIR</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROFILE ── -->
+    <div class="view" id="vprof">
+      <div class="profi">
+        <div class="pid">
+          <div class="pav">CV</div>
+          <div>
+            <div class="pn">Christiaan</div>
+            <div class="pe">christiaanvaneijnsbergen@gmail.com</div>
+          </div>
+        </div>
+        <div>
+          <div class="pst">Weight Unit</div>
+          <div class="utog">
+            <button class="ub on">kg</button>
+            <button class="ub">lbs</button>
+          </div>
+        </div>
+        <div>
+          <div class="pst">Body Weight</div>
+          <div class="bwrow">
+            <input class="bwi" type="number" placeholder="kg">
+            <span class="bwdate">Today</span>
+            <button class="lb">Log</button>
+          </div>
+          <div class="bwchart">
+            <svg viewBox="0 0 300 60" style="width:100%;height:60px;display:block" aria-hidden>
+              <defs>
+                <linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#4F9EFF" stop-opacity=".25"/>
+                  <stop offset="100%" stop-color="#4F9EFF" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M 34,48 L 84,44 L 134,38 L 184,40 L 234,52 L 234,54 L 34,54 Z" fill="url(#gfill)"/>
+              <polyline points="34,48 84,44 134,38 184,40 234,52" fill="none" stroke="#4F9EFF" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="234" cy="52" r="3" fill="#4F9EFF"/>
+            </svg>
+          </div>
+          <div class="bwe"><span class="bwed">26 May</span><span class="bwev">83.4 kg</span></div>
+          <div class="bwe"><span class="bwed">24 May</span><span class="bwev">83.8 kg</span></div>
+          <div class="bwe"><span class="bwed">22 May</span><span class="bwev">84.1 kg</span></div>
+          <div class="bwe"><span class="bwed">20 May</span><span class="bwev">84.0 kg</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<script>
+// Volume bars
+const vols=[12,14,16,14,16,18,16,18,20,18,20,10];
+const maxV=Math.max(...vols);
+const vc=document.getElementById('vbars');
+vols.forEach((v,i)=>{
+  const w=document.createElement('div');w.className='vbw';
+  const b=document.createElement('div');b.className='vb'+(i===2?' aw':'');
+  b.style.height=`${(v/maxV)*46}px`;
+  const l=document.createElement('span');l.className='vbl';l.textContent=i+1;
+  w.appendChild(b);w.appendChild(l);vc.appendChild(w);
+});
+// Nav
+document.querySelectorAll('.nb').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('v'+b.dataset.v).classList.add('on');
+  });
+});
+// Exercises
+document.querySelectorAll('.exi').forEach(i=>{
+  i.addEventListener('click',()=>{
+    document.querySelectorAll('.exi').forEach(x=>x.classList.remove('on'));
+    i.classList.add('on');
+  });
+});
+// Tabs
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+  });
+});
+// Weeks
+document.querySelectorAll('.wk').forEach(w=>{
+  w.addEventListener('click',()=>{
+    document.querySelectorAll('.wk').forEach(x=>x.classList.remove('on'));
+    w.classList.add('on');
+  });
+});
+// Unit
+document.querySelectorAll('.ub').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.ub').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+  });
+});
+</script>
+</body>
+</html>

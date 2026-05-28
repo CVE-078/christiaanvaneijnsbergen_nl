@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Clean Athlete Desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+:root {
+    --bg:     #0b0d12;
+    --bg2:    #131720;
+    --bg3:    #1a1f2e;
+    --bd:     rgba(255,255,255,0.06);
+    --bd2:    rgba(255,255,255,0.1);
+    --t1:     #eef0f6;
+    --t2:     #5e6a80;
+    --t3:     #2c3445;
+    --ac:     #3ecf8e;
+    --ac-dim: rgba(62,207,142,0.1);
+    --ac-bd:  rgba(62,207,142,0.22);
+    --f:      'Outfit', sans-serif;
+}
+
+body {
+    font-family: var(--f);
+    background: var(--bg);
+    color: var(--t1);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+/* ——————————————— TOP NAV ——————————————— */
+.topnav {
+    flex-shrink: 0;
+    height: 56px;
+    border-bottom: 1px solid var(--bd);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 32px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.nav-brand {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--t1);
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+.nav-brand em { color: var(--ac); font-style: normal; }
+
+.nav-wk {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ac);
+    background: var(--ac-dim);
+    border: 1px solid var(--ac-bd);
+    padding: 3px 9px;
+    border-radius: 100px;
+    letter-spacing: 0.05em;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.nav-streak {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--t2);
+    flex-shrink: 0;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+}
+
+.nav-link {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--t2);
+    font-family: var(--f);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.01em;
+}
+.nav-link:hover { background: rgba(255,255,255,0.05); color: var(--t1); }
+.nav-link.active { background: var(--ac-dim); color: var(--ac); }
+
+.nav-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--bd2);
+    margin: 0 8px;
+    flex-shrink: 0;
+}
+
+.nav-util {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--t3);
+    font-family: var(--f);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.nav-util:hover { background: rgba(255,255,255,0.04); color: var(--t2); }
+.nav-util.danger:hover { color: #f87171; }
+
+/* ——————————————— VIEWS ——————————————— */
+.view { display: none; flex: 1; }
+.view.active { display: block; animation: vu 0.16s ease-out; }
+@keyframes vu { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ——————————————— LOG VIEW ——————————————— */
+
+.log-controls {
+    border-bottom: 1px solid var(--bd);
+    background: var(--bg);
+    position: sticky;
+    top: 56px;
+    z-index: 40;
+}
+
+.log-controls-inner {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.log-tabs-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 11px 0 0;
+}
+
+.wtabs {
+    display: flex;
+    background: var(--bg2);
+    border-radius: 9px;
+    padding: 3px;
+    gap: 2px;
+}
+.wt {
+    padding: 7px 20px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--t2);
+    font-family: var(--f);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.01em;
+}
+.wt.active { background: var(--ac); color: #000; box-shadow: 0 2px 8px rgba(62,207,142,0.25); }
+
+.phase-info {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ptag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--t2); }
+.rirp { font-size: 11px; font-weight: 700; color: var(--ac); background: var(--ac-dim); border: 1px solid var(--ac-bd); padding: 2px 8px; border-radius: 100px; }
+.pdesc { font-size: 12px; color: var(--t3); }
+
+.wstrip {
+    display: flex;
+    padding: 8px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 2px;
+}
+.wstrip::-webkit-scrollbar { display: none; }
+.wc {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 32px;
+    padding: 4px 4px;
+    border-radius: 7px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--t2);
+    font-family: var(--f);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.12s;
+    gap: 3px;
+    flex-shrink: 0;
+}
+.wc:hover { background: rgba(255,255,255,0.04); }
+.wc.active { background: var(--ac-dim); color: var(--ac); font-weight: 700; }
+.wd { width: 3px; height: 3px; border-radius: 50%; background: transparent; }
+.wc.has-data .wd { background: var(--t3); }
+.wc.active .wd { background: var(--ac); }
+
+/* Exercise list */
+.log-content {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 16px 32px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.exc {
+    background: var(--bg2);
+    border-radius: 14px;
+    border: 1px solid var(--bd);
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+.exc.complete { border-color: rgba(62,207,142,0.18); }
+.exc.open { border-color: var(--bd2); }
+
+.exh {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.exnum {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--t3);
+    min-width: 18px;
+    font-variant-numeric: tabular-nums;
+}
+.exc.complete .exnum { color: var(--ac); }
+
+.exinf { flex: 1; min-width: 0; }
+.exname {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--t1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.exspec { font-size: 11.5px; color: var(--t2); margin-top: 2px; }
+
+.pips { display: flex; gap: 3px; align-items: center; flex-shrink: 0; }
+.pip { width: 8px; height: 8px; border-radius: 3px; background: var(--t3); }
+.pip.f { background: var(--ac); }
+
+.excheck { font-size: 14px; color: var(--ac); flex-shrink: 0; }
+
+.chev {
+    width: 15px; height: 15px;
+    color: var(--t3); flex-shrink: 0;
+    transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+    stroke-width: 2px;
+}
+.exc.open .chev { transform: rotate(180deg); }
+
+.exb {
+    display: none;
+    padding: 0 20px 18px;
+    border-top: 1px solid var(--bd);
+}
+.exc.open .exb { display: block; animation: sd 0.18s ease-out; }
+@keyframes sd { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+.exnote {
+    font-size: 12.5px;
+    color: var(--t2);
+    padding: 12px 0;
+    line-height: 1.6;
+    border-bottom: 1px solid var(--bd);
+    max-width: 560px;
+}
+
+/* Sets grid — desktop has 5 cols: # / kg / reps / prev / action */
+.shead {
+    display: grid;
+    grid-template-columns: 24px 100px 100px 1fr 80px;
+    gap: 10px;
+    padding: 10px 0 6px;
+    border-bottom: 1px solid var(--bd);
+    margin-bottom: 2px;
+}
+.shc {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--t3);
+    text-align: center;
+}
+.shc:first-child { text-align: left; }
+.shc.prev-col { color: var(--t3); text-align: left; padding-left: 4px; }
+
+.srow {
+    display: grid;
+    grid-template-columns: 24px 100px 100px 1fr 80px;
+    gap: 10px;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.025);
+}
+.srow:last-child { border-bottom: none; }
+
+.sn {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--t3);
+    font-variant-numeric: tabular-nums;
+}
+.srow.done .sn { color: var(--ac); }
+
+.sinp {
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 7px;
+    padding: 7px 10px;
+    color: var(--t1);
+    font-family: var(--f);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+}
+.sinp::-webkit-inner-spin-button,
+.sinp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.sinp:focus {
+    border-color: var(--ac);
+    box-shadow: 0 0 0 3px rgba(62,207,142,0.1);
+}
+.sinp::placeholder { color: var(--t3); }
+
+.sv { font-size: 14px; font-weight: 600; color: var(--t1); text-align: center; font-variant-numeric: tabular-nums; }
+
+.prev-hint {
+    font-size: 12px;
+    color: var(--t3);
+    padding-left: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.sac { display: flex; align-items: center; justify-content: center; }
+
+.sbtn {
+    background: var(--ac-dim);
+    border: 1px solid var(--ac-bd);
+    border-radius: 7px;
+    padding: 7px 0;
+    color: var(--ac);
+    font-family: var(--f);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s;
+    text-align: center;
+}
+.sbtn:hover { background: var(--ac); color: #000; border-color: var(--ac); }
+
+.done-g { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.dchk { font-size: 14px; color: var(--ac); }
+.ebtn {
+    background: none;
+    border: none;
+    color: var(--t3);
+    font-family: var(--f);
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--t3);
+    transition: color 0.1s;
+}
+.ebtn:hover { color: var(--t2); }
+
+.pr {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #fbbf24;
+    background: rgba(251,191,36,0.1);
+    border: 1px solid rgba(251,191,36,0.2);
+    padding: 0 4px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
+/* Rest timer — inline below sets */
+.rest-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--bd2);
+    border-radius: 10px;
+    max-width: 440px;
+}
+.rest-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--t2); flex-shrink: 0; }
+.rest-time { font-size: 16px; font-weight: 700; color: var(--t1); font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 36px; }
+.rest-prog { flex: 1; height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+.rest-prog-bar { height: 100%; background: var(--ac); border-radius: 2px; transition: width 1s linear; }
+.rest-action {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--t2);
+    background: transparent;
+    border: 1px solid var(--bd2);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: var(--f);
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.rest-action:hover { color: var(--t1); border-color: rgba(255,255,255,0.15); }
+
+/* ——————————————— PROGRAM VIEW ——————————————— */
+.prog-wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 24px 32px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.prog-top { display: flex; gap: 14px; }
+
+.prog-phase-card {
+    flex: 1;
+    background: var(--bg2);
+    border-radius: 14px;
+    border: 1px solid var(--bd);
+    border-left: 3px solid var(--ac);
+    padding: 18px 20px;
+}
+.prog-phase-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ac); margin-bottom: 6px; }
+.prog-phase-title { font-size: 16px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+.prog-phase-note { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+.vol-card {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-radius: 14px;
+    border: 1px solid var(--bd);
+    padding: 16px 18px;
+}
+.vol-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--t2); margin-bottom: 14px; }
+.vol-bars { display: flex; align-items: flex-end; gap: 3px; height: 48px; margin-bottom: 6px; }
+.vbar { flex: 1; border-radius: 3px 3px 0 0; background: var(--bg3); }
+.vbar.act { background: var(--ac); }
+.vol-nums { display: flex; gap: 3px; }
+.vnum { flex: 1; text-align: center; font-size: 8.5px; font-weight: 500; color: var(--t3); font-variant-numeric: tabular-nums; }
+.vnum.act { color: var(--ac); font-weight: 700; }
+
+.prog-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+.prog-col-hdr { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ac); margin-bottom: 8px; }
+.prog-card { background: var(--bg2); border-radius: 14px; border: 1px solid var(--bd); overflow: hidden; }
+.prog-ex-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--bd); }
+.prog-ex-row:last-child { border-bottom: none; }
+.prog-ex-num { font-size: 11px; font-weight: 700; color: var(--t3); min-width: 16px; font-variant-numeric: tabular-nums; }
+.prog-ex-inf { flex: 1; min-width: 0; }
+.prog-ex-name { font-size: 13px; font-weight: 600; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prog-ex-spec { font-size: 11px; color: var(--t2); margin-top: 1px; }
+
+/* ——————————————— HISTORY VIEW ——————————————— */
+.hist-wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 24px 32px 48px;
+}
+.hist-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--t2); margin-bottom: 14px; }
+.hist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.hcard { background: var(--bg2); border-radius: 14px; border: 1px solid var(--bd); overflow: hidden; }
+.hcard-hdr { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--bd); }
+.tdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.push-c { background: var(--ac); box-shadow: 0 0 6px rgba(62,207,142,0.5); }
+.pull-c { background: #60a5fa; box-shadow: 0 0 6px rgba(96,165,250,0.5); }
+.legs-c { background: #a78bfa; box-shadow: 0 0 6px rgba(167,139,250,0.5); }
+.htype { font-size: 13px; font-weight: 700; color: var(--t1); text-transform: uppercase; letter-spacing: 0.04em; }
+.hwk { font-size: 11px; color: var(--t2); font-weight: 500; }
+.hsets { font-size: 11px; color: var(--t2); margin-left: auto; }
+.hcard-sets { padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 1px; }
+.hsr { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.hen { font-size: 12.5px; color: var(--t2); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hsd { font-size: 12.5px; font-weight: 600; color: var(--t1); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+/* ——————————————— PROFILE VIEW ——————————————— */
+.prof-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 32px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.prof-banner {
+    background: var(--bg2);
+    border-radius: 16px;
+    border: 1px solid var(--bd);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.prof-av {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--ac-dim);
+    border: 1px solid var(--ac-bd);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; font-weight: 700; color: var(--ac); flex-shrink: 0;
+}
+.prof-id { flex: 1; }
+.prof-name { font-size: 19px; font-weight: 700; color: var(--t1); }
+.prof-email { font-size: 13px; color: var(--t2); margin-top: 2px; }
+
+.prof-stats { display: flex; gap: 10px; margin-left: auto; }
+.prof-stat {
+    background: var(--bg);
+    border-radius: 10px;
+    border: 1px solid var(--bd);
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 72px;
+}
+.prof-stat-val { font-size: 18px; font-weight: 700; color: var(--ac); font-variant-numeric: tabular-nums; }
+.prof-stat-label { font-size: 10.5px; color: var(--t2); margin-top: 2px; }
+
+.prof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.pv-card { background: var(--bg2); border-radius: 14px; border: 1px solid var(--bd); overflow: hidden; }
+.pv-row { display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--bd); gap: 14px; }
+.pv-row:last-child { border-bottom: none; }
+.pv-rl { font-size: 14px; font-weight: 500; color: var(--t1); flex: 1; }
+.pv-rs { font-size: 12px; color: var(--t2); margin-top: 1px; }
+
+.utog { display: flex; background: var(--bg3); border-radius: 8px; padding: 2px; gap: 2px; }
+.ub { padding: 5px 16px; border-radius: 6px; border: none; background: transparent; color: var(--t2); font-family: var(--f); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em; }
+.ub.active { background: var(--ac); color: #000; }
+
+.pbtn { padding: 7px 16px; border-radius: 8px; border: 1px solid; font-family: var(--f); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.pbtn-g { background: var(--bg3); border-color: var(--bd2); color: var(--t2); }
+.pbtn-d { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.2); color: #f87171; }
+
+.bw-section-title { font-size: 13px; font-weight: 600; color: var(--t1); }
+.bwinp-row { display: flex; gap: 8px; align-items: center; padding: 12px 18px; }
+.bwinp { flex: 1; background: var(--bg); border: 1px solid rgba(255,255,255,0.09); border-radius: 8px; padding: 9px 12px; color: var(--t1); font-family: var(--f); font-size: 14px; outline: none; transition: border-color 0.15s; -moz-appearance: textfield; }
+.bwinp::-webkit-inner-spin-button, .bwinp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.bwinp:focus { border-color: var(--ac); }
+.bwinp::placeholder { color: var(--t3); }
+.bwbtn { padding: 9px 20px; background: var(--ac-dim); border: 1px solid var(--ac-bd); border-radius: 8px; color: var(--ac); font-family: var(--f); font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+.bwbtn:hover { background: var(--ac); color: #000; }
+.bwlog { display: flex; flex-direction: column; }
+.bwe { display: flex; align-items: center; padding: 10px 18px; border-top: 1px solid var(--bd); gap: 10px; }
+.bwd { font-size: 12.5px; color: var(--t2); flex: 1; }
+.bwv { font-size: 14px; font-weight: 600; color: var(--t1); font-variant-numeric: tabular-nums; }
+.bwdel { background: none; border: none; color: var(--t3); cursor: pointer; font-size: 13px; padding: 0 2px; transition: color 0.1s; }
+.bwdel:hover { color: #f87171; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<header class="topnav">
+    <span class="nav-brand">Pulse<em>.</em></span>
+    <span class="nav-wk">WK 05 / 12</span>
+    <span class="nav-streak">3WK</span>
+    <nav class="nav-links">
+        <button class="nav-link active" onclick="sv('log',this)">Log</button>
+        <button class="nav-link" onclick="sv('program',this)">Program</button>
+        <button class="nav-link" onclick="sv('history',this)">History</button>
+        <button class="nav-link" onclick="sv('profile',this)">Profile</button>
+        <div class="nav-divider"></div>
+        <button class="nav-util">Export</button>
+        <button class="nav-util danger">Sign out</button>
+    </nav>
+</header>
+
+<!-- ===== LOG VIEW ===== -->
+<div id="vlog" class="view active">
+
+    <!-- Sticky controls strip -->
+    <div class="log-controls">
+        <div class="log-controls-inner">
+            <div class="log-tabs-row">
+                <div class="wtabs">
+                    <button class="wt active" onclick="selTab(this)">Push</button>
+                    <button class="wt" onclick="selTab(this)">Pull</button>
+                    <button class="wt" onclick="selTab(this)">Legs</button>
+                </div>
+                <div class="phase-info">
+                    <span class="ptag">Hypertrophy</span>
+                    <span class="rirp">2 RIR</span>
+                    <span class="pdesc">Horizontal Push</span>
+                </div>
+            </div>
+            <div class="wstrip">
+                <button class="wc" onclick="selW(this)">1<span class="wd"></span></button>
+                <button class="wc" onclick="selW(this)">2<span class="wd"></span></button>
+                <button class="wc has-data" onclick="selW(this)">3<span class="wd"></span></button>
+                <button class="wc has-data" onclick="selW(this)">4<span class="wd"></span></button>
+                <button class="wc active has-data" onclick="selW(this)">5<span class="wd"></span></button>
+                <button class="wc" onclick="selW(this)">6<span class="wd"></span></button>
+                <button class="wc" onclick="selW(this)">7<span class="wd"></span></button>
+                <button class="wc" onclick="selW(this)">8<span class="wd"></span></button>
+                <button class="wc" onclick="selW(this)">9<span class="wd"></span></button>
+                <button class="wc" onclick="selW(this)">10<span class="wd"></span></button>
+                <button class="wc" onclick="selW(this)">11<span class="wd"></span></button>
+                <button class="wc" onclick="selW(this)">12<span class="wd"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise list -->
+    <div class="log-content">
+
+        <!-- Ex 1: complete, collapsed -->
+        <div class="exc complete" id="c1">
+            <button class="exh" onclick="tog('c1')">
+                <span class="exnum">01</span>
+                <div class="exinf">
+                    <div class="exname">Bench Press</div>
+                    <div class="exspec">4 sets · 8–10 reps</div>
+                </div>
+                <div class="pips">
+                    <span class="pip f"></span><span class="pip f"></span><span class="pip f"></span><span class="pip f"></span>
+                </div>
+                <span class="excheck">✓</span>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="exb">
+                <div class="exnote">Controlled 3-sec eccentric. Shoulders packed and retracted. Pause briefly at chest.</div>
+                <div class="shead">
+                    <span class="shc">#</span>
+                    <span class="shc">kg</span>
+                    <span class="shc">reps</span>
+                    <span class="shc prev-col">prev week</span>
+                    <span class="shc"></span>
+                </div>
+                <div class="srow done"><span class="sn">01</span><span class="sv">82.5</span><span class="sv">9</span><span class="prev-hint">80 × 9</span><div class="sac"><div class="done-g"><span class="dchk">✓</span><button class="ebtn">Edit</button></div></div></div>
+                <div class="srow done"><span class="sn">02</span><span class="sv">82.5</span><span class="sv">8</span><span class="prev-hint">80 × 8</span><div class="sac"><div class="done-g"><span class="dchk">✓</span><button class="ebtn">Edit</button></div></div></div>
+                <div class="srow done"><span class="sn">03</span><span class="sv">80</span><span class="sv">8<span class="pr">PR</span></span><span class="prev-hint">77.5 × 8</span><div class="sac"><div class="done-g"><span class="dchk">✓</span><button class="ebtn">Edit</button></div></div></div>
+                <div class="srow done"><span class="sn">04</span><span class="sv">77.5</span><span class="sv">10</span><span class="prev-hint">75 × 10</span><div class="sac"><div class="done-g"><span class="dchk">✓</span><button class="ebtn">Edit</button></div></div></div>
+            </div>
+        </div>
+
+        <!-- Ex 2: open, 2 done + 1 pending -->
+        <div class="exc open" id="c2">
+            <button class="exh" onclick="tog('c2')">
+                <span class="exnum">02</span>
+                <div class="exinf">
+                    <div class="exname">Incline DB Press</div>
+                    <div class="exspec">3 sets · 10–12 reps</div>
+                </div>
+                <div class="pips">
+                    <span class="pip f"></span><span class="pip f"></span><span class="pip"></span>
+                </div>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="exb">
+                <div class="exnote">30° incline. Pronation at the top. Controlled descent, slight pause at the chest.</div>
+                <div class="shead">
+                    <span class="shc">#</span>
+                    <span class="shc">kg</span>
+                    <span class="shc">reps</span>
+                    <span class="shc prev-col">prev week</span>
+                    <span class="shc"></span>
+                </div>
+                <div class="srow done"><span class="sn">01</span><span class="sv">30</span><span class="sv">12</span><span class="prev-hint">28 × 12</span><div class="sac"><div class="done-g"><span class="dchk">✓</span><button class="ebtn">Edit</button></div></div></div>
+                <div class="srow done"><span class="sn">02</span><span class="sv">30</span><span class="sv">11</span><span class="prev-hint">28 × 11</span><div class="sac"><div class="done-g"><span class="dchk">✓</span><button class="ebtn">Edit</button></div></div></div>
+                <div class="srow">
+                    <span class="sn">03</span>
+                    <input type="number" class="sinp" placeholder="kg" value="30">
+                    <input type="number" class="sinp" placeholder="reps">
+                    <span class="prev-hint">28 × 11</span>
+                    <div class="sac"><button class="sbtn">Save</button></div>
+                </div>
+                <div class="rest-bar">
+                    <span class="rest-label">Rest</span>
+                    <span class="rest-time">1:23</span>
+                    <div class="rest-prog"><div class="rest-prog-bar" style="width:62%"></div></div>
+                    <button class="rest-action">+30s</button>
+                    <button class="rest-action">90s</button>
+                    <button class="rest-action">Skip</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ex 3: collapsed -->
+        <div class="exc" id="c3">
+            <button class="exh" onclick="tog('c3')">
+                <span class="exnum">03</span>
+                <div class="exinf">
+                    <div class="exname">Cable Lateral Raise</div>
+                    <div class="exspec">3 sets · 15–20 reps</div>
+                </div>
+                <div class="pips"><span class="pip"></span><span class="pip"></span><span class="pip"></span></div>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="exb">
+                <div class="exnote">Light weight, full range of motion. No body English.</div>
+                <div class="shead"><span class="shc">#</span><span class="shc">kg</span><span class="shc">reps</span><span class="shc prev-col">prev week</span><span class="shc"></span></div>
+                <div class="srow"><span class="sn">01</span><input type="number" class="sinp" placeholder="kg"><input type="number" class="sinp" placeholder="reps"><span class="prev-hint">10 × 18</span><div class="sac"><button class="sbtn">Save</button></div></div>
+                <div class="srow"><span class="sn">02</span><input type="number" class="sinp" placeholder="kg"><input type="number" class="sinp" placeholder="reps"><span class="prev-hint">10 × 17</span><div class="sac"><button class="sbtn">Save</button></div></div>
+                <div class="srow"><span class="sn">03</span><input type="number" class="sinp" placeholder="kg"><input type="number" class="sinp" placeholder="reps"><span class="prev-hint">10 × 16</span><div class="sac"><button class="sbtn">Save</button></div></div>
+            </div>
+        </div>
+
+        <!-- Ex 4: collapsed -->
+        <div class="exc" id="c4">
+            <button class="exh" onclick="tog('c4')">
+                <span class="exnum">04</span>
+                <div class="exinf">
+                    <div class="exname">Tricep Pushdown</div>
+                    <div class="exspec">3 sets · 12–15 reps</div>
+                </div>
+                <div class="pips"><span class="pip"></span><span class="pip"></span><span class="pip"></span></div>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="exb">
+                <div class="exnote">Rope attachment. Fully separate hands at the bottom contraction.</div>
+                <div class="shead"><span class="shc">#</span><span class="shc">kg</span><span class="shc">reps</span><span class="shc prev-col">prev week</span><span class="shc"></span></div>
+                <div class="srow"><span class="sn">01</span><input type="number" class="sinp" placeholder="kg"><input type="number" class="sinp" placeholder="reps"><span class="prev-hint">25 × 14</span><div class="sac"><button class="sbtn">Save</button></div></div>
+                <div class="srow"><span class="sn">02</span><input type="number" class="sinp" placeholder="kg"><input type="number" class="sinp" placeholder="reps"><span class="prev-hint">25 × 13</span><div class="sac"><button class="sbtn">Save</button></div></div>
+                <div class="srow"><span class="sn">03</span><input type="number" class="sinp" placeholder="kg"><input type="number" class="sinp" placeholder="reps"><span class="prev-hint">25 × 13</span><div class="sac"><button class="sbtn">Save</button></div></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ===== PROGRAM VIEW ===== -->
+<div id="vprogram" class="view" style="overflow-y:auto;">
+    <div class="prog-wrap">
+        <div class="prog-top">
+            <div class="prog-phase-card">
+                <div class="prog-phase-tag">Week 5 · Hypertrophy</div>
+                <div class="prog-phase-title">Accumulation Phase — 2 RIR</div>
+                <div class="prog-phase-note">Focus on controlled tempo. Add 2.5 kg to main lifts if all reps were completed cleanly last week.</div>
+            </div>
+            <div class="vol-card">
+                <div class="vol-title">Weekly Volume</div>
+                <div class="vol-bars">
+                    <div class="vbar" style="height:22px"></div><div class="vbar" style="height:26px"></div>
+                    <div class="vbar" style="height:30px"></div><div class="vbar" style="height:34px"></div>
+                    <div class="vbar act" style="height:38px"></div><div class="vbar" style="height:42px"></div>
+                    <div class="vbar" style="height:46px"></div><div class="vbar" style="height:22px"></div>
+                    <div class="vbar" style="height:26px"></div><div class="vbar" style="height:30px"></div>
+                    <div class="vbar" style="height:20px"></div><div class="vbar" style="height:16px"></div>
+                </div>
+                <div class="vol-nums">
+                    <span class="vnum">1</span><span class="vnum">2</span><span class="vnum">3</span>
+                    <span class="vnum">4</span><span class="vnum act">5</span><span class="vnum">6</span>
+                    <span class="vnum">7</span><span class="vnum">8</span><span class="vnum">9</span>
+                    <span class="vnum">10</span><span class="vnum">11</span><span class="vnum">12</span>
+                </div>
+            </div>
+        </div>
+        <div class="prog-grid">
+            <div>
+                <div class="prog-col-hdr">Push · Horizontal</div>
+                <div class="prog-card">
+                    <div class="prog-ex-row"><span class="prog-ex-num">01</span><div class="prog-ex-inf"><div class="prog-ex-name">Bench Press</div><div class="prog-ex-spec">4 × 8–10 · RPE 8</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">02</span><div class="prog-ex-inf"><div class="prog-ex-name">Incline DB Press</div><div class="prog-ex-spec">3 × 10–12 · RPE 8</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">03</span><div class="prog-ex-inf"><div class="prog-ex-name">Cable Lateral Raise</div><div class="prog-ex-spec">3 × 15–20 · RPE 8</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">04</span><div class="prog-ex-inf"><div class="prog-ex-name">Tricep Pushdown</div><div class="prog-ex-spec">3 × 12–15 · RPE 7</div></div></div>
+                </div>
+            </div>
+            <div>
+                <div class="prog-col-hdr">Pull · Vertical</div>
+                <div class="prog-card">
+                    <div class="prog-ex-row"><span class="prog-ex-num">01</span><div class="prog-ex-inf"><div class="prog-ex-name">Weighted Pull-up</div><div class="prog-ex-spec">4 × 6–8 · RPE 8</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">02</span><div class="prog-ex-inf"><div class="prog-ex-name">Pendlay Row</div><div class="prog-ex-spec">3 × 6–8 · RPE 8</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">03</span><div class="prog-ex-inf"><div class="prog-ex-name">Face Pull</div><div class="prog-ex-spec">3 × 15–20 · RPE 7</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">04</span><div class="prog-ex-inf"><div class="prog-ex-name">Hammer Curl</div><div class="prog-ex-spec">3 × 10–12 · RPE 8</div></div></div>
+                </div>
+            </div>
+            <div>
+                <div class="prog-col-hdr">Legs · Quad Dominant</div>
+                <div class="prog-card">
+                    <div class="prog-ex-row"><span class="prog-ex-num">01</span><div class="prog-ex-inf"><div class="prog-ex-name">Back Squat</div><div class="prog-ex-spec">4 × 6–8 · RPE 8</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">02</span><div class="prog-ex-inf"><div class="prog-ex-name">Romanian Deadlift</div><div class="prog-ex-spec">3 × 8–10 · RPE 8</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">03</span><div class="prog-ex-inf"><div class="prog-ex-name">Leg Press</div><div class="prog-ex-spec">3 × 10–12 · RPE 8</div></div></div>
+                    <div class="prog-ex-row"><span class="prog-ex-num">04</span><div class="prog-ex-inf"><div class="prog-ex-name">Leg Curl</div><div class="prog-ex-spec">3 × 10–12 · RPE 8</div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== HISTORY VIEW ===== -->
+<div id="vhistory" class="view" style="overflow-y:auto;">
+    <div class="hist-wrap">
+        <div class="hist-title">Recent Sessions</div>
+        <div class="hist-grid">
+            <div class="hcard">
+                <div class="hcard-hdr"><span class="tdot push-c"></span><span class="htype">Push</span><span class="hwk">Week 5</span><span class="hsets">14 sets</span></div>
+                <div class="hcard-sets">
+                    <div class="hsr"><span class="hen">Bench Press</span><span class="hsd">82.5 kg × 9</span></div>
+                    <div class="hsr"><span class="hen">Incline DB Press</span><span class="hsd">30 kg × 12</span></div>
+                    <div class="hsr"><span class="hen">Cable Lateral Raise</span><span class="hsd">10 kg × 18</span></div>
+                    <div class="hsr"><span class="hen">Tricep Pushdown</span><span class="hsd">25 kg × 14</span></div>
+                </div>
+            </div>
+            <div class="hcard">
+                <div class="hcard-hdr"><span class="tdot pull-c"></span><span class="htype">Pull</span><span class="hwk">Week 4</span><span class="hsets">16 sets</span></div>
+                <div class="hcard-sets">
+                    <div class="hsr"><span class="hen">Weighted Pull-up</span><span class="hsd">10 kg × 8</span></div>
+                    <div class="hsr"><span class="hen">Pendlay Row</span><span class="hsd">80 kg × 6</span></div>
+                    <div class="hsr"><span class="hen">Face Pull</span><span class="hsd">22.5 kg × 15</span></div>
+                    <div class="hsr"><span class="hen">Hammer Curl</span><span class="hsd">18 kg × 11</span></div>
+                </div>
+            </div>
+            <div class="hcard">
+                <div class="hcard-hdr"><span class="tdot legs-c"></span><span class="htype">Legs</span><span class="hwk">Week 4</span><span class="hsets">18 sets</span></div>
+                <div class="hcard-sets">
+                    <div class="hsr"><span class="hen">Back Squat</span><span class="hsd">100 kg × 8</span></div>
+                    <div class="hsr"><span class="hen">Romanian Deadlift</span><span class="hsd">90 kg × 10</span></div>
+                    <div class="hsr"><span class="hen">Leg Press</span><span class="hsd">140 kg × 12</span></div>
+                    <div class="hsr"><span class="hen">Leg Curl</span><span class="hsd">45 kg × 12</span></div>
+                </div>
+            </div>
+            <div class="hcard">
+                <div class="hcard-hdr"><span class="tdot push-c"></span><span class="htype">Push</span><span class="hwk">Week 4</span><span class="hsets">14 sets</span></div>
+                <div class="hcard-sets">
+                    <div class="hsr"><span class="hen">Bench Press</span><span class="hsd">80 kg × 9</span></div>
+                    <div class="hsr"><span class="hen">Incline DB Press</span><span class="hsd">28 kg × 12</span></div>
+                    <div class="hsr"><span class="hen">Cable Lateral Raise</span><span class="hsd">10 kg × 16</span></div>
+                    <div class="hsr"><span class="hen">Tricep Pushdown</span><span class="hsd">24 kg × 13</span></div>
+                </div>
+            </div>
+            <div class="hcard">
+                <div class="hcard-hdr"><span class="tdot pull-c"></span><span class="htype">Pull</span><span class="hwk">Week 3</span><span class="hsets">16 sets</span></div>
+                <div class="hcard-sets">
+                    <div class="hsr"><span class="hen">Weighted Pull-up</span><span class="hsd">7.5 kg × 8</span></div>
+                    <div class="hsr"><span class="hen">Pendlay Row</span><span class="hsd">77.5 kg × 6</span></div>
+                    <div class="hsr"><span class="hen">Face Pull</span><span class="hsd">20 kg × 17</span></div>
+                </div>
+            </div>
+            <div class="hcard">
+                <div class="hcard-hdr"><span class="tdot legs-c"></span><span class="htype">Legs</span><span class="hwk">Week 3</span><span class="hsets">16 sets</span></div>
+                <div class="hcard-sets">
+                    <div class="hsr"><span class="hen">Back Squat</span><span class="hsd">97.5 kg × 8</span></div>
+                    <div class="hsr"><span class="hen">Romanian Deadlift</span><span class="hsd">87.5 kg × 10</span></div>
+                    <div class="hsr"><span class="hen">Leg Press</span><span class="hsd">135 kg × 12</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== PROFILE VIEW ===== -->
+<div id="vprofile" class="view" style="overflow-y:auto;">
+    <div class="prof-wrap">
+        <div class="prof-banner">
+            <div class="prof-av">CE</div>
+            <div class="prof-id">
+                <div class="prof-name">Christiaan</div>
+                <div class="prof-email">christiaan@example.com</div>
+            </div>
+            <div class="prof-stats">
+                <div class="prof-stat">
+                    <div class="prof-stat-val">05</div>
+                    <div class="prof-stat-label">Current week</div>
+                </div>
+                <div class="prof-stat">
+                    <div class="prof-stat-val">3</div>
+                    <div class="prof-stat-label">Week streak</div>
+                </div>
+                <div class="prof-stat">
+                    <div class="prof-stat-val">47</div>
+                    <div class="prof-stat-label">Sessions</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="prof-grid">
+            <div class="pv-card">
+                <div class="pv-row">
+                    <div class="pv-rl">Weight unit</div>
+                    <div class="utog">
+                        <button class="ub active" onclick="selUnit(this)">kg</button>
+                        <button class="ub" onclick="selUnit(this)">lbs</button>
+                    </div>
+                </div>
+                <div class="pv-row">
+                    <div>
+                        <div class="pv-rl">Export data</div>
+                        <div class="pv-rs">Download logs as JSON</div>
+                    </div>
+                    <button class="pbtn pbtn-g">Export</button>
+                </div>
+                <div class="pv-row">
+                    <div class="pv-rl">Sign out</div>
+                    <button class="pbtn pbtn-d">Sign out</button>
+                </div>
+            </div>
+
+            <div class="pv-card">
+                <div class="pv-row"><div class="bw-section-title">Body Weight</div></div>
+                <div class="bwinp-row">
+                    <input type="number" class="bwinp" placeholder="Today's weight (kg)">
+                    <button class="bwbtn">Log</button>
+                </div>
+                <div class="bwlog">
+                    <div class="bwe"><span class="bwd">2026-05-25</span><span class="bwv">82.3 kg</span><button class="bwdel">✕</button></div>
+                    <div class="bwe"><span class="bwd">2026-05-22</span><span class="bwv">82.8 kg</span><button class="bwdel">✕</button></div>
+                    <div class="bwe"><span class="bwd">2026-05-19</span><span class="bwv">83.1 kg</span><button class="bwdel">✕</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function sv(id, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+    const view = document.getElementById('v' + id);
+    if (view) { view.classList.add('active'); window.scrollTo(0, 0); }
+    if (btn) btn.classList.add('active');
+}
+function selTab(btn) {
+    document.querySelectorAll('.wt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+function selW(chip) {
+    document.querySelectorAll('.wc').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+}
+function tog(id) {
+    document.getElementById(id).classList.toggle('open');
+}
+function selUnit(btn) {
+    document.querySelectorAll('.ub').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+</script>
+</body>
+</html>
