@@ -46,6 +46,9 @@ const defaultContext = {
     deleteLog: vi.fn(),
     timerTrigger: 0,
     fireTrigger: vi.fn(),
+    notes: {},
+    saveNote: vi.fn().mockResolvedValue(undefined),
+    deleteNote: vi.fn().mockResolvedValue(undefined),
 };
 
 beforeEach(() => {

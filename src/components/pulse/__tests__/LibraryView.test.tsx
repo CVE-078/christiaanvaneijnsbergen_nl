@@ -86,6 +86,9 @@ const defaultContext = {
     routines: [activeRoutine, inactiveRoutine],
     activeRoutine,
     ...mocks,
+    notes: {},
+    saveNote: vi.fn().mockResolvedValue(undefined),
+    deleteNote: vi.fn().mockResolvedValue(undefined),
 };
 
 beforeEach(() => {

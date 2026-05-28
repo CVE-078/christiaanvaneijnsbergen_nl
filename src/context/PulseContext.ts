@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type {
     Logs,
+    Notes,
     Profile,
     BodyweightEntry,
     WorkoutType,
@@ -40,6 +41,11 @@ export interface PulseContextValue {
     updateProfile: (displayName: string | null, unit: Unit) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
+
+    // Notes
+    notes: Notes;
+    saveNote: (week: number, routineExerciseId: string, note: string) => Promise<void>;
+    deleteNote: (week: number, routineExerciseId: string) => Promise<void>;
 
     // UI state
     navigate: (view: View) => void;

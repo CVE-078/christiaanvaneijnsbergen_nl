@@ -5,7 +5,7 @@ import { PulseProvider } from './PulseProvider';
 import { AppShell } from './AppShell';
 import { ToastProvider } from '@/lib/pulse/toast';
 import ToastContainer from './ToastContainer';
-import type { View, Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
+import type { View, Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
 
 const PATH_TO_VIEW: Record<string, View> = {
     '/pulse/train': 'train',
@@ -21,6 +21,7 @@ interface Props {
     initialBodyweightLogs: BodyweightEntry[];
     initialExercises: DbExercise[];
     initialRoutines: RoutineWithExercises[];
+    initialNotes: Notes;
     email: string;
     children: React.ReactNode;
 }

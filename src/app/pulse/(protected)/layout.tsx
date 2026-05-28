@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/pulse/validation';
 import PulseLayout from '@/components/pulse/PulseLayout';
-import type { Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
+import type { Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
 
 export const revalidate = 0;
 
@@ -12,7 +12,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/pulse/login');
 
-    const [logsResult, profileResult, bwResult, exercisesResult, routinesResult] = await Promise.all([
+    const [logsResult, profileResult, bwResult, exercisesResult, routinesResult, notesResult] = await Promise.all([
         supabase.from('set_logs').select('week, routine_exercise_id, set_idx, kg, reps, rir, saved').eq('user_id', user.id),
         supabase.from('profiles').select('display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg').eq('id', user.id).maybeSingle(),
         supabase.from('bodyweight_logs').select('id, logged_at, weight_kg').eq('user_id', user.id).order('logged_at', { ascending: false }).limit(90),
@@ -22,6 +22,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
             exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
             schedule:routine_schedule ( day_of_week, workout_type )
         `).eq('user_id', user.id).order('created_at', { ascending: true }),
+        supabase.from('exercise_notes').select('week, routine_exercise_id, note').eq('user_id', user.id),
     ]);
 
     let logs: Logs = {};
@@ -63,6 +64,11 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
         schedule: [...(r.schedule ?? [])].sort((a, b) => a.day_of_week - b.day_of_week),
     }));
 
+    const initialNotes: Notes = {};
+    for (const row of notesResult.data ?? []) {
+        initialNotes[`${row.week}-${row.routine_exercise_id}`] = row.note;
+    }
+
     return (
         <PulseLayout
             initialLogs={logs}
@@ -70,6 +76,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
             initialBodyweightLogs={bodyweightLogs}
             initialExercises={exercises}
             initialRoutines={routines}
+            initialNotes={initialNotes}
             email={user.email ?? ''}>
             {children}
         </PulseLayout>

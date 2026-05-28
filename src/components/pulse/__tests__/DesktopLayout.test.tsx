@@ -43,6 +43,9 @@ const mockContext = {
     showOnboarding: false,
     triggerOnboarding: vi.fn(),
     dismissOnboarding: vi.fn(),
+    notes: {},
+    saveNote: vi.fn().mockResolvedValue(undefined),
+    deleteNote: vi.fn().mockResolvedValue(undefined),
 };
 
 vi.mock('@/context/PulseContext', () => ({

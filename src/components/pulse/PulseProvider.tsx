@@ -6,9 +6,10 @@ import { useProfile } from '@/hooks/pulse/useProfile';
 import { useRoutines } from '@/hooks/pulse/useRoutines';
 import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
+import { useNotes } from '@/hooks/pulse/useNotes';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap } from '@/lib/pulse/utils';
-import type { Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, ScheduleEntry, View } from '@/lib/pulse/types';
+import type { Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, ScheduleEntry, View } from '@/lib/pulse/types';
 
 interface Props {
     initialLogs: Logs;
@@ -16,6 +17,7 @@ interface Props {
     initialBodyweightLogs: BodyweightEntry[];
     initialExercises: DbExercise[];
     initialRoutines: RoutineWithExercises[];
+    initialNotes: Notes;
     email: string;
     navigate: (view: View) => void;
     children: React.ReactNode;
@@ -27,6 +29,7 @@ export function PulseProvider({
     initialBodyweightLogs,
     initialExercises,
     initialRoutines,
+    initialNotes,
     email,
     navigate,
     children,
@@ -48,6 +51,7 @@ export function PulseProvider({
     } = useRoutines(initialExercises, initialRoutines, profile.active_routine_id);
     const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
     const { timerTrigger, fireTrigger } = useRestTimer();
+    const { notes, saveNote, deleteNote } = useNotes(initialNotes);
 
     const streak = useMemo(() => computeStreak(logs), [logs]);
     const prMap = useMemo(() => computePRMap(logs), [logs]);
@@ -140,6 +144,9 @@ export function PulseProvider({
             showOnboarding,
             triggerOnboarding,
             dismissOnboarding,
+            notes,
+            saveNote,
+            deleteNote,
         }),
         [
             logs,
@@ -183,6 +190,9 @@ export function PulseProvider({
             showOnboarding,
             triggerOnboarding,
             dismissOnboarding,
+            notes,
+            saveNote,
+            deleteNote,
         ],
     );
 
