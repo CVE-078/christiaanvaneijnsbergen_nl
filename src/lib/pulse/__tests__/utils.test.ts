@@ -12,6 +12,7 @@ import {
     computeSuggestion,
     computeVolumeByTypeAndWeek,
     computeE1RMHistory,
+    computeBestSets,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType } from '../types';
 
@@ -341,5 +342,43 @@ describe('computeE1RMHistory', () => {
             [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: false },
         };
         expect(computeE1RMHistory(logs, UUID_A)).toEqual([]);
+    });
+});
+
+describe('computeBestSets', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+    const UUID_B = '550e8400-e29b-41d4-a716-446655440001';
+
+    it('returns empty record for empty logs', () => {
+        expect(computeBestSets({})).toEqual({});
+    });
+
+    it('returns the set with the highest e1RM per exercise', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`2-${UUID_A}-0`]: { kg: 65, reps: 6, rir: 2, saved: true },
+        };
+        const result = computeBestSets(logs);
+        expect(result[UUID_A]).toBeDefined();
+        expect(result[UUID_A].kg).toBe(65);
+        expect(result[UUID_A].week).toBe(2);
+        expect(result[UUID_A].e1rm).toBeCloseTo(calcE1RM(65, 6));
+    });
+
+    it('ignores unsaved entries', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 200, reps: 20, rir: 0, saved: false },
+        };
+        expect(computeBestSets(logs)).toEqual({});
+    });
+
+    it('tracks separate best sets per exercise', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`1-${UUID_B}-0`]: { kg: 40, reps: 12, rir: 3, saved: true },
+        };
+        const result = computeBestSets(logs);
+        expect(result[UUID_A].kg).toBe(60);
+        expect(result[UUID_B].kg).toBe(40);
     });
 });

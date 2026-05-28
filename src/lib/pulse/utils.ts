@@ -1,5 +1,5 @@
 import { PHASES } from './data';
-import type { Phase, Logs, HistorySession, LogEntry, Unit, RoutineExercise, WorkoutType } from './types';
+import type { Phase, Logs, HistorySession, LogEntry, Unit, RoutineExercise, WorkoutType, BestSet } from './types';
 
 // UUID v4 pattern used in new log keys
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -166,4 +166,28 @@ export function computeE1RMHistory(
     return Object.entries(weekBest)
         .map(([w, e1rm]) => ({ week: Number(w), e1rm }))
         .sort((a, b) => a.week - b.week);
+}
+
+export function computeBestSets(logs: Logs): Record<string, BestSet> {
+    const best: Record<string, BestSet> = {};
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const firstDash = key.indexOf('-');
+        const lastDash = key.lastIndexOf('-');
+        if (firstDash === -1 || lastDash === firstDash) continue;
+        const routineExerciseId = key.slice(firstDash + 1, lastDash);
+        if (!UUID_RE.test(routineExerciseId)) continue;
+        const week = Number(key.slice(0, firstDash));
+        const e1rm = calcE1RM(val.kg, val.reps);
+        if (!best[routineExerciseId] || e1rm > best[routineExerciseId].e1rm) {
+            best[routineExerciseId] = {
+                routineExerciseId,
+                week,
+                kg: val.kg,
+                reps: val.reps,
+                e1rm,
+            };
+        }
+    }
+    return best;
 }
