@@ -62,67 +62,66 @@ Branch: `fix/audit-fixes` — **merged into `feature/profiles-bodyweight`**
 
 ---
 
-## Phase 3.5 — Merge & Stabilise
+## Phase 3.5 — Merge & Stabilise ✅
 
-Branch: `feature/profiles-bodyweight` → merge into `main`
+Branch: `feature/profiles-bodyweight` → merged into `main`
 
-- [ ] Verify `ProfileView` renders correctly on Vercel preview deploy
-- [ ] Confirm unit toggle persists across page reloads (Supabase round-trip)
-- [ ] Verify bodyweight chart renders with ≥ 2 entries
-- [ ] Confirm `SetLogger` correctly re-derives kg display values when unit changes
-- [ ] Merge `feature/profiles-bodyweight` into `main` via PR
+- [x] Verify `ProfileView` renders correctly on Vercel preview deploy
+- [x] Confirm unit toggle persists across page reloads (Supabase round-trip)
+- [x] Verify bodyweight chart renders with ≥ 2 entries
+- [x] Confirm `SetLogger` correctly re-derives kg display values when unit changes
+- [x] Merge `feature/profiles-bodyweight` into `main` via PR
 
 ---
 
-## Phase 4 — Exercise Library + Routine Builder
+## Phase 4 — Exercise Library + Routine Builder ✅
 
-Branch: `feature/exercise-library`
-Goal: Move exercises out of hardcoded `data.ts` into Supabase. Let users create routines, pick exercises, and set their own starting weights — fixing the problem where defaults like "18–20 kg dumbbell bench" are wrong for the individual user.
-
-> **Dependency:** Phase 5 (Analytics) should be built after this phase so progress queries run against DB rows rather than iterating the flat in-memory log object.
+Branch: `feature/exercise-library` → merged into `main`
+Goal: Move exercises out of hardcoded `data.ts` into Supabase. Let users create routines, pick exercises, and set their own starting weights.
 
 ### 4.1 Schema migration
 
-- [ ] Add `exercises` table: `id, name, category, default_sets (int), default_reps (text), user_id (uuid nullable — null = global seed)`
-- [ ] Add `workout_routines` table: `id, user_id, name, created_at`
-- [ ] Add `routine_exercises` table: `id, routine_id, exercise_id, order (int), sets (int), reps (text), starting_weight_kg (decimal)`
-- [ ] Add `rir` column to `workout_sets`
-- [ ] Write migration SQL in `docs/migrations/`
-- [ ] Seed global exercise library with current PPL exercises from `data.ts`
-- [ ] Add RLS policies: users can read global exercises + their own; write only their own
+- [x] Add `exercises` table: `id, name, category, default_sets, default_reps, user_id (nullable — null = global seed)`
+- [x] Add `workout_routines` table: `id, user_id, name, created_at`
+- [x] Add `routine_exercises` table: `id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg`
+- [x] Add `rir` column to `set_logs`
+- [x] Write migration SQL in `docs/migrations/`
+- [x] Seed global exercise library (all PPL + expanded category taxonomy)
+- [x] Add RLS policies: users can read global exercises + their own; write only their own
 
 ### 4.2 Exercise library UI
 
-- [ ] Browse page: list global exercises + user-created, filterable by category (Push / Pull / Legs / Other)
-- [ ] "Add exercise" form: name, category, default sets, default reps
-- [ ] Edit / delete for user-created exercises only
-- [ ] Accessible from Profile view or dedicated nav entry
+- [x] Browse page: list global exercises + user-created, filterable by category (10 categories)
+- [x] "Add exercise" form: name, category, default sets, default reps
+- [x] Edit / delete for user-created exercises only
+- [x] Accessible via dedicated Explore nav tab (sub-tabs: Exercises / Routines / Templates)
 
 ### 4.3 Routine builder
 
-- [ ] Create routine: name input → creates `workout_routines` row
-- [ ] Add exercise to routine: pick from library → set `sets`, `reps`, `starting_weight_kg`, `order`
-- [ ] Reorder exercises (drag or up/down buttons)
-- [ ] Remove exercise from routine
-- [ ] View / edit existing routines
-- [ ] Mark one routine as "active" (stored in `profiles` or `localStorage`)
+- [x] Create routine: name input → creates `workout_routines` row
+- [x] Add exercise to routine: pick from library → set `workout_type`, `sets`, `reps`, `starting_weight_kg`, `order`
+- [x] Reorder exercises (up/down arrows)
+- [x] Remove exercise from routine
+- [x] View / edit existing routines (inline edit for sets/reps/weight per exercise)
+- [x] Mark one routine as "active" (stored in `profiles.active_routine_id`)
 
 ### 4.4 Wire LogView to DB routine
 
-- [ ] Load active routine from Supabase instead of importing `WORKOUTS` from `data.ts`
-- [ ] Update `logKey` scheme to use `routine_exercise_id` instead of `(type, exIdx)` positional index, or adapt the existing key format
-- [ ] Update suggestion logic: use `starting_weight_kg` as the week-1 baseline when no prior entry exists
-- [ ] Graceful empty state when no routine is active ("Create a routine to start logging")
+- [x] Load active routine from Supabase (server-side in layout, passed via PulseContext)
+- [x] `logKey` scheme uses `routine_exercise_id` UUID (format: `{week}-{uuid}-{setIdx}`)
+- [x] Suggestion logic: `computeSuggestion` pre-fills weight from previous week ± 2.5 kg based on RIR delta; `starting_weight_kg` seeds week 1
+- [x] Graceful empty state when no routine is active ("No routine active — go to Library")
 
 ### 4.5 Onboarding hook
 
-- [ ] Detect first login (no active routine) → prompt to pick or create a routine
-- [ ] Pre-fill starting weights with `starting_weight_kg` defaults from the routine; user can adjust before saving
+- [x] Detect first login (no active routine + `onboarding_completed = false`) → show OnboardingModal
+- [x] 6-step flow: equipment → experience → goal → days/week → specific days → session time → recommendation
+- [x] Template cloned with `trainingDays` schedule and `sessionTime` volume scaling; `completeOnboarding` marks done
 
-**Questions to answer before starting Phase 4:**
-- [ ] Log key migration: update existing localStorage logs to new key format, or keep old format and migrate lazily?
-- [ ] Multiple active routines (e.g. cut block vs bulk block) — Phase 4 or defer?
-- [ ] Should the exercise library be a separate view/page or sheet/modal within Profile?
+**Decisions made:**
+- Log key: adopted new UUID format; old positional keys are not migrated (no production data existed)
+- Multiple active routines: deferred — one active at a time via `profiles.active_routine_id`
+- Exercise library: dedicated Explore tab with Exercises / Routines / Templates sub-tabs
 
 ---
 
@@ -131,12 +130,13 @@ Goal: Move exercises out of hardcoded `data.ts` into Supabase. Let users create 
 Branch: `feature/analytics`
 Goal: Surface training progress visually — e1RM trends, volume per workout type, streak.
 
-> **Dependency:** Requires Phase 4 (exercise library) so that analytics queries run against `workout_sets` DB rows rather than the flat client-side log object.
+> **Current state:** `HistoryView` (`src/components/pulse/views/HistoryView.tsx`) exists at `/pulse/progress` and renders per-week session cards with set data and PR badges. `computeStreak` and `computePRMap` are implemented and used. Exercise names currently show as "Exercise" placeholder — `routineExerciseId` lookup against the exercises list is not yet wired up.
 
 ### 5.1 Utility functions
 
+- [ ] Fix exercise name lookup in `HistoryView` (map `routineExerciseId` → `activeRoutine.exercises` → `exercise.name`)
 - [ ] Implement `computeVolumeByTypeAndWeek(logs)` in `utils.ts` with tests
-- [ ] Implement `computeE1RMHistory(logs, type, exIdx)` in `utils.ts` with tests
+- [ ] Implement `computeE1RMHistory(logs, routineExerciseId)` in `utils.ts` with tests
 - [ ] Add `ProgressSummary` type to `types.ts`
 
 ```ts
@@ -147,49 +147,32 @@ export interface ProgressSummary {
 }
 ```
 
-### 5.2 ProgressView scaffold
+### 5.2 Volume bar chart
 
-- [ ] Create `src/components/weight-tracker/views/ProgressView.tsx`
-- [ ] Wire "Progress" nav tab into `TrackerClient`
-- [ ] Pass `logs` and `unit` as props; compute all derived data with `useMemo`
+- [ ] Build `<VolumeChart />` — set count per week grouped by workout type, using `pulse-*` tokens
+- [ ] X-axis: weeks 1–12; Y-axis: set count
+- [ ] Empty state: muted placeholder bars when no data
 
-### 5.3 Volume bar chart
+### 5.3 e1RM progression chart
 
-- [ ] Build `<VolumeChart logs={...} unit={...} />` — grouped bars per week, 3 workout types per group
-- [ ] Colors: push `#f97316`, pull `#38bdf8`, legs `#a78bfa`
-- [ ] X-axis: weeks 1–12 with phase dividers; Y-axis: set count with min/max labels
-- [ ] Tooltip on hover/tap (week + type + count)
-- [ ] Empty state: placeholder bars at 50% opacity when no data
-
-### 5.4 Weekly volume table
-
-- [ ] Build compact table (rows = weeks, columns = Push / Pull / Legs / Total)
-- [ ] Highlight current week row with ACCENT left border
-- [ ] Show `—` for unlogged weeks; ACCENT dot for logged weeks
-
-### 5.5 e1RM progression chart
-
-- [ ] Build line chart with dots per logged week, ACCENT color
-- [ ] Exercise picker (dropdown or button row) — default to first exercise of active tab
+- [ ] Build SVG line chart with dots per logged week, ACCENT color
+- [ ] Exercise picker — default to most-logged exercise
 - [ ] PR marker on the highest point
 - [ ] Empty state: "Log at least one set to see progression"
 
-### 5.6 Best lifts summary
+### 5.4 Best lifts summary
 
-- [ ] 3 collapsible cards (Push / Pull / Legs) listing best set per exercise
-- [ ] Show: name, best weight × reps, week number, e1RM estimate
-- [ ] Sort by e1RM descending; PR badge on overall highest
+- [ ] List best set per exercise (name, best weight × reps, week, e1RM)
+- [ ] Sort by e1RM descending; PR badge on overall highest per exercise
 
-### 5.7 Streak enhancement
+### 5.5 Streak calendar
 
-- [ ] Move streak display from header into `ProgressView`
-- [ ] Visual streak calendar: 12 dots, filled = logged, connected = consecutive
-- [ ] Show current streak and longest streak this cycle
+- [ ] Visual calendar: 12 dots (one per week), filled = week has logged data
+- [ ] Show current streak count (already computed in `computeStreak`)
 
 **Questions to answer before starting Phase 5:**
-- [ ] e1RM chart: small multiples (all exercises) or single chart with picker?
+- [ ] e1RM chart: all exercises as small multiples, or single chart with exercise picker?
 - [ ] Volume chart: grouped by workout type or single total bar per week?
-- [ ] ProgressView nav position: after History, or replace Program on mobile?
 
 ---
 
@@ -200,7 +183,7 @@ Goal: Quality-of-life improvements that make the app feel finished.
 
 ### 6.1 Toast notification system
 
-- [ ] Create `src/lib/weight-tracker/toast.ts` — React context + `useReducer`, no external library
+- [ ] Create `src/lib/pulse/toast.ts` — React context + `useReducer`, no external library
 - [ ] Three variants: `error` (red), `success` (green), `info` (dim)
 - [ ] Auto-dismiss after 4s; hover pauses dismiss; max 3 stacked
 - [ ] `role="status"` for success/info, `role="alert"` for errors
@@ -219,7 +202,7 @@ Goal: Quality-of-life improvements that make the app feel finished.
 
 ### 6.3 Swipe gestures for week navigation
 
-- [ ] Create `src/lib/weight-tracker/useSwipe.ts` hook using raw touch events
+- [ ] Create `src/hooks/pulse/useSwipe.ts` hook using raw touch events
 - [ ] Threshold: 50px horizontal delta + velocity guard
 - [ ] Wire into `LogView` for previous/next week
 - [ ] Brief CSS `transform` slide animation on transition
