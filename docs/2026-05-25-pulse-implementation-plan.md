@@ -1,10 +1,10 @@
-# 2026-05-25 — Pulse App: Implementation Plan (Phases 3.5 → 6)
+# 2026-05-25 — Pulse App: Implementation Plan (Phases 3.5 → 7)
 
 This plan covers all remaining phases for the Pulse workout tracker.
 Each phase is broken into tasks with acceptance criteria, architectural notes, and explicit dependencies.
-All work follows the established conventions: inline styles, MONO/ACCENT/theme constants, kg stored in DB with display-unit conversion at render, conventional commits, feature branches.
+All work follows the established conventions: Tailwind v4 `pulse-*` tokens, kg stored in DB with display-unit conversion at render, conventional commits, feature branches.
 
-After every phase: run `bun run typecheck && bun run lint && bun run format`, then second-opinion code review (spec reviewer → quality reviewer per task, final reviewer after all tasks).
+After every phase: run `npm run typecheck && npm run lint && npm run format`, then second-opinion code review (spec reviewer → quality reviewer per task, final reviewer after all tasks).
 
 ---
 
@@ -37,6 +37,31 @@ Branch: `fix/audit-fixes` — **merged into `feature/profiles-bodyweight`**
 
 ---
 
+## Recently Completed (post-plan work)
+
+### Tailwind v4 Migration — `feature/tailwind-v4` ✅
+- [x] Replace `tailwind.config.ts` + `theme.ts` with `@theme` tokens in `globals.css`
+- [x] Migrate all components from hardcoded hex / `theme()` calls to `pulse-*` Tailwind classes
+- [x] Delete `theme.ts`; typecheck + lint pass
+
+### Architecture Refactor — `feature/desktop-layout` ✅
+- [x] Extract `PulseProvider` context; slim `TrackerClient` to ~30 lines
+- [x] Add `AppShell` component gating mobile vs desktop via `useMediaQuery`
+- [x] Migrate all view components off prop drilling onto `usePulse()` context
+
+### Clean-Athlete Redesign — `feature/pulse-redesign` ✅
+- [x] Swap JetBrains Mono for Outfit; update all design tokens (emerald accent, dark slate bg, translucent borders)
+- [x] WorkoutTabs: filled pill group replacing underline tabs
+- [x] BottomNav: SVG icons + label, drop uppercase tracking
+- [x] ExerciseCard: `rounded-2xl`, small index chip, square progress pips
+- [x] SetLogger: inputs use `pulse-surface`/`pulse-border` tokens; saved row tinted with accent
+- [x] Desktop layout: sidebar + two-pane removed; sticky top nav + single-column `LogView`
+- [x] Delete `LogViewDesktop`, `ExerciseListItem`, `ExerciseDetailPane` (and their tests)
+- [x] LogView: pill-style week strip, `max-w-[820px]` on `lg+`
+- [x] All hardcoded hex values replaced with design tokens across all views
+
+---
+
 ## Phase 3.5 — Merge & Stabilise
 
 Branch: `feature/profiles-bodyweight` → merge into `main`
@@ -49,12 +74,66 @@ Branch: `feature/profiles-bodyweight` → merge into `main`
 
 ---
 
-## Phase 4 — Progress & Analytics
+## Phase 4 — Exercise Library + Routine Builder
+
+Branch: `feature/exercise-library`
+Goal: Move exercises out of hardcoded `data.ts` into Supabase. Let users create routines, pick exercises, and set their own starting weights — fixing the problem where defaults like "18–20 kg dumbbell bench" are wrong for the individual user.
+
+> **Dependency:** Phase 5 (Analytics) should be built after this phase so progress queries run against DB rows rather than iterating the flat in-memory log object.
+
+### 4.1 Schema migration
+
+- [ ] Add `exercises` table: `id, name, category, default_sets (int), default_reps (text), user_id (uuid nullable — null = global seed)`
+- [ ] Add `workout_routines` table: `id, user_id, name, created_at`
+- [ ] Add `routine_exercises` table: `id, routine_id, exercise_id, order (int), sets (int), reps (text), starting_weight_kg (decimal)`
+- [ ] Add `rir` column to `workout_sets`
+- [ ] Write migration SQL in `docs/migrations/`
+- [ ] Seed global exercise library with current PPL exercises from `data.ts`
+- [ ] Add RLS policies: users can read global exercises + their own; write only their own
+
+### 4.2 Exercise library UI
+
+- [ ] Browse page: list global exercises + user-created, filterable by category (Push / Pull / Legs / Other)
+- [ ] "Add exercise" form: name, category, default sets, default reps
+- [ ] Edit / delete for user-created exercises only
+- [ ] Accessible from Profile view or dedicated nav entry
+
+### 4.3 Routine builder
+
+- [ ] Create routine: name input → creates `workout_routines` row
+- [ ] Add exercise to routine: pick from library → set `sets`, `reps`, `starting_weight_kg`, `order`
+- [ ] Reorder exercises (drag or up/down buttons)
+- [ ] Remove exercise from routine
+- [ ] View / edit existing routines
+- [ ] Mark one routine as "active" (stored in `profiles` or `localStorage`)
+
+### 4.4 Wire LogView to DB routine
+
+- [ ] Load active routine from Supabase instead of importing `WORKOUTS` from `data.ts`
+- [ ] Update `logKey` scheme to use `routine_exercise_id` instead of `(type, exIdx)` positional index, or adapt the existing key format
+- [ ] Update suggestion logic: use `starting_weight_kg` as the week-1 baseline when no prior entry exists
+- [ ] Graceful empty state when no routine is active ("Create a routine to start logging")
+
+### 4.5 Onboarding hook
+
+- [ ] Detect first login (no active routine) → prompt to pick or create a routine
+- [ ] Pre-fill starting weights with `starting_weight_kg` defaults from the routine; user can adjust before saving
+
+**Questions to answer before starting Phase 4:**
+- [ ] Log key migration: update existing localStorage logs to new key format, or keep old format and migrate lazily?
+- [ ] Multiple active routines (e.g. cut block vs bulk block) — Phase 4 or defer?
+- [ ] Should the exercise library be a separate view/page or sheet/modal within Profile?
+
+---
+
+## Phase 5 — Progress & Analytics
 
 Branch: `feature/analytics`
 Goal: Surface training progress visually — e1RM trends, volume per workout type, streak.
 
-### 4.1 Utility functions
+> **Dependency:** Requires Phase 4 (exercise library) so that analytics queries run against `workout_sets` DB rows rather than the flat client-side log object.
+
+### 5.1 Utility functions
 
 - [ ] Implement `computeVolumeByTypeAndWeek(logs)` in `utils.ts` with tests
 - [ ] Implement `computeE1RMHistory(logs, type, exIdx)` in `utils.ts` with tests
@@ -68,13 +147,13 @@ export interface ProgressSummary {
 }
 ```
 
-### 4.2 ProgressView scaffold
+### 5.2 ProgressView scaffold
 
 - [ ] Create `src/components/weight-tracker/views/ProgressView.tsx`
 - [ ] Wire "Progress" nav tab into `TrackerClient`
 - [ ] Pass `logs` and `unit` as props; compute all derived data with `useMemo`
 
-### 4.3 Volume bar chart
+### 5.3 Volume bar chart
 
 - [ ] Build `<VolumeChart logs={...} unit={...} />` — grouped bars per week, 3 workout types per group
 - [ ] Colors: push `#f97316`, pull `#38bdf8`, legs `#a78bfa`
@@ -82,44 +161,44 @@ export interface ProgressSummary {
 - [ ] Tooltip on hover/tap (week + type + count)
 - [ ] Empty state: placeholder bars at 50% opacity when no data
 
-### 4.4 Weekly volume table
+### 5.4 Weekly volume table
 
 - [ ] Build compact table (rows = weeks, columns = Push / Pull / Legs / Total)
 - [ ] Highlight current week row with ACCENT left border
 - [ ] Show `—` for unlogged weeks; ACCENT dot for logged weeks
 
-### 4.5 e1RM progression chart
+### 5.5 e1RM progression chart
 
 - [ ] Build line chart with dots per logged week, ACCENT color
 - [ ] Exercise picker (dropdown or button row) — default to first exercise of active tab
 - [ ] PR marker on the highest point
 - [ ] Empty state: "Log at least one set to see progression"
 
-### 4.6 Best lifts summary
+### 5.6 Best lifts summary
 
 - [ ] 3 collapsible cards (Push / Pull / Legs) listing best set per exercise
 - [ ] Show: name, best weight × reps, week number, e1RM estimate
 - [ ] Sort by e1RM descending; PR badge on overall highest
 
-### 4.7 Streak enhancement
+### 5.7 Streak enhancement
 
 - [ ] Move streak display from header into `ProgressView`
 - [ ] Visual streak calendar: 12 dots, filled = logged, connected = consecutive
 - [ ] Show current streak and longest streak this cycle
 
-**Questions to answer before starting Phase 4:**
+**Questions to answer before starting Phase 5:**
 - [ ] e1RM chart: small multiples (all exercises) or single chart with picker?
 - [ ] Volume chart: grouped by workout type or single total bar per week?
 - [ ] ProgressView nav position: after History, or replace Program on mobile?
 
 ---
 
-## Phase 5 — Polish & UX
+## Phase 6 — Polish & UX
 
 Branch: `feature/ux-polish`
 Goal: Quality-of-life improvements that make the app feel finished.
 
-### 5.1 Toast notification system
+### 6.1 Toast notification system
 
 - [ ] Create `src/lib/weight-tracker/toast.ts` — React context + `useReducer`, no external library
 - [ ] Three variants: `error` (red), `success` (green), `info` (dim)
@@ -128,7 +207,7 @@ Goal: Quality-of-life improvements that make the app feel finished.
 - [ ] Replace `saveError` state in `TrackerClient` with `useToast().show(...)`
 - [ ] Use `show('Profile updated', 'success')` on unit/name changes
 
-### 5.2 Keyboard shortcuts
+### 6.2 Keyboard shortcuts
 
 - [ ] Implement `useKeyboard` hook in `TrackerClient` using `document.addEventListener('keydown')`
 - [ ] Guard: no-op when focus is inside an input/textarea
@@ -138,64 +217,69 @@ Goal: Quality-of-life improvements that make the app feel finished.
 - [ ] `Escape` → close open ExerciseCard / dismiss timer
 - [ ] Show shortcut badges in nav at ≥ 768px width only
 
-### 5.3 Swipe gestures for week navigation
+### 6.3 Swipe gestures for week navigation
 
 - [ ] Create `src/lib/weight-tracker/useSwipe.ts` hook using raw touch events
 - [ ] Threshold: 50px horizontal delta + velocity guard
 - [ ] Wire into `LogView` for previous/next week
 - [ ] Brief CSS `transform` slide animation on transition
 
-### 5.4 Import JSON
+### 6.4 Import JSON
 
 - [ ] Hidden `<input type="file" accept=".json">` triggered by "Import" button in nav
 - [ ] Parse JSON → `validateLogs` → confirm dialog ("Import N sets? This will overwrite current data.")
 - [ ] Call `saveLogs` on confirm; show toast on success/error
 - [ ] Answer before implementing: merge with existing data, or replace?
 
-### 5.5 Display name save feedback *(done in QW-17)*
+### 6.5 Display name save feedback *(done in QW-17)*
 
 - [x] Show "Saved ✓" confirmation after display name update
 
-### 5.6 Empty state in Log view *(done in QW-18)*
+### 6.6 Empty state in Log view *(done in QW-18)*
 
 - [x] Show "Tap an exercise to start logging." when no sets are logged for current week
 
-### 5.7 Haptic feedback
+### 6.7 Rest timer quality-of-life
+
+- [ ] Auto-start timer when a set is saved (opt-in toggle in Profile)
+- [ ] Per-exercise configurable rest duration (compounds vs accessories), stored in `routine_exercises`
+
+### 6.8 Haptic feedback
 
 - [ ] Vibrate 20ms on set save in `SetLogger` (`navigator.vibrate(20)`)
 - [ ] Vibrate pattern on timer completion in `RestTimer` (`navigator.vibrate([100, 50, 100])`)
 
-**Questions to answer before starting Phase 5:**
+**Questions to answer before starting Phase 6:**
 - [ ] Keyboard shortcuts: any additions or changes to the list above?
 - [ ] Import JSON: merge or replace?
 
 ---
 
-## Phase 6 — Social & Gamification *(Deferred)*
+## Phase 7 — Social & Gamification *(Deferred)*
 
 > Not scheduled for immediate implementation. Resume when user growth justifies multi-user features.
 
-### 6.1 Achievements / Badges
+### 7.1 Achievements / Badges
 
 - [ ] Define trigger events: first set, first full week, full phase, PR, full 12-week program, streak milestones
 - [ ] `computeAchievements(logs)` pure function
 - [ ] Store unlocked achievements in `profiles.achievements` (jsonb column)
 - [ ] Badge grid display in `ProfileView`
 
-### 6.2 Shareable progress snapshots
+### 7.2 Shareable progress snapshots
 
 - [ ] Server-side OG image via `@vercel/og` at `GET /api/pulse/og?token=<signed>`
 - [ ] Token encodes anonymised stats, expires in 24h
 - [ ] No PII in snapshot
 
-### 6.3 Leaderboard *(multi-user — far future)*
+### 7.3 Leaderboard *(multi-user — far future)*
 
 - [ ] Opt-in participation flag in `profiles`
 - [ ] Public leaderboard view
 - [ ] Anonymization options
 
-**Questions to answer before starting Phase 6:**
-- [ ] Phase 6 priority: achievements first, or shareable snapshots?
+**Questions to answer before starting Phase 7:**
+- [ ] Phase 7 priority: achievements first, or shareable snapshots?
 
 ---
 
