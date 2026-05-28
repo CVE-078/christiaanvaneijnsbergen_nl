@@ -44,7 +44,7 @@ export default function LogView() {
         const lastDash = key.lastIndexOf('-');
         const rid = key.slice(firstDash + 1, lastDash);
         const exercise = routineExercises.find((r) => r.id === rid);
-        (fireTrigger as (d?: number) => void)(exercise?.rest_seconds ?? undefined);
+        fireTrigger(exercise?.rest_seconds ?? undefined);
     }
 
     if (!activeRoutine) {

@@ -45,6 +45,7 @@ const defaultContext = {
     updateLog: vi.fn(),
     deleteLog: vi.fn(),
     timerTrigger: 0,
+    timerDuration: null,
     fireTrigger: vi.fn(),
     notes: {},
     saveNote: vi.fn().mockResolvedValue(undefined),

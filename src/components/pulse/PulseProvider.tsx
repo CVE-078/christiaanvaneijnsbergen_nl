@@ -50,7 +50,7 @@ export function PulseProvider({
         createExercise, updateExercise, deleteExercise,
     } = useRoutines(initialExercises, initialRoutines, profile.active_routine_id);
     const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
-    const { timerTrigger, fireTrigger } = useRestTimer();
+    const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
     const { notes, saveNote, deleteNote } = useNotes(initialNotes);
 
     const streak = useMemo(() => computeStreak(logs), [logs]);
@@ -124,6 +124,7 @@ export function PulseProvider({
             setActiveDay,
             activeSchedule,
             timerTrigger,
+            timerDuration,
             fireTrigger,
             exercises,
             routines,
@@ -170,6 +171,7 @@ export function PulseProvider({
             setActiveDay,
             activeSchedule,
             timerTrigger,
+            timerDuration,
             fireTrigger,
             exercises,
             routines,

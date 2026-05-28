@@ -89,6 +89,7 @@ const defaultContext = {
     notes: {},
     saveNote: vi.fn().mockResolvedValue(undefined),
     deleteNote: vi.fn().mockResolvedValue(undefined),
+    timerDuration: null,
 };
 
 beforeEach(() => {

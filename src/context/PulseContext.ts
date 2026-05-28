@@ -62,7 +62,8 @@ export interface PulseContextValue {
 
     // Rest timer
     timerTrigger: number;
-    fireTrigger: () => void;
+    timerDuration: number | null;
+    fireTrigger: (durationSeconds?: number) => void;
 
     // Routine & exercise state
     exercises: DbExercise[];

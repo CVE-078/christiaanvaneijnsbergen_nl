@@ -9,7 +9,7 @@ import OnboardingModal from './OnboardingModal';
 import type { View } from '@/lib/pulse/types';
 
 export function AppShell({ view, navigate, children }: { view: View; navigate: (v: View) => void; children: React.ReactNode }) {
-    const { activeWeek, streak, handleExport, timerTrigger, showOnboarding } = usePulse();
+    const { activeWeek, streak, handleExport, timerTrigger, timerDuration, showOnboarding } = usePulse();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
 
     if (isDesktop) {
@@ -52,7 +52,7 @@ export function AppShell({ view, navigate, children }: { view: View; navigate: (
 
             {/* Rest timer fixed above bottom nav — avoids layout shift in LogView */}
             <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-pulse-border">
-                <RestTimer trigger={timerTrigger} />
+                <RestTimer trigger={timerTrigger} duration={timerDuration ?? undefined} />
             </div>
 
             {showOnboarding && <OnboardingModal />}

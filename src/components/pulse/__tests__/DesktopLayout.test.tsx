@@ -17,6 +17,7 @@ const mockContext = {
     updateLog: vi.fn(),
     deleteLog: vi.fn(),
     timerTrigger: 0,
+    timerDuration: null,
     fireTrigger: vi.fn(),
     bodyweightLogs: [],
     email: 'test@example.com',

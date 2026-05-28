@@ -6,6 +6,7 @@ const DEFAULT_IDX = 1;
 
 interface Props {
     trigger: number;
+    duration?: number;
 }
 
 function fmt(s: number) {
