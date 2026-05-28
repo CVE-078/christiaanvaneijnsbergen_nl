@@ -48,94 +48,116 @@ ON CONFLICT (id) DO NOTHING;
 -- Lower day A: glute/hamstring focus
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'lower', 1, '4', '10-12'
-FROM exercises WHERE name = 'Hip Thrust' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Hip Thrust' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'lower', 2, '3', '8-10'
-FROM exercises WHERE name = 'Romanian Deadlift' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Romanian Deadlift' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'lower', 3, '3', '10-12'
-FROM exercises WHERE name = 'Leg Press' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Leg Press' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'lower', 4, '3', '12-15'
-FROM exercises WHERE name = 'Leg Curl' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Leg Curl' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'lower', 5, '3', '15-20'
-FROM exercises WHERE name = 'Glute Bridge' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Glute Bridge' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 -- Upper day: balanced pull + push
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'upper', 1, '3', '10-12'
-FROM exercises WHERE name = 'Lat Pulldown' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Lat Pulldown' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'upper', 2, '3', '10-12'
-FROM exercises WHERE name = 'Seated Cable Row' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Seated Cable Row' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'upper', 3, '3', '10-12'
-FROM exercises WHERE name = 'Dumbbell Shoulder Press' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Dumbbell Shoulder Press' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'upper', 4, '3', '15-20'
-FROM exercises WHERE name = 'Lateral Raise' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Lateral Raise' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000015', id, 'upper', 5, '3', '10-12'
-FROM exercises WHERE name = 'Dumbbell Chest Press' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Dumbbell Chest Press' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 -- STEP 3: Template exercises for Lower Body — Gym (016)
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000016', id, 'lower', 1, '3', '8-10'
-FROM exercises WHERE name = 'Squat' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Squat' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000016', id, 'lower', 2, '3', '10-12'
-FROM exercises WHERE name = 'Hip Thrust' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Hip Thrust' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000016', id, 'lower', 3, '3', '10-12'
-FROM exercises WHERE name = 'Romanian Deadlift' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Romanian Deadlift' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000016', id, 'lower', 4, '3', '12-15'
-FROM exercises WHERE name = 'Leg Press' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Leg Press' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000016', id, 'lower', 5, '3', '12-15'
-FROM exercises WHERE name = 'Walking Lunge' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Walking Lunge' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000016', id, 'lower', 6, '3', '12-15'
-FROM exercises WHERE name = 'Leg Curl' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Leg Curl' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 -- STEP 4: Template exercises for Full Body Tone — Dumbbells (017)
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000017', id, 'full_body', 1, '3', '12-15'
-FROM exercises WHERE name = 'Dumbbell Squat' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Dumbbell Squat' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000017', id, 'full_body', 2, '3', '10-12'
-FROM exercises WHERE name = 'Dumbbell Romanian Deadlift' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Dumbbell Romanian Deadlift' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000017', id, 'full_body', 3, '3', '12-15'
-FROM exercises WHERE name = 'Dumbbell Row' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Dumbbell Row' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000017', id, 'full_body', 4, '3', '12-15'
-FROM exercises WHERE name = 'Dumbbell Chest Press' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Dumbbell Chest Press' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000017', id, 'full_body', 5, '3', '15-20'
-FROM exercises WHERE name = 'Lateral Raise' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Lateral Raise' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order", sets, reps)
 SELECT 'a1000000-0000-0000-0000-000000000017', id, 'full_body', 6, '3', '15-20'
-FROM exercises WHERE name = 'Dumbbell Lunge' AND user_id IS NULL LIMIT 1;
+FROM exercises WHERE name = 'Dumbbell Lunge' AND user_id IS NULL LIMIT 1
+ON CONFLICT (template_id, "order") DO NOTHING;
 
 -- STEP 5: Update routine_templates CHECK to allow 17 templates
 -- (no constraint change needed — id is uuid, no sequence to update)
