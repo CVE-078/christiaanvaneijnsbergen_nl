@@ -23,7 +23,6 @@ export interface PulseContextValue {
     profile: Profile;
     bodyweightLogs: BodyweightEntry[];
     isLoading: boolean;
-    saveError: string | null;
 
     // Computed (memoized in PulseProvider)
     streak: number;

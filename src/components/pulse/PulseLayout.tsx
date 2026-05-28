@@ -3,6 +3,8 @@ import { useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { PulseProvider } from './PulseProvider';
 import { AppShell } from './AppShell';
+import { ToastProvider } from '@/lib/pulse/toast';
+import ToastContainer from './ToastContainer';
 import type { View, Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
 
 const PATH_TO_VIEW: Record<string, View> = {
@@ -33,10 +35,13 @@ export default function PulseLayout({ children, ...providerProps }: Props) {
     }, [router]);
 
     return (
-        <PulseProvider {...providerProps} navigate={navigate}>
-            <AppShell view={view} navigate={navigate}>
-                {children}
-            </AppShell>
-        </PulseProvider>
+        <ToastProvider>
+            <PulseProvider {...providerProps} navigate={navigate}>
+                <AppShell view={view} navigate={navigate}>
+                    {children}
+                </AppShell>
+                <ToastContainer />
+            </PulseProvider>
+        </ToastProvider>
     );
 }

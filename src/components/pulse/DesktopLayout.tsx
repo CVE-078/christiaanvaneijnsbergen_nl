@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function DesktopLayout({ view, navigate, children }: Props) {
-    const { activeWeek, streak, saveError, handleExport, showOnboarding } = usePulse();
+    const { activeWeek, streak, handleExport, showOnboarding } = usePulse();
 
     return (
         <div className="min-h-screen bg-pulse-bg text-pulse-text flex flex-col">
@@ -68,14 +68,6 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                     </button>
                 </form>
             </header>
-
-            {saveError && (
-                <div
-                    role="alert"
-                    className="py-2 px-4 bg-[#f43f5e18] border-b border-[#f43f5e33] text-[#f43f5e] font-pulse text-[0.8125rem] text-center shrink-0">
-                    {saveError}
-                </div>
-            )}
 
             <main className="flex-1 overflow-auto">
                 {children}

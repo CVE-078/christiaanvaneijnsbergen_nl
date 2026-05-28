@@ -4,7 +4,6 @@ const mockContext = {
     navigate: vi.fn(),
     activeWeek: 3,
     streak: 2,
-    saveError: null as string | null,
     handleExport: vi.fn(),
     activeTab: 'push' as const,
     setActiveTab: vi.fn(),
@@ -94,11 +93,9 @@ describe('DesktopLayout', () => {
         expect(screen.getByText(/2WK/)).toBeInTheDocument();
     });
 
-    it('renders the save error bar when saveError is set', async () => {
-        const { usePulse } = await import('@/context/PulseContext');
-        vi.mocked(usePulse).mockReturnValueOnce({ ...mockContext, saveError: 'Failed to save.' });
+    it('does not render a save error banner (errors shown via toast)', () => {
         render(<DesktopLayout {...defaultProps} />);
-        expect(screen.getByRole('alert')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
     it('calls handleExport when Export is clicked', async () => {

@@ -28,9 +28,7 @@ describe('useWorkoutLogs', () => {
     });
 
     it('falls back to initialLogs when SWR data is undefined', () => {
-        vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
-            typeof useSWR
-        >);
+        vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
         const initialLogs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         const { result } = renderHook(() => useWorkoutLogs(initialLogs));
         expect(result.current.logs).toEqual(initialLogs);
@@ -61,19 +59,26 @@ describe('useWorkoutLogs', () => {
         expect(saveLogs).toHaveBeenCalledWith({});
     });
 
-    it('sets saveError to retry message when saveLogs throws', async () => {
+    it('calls onError with retry message when saveLogs throws', async () => {
         vi.mocked(saveLogs).mockRejectedValueOnce(new Error('Network error'));
-        const { result } = renderHook(() => useWorkoutLogs({}));
+        const onError = vi.fn();
+        const { result } = renderHook(() => useWorkoutLogs({}, onError));
 
         await act(async () => {
             result.current.updateLog('1-push-0-0', { kg: 80, reps: 8, rir: 2, saved: true });
         });
 
-        expect(result.current.saveError).toBe('Failed to save. Retrying…');
+        expect(onError).toHaveBeenCalledWith('Failed to save. Retrying…');
     });
 
-    it('saveError starts as null', () => {
+    it('does not throw when no onError callback is provided and saveLogs fails', async () => {
+        vi.mocked(saveLogs).mockRejectedValueOnce(new Error('Network error'));
         const { result } = renderHook(() => useWorkoutLogs({}));
-        expect(result.current.saveError).toBeNull();
+
+        await expect(
+            act(async () => {
+                result.current.updateLog('1-push-0-0', { kg: 80, reps: 8, rir: 2, saved: true });
+            }),
+        ).resolves.not.toThrow();
     });
 });

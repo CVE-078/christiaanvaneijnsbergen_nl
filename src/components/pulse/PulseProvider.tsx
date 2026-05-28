@@ -6,6 +6,7 @@ import { useProfile } from '@/hooks/pulse/useProfile';
 import { useRoutines } from '@/hooks/pulse/useRoutines';
 import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
+import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap } from '@/lib/pulse/utils';
 import type { Logs, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, ScheduleEntry, View } from '@/lib/pulse/types';
 
@@ -30,7 +31,9 @@ export function PulseProvider({
     navigate,
     children,
 }: Props) {
-    const { logs, saveError, updateLog, deleteLog, handleExport } = useWorkoutLogs(initialLogs);
+    const { show: showToast } = useToast();
+    const onSaveError = useCallback((msg: string) => showToast(msg, 'error'), [showToast]);
+    const { logs, updateLog, deleteLog, handleExport } = useWorkoutLogs(initialLogs, onSaveError);
     const { profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight } = useProfile(
         initialProfile,
         initialBodyweightLogs,
@@ -74,7 +77,6 @@ export function PulseProvider({
 
     const [activeDay, _setActiveDay] = useState<number | null>(null);
 
-    // Auto-select today's training day (or the next upcoming one) when schedule changes
     useEffect(() => {
         if (activeSchedule.length === 0) return;
         const today = new Date().getDay();
@@ -100,7 +102,6 @@ export function PulseProvider({
             profile,
             bodyweightLogs,
             isLoading: false as const,
-            saveError,
             streak,
             prMap,
             email,
@@ -144,7 +145,6 @@ export function PulseProvider({
             logs,
             profile,
             bodyweightLogs,
-            saveError,
             streak,
             prMap,
             email,

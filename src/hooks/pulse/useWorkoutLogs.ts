@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { saveLogs } from '@/app/pulse/actions';
 import type { Logs, LogEntry } from '@/lib/pulse/types';
 
@@ -11,14 +11,13 @@ async function fetchLogs(url: string): Promise<Logs> {
     return res.json() as Promise<Logs>;
 }
 
-export function useWorkoutLogs(initialLogs: Logs) {
+export function useWorkoutLogs(initialLogs: Logs, onError?: (msg: string) => void) {
     const { data, mutate } = useSWR<Logs>(LOGS_KEY, fetchLogs, {
         fallbackData: initialLogs,
         revalidateOnFocus: false,
     });
     const logs = data ?? initialLogs;
 
-    const [saveError, setSaveError] = useState<string | null>(null);
     const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
@@ -30,18 +29,20 @@ export function useWorkoutLogs(initialLogs: Logs) {
     const persist = useCallback(
         (newLogs: Logs) => {
             mutate(newLogs, false);
-            setSaveError(null);
             if (retryRef.current) clearTimeout(retryRef.current);
 
             saveLogs(newLogs).catch(() => {
-                setSaveError('Failed to save. Retrying…');
+                onError?.('Failed to save. Retrying…');
                 retryRef.current = setTimeout(
-                    () => saveLogs(newLogs).catch(() => setSaveError('Save failed. Check your connection.')),
+                    () =>
+                        saveLogs(newLogs).catch(() =>
+                            onError?.('Save failed. Check your connection.'),
+                        ),
                     3000,
                 );
             });
         },
-        [mutate],
+        [mutate, onError],
     );
 
     const updateLog = useCallback(
@@ -72,5 +73,5 @@ export function useWorkoutLogs(initialLogs: Logs) {
         URL.revokeObjectURL(url);
     }
 
-    return { logs, saveError, updateLog, deleteLog, handleExport };
+    return { logs, updateLog, deleteLog, handleExport };
 }

@@ -9,7 +9,7 @@ import OnboardingModal from './OnboardingModal';
 import type { View } from '@/lib/pulse/types';
 
 export function AppShell({ view, navigate, children }: { view: View; navigate: (v: View) => void; children: React.ReactNode }) {
-    const { activeWeek, streak, handleExport, saveError, timerTrigger, showOnboarding } = usePulse();
+    const { activeWeek, streak, handleExport, timerTrigger, showOnboarding } = usePulse();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
 
     if (isDesktop) {
@@ -46,14 +46,6 @@ export function AppShell({ view, navigate, children }: { view: View; navigate: (
                     </form>
                 </div>
             </div>
-
-            {saveError && (
-                <div
-                    role="alert"
-                    className="py-2 px-4 bg-pulse-error/10 border-b border-pulse-error/20 text-pulse-error font-pulse text-[0.8125rem] tracking-[0.04em] text-center">
-                    {saveError}
-                </div>
-            )}
 
             {/* Page content comes from routing */}
             <div className="pb-16">{children}</div>
