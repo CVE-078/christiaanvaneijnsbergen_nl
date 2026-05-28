@@ -105,6 +105,7 @@ export default function HistoryView() {
                     <SectionHeader>e1RM Progression</SectionHeader>
                     {allRoutineExercises.length > 0 && (
                         <select
+                            aria-label="Exercise"
                             value={exerciseId ?? ''}
                             onChange={(e) => setSelectedExerciseId(e.target.value || null)}
                             className="font-pulse text-[0.6875rem] bg-pulse-surface-2 border border-pulse-border rounded px-2 py-[3px] text-pulse-text ml-auto"
