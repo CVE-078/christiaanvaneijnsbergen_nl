@@ -14,7 +14,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
 
     const [logsResult, profileResult, bwResult, exercisesResult, routinesResult] = await Promise.all([
         supabase.from('set_logs').select('week, routine_exercise_id, set_idx, kg, reps, rir, saved').eq('user_id', user.id),
-        supabase.from('profiles').select('display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg').eq('id', user.id).single(),
+        supabase.from('profiles').select('display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg').eq('id', user.id).maybeSingle(),
         supabase.from('bodyweight_logs').select('id, logged_at, weight_kg').eq('user_id', user.id).order('logged_at', { ascending: false }).limit(90),
         supabase.from('exercises').select('id, name, category, default_sets, default_reps, user_id').or(`user_id.is.null,user_id.eq.${user.id}`).order('name', { ascending: true }),
         supabase.from('workout_routines').select(`

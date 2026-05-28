@@ -10,5 +10,5 @@ export async function login(formData: FormData) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) redirect('/pulse/login?error=1');
-    redirect('/pulse');
+    redirect('/pulse/train');
 }
