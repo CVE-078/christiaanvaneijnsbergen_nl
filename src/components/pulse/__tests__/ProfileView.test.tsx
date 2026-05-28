@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProfileView from '../views/ProfileView';
+import { ToastProvider } from '@/lib/pulse/toast';
+import ToastContainer from '../ToastContainer';
 
 vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
@@ -32,6 +34,15 @@ const defaultContext = {
     triggerOnboarding: vi.fn(),
 };
 
+const renderWithToast = (component: React.ReactElement) => {
+    return render(
+        <ToastProvider>
+            {component}
+            <ToastContainer />
+        </ToastProvider>
+    );
+};
+
 beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
     mockUpdateProfile.mockClear();
@@ -41,7 +52,7 @@ beforeEach(() => {
 
 describe('ProfileView', () => {
     it('shows a saved confirmation after display name is updated', async () => {
-        render(<ProfileView />);
+        renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByText('Test User'));
         const input = screen.getByPlaceholderText('Display name');
         await userEvent.clear(input);
@@ -53,7 +64,7 @@ describe('ProfileView', () => {
     });
 
     it('renders a date picker for body weight with today as the default', () => {
-        render(<ProfileView />);
+        renderWithToast(<ProfileView />);
         const today = new Date().toISOString().split('T')[0];
         const datePicker = screen.getAllByDisplayValue(today);
         expect(datePicker.length).toBeGreaterThan(0);
@@ -64,7 +75,7 @@ describe('ProfileView', () => {
             ...defaultContext,
             profile: { display_name: 'John Doe', unit: 'kg', active_routine_id: null, onboarding_completed: false, goal_weight_kg: null },
         } as unknown as ReturnType<typeof usePulse>);
-        render(<ProfileView />);
+        renderWithToast(<ProfileView />);
         expect(screen.getByText('JD')).toBeInTheDocument();
     });
 
@@ -73,12 +84,12 @@ describe('ProfileView', () => {
             ...defaultContext,
             profile: { display_name: null, unit: 'kg', active_routine_id: null, onboarding_completed: false, goal_weight_kg: null },
         } as unknown as ReturnType<typeof usePulse>);
-        render(<ProfileView />);
+        renderWithToast(<ProfileView />);
         expect(screen.getByText('T')).toBeInTheDocument();
     });
 
     it('calls updateProfile when unit is toggled to lbs', async () => {
-        render(<ProfileView />);
+        renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('button', { name: /^lbs$/i }));
         expect(mockUpdateProfile).toHaveBeenCalledWith('Test User', 'lbs');
     });
@@ -88,12 +99,12 @@ describe('ProfileView', () => {
             ...defaultContext,
             bodyweightLogs: [{ id: 'abc', logged_at: '2026-05-01', weight_kg: 80 }],
         } as unknown as ReturnType<typeof usePulse>);
-        render(<ProfileView />);
+        renderWithToast(<ProfileView />);
         expect(screen.getByText(/80 kg/i)).toBeInTheDocument();
     });
 
     it('shows error when non-numeric weight is submitted', async () => {
-        render(<ProfileView />);
+        renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('button', { name: /^log$/i }));
         expect(screen.getByText(/enter a valid weight/i)).toBeInTheDocument();
     });

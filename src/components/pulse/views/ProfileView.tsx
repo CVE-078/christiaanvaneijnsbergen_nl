@@ -2,6 +2,7 @@
 import { useTransition, useState } from 'react';
 import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
+import { useToast } from '@/lib/pulse/toast';
 import type { BodyweightEntry } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
 import { updateGoalWeight, logBodyMeasurement, logBodyWeight as logBodyWeightAction } from '@/app/pulse/actions';
@@ -93,13 +94,13 @@ function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 
 
 export default function ProfileView() {
     const { email, profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight, triggerOnboarding, streak, prMap, exercises } = usePulse();
+    const toast = useToast();
 
     const { display_name: displayName, unit } = profile;
 
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(displayName ?? '');
-    const [nameSaved, setNameSaved] = useState(false);
     const [bwInput, setBwInput] = useState('');
     const [bwError, setBwError] = useState<string | null>(null);
     const [bwDate, setBwDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
@@ -123,6 +124,7 @@ export default function ProfileView() {
         if (newUnit === unit || isPending) return;
         startTransition(async () => {
             await updateProfile(displayName, newUnit);
+            toast.show('Unit updated', 'success');
         });
     }
 
@@ -132,8 +134,7 @@ export default function ProfileView() {
         if (trimmed === displayName) return;
         startTransition(async () => {
             await updateProfile(trimmed, unit);
-            setNameSaved(true);
-            setTimeout(() => setNameSaved(false), 2000);
+            toast.show('Name saved', 'success');
         });
     }
 
@@ -216,11 +217,6 @@ export default function ProfileView() {
                         <div className="font-pulse text-[0.8125rem] text-pulse-dim mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
                             {email}
                         </div>
-                        {nameSaved && !editingName && (
-                            <span className="font-pulse text-[0.6875rem] text-pulse-success tracking-[0.04em] mt-0.5 block">
-                                Saved ✓
-                            </span>
-                        )}
                     </div>
                 </div>
 
