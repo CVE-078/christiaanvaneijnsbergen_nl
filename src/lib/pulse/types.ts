@@ -88,6 +88,8 @@ export type View = typeof VIEWS[number];
 
 export type PRMap = Record<string, number>;
 
+export type Notes = Record<string, string>; // key: `${week}-${routineExerciseId}`
+
 export interface BestSet {
     routineExerciseId: string;
     week: number;
@@ -129,6 +131,7 @@ export interface RoutineExercise {
     sets: string;
     reps: string;
     starting_weight_kg: number | null;
+    rest_seconds?: number | null;
     exercise: DbExercise;
 }
 
