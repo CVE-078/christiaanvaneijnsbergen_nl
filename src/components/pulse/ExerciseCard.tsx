@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { logKey, parseMaxSets, calcE1RM, toDisplay } from '@/lib/pulse/utils';
+import { logKey, parseMaxSets, calcE1RM, toDisplay, computeLastSession } from '@/lib/pulse/utils';
 import SetLogger from './SetLogger';
 import type { Logs, LogEntry, Unit } from '@/lib/pulse/types';
 import type { RoutineExercise } from '@/lib/pulse/types';
@@ -24,6 +24,7 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
     ).length;
     const complete = savedCount >= maxSets;
     const bestE1RM = prMap[re.id] ?? 0;
+    const lastSession = computeLastSession(logs, re.id, week);
 
     return (
         <div
@@ -52,6 +53,11 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                             <> · {toDisplay(re.starting_weight_kg, unit)} {unit} start</>
                         )}
                     </div>
+                    {lastSession && (
+                        <div className="font-pulse text-xs text-pulse-dim mt-0.5">
+                            Last: {toDisplay(lastSession.kg, unit)} {unit} × {lastSession.reps} × {lastSession.setCount} sets
+                        </div>
+                    )}
                 </div>
                 {/* Progress pips + count */}
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
