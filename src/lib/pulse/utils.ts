@@ -146,3 +146,24 @@ export function computeVolumeByTypeAndWeek(
     }
     return result;
 }
+
+export function computeE1RMHistory(
+    logs: Logs,
+    routineExerciseId: string,
+): Array<{ week: number; e1rm: number }> {
+    const weekBest: Record<number, number> = {};
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const firstDash = key.indexOf('-');
+        const lastDash = key.lastIndexOf('-');
+        if (firstDash === -1 || lastDash === firstDash) continue;
+        const id = key.slice(firstDash + 1, lastDash);
+        if (id !== routineExerciseId) continue;
+        const week = Number(key.slice(0, firstDash));
+        const e1rm = calcE1RM(val.kg, val.reps);
+        if (e1rm > (weekBest[week] ?? 0)) weekBest[week] = e1rm;
+    }
+    return Object.entries(weekBest)
+        .map(([w, e1rm]) => ({ week: Number(w), e1rm }))
+        .sort((a, b) => a.week - b.week);
+}

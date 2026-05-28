@@ -11,6 +11,7 @@ import {
     computeStreak,
     computeSuggestion,
     computeVolumeByTypeAndWeek,
+    computeE1RMHistory,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType } from '../types';
 
@@ -293,5 +294,52 @@ describe('computeVolumeByTypeAndWeek', () => {
             [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
         };
         expect(computeVolumeByTypeAndWeek(logs, [])).toEqual({});
+    });
+});
+
+describe('computeE1RMHistory', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+    const UUID_B = '550e8400-e29b-41d4-a716-446655440001';
+
+    it('returns empty array for empty logs', () => {
+        expect(computeE1RMHistory({}, UUID_A)).toEqual([]);
+    });
+
+    it('only includes entries for the requested routineExerciseId', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`1-${UUID_B}-0`]: { kg: 80, reps: 5, rir: 2, saved: true },
+        };
+        const result = computeE1RMHistory(logs, UUID_A);
+        expect(result).toHaveLength(1);
+        expect(result[0].week).toBe(1);
+        expect(result[0].e1rm).toBeCloseTo(calcE1RM(60, 8));
+    });
+
+    it('picks best e1RM per week when multiple sets exist', () => {
+        const logs: Logs = {
+            [`2-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`2-${UUID_A}-1`]: { kg: 65, reps: 6, rir: 2, saved: true },
+        };
+        const result = computeE1RMHistory(logs, UUID_A);
+        expect(result).toHaveLength(1);
+        expect(result[0].e1rm).toBeCloseTo(calcE1RM(65, 6));
+    });
+
+    it('returns entries sorted ascending by week', () => {
+        const logs: Logs = {
+            [`3-${UUID_A}-0`]: { kg: 70, reps: 6, rir: 2, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
+            [`2-${UUID_A}-0`]: { kg: 65, reps: 7, rir: 3, saved: true },
+        };
+        const result = computeE1RMHistory(logs, UUID_A);
+        expect(result.map((p) => p.week)).toEqual([1, 2, 3]);
+    });
+
+    it('ignores unsaved entries', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: false },
+        };
+        expect(computeE1RMHistory(logs, UUID_A)).toEqual([]);
     });
 });
