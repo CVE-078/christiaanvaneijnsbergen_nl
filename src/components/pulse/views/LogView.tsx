@@ -64,20 +64,21 @@ export default function LogView() {
     async function handleStartWorkout() {
         if (!activeRoutine) return;
         const baseType = (activeTab as string).includes(':') ? (activeTab as string).split(':')[0] : activeTab;
-        const sess = await startSession(activeRoutine.id, baseType);
-        setWorkoutModeOpen(true);
-        // If session has a variant, switch to the matching tab key if it exists
-        if (sess.variant) {
-            const matchingKey = `${baseType}:${sess.variant}`;
-            if (routineExercisesByTabKey[matchingKey as typeof activeTab]) {
-                // exercises already filtered by workoutExercises below
-            }
+        try {
+            await startSession(activeRoutine.id, baseType);
+            setWorkoutModeOpen(true);
+        } catch {
+            // session creation failed — button remains enabled for retry, no overlay opened
         }
     }
 
     async function handleCompleteWorkout() {
         if (!session) return;
-        await completeSession(session.id);
+        try {
+            await completeSession(session.id);
+        } catch {
+            // ignore — session may have already been completed or network failed
+        }
         setWorkoutModeOpen(false);
     }
 
