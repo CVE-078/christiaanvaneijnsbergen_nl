@@ -126,7 +126,7 @@ export default function WorkoutModeScreen({
                 )}
                 {!isLast && (
                     <button
-                        aria-label="finish workout"
+                        aria-label="finish workout early"
                         onClick={handleFinish}
                         disabled={completing}
                         className="font-pulse w-full py-2 rounded-xl text-pulse-muted text-sm cursor-pointer border-none bg-transparent">
