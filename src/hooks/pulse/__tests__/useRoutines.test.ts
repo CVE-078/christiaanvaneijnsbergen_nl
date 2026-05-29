@@ -198,7 +198,7 @@ describe('useRoutines', () => {
             expect(returned).toEqual(newRoutineExercise);
         });
 
-        expect(serverAddExerciseToRoutine).toHaveBeenCalledWith('r-1', 'ex-1', '3', '8', 60, 'push');
+        expect(serverAddExerciseToRoutine).toHaveBeenCalledWith('r-1', 'ex-1', '3', '8', 60, 'push', undefined);
         expect(routinesMutate).toHaveBeenCalled();
     });
 
