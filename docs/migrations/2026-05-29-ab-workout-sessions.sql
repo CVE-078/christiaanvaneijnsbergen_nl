@@ -11,7 +11,7 @@ ALTER TABLE template_exercises
 -- 3. Create workout_sessions table
 CREATE TABLE IF NOT EXISTS workout_sessions (
   id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id       uuid REFERENCES auth.users(id) NOT NULL,
+  user_id       uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   routine_id    uuid REFERENCES workout_routines(id) ON DELETE SET NULL,
   workout_type  text NOT NULL,
   variant       text CHECK (variant IN ('A', 'B')),
@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
 -- 4. RLS
 ALTER TABLE workout_sessions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own sessions" ON workout_sessions;
 CREATE POLICY "Users manage own sessions"
   ON workout_sessions
   FOR ALL
