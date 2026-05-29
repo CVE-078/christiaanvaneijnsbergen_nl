@@ -41,7 +41,7 @@ beforeEach(() => {
 });
 
 describe('WorkoutTabs', () => {
-    it('renders Push and Pull tabs but not Legs (legs not in routineExercisesByType)', () => {
+    it('renders Push and Pull tabs but not Legs (legs not in routineExercisesByTabKey)', () => {
         render(<WorkoutTabs />);
         expect(screen.getByRole('tab', { name: /push/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /pull/i })).toBeInTheDocument();
