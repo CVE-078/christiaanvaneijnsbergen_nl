@@ -1,9 +1,12 @@
 'use client';
+import { useState } from 'react';
 import { logKey, getPhase, getRIR, weekHasData, parseMaxSets } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
+import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
+import WorkoutModeScreen from '../WorkoutModeScreen';
 import type { LogEntry, RoutineExercise } from '@/lib/pulse/types';
 
 export default function LogView() {
@@ -27,6 +30,9 @@ export default function LogView() {
         deleteNote,
     } = usePulse();
 
+    const { session, startSession, completeSession, clearSession } = useWorkoutSession();
+    const [workoutModeOpen, setWorkoutModeOpen] = useState(false);
+
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
     const unit = profile.unit;
@@ -38,6 +44,14 @@ export default function LogView() {
         ),
     );
 
+    // Exercises for workout mode: filter by session variant if present
+    const workoutExercises: RoutineExercise[] = (() => {
+        if (!session?.variant) return routineExercises;
+        const baseType = (activeTab as string).includes(':') ? (activeTab as string).split(':')[0] : activeTab;
+        const variantKey = `${baseType}:${session.variant}`;
+        return routineExercisesByTabKey[variantKey as typeof activeTab] ?? routineExercises;
+    })();
+
     function handleSave(key: string, entry: LogEntry) {
         updateLog(key, entry);
         const firstDash = key.indexOf('-');
@@ -45,6 +59,31 @@ export default function LogView() {
         const rid = key.slice(firstDash + 1, lastDash);
         const exercise = routineExercises.find((r) => r.id === rid);
         fireTrigger(exercise?.rest_seconds ?? undefined);
+    }
+
+    async function handleStartWorkout() {
+        if (!activeRoutine) return;
+        const baseType = (activeTab as string).includes(':') ? (activeTab as string).split(':')[0] : activeTab;
+        const sess = await startSession(activeRoutine.id, baseType);
+        setWorkoutModeOpen(true);
+        // If session has a variant, switch to the matching tab key if it exists
+        if (sess.variant) {
+            const matchingKey = `${baseType}:${sess.variant}`;
+            if (routineExercisesByTabKey[matchingKey as typeof activeTab]) {
+                // exercises already filtered by workoutExercises below
+            }
+        }
+    }
+
+    async function handleCompleteWorkout() {
+        if (!session) return;
+        await completeSession(session.id);
+        setWorkoutModeOpen(false);
+    }
+
+    function handleCloseWorkoutMode() {
+        clearSession();
+        setWorkoutModeOpen(false);
     }
 
     if (!activeRoutine) {
@@ -67,6 +106,21 @@ export default function LogView() {
 
     return (
         <div>
+            {workoutModeOpen && session && (
+                <WorkoutModeScreen
+                    exercises={workoutExercises}
+                    sessionId={session.id}
+                    variant={session.variant}
+                    week={activeWeek}
+                    logs={logs}
+                    unit={unit}
+                    onSave={handleSave}
+                    onDelete={deleteLog}
+                    onComplete={handleCompleteWorkout}
+                    onClose={handleCloseWorkoutMode}
+                />
+            )}
+
             {activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}
 
             <div className="flex px-4 gap-1 overflow-x-auto [scrollbar-width:none] pb-3">
@@ -91,11 +145,20 @@ export default function LogView() {
                 })}
             </div>
 
-            <div className="flex items-center gap-3 px-4 pb-3">
-                <span className="font-pulse text-xs font-semibold tracking-[0.08em] uppercase text-pulse-dim">
-                    {phase.label}
-                </span>
-                <span className="font-pulse text-xs font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-full px-2 py-0.5">{rir} RIR</span>
+            <div className="flex items-center justify-between gap-3 px-4 pb-3">
+                <div className="flex items-center gap-3">
+                    <span className="font-pulse text-xs font-semibold tracking-[0.08em] uppercase text-pulse-dim">
+                        {phase.label}
+                    </span>
+                    <span className="font-pulse text-xs font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-full px-2 py-0.5">{rir} RIR</span>
+                </div>
+                {routineExercises.length > 0 && (
+                    <button
+                        onClick={handleStartWorkout}
+                        className="font-pulse text-xs font-semibold bg-pulse-accent text-black rounded-full px-3 py-1.5 cursor-pointer border-none">
+                        Start workout
+                    </button>
+                )}
             </div>
 
             <div
