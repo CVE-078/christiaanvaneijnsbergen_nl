@@ -9,6 +9,7 @@ const routineExercise: RoutineExercise = {
     routine_id: 'r-1',
     exercise_id: 'ex-1',
     workout_type: 'chest',
+    variant: null,
     order: 0,
     sets: '3-4',
     reps: '8-12',

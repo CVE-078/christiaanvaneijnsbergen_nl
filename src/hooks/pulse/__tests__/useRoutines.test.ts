@@ -182,6 +182,7 @@ describe('useRoutines', () => {
             routine_id: 'r-1',
             exercise_id: 'ex-1',
             workout_type: 'push',
+            variant: null,
             order: 0,
             sets: '3',
             reps: '8',

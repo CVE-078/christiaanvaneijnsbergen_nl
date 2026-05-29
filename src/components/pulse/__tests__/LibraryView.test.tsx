@@ -48,6 +48,7 @@ const activeRoutine: RoutineWithExercises = {
             routine_id: 'r1',
             exercise_id: 'g1',
             workout_type: 'chest' as const,
+            variant: null,
             order: 0,
             sets: '3',
             reps: '8-12',

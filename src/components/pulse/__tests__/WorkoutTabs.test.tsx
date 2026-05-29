@@ -15,6 +15,7 @@ const mockRE = (id: string, workoutType: WorkoutType = 'push'): RoutineExercise 
     routine_id: 'r1',
     exercise_id: id,
     workout_type: workoutType,
+    variant: null,
     order: 0,
     sets: '3',
     reps: '8-12',

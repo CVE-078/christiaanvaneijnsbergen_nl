@@ -80,8 +80,9 @@ export function useRoutines(
         reps: string,
         startingWeightKg: number | null,
         workoutType: WorkoutType,
+        variant?: 'A' | 'B' | null,
     ): Promise<RoutineExercise> => {
-        const re = await serverAddExerciseToRoutine(routineId, exerciseId, sets, reps, startingWeightKg, workoutType);
+        const re = await serverAddExerciseToRoutine(routineId, exerciseId, sets, reps, startingWeightKg, workoutType, variant);
         await mutateRoutines();
         return re;
     }, [mutateRoutines]);

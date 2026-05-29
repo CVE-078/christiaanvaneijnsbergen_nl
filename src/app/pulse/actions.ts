@@ -352,6 +352,7 @@ export async function addExerciseToRoutine(
     reps: string,
     startingWeightKg: number | null,
     workoutType: WorkoutType,
+    variant?: 'A' | 'B' | null,
 ): Promise<RoutineExercise> {
     if (!UUID_RE.test(routineId)) throw new Error('Invalid routine id');
     if (!UUID_RE.test(exerciseId)) throw new Error('Invalid exercise id');
@@ -387,12 +388,13 @@ export async function addExerciseToRoutine(
             routine_id: routineId,
             exercise_id: exerciseId,
             workout_type: workoutType,
+            variant: variant ?? null,
             order: nextOrder,
             sets,
             reps,
             starting_weight_kg: startingWeightKg,
         })
-        .select('id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id )')
+        .select('id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id )')
         .single();
 
     if (error || !data) throw new Error('Failed to add exercise to routine');
@@ -507,14 +509,15 @@ function adjustSets(sets: string, delta: number): string {
 }
 
 function applyVolume(
-    exercises: Array<{ exercise_id: string; workout_type: string; order: number; sets: string; reps: string }>,
+    exercises: Array<{ exercise_id: string; workout_type: string; variant: string | null; order: number; sets: string; reps: string }>,
     sessionTime: string,
 ): typeof exercises {
     if (sessionTime === '~30 min') {
         const groups: Record<string, typeof exercises> = {};
         for (const ex of exercises) {
-            groups[ex.workout_type] = groups[ex.workout_type] ?? [];
-            groups[ex.workout_type].push(ex);
+            const key = ex.variant ? `${ex.workout_type}:${ex.variant}` : ex.workout_type;
+            groups[key] = groups[key] ?? [];
+            groups[key].push(ex);
         }
         return Object.values(groups)
             .flatMap((group) => group.slice(0, 4))
@@ -535,7 +538,7 @@ export async function cloneTemplate(slug: string, trainingDays?: number[], sessi
 
     const { data: template } = await supabase
         .from('routine_templates')
-        .select('id, name, schedule_pattern, default_days, template_exercises(exercise_id, workout_type, order, sets, reps)')
+        .select('id, name, schedule_pattern, default_days, template_exercises(exercise_id, workout_type, variant, order, sets, reps)')
         .eq('slug', slug)
         .single();
     if (!template) throw new Error('Template not found');
@@ -548,7 +551,7 @@ export async function cloneTemplate(slug: string, trainingDays?: number[], sessi
     if (routineErr || !routine) throw new Error('Failed to create routine');
 
     const rawExercises = (template as any).template_exercises as Array<{
-        exercise_id: string; workout_type: string; order: number; sets: string; reps: string;
+        exercise_id: string; workout_type: string; variant: string | null; order: number; sets: string; reps: string;
     }>;
     const exercises = sessionTime ? applyVolume(rawExercises, sessionTime) : rawExercises;
 
@@ -558,6 +561,7 @@ export async function cloneTemplate(slug: string, trainingDays?: number[], sessi
                 routine_id: routine.id,
                 exercise_id: te.exercise_id,
                 workout_type: te.workout_type,
+                variant: te.variant ?? null,
                 order: te.order,
                 sets: te.sets,
                 reps: te.reps,

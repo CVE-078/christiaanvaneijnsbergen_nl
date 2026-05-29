@@ -245,6 +245,7 @@ describe('computeVolumeByTypeAndWeek', () => {
             routine_id: 'r1',
             exercise_id: 'e1',
             workout_type,
+            variant: null,
             order: 0,
             sets: '3',
             reps: '8',
