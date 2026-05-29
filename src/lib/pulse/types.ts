@@ -14,6 +14,9 @@ export const WORKOUT_TYPES = [
 ] as const;
 export type WorkoutType = typeof WORKOUT_TYPES[number];
 
+export type WorkoutVariant = 'A' | 'B';
+export type TabKey = WorkoutType | `${WorkoutType}:${WorkoutVariant}`;
+
 export interface ScheduleEntry {
     day_of_week: number; // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
     workout_type: WorkoutType;
@@ -132,12 +135,23 @@ export interface RoutineExercise {
     reps: string;
     starting_weight_kg: number | null;
     rest_seconds?: number | null;
+    variant: WorkoutVariant | null;
     exercise: DbExercise;
 }
 
 export interface RoutineWithExercises extends WorkoutRoutine {
     exercises: RoutineExercise[];
     schedule: ScheduleEntry[];
+}
+
+export interface WorkoutSession {
+    id: string;
+    user_id: string;
+    routine_id: string | null;
+    workout_type: string;
+    variant: WorkoutVariant | null;
+    started_at: string;
+    completed_at: string | null;
 }
 
 export const EQUIPMENT_KEYS = ['dumbbells', 'barbell', 'bench', 'cables', 'machines'] as const;

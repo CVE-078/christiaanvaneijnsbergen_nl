@@ -1,4 +1,4 @@
-import type { WorkoutType } from './types';
+import type { TabKey, WorkoutType, WorkoutVariant } from './types';
 import type { DaysPerWeek, ExperienceLevel } from './recommendation';
 
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
@@ -24,3 +24,11 @@ export const EXPERIENCE_LEVEL_COLOR: Record<ExperienceLevel, string> = {
     intermediate: 'text-amber-400',
     advanced:     'text-red-400',
 };
+
+export function tabKeyLabel(key: TabKey): string {
+    if (key.includes(':')) {
+        const [type, variant] = key.split(':') as [WorkoutType, WorkoutVariant];
+        return `${WORKOUT_TYPE_LABELS[type]} ${variant}`;
+    }
+    return WORKOUT_TYPE_LABELS[key as WorkoutType];
+}
