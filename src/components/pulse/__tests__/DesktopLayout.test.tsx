@@ -29,6 +29,7 @@ const mockContext = {
     routines: [],
     activeRoutine: null,
     routineExercisesByType: { push: [], pull: [], legs: [], chest: [], back: [], shoulders: [], arms: [] },
+    routineExercisesByTabKey: {},
     createRoutine: vi.fn(),
     deleteRoutine: vi.fn(),
     setActiveRoutine: vi.fn(),

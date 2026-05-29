@@ -2,16 +2,28 @@
 import { useEffect } from 'react';
 import { logKey, parseMaxSets } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
-import type { WorkoutType } from '@/lib/pulse/types';
-import { WORKOUT_TYPE_LABELS, WORKOUT_TYPE_ORDER } from '@/lib/pulse/constants';
+import { WORKOUT_TYPE_ORDER, tabKeyLabel } from '@/lib/pulse/constants';
+import type { TabKey, WorkoutType } from '@/lib/pulse/types';
 import TabButton from './TabButton';
 
 export default function WorkoutTabs() {
-    const { activeTab, setActiveTab, routineExercisesByType, logs, activeWeek } = usePulse();
-    const tabs = WORKOUT_TYPE_ORDER.filter((t) => routineExercisesByType[t] !== undefined);
+    const { activeTab, setActiveTab, routineExercisesByTabKey, logs, activeWeek } = usePulse();
+
+    // Build ordered tab list: sort by base workout_type order, then A before B
+    const tabs: TabKey[] = (() => {
+        const keys = Object.keys(routineExercisesByTabKey) as TabKey[];
+        return [...keys].sort((a, b) => {
+            const baseA = a.includes(':') ? (a.split(':')[0] as WorkoutType) : (a as WorkoutType);
+            const baseB = b.includes(':') ? (b.split(':')[0] as WorkoutType) : (b as WorkoutType);
+            const orderA = WORKOUT_TYPE_ORDER.indexOf(baseA);
+            const orderB = WORKOUT_TYPE_ORDER.indexOf(baseB);
+            if (orderA !== orderB) return orderA - orderB;
+            return a < b ? -1 : 1; // 'push:A' before 'push:B'
+        });
+    })();
 
     useEffect(() => {
-        if (tabs.length > 0 && !tabs.includes(activeTab as WorkoutType)) {
+        if (tabs.length > 0 && !tabs.includes(activeTab)) {
             setActiveTab(tabs[0]);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -29,9 +41,9 @@ export default function WorkoutTabs() {
 
     return (
         <div role="tablist" className="flex items-center gap-1.5 p-4 pb-3">
-            {tabs.map((type, idx) => {
-                const active = activeTab === type;
-                const exercises = routineExercisesByType[type] ?? [];
+            {tabs.map((key, idx) => {
+                const active = activeTab === key;
+                const exercises = routineExercisesByTabKey[key] ?? [];
                 const done = exercises.filter((re) => {
                     const maxSets = parseMaxSets(re.sets);
                     return Array.from({ length: maxSets }, (_, s) => logKey(activeWeek, re.id, s)).every(
@@ -41,15 +53,15 @@ export default function WorkoutTabs() {
                 const total = exercises.length;
                 return (
                     <TabButton
-                        key={type}
-                        id={`tab-${type}`}
+                        key={key}
+                        id={`tab-${key}`}
                         active={active}
-                        controls={`panel-${type}`}
-                        onClick={() => setActiveTab(type)}
+                        controls={`panel-${key}`}
+                        onClick={() => setActiveTab(key)}
                         onKeyDown={(e) => handleKeyDown(e, idx)}
                         badge={total > 0 ? `${done}/${total}` : undefined}
                         className="flex items-center gap-2 py-2 px-4 rounded-full">
-                        <span className="font-pulse text-sm font-semibold">{WORKOUT_TYPE_LABELS[type]}</span>
+                        <span className="font-pulse text-sm font-semibold">{tabKeyLabel(key)}</span>
                     </TabButton>
                 );
             })}

@@ -42,6 +42,7 @@ const defaultContext = {
     prMap: {},
     activeRoutine: { id: 'r1', user_id: 'u1', name: 'Push Day', created_at: '', exercises: [mockRE] },
     routineExercisesByType: { push: [], pull: [], legs: [], chest: [mockRE], back: [], shoulders: [], arms: [] },
+    routineExercisesByTabKey: { chest: [mockRE] },
     navigate,
     updateLog: vi.fn(),
     deleteLog: vi.fn(),

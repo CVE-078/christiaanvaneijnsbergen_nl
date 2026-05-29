@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WorkoutTabs from '../WorkoutTabs';
-import type { RoutineExercise, WorkoutType } from '@/lib/pulse/types';
+import type { RoutineExercise, TabKey, WorkoutType } from '@/lib/pulse/types';
 
 vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
@@ -25,14 +25,14 @@ const mockRE = (id: string, workoutType: WorkoutType = 'push'): RoutineExercise 
 
 // Sparse context — only push and pull are present (not legs/chest/back/shoulders/arms)
 const defaultContext = {
-    activeTab: 'push' as const,
+    activeTab: 'push' as TabKey,
     setActiveTab: vi.fn(),
     activeWeek: 1,
     logs: {},
-    routineExercisesByType: {
+    routineExercisesByTabKey: {
         push: [mockRE('ex-1'), mockRE('ex-2'), mockRE('ex-3')],
         pull: [mockRE('ex-4', 'pull')],
-    } as Partial<Record<WorkoutType, RoutineExercise[]>>,
+    } as Partial<Record<TabKey, RoutineExercise[]>>,
 };
 
 beforeEach(() => {
@@ -51,11 +51,11 @@ describe('WorkoutTabs', () => {
     it('renders only tabs for present workout types', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            activeTab: 'chest' as const,
-            routineExercisesByType: {
+            activeTab: 'chest' as TabKey,
+            routineExercisesByTabKey: {
                 chest: [mockRE('ex-c1', 'chest')],
                 back: [mockRE('ex-b1', 'back')],
-            } as Partial<Record<WorkoutType, RoutineExercise[]>>,
+            } as Partial<Record<TabKey, RoutineExercise[]>>,
         } as unknown as ReturnType<typeof usePulse>);
         render(<WorkoutTabs />);
         expect(screen.getByRole('tab', { name: /chest/i })).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('WorkoutTabs', () => {
     it('marks the active tab with aria-selected="true" and the other with false', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            activeTab: 'pull' as const,
+            activeTab: 'pull' as TabKey,
         } as unknown as ReturnType<typeof usePulse>);
         render(<WorkoutTabs />);
         expect(screen.getByRole('tab', { name: /pull/i })).toHaveAttribute('aria-selected', 'true');
@@ -109,10 +109,10 @@ describe('WorkoutTabs', () => {
     it('does not show a badge when the tab has no exercises', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            routineExercisesByType: {
+            routineExercisesByTabKey: {
                 push: [],
                 pull: [mockRE('ex-4', 'pull')],
-            } as Partial<Record<WorkoutType, RoutineExercise[]>>,
+            } as Partial<Record<TabKey, RoutineExercise[]>>,
         } as unknown as ReturnType<typeof usePulse>);
         render(<WorkoutTabs />);
         const pushTab = screen.getByRole('tab', { name: /push/i });

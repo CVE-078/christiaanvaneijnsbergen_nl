@@ -9,7 +9,7 @@ import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap } from '@/lib/pulse/utils';
-import type { Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, ScheduleEntry, View } from '@/lib/pulse/types';
+import type { Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View } from '@/lib/pulse/types';
 
 interface Props {
     initialLogs: Logs;
@@ -73,6 +73,17 @@ export function PulseProvider({
         return result;
     }, [activeRoutine]);
 
+    const routineExercisesByTabKey = useMemo((): Partial<Record<TabKey, RoutineExercise[]>> => {
+        if (!activeRoutine) return {};
+        const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
+        const result: Partial<Record<TabKey, RoutineExercise[]>> = {};
+        for (const re of sorted) {
+            const key: TabKey = re.variant ? `${re.workout_type}:${re.variant}` : re.workout_type;
+            (result[key] ??= []).push(re);
+        }
+        return result;
+    }, [activeRoutine]);
+
     const activeSchedule = useMemo(
         (): ScheduleEntry[] =>
             [...(activeRoutine?.schedule ?? [])].sort((a, b) => a.day_of_week - b.day_of_week),
@@ -130,6 +141,7 @@ export function PulseProvider({
             routines,
             activeRoutine,
             routineExercisesByType,
+            routineExercisesByTabKey,
             createRoutine,
             deleteRoutine,
             setActiveRoutine,
@@ -177,6 +189,7 @@ export function PulseProvider({
             routines,
             activeRoutine,
             routineExercisesByType,
+            routineExercisesByTabKey,
             createRoutine,
             deleteRoutine,
             setActiveRoutine,

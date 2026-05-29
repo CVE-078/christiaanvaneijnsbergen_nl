@@ -4,7 +4,7 @@ import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
-import type { LogEntry } from '@/lib/pulse/types';
+import type { LogEntry, RoutineExercise } from '@/lib/pulse/types';
 
 export default function LogView() {
     const {
@@ -17,7 +17,7 @@ export default function LogView() {
         profile,
         prMap,
         activeRoutine,
-        routineExercisesByType,
+        routineExercisesByTabKey,
         navigate,
         updateLog,
         deleteLog,
@@ -30,7 +30,7 @@ export default function LogView() {
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
     const unit = profile.unit;
-    const routineExercises = routineExercisesByType[activeTab] ?? [];
+    const routineExercises: RoutineExercise[] = routineExercisesByTabKey[activeTab] ?? [];
 
     const hasData = routineExercises.some((re) =>
         Array.from({ length: parseMaxSets(re.sets) }, (_, s) => logKey(activeWeek, re.id, s)).some(

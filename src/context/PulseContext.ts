@@ -5,6 +5,7 @@ import type {
     Profile,
     BodyweightEntry,
     WorkoutType,
+    TabKey,
     Unit,
     LogEntry,
     View,
@@ -51,8 +52,8 @@ export interface PulseContextValue {
     navigate: (view: View) => void;
     activeWeek: number;
     setActiveWeek: (week: number) => void;
-    activeTab: WorkoutType;
-    setActiveTab: (tab: WorkoutType) => void;
+    activeTab: TabKey;
+    setActiveTab: (tab: TabKey) => void;
     activeDay: number | null;
     setActiveDay: (day: number) => void;
     activeSchedule: ScheduleEntry[];
@@ -70,6 +71,7 @@ export interface PulseContextValue {
     routines: RoutineWithExercises[];
     activeRoutine: RoutineWithExercises | null;
     routineExercisesByType: Partial<Record<WorkoutType, RoutineExercise[]>>;
+    routineExercisesByTabKey: Partial<Record<TabKey, RoutineExercise[]>>;
 
     // Routine mutations
     createRoutine: (name: string) => Promise<WorkoutRoutine>;
