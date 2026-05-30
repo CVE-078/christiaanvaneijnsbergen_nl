@@ -56,6 +56,8 @@ function ExercisesTab() {
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
+    const [editDefaultSets, setEditDefaultSets] = useState('');
+    const [editDefaultReps, setEditDefaultReps] = useState('');
 
     const filtered = exercises.filter((ex) => filter === 'all' || ex.category === filter);
 
@@ -77,13 +79,15 @@ function ExercisesTab() {
     function startEdit(ex: DbExercise) {
         setEditingId(ex.id);
         setEditName(ex.name);
+        setEditDefaultSets(ex.default_sets);
+        setEditDefaultReps(ex.default_reps);
     }
 
     function handleEditSave(id: string) {
         const name = editName.trim();
         if (!name) return;
         startTransition(async () => {
-            await updateExercise(id, name);
+            await updateExercise(id, name, editDefaultSets.trim() || '3', editDefaultReps.trim() || '8-12');
             setEditingId(null);
         });
     }
@@ -193,7 +197,7 @@ function ExercisesTab() {
                                 key={ex.id}
                                 className="flex items-center gap-3 bg-pulse-surface border border-pulse-border rounded-lg px-3 py-2.5">
                                 {isEditing ? (
-                                    <>
+                                    <div className="flex-1 flex flex-col gap-2">
                                         <input
                                             autoFocus
                                             aria-label={`Rename ${ex.name}`}
@@ -203,19 +207,41 @@ function ExercisesTab() {
                                                 if (e.key === 'Enter') handleEditSave(ex.id);
                                                 if (e.key === 'Escape') setEditingId(null);
                                             }}
-                                            className={`${INPUT} flex-1`}
+                                            className={`${INPUT} w-full`}
                                         />
-                                        <button
-                                            onClick={() => handleEditSave(ex.id)}
-                                            className={`${BTN_PRIMARY} shrink-0`}>
-                                            Save
-                                        </button>
-                                        <button
-                                            onClick={() => setEditingId(null)}
-                                            className={`${BTN_GHOST} shrink-0`}>
-                                            Cancel
-                                        </button>
-                                    </>
+                                        <div className="flex gap-2">
+                                            <label className="flex flex-col gap-0.5 flex-1">
+                                                <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-muted">Default sets</span>
+                                                <input
+                                                    aria-label="Default sets"
+                                                    value={editDefaultSets}
+                                                    onChange={(e) => setEditDefaultSets(e.target.value)}
+                                                    className={INPUT}
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-0.5 flex-1">
+                                                <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-muted">Default reps</span>
+                                                <input
+                                                    aria-label="Default reps"
+                                                    value={editDefaultReps}
+                                                    onChange={(e) => setEditDefaultReps(e.target.value)}
+                                                    className={INPUT}
+                                                />
+                                            </label>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleEditSave(ex.id)}
+                                                className={`${BTN_PRIMARY} shrink-0`}>
+                                                Save
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingId(null)}
+                                                className={`${BTN_GHOST} shrink-0`}>
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <>
                                         <span className="font-pulse text-sm text-white flex-1 min-w-0 truncate">

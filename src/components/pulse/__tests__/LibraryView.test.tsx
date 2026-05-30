@@ -145,7 +145,33 @@ describe('LibraryView', () => {
         await userEvent.type(input, 'Cable Crossover');
         await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
         await waitFor(() => {
-            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Crossover');
+            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Crossover', '3', '12-15');
+        });
+    });
+
+    it('shows default sets and reps inputs when editing a user exercise', async () => {
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
+        expect(screen.getByLabelText(/default sets/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/default reps/i)).toBeInTheDocument();
+    });
+
+    it('calls updateExercise with name, sets, and reps when edit is saved', async () => {
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
+
+        const setsInput = screen.getByLabelText(/default sets/i);
+        const repsInput = screen.getByLabelText(/default reps/i);
+
+        await userEvent.clear(setsInput);
+        await userEvent.type(setsInput, '4');
+        await userEvent.clear(repsInput);
+        await userEvent.type(repsInput, '10-15');
+
+        await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+        await waitFor(() => {
+            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Fly', '4', '10-15');
         });
     });
 

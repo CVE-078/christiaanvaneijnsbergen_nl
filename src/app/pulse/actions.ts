@@ -237,10 +237,18 @@ export async function createExercise(
     return data as DbExercise;
 }
 
-export async function updateExercise(id: string, name: string): Promise<void> {
+export async function updateExercise(
+    id: string,
+    name: string,
+    defaultSets: string,
+    defaultReps: string,
+): Promise<void> {
     if (!UUID_RE.test(id)) throw new Error('Invalid id');
-    const trimmed = name.trim();
-    if (!trimmed || trimmed.length > 100) throw new Error('Invalid exercise name');
+    const trimmedName = name.trim();
+    if (!trimmedName || trimmedName.length > 100) throw new Error('Invalid exercise name');
+    const trimmedSets = defaultSets.trim();
+    const trimmedReps = defaultReps.trim();
+    if (!trimmedSets || !trimmedReps) throw new Error('Invalid sets/reps');
 
     const supabase = await createClient();
     const {
@@ -250,7 +258,7 @@ export async function updateExercise(id: string, name: string): Promise<void> {
 
     const { error } = await supabase
         .from('exercises')
-        .update({ name: trimmed })
+        .update({ name: trimmedName, default_sets: trimmedSets, default_reps: trimmedReps })
         .eq('id', id)
         .eq('user_id', user.id);
     if (error) throw new Error('Failed to update exercise');

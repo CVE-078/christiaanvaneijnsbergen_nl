@@ -126,8 +126,13 @@ export function useRoutines(
         return exercise;
     }, [mutateExercises]);
 
-    const updateExercise = useCallback(async (id: string, name: string): Promise<void> => {
-        await serverUpdateExercise(id, name);
+    const updateExercise = useCallback(async (
+        id: string,
+        name: string,
+        defaultSets: string,
+        defaultReps: string,
+    ): Promise<void> => {
+        await serverUpdateExercise(id, name, defaultSets, defaultReps);
         await mutateExercises();
     }, [mutateExercises]);
 

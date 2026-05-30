@@ -100,7 +100,7 @@ export interface PulseContextValue {
 
     // Exercise library mutations
     createExercise: (name: string, category: ExerciseCategory, defaultSets: string, defaultReps: string) => Promise<DbExercise>;
-    updateExercise: (id: string, name: string) => Promise<void>;
+    updateExercise: (id: string, name: string, defaultSets: string, defaultReps: string) => Promise<void>;
     deleteExercise: (id: string) => Promise<void>;
 }
 
