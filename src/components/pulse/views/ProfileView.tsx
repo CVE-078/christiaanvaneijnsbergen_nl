@@ -93,7 +93,7 @@ function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 
 }
 
 export default function ProfileView() {
-    const { email, profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight, triggerOnboarding, streak, prMap, exercises } = usePulse();
+    const { email, profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight, triggerOnboarding, streak, prMap, routines } = usePulse();
     const toast = useToast();
 
     const { display_name: displayName, unit } = profile;
@@ -111,13 +111,16 @@ export default function ProfileView() {
 
     const initials = displayName ? getInitials(displayName, 2) : (email[0]?.toUpperCase() ?? '?');
 
-    // Personal Records: PRMap is Record<string, number> (exerciseId -> max kg)
+    // prMap keys are routineExerciseIds; resolve names via routine exercises
+    const reNameMap = new Map(
+        routines.flatMap((r) => r.exercises).map((re) => [re.id, re.exercise.name])
+    );
     const topPRs = Object.entries(prMap)
-        .map(([exId, kg]) => ({
-            name: exercises.find((e) => e.id === exId)?.name ?? exId,
-            kg,
+        .map(([reId, e1rm]) => ({
+            name: reNameMap.get(reId) ?? reId,
+            e1rm,
         }))
-        .sort((a, b) => b.kg - a.kg)
+        .sort((a, b) => b.e1rm - a.e1rm)
         .slice(0, 5);
 
     function handleUnitChange(newUnit: 'kg' | 'lbs') {
@@ -266,7 +269,7 @@ export default function ProfileView() {
                                 <div key={pr.name} className="flex justify-between items-center">
                                     <span className="font-pulse text-sm text-white">{pr.name}</span>
                                     <span className="font-pulse text-xs text-pulse-accent font-semibold">
-                                        {unit === 'lbs' ? `${(pr.kg * 2.20462).toFixed(1)} lbs` : `${pr.kg} kg`}
+                                        {unit === 'lbs' ? `${(pr.e1rm * 2.20462).toFixed(1)} lbs` : `${pr.e1rm} kg`}
                                     </span>
                                 </div>
                             ))}

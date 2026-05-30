@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import ProfileView from '../views/ProfileView';
 import { ToastProvider } from '@/lib/pulse/toast';
 import ToastContainer from '../ToastContainer';
+import type { RoutineWithExercises } from '@/lib/pulse/types';
 
 vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
@@ -31,6 +32,7 @@ const defaultContext = {
     streak: 0,
     prMap: {},
     exercises: [],
+    routines: [] as RoutineWithExercises[],
     triggerOnboarding: vi.fn(),
 };
 
@@ -107,5 +109,27 @@ describe('ProfileView', () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('button', { name: /^log$/i }));
         expect(screen.getByText(/enter a valid weight/i)).toBeInTheDocument();
+    });
+
+    it('shows exercise name instead of UUID in Personal Records', () => {
+        const RE_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
+        const routine: RoutineWithExercises = {
+            id: 'r1', user_id: 'u1', name: 'PPL', created_at: '',
+            schedule: [],
+            exercises: [{
+                id: RE_ID, routine_id: 'r1', exercise_id: 'ex-1',
+                workout_type: 'push', variant: null, order: 0, sets: '3', reps: '8',
+                starting_weight_kg: null,
+                exercise: { id: 'ex-1', name: 'Bench Press', category: 'chest', default_sets: '3', default_reps: '8', user_id: null },
+            }],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            prMap: { [RE_ID]: 126.67 },
+            routines: [routine],
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<ProfileView />);
+        expect(screen.getByText('Bench Press')).toBeInTheDocument();
+        expect(screen.queryByText(RE_ID)).not.toBeInTheDocument();
     });
 });
