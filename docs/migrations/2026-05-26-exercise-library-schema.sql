@@ -125,26 +125,26 @@ CREATE INDEX IF NOT EXISTS idx_workout_routines_user_id ON workout_routines(user
 -- Push
 INSERT INTO exercises (name, category, default_sets, default_reps, user_id) VALUES
     ('Dumbbell Bench Press',             'push', '3-4', '8-12',       NULL),
-    ('Incline DB Press',                 'push', '3',   '10-14',      NULL),
-    ('DB Lateral Raise',                 'push', '3-4', '12-16',      NULL),
-    ('DB Overhead Press',                'push', '3',   '8-12',       NULL),
-    ('DB Tricep Overhead Extension',     'push', '3',   '10-15',      NULL),
+    ('Incline Dumbbell Press',            'push', '3',   '10-14',      NULL),
+    ('Dumbbell Lateral Raise',           'push', '3-4', '12-16',      NULL),
+    ('Dumbbell Overhead Press',          'push', '3',   '8-12',       NULL),
+    ('Dumbbell Tricep Overhead Extension','push', '3',   '10-15',      NULL),
     ('Diamond / Close-Grip Push-Up',     'push', '2-3', 'to RIR',     NULL);
 
 -- Pull
 INSERT INTO exercises (name, category, default_sets, default_reps, user_id) VALUES
-    ('DB Bent-Over Row',                 'pull', '3-4', '8-12',       NULL),
-    ('DB Single-Arm Row',                'pull', '3',   '10-14',      NULL),
-    ('DB Reverse Fly',                   'pull', '3',   '12-16',      NULL),
-    ('DB Bicep Curl',                    'pull', '3',   '10-14',      NULL),
-    ('DB Hammer Curl',                   'pull', '2-3', '10-14',      NULL),
-    ('DB Face Pull bent-over',           'pull', '2',   '15-20',      NULL);
+    ('Dumbbell Bent-Over Row',           'pull', '3-4', '8-12',       NULL),
+    ('Dumbbell Single-Arm Row',          'pull', '3',   '10-14',      NULL),
+    ('Dumbbell Reverse Fly',             'pull', '3',   '12-16',      NULL),
+    ('Dumbbell Bicep Curl',              'pull', '3',   '10-14',      NULL),
+    ('Dumbbell Hammer Curl',             'pull', '2-3', '10-14',      NULL),
+    ('Dumbbell Face Pull (Bent-Over)',   'pull', '2',   '15-20',      NULL);
 
 -- Legs
 INSERT INTO exercises (name, category, default_sets, default_reps, user_id) VALUES
-    ('DB Goblet Squat',                  'legs', '4',   '10-15',      NULL),
-    ('DB Romanian Deadlift',             'legs', '3-4', '8-12',       NULL),
-    ('DB Bulgarian Split Squat',         'legs', '3',   '10-12 per leg', NULL),
-    ('DB Sumo Squat',                    'legs', '3',   '12-15',      NULL),
-    ('DB Leg Curl lying on bench',       'legs', '3',   '12-15',      NULL),
-    ('DB Calf Raise',                    'legs', '3',   '15-20',      NULL);
+    ('Dumbbell Goblet Squat',            'legs', '4',   '10-15',      NULL),
+    ('Dumbbell Romanian Deadlift',       'legs', '3-4', '8-12',       NULL),
+    ('Dumbbell Bulgarian Split Squat',   'legs', '3',   '10-12 per leg', NULL),
+    ('Dumbbell Sumo Squat',              'legs', '3',   '12-15',      NULL),
+    ('Dumbbell Leg Curl (Lying)',        'legs', '3',   '12-15',      NULL),
+    ('Dumbbell Calf Raise',              'legs', '3',   '15-20',      NULL);

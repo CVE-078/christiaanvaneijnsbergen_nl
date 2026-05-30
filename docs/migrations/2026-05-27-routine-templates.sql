@@ -24,35 +24,35 @@ ALTER TABLE exercises DROP CONSTRAINT IF EXISTS exercises_category_check;
 
 -- STEP 4: Remap all exercises to granular muscle-group categories
 UPDATE exercises SET category = 'chest' WHERE user_id IS NULL AND name IN (
-  'Dumbbell Bench Press','Incline DB Press',
+  'Dumbbell Bench Press','Incline Dumbbell Press',
   'Barbell Bench Press','Incline Barbell Press','Machine Chest Press',
   'Decline Bench Press','Pec Deck','Smith Machine Bench Press'
 );
 UPDATE exercises SET category = 'shoulders' WHERE user_id IS NULL AND name IN (
-  'DB Lateral Raise','DB Overhead Press',
+  'Dumbbell Lateral Raise','Dumbbell Overhead Press',
   'Barbell Overhead Press','Lateral Raise','Arnold Press',
   'Front Raise','Upright Row','Machine Shoulder Press','Cable Lateral Raise'
 );
 UPDATE exercises SET category = 'triceps' WHERE user_id IS NULL AND name IN (
-  'DB Tricep Overhead Extension','Diamond / Close-Grip Push-Up',
+  'Dumbbell Tricep Overhead Extension','Diamond / Close-Grip Push-Up',
   'Dips','Cable Tricep Pushdown','Tricep Pushdown'
 );
 UPDATE exercises SET category = 'back' WHERE user_id IS NULL AND name IN (
-  'DB Bent-Over Row','DB Single-Arm Row','DB Reverse Fly','DB Face Pull bent-over',
+  'Dumbbell Bent-Over Row','Dumbbell Single-Arm Row','Dumbbell Reverse Fly','Dumbbell Face Pull (Bent-Over)',
   'Deadlift','Pull-Up','Lat Pulldown','Barbell Row','Seated Cable Row',
   'T-Bar Row','Chest-Supported Row','Straight-Arm Pulldown','Rack Pull',
   'Rear Delt Fly','Face Pull','Chin-Up'
 );
 UPDATE exercises SET category = 'biceps' WHERE user_id IS NULL AND name IN (
-  'DB Bicep Curl','DB Hammer Curl','Barbell Bicep Curl',
+  'Dumbbell Bicep Curl','Dumbbell Hammer Curl','Barbell Bicep Curl',
   'Barbell Curl','Dumbbell Curl','Hammer Curl','Preacher Curl','Cable Curl',
   'Incline Dumbbell Curl','EZ-Bar Curl','Concentration Curl','Spider Curl'
 );
 UPDATE exercises SET category = 'glutes' WHERE user_id IS NULL AND name IN (
-  'DB Bulgarian Split Squat'
+  'Dumbbell Bulgarian Split Squat'
 );
 UPDATE exercises SET category = 'calves' WHERE user_id IS NULL AND name IN (
-  'DB Calf Raise','Calf Raise Machine'
+  'Dumbbell Calf Raise','Calf Raise Machine'
 );
 
 -- STEP 5: Seed new global exercises (skips any that already exist by name)
@@ -214,17 +214,17 @@ INSERT INTO template_exercises (template_id, exercise_id, workout_type, "order",
 SELECT t.tid, e.id, t.wt, t.ord, t.sets, t.reps
 FROM (VALUES
   -- full-body-db (001)
-  ('a1000000-0000-0000-0000-000000000001'::uuid,'Dumbbell Bench Press',    'push', 1,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000001'::uuid,'DB Overhead Press',       'push', 2,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000001'::uuid,'DB Bent-Over Row',        'pull', 3,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000001'::uuid,'DB Bicep Curl',           'pull', 4,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000001'::uuid,'DB Goblet Squat',         'legs', 5,'4','10-15'),
-  ('a1000000-0000-0000-0000-000000000001'::uuid,'DB Romanian Deadlift',    'legs', 6,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000001'::uuid,'Dumbbell Bench Press',         'push', 1,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000001'::uuid,'Dumbbell Overhead Press',      'push', 2,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000001'::uuid,'Dumbbell Bent-Over Row',       'pull', 3,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000001'::uuid,'Dumbbell Bicep Curl',          'pull', 4,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000001'::uuid,'Dumbbell Goblet Squat',        'legs', 5,'4','10-15'),
+  ('a1000000-0000-0000-0000-000000000001'::uuid,'Dumbbell Romanian Deadlift',   'legs', 6,'3','8-12'),
   -- full-body-home (002)
   ('a1000000-0000-0000-0000-000000000002'::uuid,'Barbell Bench Press',     'push', 1,'3','6-10'),
   ('a1000000-0000-0000-0000-000000000002'::uuid,'Barbell Overhead Press',  'push', 2,'3','6-10'),
   ('a1000000-0000-0000-0000-000000000002'::uuid,'Barbell Row',             'pull', 3,'3','6-10'),
-  ('a1000000-0000-0000-0000-000000000002'::uuid,'DB Bicep Curl',           'pull', 4,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000002'::uuid,'Dumbbell Bicep Curl',     'pull', 4,'3','10-14'),
   ('a1000000-0000-0000-0000-000000000002'::uuid,'Barbell Squat',           'legs', 5,'4','5-8'),
   ('a1000000-0000-0000-0000-000000000002'::uuid,'Romanian Deadlift',       'legs', 6,'3','8-12'),
   -- full-body-gym (003)
@@ -235,27 +235,27 @@ FROM (VALUES
   ('a1000000-0000-0000-0000-000000000003'::uuid,'Barbell Squat',           'legs', 5,'4','5-8'),
   ('a1000000-0000-0000-0000-000000000003'::uuid,'Leg Press',               'legs', 6,'3','10-15'),
   -- upper-lower-db (004)
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Bench Press',    'push', 1,'4','8-12'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Overhead Press',       'push', 2,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Lateral Raise',        'push', 3,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Bent-Over Row',        'pull', 4,'4','8-12'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Bicep Curl',           'pull', 5,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Reverse Fly',          'pull', 6,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Goblet Squat',         'legs', 7,'4','10-15'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Romanian Deadlift',    'legs', 8,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Bulgarian Split Squat','legs', 9,'3','10-12 per leg'),
-  ('a1000000-0000-0000-0000-000000000004'::uuid,'DB Calf Raise',           'legs',10,'3','15-20'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Bench Press',         'push', 1,'4','8-12'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Overhead Press',      'push', 2,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Lateral Raise',       'push', 3,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Bent-Over Row',       'pull', 4,'4','8-12'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Bicep Curl',          'pull', 5,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Reverse Fly',         'pull', 6,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Goblet Squat',        'legs', 7,'4','10-15'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Romanian Deadlift',   'legs', 8,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Bulgarian Split Squat','legs', 9,'3','10-12 per leg'),
+  ('a1000000-0000-0000-0000-000000000004'::uuid,'Dumbbell Calf Raise',          'legs',10,'3','15-20'),
   -- upper-lower-home (005)
   ('a1000000-0000-0000-0000-000000000005'::uuid,'Barbell Bench Press',     'push', 1,'4','6-10'),
   ('a1000000-0000-0000-0000-000000000005'::uuid,'Barbell Overhead Press',  'push', 2,'3','6-10'),
-  ('a1000000-0000-0000-0000-000000000005'::uuid,'DB Lateral Raise',        'push', 3,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000005'::uuid,'Barbell Row',             'pull', 4,'4','6-10'),
-  ('a1000000-0000-0000-0000-000000000005'::uuid,'DB Bicep Curl',           'pull', 5,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000005'::uuid,'DB Reverse Fly',          'pull', 6,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000005'::uuid,'Barbell Squat',           'legs', 7,'4','5-8'),
-  ('a1000000-0000-0000-0000-000000000005'::uuid,'Romanian Deadlift',       'legs', 8,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000005'::uuid,'DB Bulgarian Split Squat','legs', 9,'3','10-12 per leg'),
-  ('a1000000-0000-0000-0000-000000000005'::uuid,'DB Calf Raise',           'legs',10,'3','15-20'),
+  ('a1000000-0000-0000-0000-000000000005'::uuid,'Dumbbell Lateral Raise',       'push', 3,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000005'::uuid,'Barbell Row',                  'pull', 4,'4','6-10'),
+  ('a1000000-0000-0000-0000-000000000005'::uuid,'Dumbbell Bicep Curl',          'pull', 5,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000005'::uuid,'Dumbbell Reverse Fly',         'pull', 6,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000005'::uuid,'Barbell Squat',                'legs', 7,'4','5-8'),
+  ('a1000000-0000-0000-0000-000000000005'::uuid,'Romanian Deadlift',            'legs', 8,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000005'::uuid,'Dumbbell Bulgarian Split Squat','legs', 9,'3','10-12 per leg'),
+  ('a1000000-0000-0000-0000-000000000005'::uuid,'Dumbbell Calf Raise',          'legs',10,'3','15-20'),
   -- upper-lower-gym (006)
   ('a1000000-0000-0000-0000-000000000006'::uuid,'Barbell Bench Press',     'push', 1,'4','6-10'),
   ('a1000000-0000-0000-0000-000000000006'::uuid,'Barbell Overhead Press',  'push', 2,'3','6-10'),
@@ -269,37 +269,37 @@ FROM (VALUES
   ('a1000000-0000-0000-0000-000000000006'::uuid,'Leg Curl Machine',        'legs',10,'3','12-15'),
   ('a1000000-0000-0000-0000-000000000006'::uuid,'Calf Raise Machine',      'legs',11,'3','15-20'),
   -- ppl-db (007)
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Bench Press',         'push', 1,'4','8-12'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'Incline DB Press',             'push', 2,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Overhead Press',            'push', 3,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Lateral Raise',             'push', 4,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Tricep Overhead Extension', 'push', 5,'3','10-15'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Bent-Over Row',             'pull', 6,'4','8-12'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Single-Arm Row',            'pull', 7,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Reverse Fly',               'pull', 8,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Bicep Curl',                'pull', 9,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Hammer Curl',               'pull',10,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Goblet Squat',              'legs',11,'4','10-15'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Bulgarian Split Squat',     'legs',12,'3','10-12 per leg'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Romanian Deadlift',         'legs',13,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Leg Curl lying on bench',   'legs',14,'3','12-15'),
-  ('a1000000-0000-0000-0000-000000000007'::uuid,'DB Calf Raise',                'legs',15,'3','15-20'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Bench Press',              'push', 1,'4','8-12'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Incline Dumbbell Press',            'push', 2,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Overhead Press',           'push', 3,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Lateral Raise',            'push', 4,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Tricep Overhead Extension','push', 5,'3','10-15'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Bent-Over Row',            'pull', 6,'4','8-12'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Single-Arm Row',           'pull', 7,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Reverse Fly',              'pull', 8,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Bicep Curl',               'pull', 9,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Hammer Curl',              'pull',10,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Goblet Squat',             'legs',11,'4','10-15'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Bulgarian Split Squat',    'legs',12,'3','10-12 per leg'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Romanian Deadlift',        'legs',13,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Leg Curl (Lying)',         'legs',14,'3','12-15'),
+  ('a1000000-0000-0000-0000-000000000007'::uuid,'Dumbbell Calf Raise',               'legs',15,'3','15-20'),
   -- ppl-home (008)
   ('a1000000-0000-0000-0000-000000000008'::uuid,'Barbell Bench Press',          'push', 1,'4','6-10'),
   ('a1000000-0000-0000-0000-000000000008'::uuid,'Incline Barbell Press',        'push', 2,'3','8-12'),
   ('a1000000-0000-0000-0000-000000000008'::uuid,'Barbell Overhead Press',       'push', 3,'3','6-10'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Lateral Raise',             'push', 4,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Tricep Overhead Extension', 'push', 5,'3','10-15'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'Barbell Row',                  'pull', 6,'4','6-10'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Single-Arm Row',            'pull', 7,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Reverse Fly',               'pull', 8,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Bicep Curl',                'pull', 9,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Hammer Curl',               'pull',10,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'Barbell Squat',                'legs',11,'4','5-8'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'Romanian Deadlift',            'legs',12,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Bulgarian Split Squat',     'legs',13,'3','10-12 per leg'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Leg Curl lying on bench',   'legs',14,'3','12-15'),
-  ('a1000000-0000-0000-0000-000000000008'::uuid,'DB Calf Raise',                'legs',15,'3','15-20'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Lateral Raise',            'push', 4,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Tricep Overhead Extension','push', 5,'3','10-15'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Barbell Row',                       'pull', 6,'4','6-10'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Single-Arm Row',           'pull', 7,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Reverse Fly',              'pull', 8,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Bicep Curl',               'pull', 9,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Hammer Curl',              'pull',10,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Barbell Squat',                     'legs',11,'4','5-8'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Romanian Deadlift',                 'legs',12,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Bulgarian Split Squat',    'legs',13,'3','10-12 per leg'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Leg Curl (Lying)',         'legs',14,'3','12-15'),
+  ('a1000000-0000-0000-0000-000000000008'::uuid,'Dumbbell Calf Raise',               'legs',15,'3','15-20'),
   -- ppl-gym (009)
   ('a1000000-0000-0000-0000-000000000009'::uuid,'Barbell Bench Press',          'push', 1,'4','6-10'),
   ('a1000000-0000-0000-0000-000000000009'::uuid,'Incline Barbell Press',        'push', 2,'3','8-12'),
@@ -320,14 +320,14 @@ FROM (VALUES
   ('a1000000-0000-0000-0000-000000000009'::uuid,'Leg Extension Machine',        'legs',17,'3','12-15'),
   ('a1000000-0000-0000-0000-000000000009'::uuid,'Calf Raise Machine',           'legs',18,'3','15-20'),
   -- push-pull-db (010)
-  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Bench Press',         'push', 1,'4','8-12'),
-  ('a1000000-0000-0000-0000-000000000010'::uuid,'DB Overhead Press',            'push', 2,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000010'::uuid,'DB Lateral Raise',             'push', 3,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000010'::uuid,'DB Tricep Overhead Extension', 'push', 4,'3','10-15'),
-  ('a1000000-0000-0000-0000-000000000010'::uuid,'DB Bent-Over Row',             'pull', 5,'4','8-12'),
-  ('a1000000-0000-0000-0000-000000000010'::uuid,'DB Single-Arm Row',            'pull', 6,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000010'::uuid,'DB Bicep Curl',                'pull', 7,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000010'::uuid,'DB Hammer Curl',               'pull', 8,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Bench Press',              'push', 1,'4','8-12'),
+  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Overhead Press',           'push', 2,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Lateral Raise',            'push', 3,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Tricep Overhead Extension','push', 4,'3','10-15'),
+  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Bent-Over Row',            'pull', 5,'4','8-12'),
+  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Single-Arm Row',           'pull', 6,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Bicep Curl',               'pull', 7,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000010'::uuid,'Dumbbell Hammer Curl',              'pull', 8,'3','10-14'),
   -- push-pull-gym (011)
   ('a1000000-0000-0000-0000-000000000011'::uuid,'Barbell Bench Press',          'push', 1,'4','6-10'),
   ('a1000000-0000-0000-0000-000000000011'::uuid,'Barbell Overhead Press',       'push', 2,'3','6-10'),
@@ -393,20 +393,20 @@ FROM (VALUES
   ('a1000000-0000-0000-0000-000000000014'::uuid,'Chest Fly',                'chest',      4,'3','12-15'),
   ('a1000000-0000-0000-0000-000000000014'::uuid,'Deadlift',                 'back',       5,'4','4-6'),
   ('a1000000-0000-0000-0000-000000000014'::uuid,'Barbell Row',              'back',       6,'4','6-10'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Single-Arm Row',        'back',       7,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Reverse Fly',           'back',       8,'3','12-16'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'Barbell Overhead Press',   'shoulders',  9,'4','6-10'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Overhead Press',        'shoulders', 10,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Lateral Raise',         'shoulders', 11,'4','12-16'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Face Pull bent-over',   'shoulders', 12,'3','15-20'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'Barbell Curl',             'arms',      13,'4','8-12'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Tricep Overhead Extension','arms',   14,'3','10-15'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Bicep Curl',            'arms',      15,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Hammer Curl',           'arms',      16,'3','10-14'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'Barbell Squat',            'legs',      17,'4','5-8'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'Romanian Deadlift',        'legs',      18,'3','8-12'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Bulgarian Split Squat', 'legs',      19,'3','10-12 per leg'),
-  ('a1000000-0000-0000-0000-000000000014'::uuid,'DB Calf Raise',            'legs',      20,'3','15-20')
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Single-Arm Row',           'back',       7,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Reverse Fly',              'back',       8,'3','12-16'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Barbell Overhead Press',            'shoulders',  9,'4','6-10'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Overhead Press',           'shoulders', 10,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Lateral Raise',            'shoulders', 11,'4','12-16'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Face Pull (Bent-Over)',    'shoulders', 12,'3','15-20'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Barbell Curl',                      'arms',      13,'4','8-12'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Tricep Overhead Extension','arms',      14,'3','10-15'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Bicep Curl',               'arms',      15,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Hammer Curl',              'arms',      16,'3','10-14'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Barbell Squat',                     'legs',      17,'4','5-8'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Romanian Deadlift',                 'legs',      18,'3','8-12'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Bulgarian Split Squat',    'legs',      19,'3','10-12 per leg'),
+  ('a1000000-0000-0000-0000-000000000014'::uuid,'Dumbbell Calf Raise',               'legs',      20,'3','15-20')
 ) AS t(tid, ename, wt, ord, sets, reps)
 JOIN exercises e ON e.name = t.ename AND e.user_id IS NULL
 ON CONFLICT (template_id, "order") DO NOTHING;
