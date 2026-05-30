@@ -269,7 +269,7 @@ export default function ProfileView() {
                                 <div key={pr.name} className="flex justify-between items-center">
                                     <span className="font-pulse text-sm text-white">{pr.name}</span>
                                     <span className="font-pulse text-xs text-pulse-accent font-semibold">
-                                        {unit === 'lbs' ? `${(pr.e1rm * 2.20462).toFixed(1)} lbs` : `${pr.e1rm} kg`}
+                                        {unit === 'lbs' ? `${(pr.e1rm * 2.20462).toFixed(1)} lbs` : `${pr.e1rm.toFixed(1)} kg`}
                                     </span>
                                 </div>
                             ))}
