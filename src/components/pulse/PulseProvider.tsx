@@ -57,8 +57,7 @@ export function PulseProvider({
     const prMap = useMemo(() => computePRMap(logs), [logs]);
 
     const [onboardingOverride, setOnboardingOverride] = useState<boolean | null>(null);
-    const showOnboarding = onboardingOverride ??
-        (!profile.onboarding_completed && routines.length === 0);
+    const showOnboarding = onboardingOverride ?? routines.length === 0;
     const triggerOnboarding = useCallback(() => setOnboardingOverride(true), []);
     const dismissOnboarding = useCallback(() => setOnboardingOverride(false), []);
 
