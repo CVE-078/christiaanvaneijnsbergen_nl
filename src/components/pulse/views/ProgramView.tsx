@@ -3,14 +3,14 @@ import { VOLUME, WEEK_NOTES } from '@/lib/pulse/data';
 import { getPhase } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
-import type { WorkoutType } from '@/lib/pulse/types';
+import type { WorkoutType, RoutineExercise } from '@/lib/pulse/types';
 import WeekSelector from '../WeekSelector';
 import SectionLabel from '../SectionLabel';
 
 const BAR_MAX_HEIGHT_PX = 44;
 
 export default function ProgramView() {
-    const { activeWeek, setActiveWeek, logs, activeSchedule, routineExercisesByType } = usePulse();
+    const { activeWeek, setActiveWeek, logs, activeSchedule, activeRoutine, routineExercisesByType } = usePulse();
     const phase = getPhase(activeWeek);
     const maxSets = Math.max(...VOLUME.map((v) => v.sets));
 
@@ -74,31 +74,47 @@ export default function ProgramView() {
                 )}
             </div>
 
-            {Object.keys(routineExercisesByType)
-                .filter((t) => (routineExercisesByType[t as WorkoutType] ?? []).length > 0)
-                .map((type) => {
-                    const exercises = routineExercisesByType[type as WorkoutType] ?? [];
-                    return (
-                        <div key={type} className="mb-6">
-                            <div className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase text-pulse-accent font-bold mb-3">
-                                {WORKOUT_TYPE_LABELS[type as WorkoutType] ?? type}
-                            </div>
-                            {exercises.map((re, i) => (
-                                <div key={re.id} className="py-2 border-b border-pulse-border flex gap-4 items-baseline">
-                                    <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0 w-5">
-                                        {String(i + 1).padStart(2, '0')}
-                                    </span>
-                                    <div>
-                                        <div className="text-pulse-text text-[0.875rem] font-medium">{re.exercise?.name ?? ''}</div>
-                                        <div className="font-pulse text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-0.5">
-                                            {re.sets} sets · {re.reps} reps
-                                        </div>
+            {(() => {
+                    type Section = { type: WorkoutType; exercises: RoutineExercise[] };
+
+                    if (activeSchedule.length === 0) {
+                        return Object.keys(routineExercisesByType)
+                            .filter((t) => (routineExercisesByType[t as WorkoutType] ?? []).length > 0)
+                            .map((t) => ({ type: t as WorkoutType, exercises: routineExercisesByType[t as WorkoutType]! })) as Section[];
+                    }
+
+                    const uniqueTypes = [...new Set(activeSchedule.map((e) => e.workout_type))];
+
+                    if (uniqueTypes.length === 1) {
+                        const allExercises = activeRoutine
+                            ? [...activeRoutine.exercises].sort((a, b) => a.order - b.order)
+                            : (Object.values(routineExercisesByType).flat() as RoutineExercise[]);
+                        return [{ type: uniqueTypes[0], exercises: allExercises }] as Section[];
+                    }
+
+                    return uniqueTypes
+                        .map((type) => ({ type, exercises: (routineExercisesByType[type] ?? []) as RoutineExercise[] }))
+                        .filter((s) => s.exercises.length > 0) as Section[];
+                })().map(({ type, exercises }) => (
+                    <div key={type} className="mb-6">
+                        <div className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase text-pulse-accent font-bold mb-3">
+                            {WORKOUT_TYPE_LABELS[type as WorkoutType] ?? type}
+                        </div>
+                        {exercises.map((re, i) => (
+                            <div key={re.id} className="py-2 border-b border-pulse-border flex gap-4 items-baseline">
+                                <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0 w-5">
+                                    {String(i + 1).padStart(2, '0')}
+                                </span>
+                                <div>
+                                    <div className="text-pulse-text text-[0.875rem] font-medium">{re.exercise?.name ?? ''}</div>
+                                    <div className="font-pulse text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-0.5">
+                                        {re.sets} sets · {re.reps} reps
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    );
-                })}
+                            </div>
+                        ))}
+                    </div>
+                ))}
         </div>
     );
 }
