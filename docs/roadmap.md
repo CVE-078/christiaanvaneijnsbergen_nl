@@ -25,20 +25,21 @@
 - Next.js App Router pages (`/pulse/train`, `/pulse/plan`, `/pulse/progress`, `/pulse/profile`, `/pulse/explore`)
 - Desktop layout via `DesktopLayout` component (≥ 1024 px)
 - Route group `(protected)` — login page excluded from auth layout, no more redirect loop
+- Progress & analytics page — StreakCalendar (12-dot weekly filled), VolumeChart (sets/week by type), E1RMChart (progression line with exercise picker + PR marker), BestLifts summary, session history with name resolution and PR badges
+- Toast notification system — `ToastProvider` + `useToast` + `ToastContainer`; replaces inline `saveError` banner; auto-dismiss 4 s, hover-pause, max 3 stacked; success toasts on name/unit save
+- Last session display in ExerciseCard — `computeLastSession` utility; shows "Last: 80 kg × 8 × 3 sets" below subtitle
+- Notes per set — free-text per-exercise note keyed `week-routineExerciseId`; `useNotes` hook, `/api/pulse/notes` route, inline edit/clear UI in ExerciseCard
+- Per-exercise rest timer override — `rest_seconds` column on `routine_exercises`; editable in LibraryView routine editor; `fireTrigger` passes duration to RestTimer
+- A/B exercise variation — `variant` column on `routine_exercises` + `routine_schedule`; `WorkoutTabs` with A/B switching; `routineExercisesByTabKey` computed in provider; `nextVariant` pure function; PPL-style routines get auto-seeded A/B variants at clone time
+- Workout sessions — `workout_sessions` table (start/complete timestamps); POST `/api/pulse/sessions` + PATCH `/api/pulse/sessions/:id`; `useWorkoutSession` hook; `WorkoutModeScreen` full-screen guided mode with exercise-by-exercise navigation and early-finish
+- Warmup set generator — `computeWarmupSets` pure function; 3 steps at 50%×5 / 65%×3 / 80%×1; rounds to nearest 2.5 kg / 5 lb; shown above working sets in ExerciseCard when expanded; hidden below 40 kg working weight
+- Workout share card — `computeShareStats` utility; `ShareCard` full-screen overlay shown automatically after finishing a workout; shows workout label, duration, sets, week, top 3 lifts with weights, PR badges, PR count; "Screenshot to share" CTA; variant exercise snapshot preserved
 
 ---
 
 ## In Progress
 
-### Phase 5 — Progress & Analytics
-
-- [ ] HistoryView: resolve exercise name from `routineExerciseId` (currently renders "Exercise" placeholder)
-- [ ] `computeVolumeByTypeAndWeek(logs)` utility + tests
-- [ ] `computeE1RMHistory(logs, routineExerciseId)` utility + tests
-- [ ] Volume bar chart — sets per week grouped by workout type
-- [ ] e1RM progression line chart with exercise picker and PR marker
-- [ ] Best lifts summary per workout type
-- [ ] Streak calendar — 12 dots, filled = week with logged data
+Nothing currently in progress.
 
 ---
 
@@ -46,15 +47,10 @@
 
 | # | Feature | Notes |
 |---|---|---|
-| 1 | Notes per set | Free-text note on any logged set. "Left shoulder tight", "increase next week". Small lift, good retention. |
-| 2 | Last session display in LogView | Show "last time: 80 kg × 8 × 3" before logging a set. Suggestion pre-fill exists; explicit prior-session display does not. |
-| 3 | Per-exercise rest timer | Override the global rest timer per exercise. Compounds → 3 min, isolation → 90 s. Stored in `routine_exercises`. |
-| 4 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. |
-| 5 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. |
-| 6 | Warmup set generator | Given working weight, auto-suggest warm-up sets. Small UX win. |
-| 7 | Workout share card | Screenshot-friendly summary after a session. Organic marketing. |
-| 8 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. |
-| 9 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. |
+| 1 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. |
+| 2 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. |
+| 3 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. |
+| 4 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. |
 
 ---
 
