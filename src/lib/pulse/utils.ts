@@ -284,6 +284,7 @@ export function computeShareStats(
         const w = parseInt(key.slice(0, firstDash), 10);
         if (w !== week) continue;
         const rid = key.slice(firstDash + 1, lastDash);
+        if (!UUID_RE.test(rid)) continue;
         if (!exerciseIds.has(rid)) continue;
         totalSets++;
         const e1rm = calcE1RM(val.kg, val.reps);
