@@ -311,11 +311,21 @@ export async function deleteRoutine(id: string): Promise<void> {
         .single();
 
     if (profile?.active_routine_id === id) {
+        // Find the most recently created remaining routine to activate
+        const { data: others } = await supabase
+            .from('workout_routines')
+            .select('id')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        const nextId = others?.[0]?.id ?? null;
+
         const { error: profileError } = await supabase
             .from('profiles')
-            .update({ active_routine_id: null })
+            .update({ active_routine_id: nextId })
             .eq('id', user.id);
-        if (profileError) throw new Error('Failed to clear active routine');
+        if (profileError) throw new Error('Failed to update active routine');
     }
 }
 
