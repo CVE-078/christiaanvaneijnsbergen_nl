@@ -52,8 +52,8 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
                     {/* Top lifts */}
                     {stats.topLifts.length > 0 && (
                         <div className="flex flex-col gap-1.5 mb-3">
-                            {stats.topLifts.map((lift, i) => (
-                                <div key={i} className="flex items-center gap-2">
+                            {stats.topLifts.map((lift) => (
+                                <div key={lift.name} className="flex items-center gap-2">
                                     <span className="font-pulse text-[0.8125rem] text-pulse-text flex-1 truncate">
                                         {lift.name}
                                     </span>
@@ -87,7 +87,6 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
             {/* Done button */}
             <div className="px-6 pb-8">
                 <button
-                    aria-label="Done"
                     onClick={onDismiss}
                     className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-black font-semibold text-sm cursor-pointer border-none">
                     Done
