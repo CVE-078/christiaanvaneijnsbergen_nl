@@ -37,6 +37,17 @@
 
 ---
 
+## Bug Fixes (next sprint)
+
+| # | Bug | Root Cause |
+|---|-----|------------|
+| B1 | Profile PRs show UUIDs instead of exercise names | `prMap` keyed by `routineExerciseId`; ProfileView resolves via `DbExercise.id` — wrong table. Fix: resolve via `routines.flatMap(r => r.exercises)`. |
+| B2 | Plan view shows all workout type sections for full body routine | ProgramView renders all types in `routineExercisesByType`; Full Body template uses push/pull/legs types. Fix: filter to types present in `activeSchedule`. |
+| B3 | Start workout button has visible delay before screen appears | `WorkoutModeScreen` gated on `session !== null`; session only set after POST resolves. Fix: show screen optimistically, skeleton inside until session ready. |
+| B4 | Onboarding not shown when returning user has no routines | Condition `!onboarding_completed && routines.length === 0` — completed flag blocks re-trigger. Fix: show when `routines.length === 0` regardless of flag. |
+
+---
+
 ## In Progress
 
 Nothing currently in progress.
@@ -47,10 +58,12 @@ Nothing currently in progress.
 
 | # | Feature | Notes |
 |---|---|---|
-| 1 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. |
-| 2 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. |
-| 3 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. |
-| 4 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. |
+| 1 | Bug fixes sprint (B1–B4) | PRs UUIDs, plan sections, workout delay, onboarding re-trigger — all confirmed root causes. |
+| 2 | UX polish sprint | Desktop layout overhaul (two-column, proper sidebar); onboarding prominence on /train with no routine; auto-activate another routine when active one is removed; exercise naming consistency (DB → Dumbbell); exercise default sets/reps editable. |
+| 3 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. |
+| 4 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. |
+| 5 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. |
+| 6 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. |
 
 ---
 
@@ -63,3 +76,10 @@ Nothing currently in progress.
 | Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support ships. |
 | Social / sharing | Friends feed, likes, follow. Requires critical user mass. Not before traction. |
 | Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. |
+| Rest timer auto-advance | Option to automatically navigate to next exercise when rest timer completes. Global toggle or per-exercise setting. |
+| Muscle group filter as dropdown | Current flat chip list for 10 categories is cluttered. Collapse into dropdown or grouped (Push / Pull / Legs / Other). |
+| Login screen refresh | Visual update to match current Pulse design language. |
+| Skeleton loader refresh | Update skeleton styles to match current design tokens. |
+| Streak hero stat | Make streak number more prominent on Profile (currently undersized). |
+| Gender in profile | Add gender field; bias onboarding recommendations toward lower-body templates for female users. |
+| Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). |
