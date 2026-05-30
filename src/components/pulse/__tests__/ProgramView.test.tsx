@@ -69,6 +69,19 @@ describe('ProgramView', () => {
         expect(screen.getByText('Squat')).toBeInTheDocument();
     });
 
+    it('falls back to all exercises when schedule has single type but activeRoutine is null', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...baseContext,
+            activeRoutine: null,
+            activeSchedule: [{ day_of_week: 1, workout_type: 'full_body' }],
+            routineExercisesByType: { push: [pushRE], pull: [pullRE] },
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<ProgramView />);
+        expect(screen.getByText('Full Body')).toBeInTheDocument();
+        expect(screen.getByText('Bench Press')).toBeInTheDocument();
+        expect(screen.getByText('Row')).toBeInTheDocument();
+    });
+
     it('shows only scheduled types when schedule has multiple distinct types', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...baseContext,
