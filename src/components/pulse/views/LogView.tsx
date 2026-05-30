@@ -33,7 +33,7 @@ export default function LogView() {
 
     const { session, startSession, completeSession, clearSession } = useWorkoutSession();
     const [workoutModeOpen, setWorkoutModeOpen] = useState(false);
-    const [shareSession, setShareSession] = useState<{ session: WorkoutSession; completedAt: string } | null>(null);
+    const [shareSession, setShareSession] = useState<{ session: WorkoutSession; completedAt: string; exercises: RoutineExercise[] } | null>(null);
 
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
@@ -78,13 +78,14 @@ export default function LogView() {
         if (!session) return;
         const completedAt = new Date().toISOString();
         const completedSession = session;
+        const snapshotExercises = workoutExercises;
         try {
             await completeSession(completedSession.id);
         } catch {
             // ignore — session may have already been completed or network failed
         }
         setWorkoutModeOpen(false);
-        setShareSession({ session: completedSession, completedAt });
+        setShareSession({ session: completedSession, completedAt, exercises: snapshotExercises });
     }
 
     function handleCloseWorkoutMode() {
@@ -131,7 +132,7 @@ export default function LogView() {
                 <ShareCard
                     session={shareSession.session}
                     completedAt={shareSession.completedAt}
-                    exercises={workoutExercises}
+                    exercises={shareSession.exercises}
                     logs={logs}
                     prMap={prMap}
                     week={activeWeek}
