@@ -1,8 +1,21 @@
 import { PHASES } from './data';
-import type { Phase, Logs, HistorySession, LogEntry, Unit, RoutineExercise, WorkoutType, BestSet } from './types';
+import type { Phase, Logs, HistorySession, LogEntry, Unit, RoutineExercise, WorkoutType, BestSet, WorkoutSession, PRMap, ShareStats } from './types';
 
 // UUID v4 pattern used in new log keys
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const WORKOUT_LABELS: Partial<Record<WorkoutType, string>> = {
+    push: 'Push Day',
+    pull: 'Pull Day',
+    legs: 'Leg Day',
+    chest: 'Chest Day',
+    back: 'Back Day',
+    shoulders: 'Shoulder Day',
+    arms: 'Arms Day',
+    upper: 'Upper Day',
+    lower: 'Lower Day',
+    full_body: 'Full Body',
+};
 
 export const MIN_KG = 0.5;
 export const MAX_KG = 500;
@@ -233,4 +246,71 @@ export function computeLastSession(
     const latestWeek = Math.max(...byWeek.keys());
     const sets = byWeek.get(latestWeek)!;
     return { kg: sets[0].kg, reps: sets[0].reps, setCount: sets.length };
+}
+
+export function computeShareStats(
+    session: WorkoutSession,
+    completedAt: string,
+    exercises: RoutineExercise[],
+    logs: Logs,
+    prMap: PRMap,
+    week: number,
+    unit: Unit,
+): ShareStats {
+    const startMs = new Date(session.started_at).getTime();
+    const endMs = new Date(completedAt).getTime();
+    const diff = endMs - startMs;
+    const durationMin = isNaN(diff) || diff < 0 ? 0 : Math.floor(diff / 60000);
+
+    const baseLabel = WORKOUT_LABELS[session.workout_type as WorkoutType] ?? session.workout_type;
+    const workoutLabel = session.variant ? `${baseLabel} · Variant ${session.variant}` : baseLabel;
+
+    const date = new Date(completedAt).toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+    });
+
+    const exerciseIds = new Set(exercises.map((e) => e.id));
+    const nameMap = new Map(exercises.map((e) => [e.id, e.exercise.name]));
+    const bestByExercise = new Map<string, { kg: number; reps: number; e1rm: number }>();
+    let totalSets = 0;
+
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const firstDash = key.indexOf('-');
+        const lastDash = key.lastIndexOf('-');
+        if (firstDash === -1 || lastDash === firstDash) continue;
+        const w = parseInt(key.slice(0, firstDash), 10);
+        if (w !== week) continue;
+        const rid = key.slice(firstDash + 1, lastDash);
+        if (!exerciseIds.has(rid)) continue;
+        totalSets++;
+        const e1rm = calcE1RM(val.kg, val.reps);
+        const existing = bestByExercise.get(rid);
+        if (!existing || e1rm > existing.e1rm) {
+            bestByExercise.set(rid, { kg: val.kg, reps: val.reps, e1rm });
+        }
+    }
+
+    const allLifts = [...bestByExercise.entries()]
+        .sort(([, a], [, b]) => b.e1rm - a.e1rm)
+        .map(([rid, { kg, reps, e1rm }]) => {
+            const isPR = (prMap[rid] ?? 0) > 0 && e1rm >= prMap[rid];
+            return {
+                name: nameMap.get(rid) ?? rid,
+                displayWeight: toDisplay(kg, unit),
+                reps,
+                isPR,
+            };
+        });
+
+    return {
+        workoutLabel,
+        date,
+        durationMin,
+        totalSets,
+        topLifts: allLifts.slice(0, 3),
+        prCount: allLifts.filter((l) => l.isPR).length,
+    };
 }

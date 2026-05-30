@@ -101,6 +101,15 @@ export interface BestSet {
     e1rm: number;
 }
 
+export interface ShareStats {
+    workoutLabel: string;
+    date: string;
+    durationMin: number;
+    totalSets: number;
+    topLifts: Array<{ name: string; displayWeight: number; reps: number; isPR: boolean }>;
+    prCount: number;
+}
+
 export const EXERCISE_CATEGORIES = [
     'chest', 'shoulders', 'triceps',
     'back', 'biceps',

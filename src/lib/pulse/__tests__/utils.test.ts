@@ -15,8 +15,9 @@ import {
     computeBestSets,
     computeLastSession,
     computeWarmupSets,
+    computeShareStats,
 } from '../utils';
-import type { Logs, RoutineExercise, WorkoutType } from '../types';
+import type { Logs, RoutineExercise, WorkoutType, WorkoutSession } from '../types';
 
 describe('getPhase', () => {
     it('returns Phase 1 for weeks 1–3', () => {
@@ -482,5 +483,136 @@ describe('computeWarmupSets', () => {
         expect(sets[0].displayWeight).toBe(110);
         expect(sets[1].displayWeight).toBe(145);
         expect(sets[2].displayWeight).toBe(175);
+    });
+});
+
+describe('computeShareStats', () => {
+    const RE_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
+    const RE_ID_2 = 'bbbbbbbb-0000-4000-8000-000000000002';
+
+    const session: WorkoutSession = {
+        id: 'sess-1',
+        user_id: 'u1',
+        routine_id: 'r1',
+        workout_type: 'push',
+        variant: null,
+        started_at: '2026-05-30T10:00:00.000Z',
+        completed_at: null,
+    };
+    const completedAt = '2026-05-30T10:47:00.000Z';
+
+    const exercises: RoutineExercise[] = [
+        {
+            id: RE_ID,
+            routine_id: 'r1',
+            exercise_id: 'ex-1',
+            workout_type: 'push',
+            variant: null,
+            order: 0,
+            sets: '3',
+            reps: '8',
+            starting_weight_kg: null,
+            exercise: { id: 'ex-1', name: 'Bench Press', category: 'chest', default_sets: '3', default_reps: '8', user_id: null },
+        },
+        {
+            id: RE_ID_2,
+            routine_id: 'r1',
+            exercise_id: 'ex-2',
+            workout_type: 'push',
+            variant: null,
+            order: 1,
+            sets: '3',
+            reps: '12',
+            starting_weight_kg: null,
+            exercise: { id: 'ex-2', name: 'Overhead Press', category: 'shoulders', default_sets: '3', default_reps: '12', user_id: null },
+        },
+    ];
+
+    const logs: Logs = {
+        [`3-${RE_ID}-0`]: { kg: 100, reps: 8, rir: 2, saved: true },
+        [`3-${RE_ID}-1`]: { kg: 100, reps: 7, rir: 2, saved: true },
+        [`3-${RE_ID}-2`]: { kg: 97.5, reps: 8, rir: 2, saved: true },
+        [`3-${RE_ID_2}-0`]: { kg: 60, reps: 10, rir: 2, saved: true },
+    };
+
+    it('computes workoutLabel from workout_type', () => {
+        const stats = computeShareStats(session, completedAt, exercises, logs, {}, 3, 'kg');
+        expect(stats.workoutLabel).toBe('Push Day');
+    });
+
+    it('appends variant to workoutLabel when session has a variant', () => {
+        const variantSession = { ...session, variant: 'A' as const };
+        const stats = computeShareStats(variantSession, completedAt, exercises, logs, {}, 3, 'kg');
+        expect(stats.workoutLabel).toBe('Push Day · Variant A');
+    });
+
+    it('handles full_body workout type', () => {
+        const s = { ...session, workout_type: 'full_body' };
+        const stats = computeShareStats(s, completedAt, exercises, logs, {}, 3, 'kg');
+        expect(stats.workoutLabel).toBe('Full Body');
+    });
+
+    it('computes duration in minutes', () => {
+        const stats = computeShareStats(session, completedAt, exercises, logs, {}, 3, 'kg');
+        expect(stats.durationMin).toBe(47);
+    });
+
+    it('returns 0 duration for invalid timestamps', () => {
+        const bad = { ...session, started_at: 'not-a-date' };
+        const stats = computeShareStats(bad, completedAt, exercises, logs, {}, 3, 'kg');
+        expect(stats.durationMin).toBe(0);
+    });
+
+    it('counts total saved sets for this week and these exercises only', () => {
+        const logsWithNoise: Logs = {
+            ...logs,
+            [`2-${RE_ID}-0`]: { kg: 95, reps: 8, rir: 3, saved: true },
+            [`3-${RE_ID}-3`]: { kg: 100, reps: 8, rir: 2, saved: false },
+        };
+        const stats = computeShareStats(session, completedAt, exercises, logsWithNoise, {}, 3, 'kg');
+        expect(stats.totalSets).toBe(4);
+    });
+
+    it('returns up to 3 top lifts sorted by e1RM descending', () => {
+        const stats = computeShareStats(session, completedAt, exercises, logs, {}, 3, 'kg');
+        expect(stats.topLifts).toHaveLength(2);
+        expect(stats.topLifts[0].name).toBe('Bench Press');
+        expect(stats.topLifts[1].name).toBe('Overhead Press');
+    });
+
+    it('picks the best set per exercise (not one row per set)', () => {
+        const stats = computeShareStats(session, completedAt, exercises, logs, {}, 3, 'kg');
+        const bench = stats.topLifts.find((l) => l.name === 'Bench Press')!;
+        expect(bench.reps).toBe(8);
+        expect(bench.displayWeight).toBe(100);
+    });
+
+    it('marks isPR true when the best set e1RM matches the prMap entry', () => {
+        const prMap = { [RE_ID]: calcE1RM(100, 8) };
+        const stats = computeShareStats(session, completedAt, exercises, logs, prMap, 3, 'kg');
+        const bench = stats.topLifts.find((l) => l.name === 'Bench Press')!;
+        expect(bench.isPR).toBe(true);
+    });
+
+    it('marks isPR false when e1RM is below the prMap entry', () => {
+        const prMap = { [RE_ID]: calcE1RM(120, 8) };
+        const stats = computeShareStats(session, completedAt, exercises, logs, prMap, 3, 'kg');
+        const bench = stats.topLifts.find((l) => l.name === 'Bench Press')!;
+        expect(bench.isPR).toBe(false);
+    });
+
+    it('counts prCount across all exercises not just topLifts slice', () => {
+        const prMap = {
+            [RE_ID]: calcE1RM(100, 8),
+            [RE_ID_2]: calcE1RM(60, 10),
+        };
+        const stats = computeShareStats(session, completedAt, exercises, logs, prMap, 3, 'kg');
+        expect(stats.prCount).toBe(2);
+    });
+
+    it('returns displayWeight in lbs when unit is lbs', () => {
+        const stats = computeShareStats(session, completedAt, exercises, logs, {}, 3, 'lbs');
+        const bench = stats.topLifts.find((l) => l.name === 'Bench Press')!;
+        expect(bench.displayWeight).toBeCloseTo(220.5, 0);
     });
 });
