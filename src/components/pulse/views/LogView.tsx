@@ -7,7 +7,8 @@ import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
 import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
 import WorkoutModeScreen from '../WorkoutModeScreen';
-import type { LogEntry, RoutineExercise } from '@/lib/pulse/types';
+import ShareCard from '../ShareCard';
+import type { LogEntry, RoutineExercise, WorkoutSession } from '@/lib/pulse/types';
 
 export default function LogView() {
     const {
@@ -32,6 +33,7 @@ export default function LogView() {
 
     const { session, startSession, completeSession, clearSession } = useWorkoutSession();
     const [workoutModeOpen, setWorkoutModeOpen] = useState(false);
+    const [shareSession, setShareSession] = useState<{ session: WorkoutSession; completedAt: string } | null>(null);
 
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
@@ -74,12 +76,15 @@ export default function LogView() {
 
     async function handleCompleteWorkout() {
         if (!session) return;
+        const completedAt = new Date().toISOString();
+        const completedSession = session;
         try {
-            await completeSession(session.id);
+            await completeSession(completedSession.id);
         } catch {
             // ignore — session may have already been completed or network failed
         }
         setWorkoutModeOpen(false);
+        setShareSession({ session: completedSession, completedAt });
     }
 
     function handleCloseWorkoutMode() {
@@ -119,6 +124,19 @@ export default function LogView() {
                     onDelete={deleteLog}
                     onComplete={handleCompleteWorkout}
                     onClose={handleCloseWorkoutMode}
+                />
+            )}
+
+            {shareSession && (
+                <ShareCard
+                    session={shareSession.session}
+                    completedAt={shareSession.completedAt}
+                    exercises={workoutExercises}
+                    logs={logs}
+                    prMap={prMap}
+                    week={activeWeek}
+                    unit={unit}
+                    onDismiss={() => setShareSession(null)}
                 />
             )}
 
