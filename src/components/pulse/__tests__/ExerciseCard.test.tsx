@@ -93,4 +93,29 @@ describe('ExerciseCard', () => {
         await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
         expect(screen.getByText('Left shoulder tight')).toBeInTheDocument();
     });
+
+    it('shows warmup suggestions when previous week set is above 40 kg and card is expanded', async () => {
+        const logs = {
+            [`1-${RE_ID}-0`]: { kg: 100, reps: 8, rir: 2, saved: true },
+        };
+        render(<ExerciseCard {...defaultProps} week={2} logs={logs} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        expect(screen.getByText(/warm-up/i)).toBeInTheDocument();
+        expect(screen.getByText(/50%/)).toBeInTheDocument();
+    });
+
+    it('does not show warmup suggestions when there is no previous week data', async () => {
+        render(<ExerciseCard {...defaultProps} week={1} logs={{}} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        expect(screen.queryByText(/warm-up/i)).not.toBeInTheDocument();
+    });
+
+    it('does not show warmup suggestions when previous week weight is below 40 kg', async () => {
+        const logs = {
+            [`1-${RE_ID}-0`]: { kg: 30, reps: 15, rir: 2, saved: true },
+        };
+        render(<ExerciseCard {...defaultProps} week={2} logs={logs} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        expect(screen.queryByText(/warm-up/i)).not.toBeInTheDocument();
+    });
 });

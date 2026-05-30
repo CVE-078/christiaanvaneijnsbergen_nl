@@ -14,6 +14,7 @@ import {
     computeE1RMHistory,
     computeBestSets,
     computeLastSession,
+    computeWarmupSets,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType } from '../types';
 
@@ -446,5 +447,40 @@ describe('computeLastSession', () => {
             [`1-${UUID_A}-1`]: { kg: 80, reps: 8, rir: 2, saved: false },
         };
         expect(computeLastSession(logs, UUID_A, 2)).toBeNull();
+    });
+});
+
+describe('computeWarmupSets', () => {
+    it('returns empty array for weight below 40 kg', () => {
+        expect(computeWarmupSets(39.5, 'kg')).toEqual([]);
+        expect(computeWarmupSets(0, 'kg')).toEqual([]);
+    });
+
+    it('returns 3 sets for exactly 40 kg', () => {
+        expect(computeWarmupSets(40, 'kg')).toHaveLength(3);
+    });
+
+    it('returns 3 sets at 50/65/80 percent for 100 kg working weight', () => {
+        const sets = computeWarmupSets(100, 'kg');
+        expect(sets).toHaveLength(3);
+        expect(sets[0]).toEqual({ percent: 50, displayWeight: 50, reps: 5 });
+        expect(sets[1]).toEqual({ percent: 65, displayWeight: 65, reps: 3 });
+        expect(sets[2]).toEqual({ percent: 80, displayWeight: 80, reps: 1 });
+    });
+
+    it('rounds each step to the nearest 2.5 kg', () => {
+        // 50% of 101 = 50.5 → 50.0, 65% of 101 = 65.65 → 65.0, 80% of 101 = 80.8 → 80.0
+        const sets = computeWarmupSets(101, 'kg');
+        expect(sets[0].displayWeight).toBe(50);
+        expect(sets[1].displayWeight).toBe(65);
+        expect(sets[2].displayWeight).toBe(80);
+    });
+
+    it('rounds lbs values to the nearest 5', () => {
+        // 100 kg: 50% = 50 kg → 110.2 lbs → 110, 65% = 65 kg → 143.3 lbs → 145, 80% = 80 kg → 176.4 lbs → 175
+        const sets = computeWarmupSets(100, 'lbs');
+        expect(sets[0].displayWeight).toBe(110);
+        expect(sets[1].displayWeight).toBe(145);
+        expect(sets[2].displayWeight).toBe(175);
     });
 });

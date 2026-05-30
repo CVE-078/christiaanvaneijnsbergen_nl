@@ -192,6 +192,23 @@ export function computeBestSets(logs: Logs): Record<string, BestSet> {
     return best;
 }
 
+export function computeWarmupSets(
+    workingWeightKg: number,
+    unit: Unit,
+): Array<{ percent: number; displayWeight: number; reps: number }> {
+    if (workingWeightKg < 40) return [];
+    return [
+        { percent: 50, reps: 5 },
+        { percent: 65, reps: 3 },
+        { percent: 80, reps: 1 },
+    ].map(({ percent, reps }) => {
+        const roundedKg = Math.round((workingWeightKg * percent) / 100 / 2.5) * 2.5;
+        const display = toDisplay(roundedKg, unit);
+        const displayWeight = unit === 'lbs' ? Math.round(display / 5) * 5 : display;
+        return { percent, displayWeight, reps };
+    });
+}
+
 export function computeLastSession(
     logs: Logs,
     routineExerciseId: string,

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { logKey, parseMaxSets, calcE1RM, toDisplay, computeLastSession } from '@/lib/pulse/utils';
+import { logKey, parseMaxSets, calcE1RM, toDisplay, computeLastSession, computeSuggestion, computeWarmupSets } from '@/lib/pulse/utils';
 import SetLogger from './SetLogger';
 import type { Logs, LogEntry, Unit } from '@/lib/pulse/types';
 import type { RoutineExercise } from '@/lib/pulse/types';
@@ -30,6 +30,13 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
     const complete = savedCount >= maxSets;
     const bestE1RM = prMap[re.id] ?? 0;
     const lastSession = computeLastSession(logs, re.id, week);
+    const prevKey0 = logKey(week - 1, re.id, 0);
+    const prevEntry0 = week > 1 ? logs[prevKey0] : undefined;
+    const workingWeightKg =
+        computeSuggestion(prevEntry0?.saved ? prevEntry0 : undefined, week) ??
+        re.starting_weight_kg ??
+        null;
+    const warmupSets = workingWeightKg !== null ? computeWarmupSets(workingWeightKg, unit) : [];
 
     return (
         <div
@@ -105,6 +112,23 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
 
             {open && (
                 <div className="border-t border-pulse-border px-4 pt-1 pb-4">
+                    {warmupSets.length > 0 && (
+                        <div className="pb-3 border-b border-pulse-border mb-1">
+                            <div className="font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted mb-1.5">
+                                Warm-up
+                            </div>
+                            {warmupSets.map(({ percent, displayWeight, reps }) => (
+                                <div key={percent} className="flex items-center gap-2 py-[0.3rem]">
+                                    <span className="font-pulse text-[0.6875rem] text-pulse-muted w-8 shrink-0">
+                                        {percent}%
+                                    </span>
+                                    <span className="font-pulse text-[0.8125rem] text-pulse-dim">
+                                        {displayWeight} {unit} × {reps}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     {Array.from({ length: maxSets }, (_, i) => {
                         const key = logKey(week, re.id, i);
                         const entry = logs[key];
