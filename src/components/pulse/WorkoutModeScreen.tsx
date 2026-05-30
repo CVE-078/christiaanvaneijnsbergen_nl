@@ -6,7 +6,7 @@ import type { RoutineExercise, Logs, LogEntry, Unit, WorkoutVariant } from '@/li
 
 interface Props {
     exercises: RoutineExercise[];
-    sessionId: string;
+    sessionId: string | null;
     variant: WorkoutVariant | null;
     week: number;
     logs: Logs;
@@ -19,6 +19,7 @@ interface Props {
 
 export default function WorkoutModeScreen({
     exercises,
+    sessionId,
     variant,
     week,
     logs,
@@ -42,6 +43,7 @@ export default function WorkoutModeScreen({
     ).length;
 
     async function handleFinish() {
+        if (!sessionId) return;
         setCompleting(true);
         await onComplete();
         setCompleting(false);
@@ -119,7 +121,7 @@ export default function WorkoutModeScreen({
                     <button
                         aria-label="finish workout"
                         onClick={handleFinish}
-                        disabled={completing}
+                        disabled={completing || sessionId === null}
                         className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-black font-semibold text-sm cursor-pointer border-none disabled:opacity-60">
                         {completing ? 'Finishing…' : 'Finish workout ✓'}
                     </button>
@@ -128,7 +130,7 @@ export default function WorkoutModeScreen({
                     <button
                         aria-label="finish workout early"
                         onClick={handleFinish}
-                        disabled={completing}
+                        disabled={completing || sessionId === null}
                         className="font-pulse w-full py-2 rounded-xl text-pulse-muted text-sm cursor-pointer border-none bg-transparent">
                         Finish workout early
                     </button>

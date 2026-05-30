@@ -66,11 +66,12 @@ export default function LogView() {
     async function handleStartWorkout() {
         if (!activeRoutine) return;
         const baseType = (activeTab as string).includes(':') ? (activeTab as string).split(':')[0] : activeTab;
+        setWorkoutModeOpen(true);
         try {
             await startSession(activeRoutine.id, baseType);
-            setWorkoutModeOpen(true);
         } catch {
-            // session creation failed — button remains enabled for retry, no overlay opened
+            // session creation failed — close the screen
+            setWorkoutModeOpen(false);
         }
     }
 
@@ -113,11 +114,11 @@ export default function LogView() {
 
     return (
         <div>
-            {workoutModeOpen && session && (
+            {workoutModeOpen && (
                 <WorkoutModeScreen
                     exercises={workoutExercises}
-                    sessionId={session.id}
-                    variant={session.variant}
+                    sessionId={session?.id ?? null}
+                    variant={session?.variant ?? null}
                     week={activeWeek}
                     logs={logs}
                     unit={unit}

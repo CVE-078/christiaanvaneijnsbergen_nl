@@ -7,7 +7,12 @@ vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
 }));
 
+vi.mock('@/hooks/pulse/useWorkoutSession', () => ({
+    useWorkoutSession: vi.fn(),
+}));
+
 import { usePulse } from '@/context/PulseContext';
+import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
 
 const mockRE: RoutineExercise = {
     id: 're-test-uuid',
@@ -56,6 +61,12 @@ const defaultContext = {
 
 beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
+    vi.mocked(useWorkoutSession).mockReturnValue({
+        session: null,
+        startSession: vi.fn().mockResolvedValue(undefined),
+        completeSession: vi.fn().mockResolvedValue(undefined),
+        clearSession: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkoutSession>);
 });
 
 describe('LogView', () => {
@@ -83,5 +94,18 @@ describe('LogView', () => {
         } as unknown as ReturnType<typeof usePulse>);
         render(<LogView />);
         expect(screen.queryByText(/tap an exercise/i)).not.toBeInTheDocument();
+    });
+
+    it('shows WorkoutModeScreen immediately when Start workout is clicked, before session resolves', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        vi.mocked(useWorkoutSession).mockReturnValue({
+            session: null,
+            startSession: vi.fn(() => new Promise(() => {})), // never resolves
+            completeSession: vi.fn(),
+            clearSession: vi.fn(),
+        } as unknown as ReturnType<typeof useWorkoutSession>);
+        render(<LogView />);
+        await userEvent.click(screen.getByRole('button', { name: /start workout/i }));
+        expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
     });
 });
