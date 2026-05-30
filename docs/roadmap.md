@@ -34,17 +34,9 @@
 - Workout sessions — `workout_sessions` table (start/complete timestamps); POST `/api/pulse/sessions` + PATCH `/api/pulse/sessions/:id`; `useWorkoutSession` hook; `WorkoutModeScreen` full-screen guided mode with exercise-by-exercise navigation and early-finish
 - Warmup set generator — `computeWarmupSets` pure function; 3 steps at 50%×5 / 65%×3 / 80%×1; rounds to nearest 2.5 kg / 5 lb; shown above working sets in ExerciseCard when expanded; hidden below 40 kg working weight
 - Workout share card — `computeShareStats` utility; `ShareCard` full-screen overlay shown automatically after finishing a workout; shows workout label, duration, sets, week, top 3 lifts with weights, PR badges, PR count; "Screenshot to share" CTA; variant exercise snapshot preserved
+- Bug fixes sprint — Profile PRs now show exercise names (not UUIDs); Plan view sections filtered by scheduled workout types; WorkoutModeScreen shows instantly on Start Workout (session creates in background); Onboarding re-triggers whenever user has no routines
 
 ---
-
-## Bug Fixes (next sprint)
-
-| # | Bug | Root Cause |
-|---|-----|------------|
-| B1 | Profile PRs show UUIDs instead of exercise names | `prMap` keyed by `routineExerciseId`; ProfileView resolves via `DbExercise.id` — wrong table. Fix: resolve via `routines.flatMap(r => r.exercises)`. |
-| B2 | Plan view shows all workout type sections for full body routine | ProgramView renders all types in `routineExercisesByType`; Full Body template uses push/pull/legs types. Fix: filter to types present in `activeSchedule`. |
-| B3 | Start workout button has visible delay before screen appears | `WorkoutModeScreen` gated on `session !== null`; session only set after POST resolves. Fix: show screen optimistically, skeleton inside until session ready. |
-| B4 | Onboarding not shown when returning user has no routines | Condition `!onboarding_completed && routines.length === 0` — completed flag blocks re-trigger. Fix: show when `routines.length === 0` regardless of flag. |
 
 ---
 
@@ -58,8 +50,7 @@ Nothing currently in progress.
 
 | # | Feature | Notes |
 |---|---|---|
-| 1 | Bug fixes sprint (B1–B4) | PRs UUIDs, plan sections, workout delay, onboarding re-trigger — all confirmed root causes. |
-| 2 | UX polish sprint | Desktop layout overhaul (two-column, proper sidebar); onboarding prominence on /train with no routine; auto-activate another routine when active one is removed; exercise naming consistency (DB → Dumbbell); exercise default sets/reps editable. |
+| 1 | UX polish sprint | Desktop layout overhaul (two-column, proper sidebar); onboarding prominence on /train with no routine; auto-activate another routine when active one is removed; exercise naming consistency (DB → Dumbbell); exercise default sets/reps editable. |
 | 3 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. |
 | 4 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. |
 | 5 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. |
