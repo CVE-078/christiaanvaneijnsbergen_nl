@@ -74,7 +74,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                             </div>
                         </>
                     ) : (
-                        <div className="font-pulse text-[0.75rem] text-pulse-muted">No routine</div>
+                        <div className="font-pulse text-[0.75rem] text-pulse-dim">No routine</div>
                     )}
                 </div>
 
@@ -94,9 +94,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                 <main className="flex-1 overflow-y-auto">
                     {children}
                 </main>
-                <div className="border-t border-pulse-border">
-                    <RestTimer trigger={timerTrigger} duration={timerDuration ?? undefined} />
-                </div>
+                <RestTimer trigger={timerTrigger} duration={timerDuration ?? undefined} />
             </div>
 
             {showOnboarding && <OnboardingModal />}
