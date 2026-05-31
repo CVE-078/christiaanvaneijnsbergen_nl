@@ -54,14 +54,14 @@ describe('WorkoutModeScreen', () => {
     it('shows first exercise and progress', () => {
         render(<WorkoutModeScreen {...defaultProps} />);
         expect(screen.getByText('Bench Press')).toBeInTheDocument();
-        expect(screen.getByText('Exercise 1 of 2')).toBeInTheDocument();
+        expect(screen.getByText(/exercise 1 of 2/i)).toBeInTheDocument();
     });
 
     it('advances to next exercise on Next click', () => {
         render(<WorkoutModeScreen {...defaultProps} />);
         fireEvent.click(screen.getByRole('button', { name: /next exercise/i }));
         expect(screen.getByText('OHP')).toBeInTheDocument();
-        expect(screen.getByText('Exercise 2 of 2')).toBeInTheDocument();
+        expect(screen.getByText(/exercise 2 of 2/i)).toBeInTheDocument();
     });
 
     it('shows Finish button on last exercise', () => {
@@ -132,5 +132,28 @@ describe('WorkoutModeScreen', () => {
         await userEvent.type(repsInputs[0], '5');
         await userEvent.click(screen.getAllByRole('button', { name: /save/i })[0]);
         expect(showToast).not.toHaveBeenCalled();
+    });
+
+    it('shows "Superset" in the header when the current step is a pair', () => {
+        const mockRE = mockExercise('re1', 'Bench Press');
+        const reA = { ...mockRE, id: 'a', order: 1, superset_group_id: 'g1', exercise: { ...mockRE.exercise, name: 'Bench Press' } };
+        const reB = { ...mockRE, id: 'b', order: 2, superset_group_id: 'g1', exercise: { ...mockRE.exercise, name: 'Cable Fly' } };
+        render(
+            <WorkoutModeScreen
+                exercises={[reA, reB]}
+                sessionId="s1"
+                variant={null}
+                week={1}
+                logs={{}}
+                unit="kg"
+                onSave={vi.fn()}
+                onDelete={vi.fn()}
+                onComplete={vi.fn().mockResolvedValue(undefined)}
+                onClose={vi.fn()}
+            />,
+        );
+        expect(screen.getByText(/superset/i)).toBeInTheDocument();
+        expect(screen.getByText(/bench press/i)).toBeInTheDocument();
+        expect(screen.getByText(/cable fly/i)).toBeInTheDocument();
     });
 });

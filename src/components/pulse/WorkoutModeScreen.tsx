@@ -1,10 +1,10 @@
 'use client';
-import { useState } from 'react';
-import { logKey, parseMaxSets, computeLastSession, isSetPR } from '@/lib/pulse/utils';
+import { useMemo, useState } from 'react';
+import { logKey, parseMaxSets, computeLastSession, isSetPR, groupExercises } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
-import type { RoutineExercise, Logs, LogEntry, Unit, WorkoutVariant } from '@/lib/pulse/types';
+import type { RoutineExercise, Logs, LogEntry, Unit, WorkoutVariant, ExerciseItem } from '@/lib/pulse/types';
 
 interface Props {
     exercises: RoutineExercise[];
@@ -17,6 +17,134 @@ interface Props {
     onDelete: (key: string) => void;
     onComplete: () => Promise<void>;
     onClose: () => void;
+}
+
+function SingleStep({
+    re,
+    week,
+    logs,
+    unit,
+    onSave,
+    onDelete,
+}: {
+    re: RoutineExercise;
+    week: number;
+    logs: Logs;
+    unit: Unit;
+    onSave: (key: string, entry: LogEntry) => void;
+    onDelete: (key: string) => void;
+}) {
+    const maxSets = parseMaxSets(re.sets);
+    const lastSession = computeLastSession(logs, re.id, week);
+    return (
+        <>
+            <h2 className="font-pulse text-xl font-bold text-pulse-text mb-1">{re.exercise.name}</h2>
+            <p className="font-pulse text-sm text-pulse-muted mb-5">
+                {re.sets} sets · {re.reps} reps
+                {lastSession ? ` · Last: ${lastSession.kg}kg × ${lastSession.reps}` : ''}
+            </p>
+            <div className="flex flex-col gap-2">
+                {Array.from({ length: maxSets }, (_, s) => {
+                    const key = logKey(week, re.id, s);
+                    const prevKey = logKey(week - 1, re.id, s);
+                    return (
+                        <SetLogger
+                            key={key}
+                            setIdx={s}
+                            week={week}
+                            type={re.workout_type}
+                            entry={logs[key]}
+                            previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                            unit={unit}
+                            onSave={(entry) => onSave(key, entry)}
+                            onDelete={() => onDelete(key)}
+                        />
+                    );
+                })}
+            </div>
+        </>
+    );
+}
+
+function PairStep({
+    pair,
+    week,
+    logs,
+    unit,
+    onSave,
+    onDelete,
+}: {
+    pair: [RoutineExercise, RoutineExercise];
+    week: number;
+    logs: Logs;
+    unit: Unit;
+    onSave: (key: string, entry: LogEntry) => void;
+    onDelete: (key: string) => void;
+}) {
+    const [first, second] = pair;
+    const firstMax = parseMaxSets(first.sets);
+    const secondMax = parseMaxSets(second.sets);
+    const firstLast = computeLastSession(logs, first.id, week);
+    const secondLast = computeLastSession(logs, second.id, week);
+    return (
+        <>
+            {/* Exercise A */}
+            <div className="mb-5">
+                <h2 className="font-pulse text-lg font-bold text-pulse-text mb-0.5">{first.exercise.name}</h2>
+                <p className="font-pulse text-sm text-pulse-muted mb-3">
+                    {first.sets} sets · {first.reps} reps
+                    {firstLast ? ` · Last: ${firstLast.kg}kg × ${firstLast.reps}` : ''}
+                </p>
+                <div className="flex flex-col gap-2">
+                    {Array.from({ length: firstMax }, (_, s) => {
+                        const key = logKey(week, first.id, s);
+                        const prevKey = logKey(week - 1, first.id, s);
+                        return (
+                            <SetLogger
+                                key={key}
+                                setIdx={s}
+                                week={week}
+                                type={first.workout_type}
+                                entry={logs[key]}
+                                previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                                unit={unit}
+                                onSave={(entry) => onSave(key, entry)}
+                                onDelete={() => onDelete(key)}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
+            <div className="h-px bg-pulse-border mb-5" />
+            {/* Exercise B */}
+            <div>
+                <h2 className="font-pulse text-lg font-bold text-pulse-text mb-0.5">{second.exercise.name}</h2>
+                <p className="font-pulse text-sm text-pulse-muted mb-3">
+                    {second.sets} sets · {second.reps} reps
+                    {secondLast ? ` · Last: ${secondLast.kg}kg × ${secondLast.reps}` : ''}
+                </p>
+                <div className="flex flex-col gap-2">
+                    {Array.from({ length: secondMax }, (_, s) => {
+                        const key = logKey(week, second.id, s);
+                        const prevKey = logKey(week - 1, second.id, s);
+                        return (
+                            <SetLogger
+                                key={key}
+                                setIdx={s}
+                                week={week}
+                                type={second.workout_type}
+                                entry={logs[key]}
+                                previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                                unit={unit}
+                                onSave={(entry) => onSave(key, entry)}
+                                onDelete={() => onDelete(key)}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
+        </>
+    );
 }
 
 export default function WorkoutModeScreen({
@@ -33,30 +161,42 @@ export default function WorkoutModeScreen({
 }: Props) {
     const { prMap } = usePulse();
     const { show: showToast } = useToast();
-    const [exerciseIdx, setExerciseIdx] = useState(0);
+    const steps = useMemo(() => groupExercises(exercises), [exercises]);
+    const [stepIdx, setStepIdx] = useState(0);
     const [completing, setCompleting] = useState(false);
 
-    const re = exercises[exerciseIdx];
+    const step = steps[stepIdx];
+    const isPair = Array.isArray(step);
+    const isFirst = stepIdx === 0;
+    const isLast = stepIdx === steps.length - 1;
 
-    // Fire a quiet success toast only on the save transition into a PR, not for
-    // already-saved PRs (re-saving or editing an existing PR stays silent).
+    // Fire a quiet success toast only on the save transition into a PR.
     function handleSetSave(key: string, entry: LogEntry) {
         const prev = logs[key];
-        const wasPR = !!(prev?.saved && isSetPR(prev.kg, prev.reps, re.id, prMap));
-        const isNowPR = isSetPR(entry.kg, entry.reps, re.id, prMap);
-        if (isNowPR && !wasPR) {
-            showToast(`New PR on ${re.exercise.name}`, 'success');
+        const firstDash = key.indexOf('-');
+        const lastDash = key.lastIndexOf('-');
+        const rid = key.slice(firstDash + 1, lastDash);
+        const re = exercises.find((e) => e.id === rid);
+        if (re) {
+            const wasPR = !!(prev?.saved && isSetPR(prev.kg, prev.reps, re.id, prMap));
+            const isNowPR = isSetPR(entry.kg, entry.reps, re.id, prMap);
+            if (isNowPR && !wasPR) {
+                showToast(`New PR on ${re.exercise.name}`, 'success');
+            }
         }
         onSave(key, entry);
     }
-    const isFirst = exerciseIdx === 0;
-    const isLast = exerciseIdx === exercises.length - 1;
-    const maxSets = parseMaxSets(re.sets);
-    const lastSession = computeLastSession(logs, re.id, week);
 
-    const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, re.id, i)).filter(
-        (k) => logs[k]?.saved,
-    ).length;
+    const savedCount = isPair
+        ? [step[0], step[1]].reduce((sum, re) => {
+              const max = parseMaxSets(re.sets);
+              return sum + Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).filter((k) => logs[k]?.saved).length;
+          }, 0)
+        : (() => {
+              const re = step as RoutineExercise;
+              const max = parseMaxSets(re.sets);
+              return Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).filter((k) => logs[k]?.saved).length;
+          })();
 
     async function handleFinish() {
         if (!sessionId) return;
@@ -65,23 +205,24 @@ export default function WorkoutModeScreen({
         setCompleting(false);
     }
 
+    const headerLabel = isPair
+        ? `Superset · Step ${stepIdx + 1} of ${steps.length}${variant ? ` · Variant ${variant}` : ''}`
+        : `Exercise ${stepIdx + 1} of ${steps.length}${variant ? ` · Variant ${variant}` : ''}`;
+
     return (
         <div className="fixed inset-0 z-50 bg-pulse-bg flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-pulse-border">
                 <button
                     aria-label="previous exercise"
-                    onClick={() => setExerciseIdx((i) => i - 1)}
+                    onClick={() => setStepIdx((i) => i - 1)}
                     disabled={isFirst}
                     className="w-8 h-8 flex items-center justify-center rounded-full border border-pulse-border text-pulse-dim disabled:opacity-30 cursor-pointer disabled:cursor-default">
                     ‹
                 </button>
                 <div className="text-center">
                     <div className="font-pulse text-[0.6875rem] tracking-[0.08em] uppercase text-pulse-muted">
-                        <span>
-                            Exercise {exerciseIdx + 1} of {exercises.length}
-                        </span>
-                        {variant ? <span> · Variant {variant}</span> : null}
+                        {headerLabel}
                     </div>
                 </div>
                 <button
@@ -92,40 +233,29 @@ export default function WorkoutModeScreen({
                 </button>
             </div>
 
-            {/* Exercise content */}
+            {/* Step content */}
             <div className="flex-1 overflow-y-auto px-4 py-5">
-                <h2 className="font-pulse text-xl font-bold text-pulse-text mb-1">{re.exercise.name}</h2>
-                <p className="font-pulse text-sm text-pulse-muted mb-5">
-                    {re.sets} sets · {re.reps} reps
-                    {lastSession ? ` · Last: ${lastSession.kg}kg × ${lastSession.reps}` : ''}
-                </p>
-
-                <div className="flex flex-col gap-2">
-                    {Array.from({ length: maxSets }, (_, s) => {
-                        const key = logKey(week, re.id, s);
-                        const prevKey = logKey(week - 1, re.id, s);
-                        const prevEntry = week > 1 ? logs[prevKey] : undefined;
-                        const entry = logs[key];
-                        const isPR = !!(entry?.saved && isSetPR(entry.kg, entry.reps, re.id, prMap));
-                        return (
-                            <SetLogger
-                                key={key}
-                                setIdx={s}
-                                week={week}
-                                type={re.workout_type}
-                                entry={entry}
-                                previousEntry={prevEntry?.saved ? prevEntry : undefined}
-                                isPR={isPR}
-                                unit={unit}
-                                onSave={(entry) => handleSetSave(key, entry)}
-                                onDelete={() => onDelete(key)}
-                            />
-                        );
-                    })}
-                </div>
-
+                {isPair ? (
+                    <PairStep
+                        pair={step as [RoutineExercise, RoutineExercise]}
+                        week={week}
+                        logs={logs}
+                        unit={unit}
+                        onSave={handleSetSave}
+                        onDelete={onDelete}
+                    />
+                ) : (
+                    <SingleStep
+                        re={step as RoutineExercise}
+                        week={week}
+                        logs={logs}
+                        unit={unit}
+                        onSave={handleSetSave}
+                        onDelete={onDelete}
+                    />
+                )}
                 <div className="mt-3 font-pulse text-xs text-pulse-muted">
-                    {savedCount} / {maxSets} sets logged
+                    {savedCount} sets logged
                 </div>
             </div>
 
@@ -134,7 +264,7 @@ export default function WorkoutModeScreen({
                 {!isLast ? (
                     <button
                         aria-label="next exercise"
-                        onClick={() => setExerciseIdx((i) => i + 1)}
+                        onClick={() => setStepIdx((i) => i + 1)}
                         className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-black font-semibold text-sm cursor-pointer border-none">
                         Next exercise →
                     </button>
