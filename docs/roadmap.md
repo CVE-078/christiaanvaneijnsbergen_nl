@@ -35,6 +35,8 @@
 - Warmup set generator — `computeWarmupSets` pure function; 3 steps at 50%×5 / 65%×3 / 80%×1; rounds to nearest 2.5 kg / 5 lb; shown above working sets in ExerciseCard when expanded; hidden below 40 kg working weight
 - Workout share card — `computeShareStats` utility; `ShareCard` full-screen overlay shown automatically after finishing a workout; shows workout label, duration, sets, week, top 3 lifts with weights, PR badges, PR count; "Screenshot to share" CTA; variant exercise snapshot preserved
 - Bug fixes sprint — Profile PRs now show exercise names (not UUIDs); Plan view sections filtered by scheduled workout types; WorkoutModeScreen shows instantly on Start Workout (session creates in background); Onboarding re-triggers whenever user has no routines
+- UX polish sprint — onboarding re-triggers on /train when no routines (prominent empty-state CTA added); auto-activate another routine when active one is deleted; Dumbbell naming consistency throughout exercise library; editable default sets/reps per exercise in Library
+- Desktop layout overhaul — two-column sidebar layout for ≥ 1024 px: 180px fixed sidebar (logo, week badge, nav links, streak, active routine context card, sign out) + scrollable content column with rest timer pinned to the bottom
 
 ---
 
@@ -50,7 +52,6 @@ Nothing currently in progress.
 
 | # | Feature | Notes |
 |---|---|---|
-| 1 | UX polish sprint | Desktop layout overhaul (two-column, proper sidebar); onboarding prominence on /train with no routine; auto-activate another routine when active one is removed; exercise naming consistency (DB → Dumbbell); exercise default sets/reps editable. |
 | 3 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. |
 | 4 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. |
 | 5 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. |
