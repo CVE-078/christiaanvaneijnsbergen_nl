@@ -38,6 +38,8 @@ export default function SupersetCard({
             {/* Header — always visible, shows exercise names in collapsed state */}
             <button
                 onClick={() => setOpen((v) => !v)}
+                aria-expanded={open}
+                aria-label={open ? 'Collapse superset' : 'Expand superset'}
                 className="w-full flex items-center gap-3 px-4 py-2.5 bg-pulse-accent/10 border-b border-pulse-accent/20 cursor-pointer text-left">
                 <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase font-bold text-pulse-accent shrink-0">
                     ⚡ Superset

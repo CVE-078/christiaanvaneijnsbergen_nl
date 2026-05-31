@@ -23,19 +23,24 @@ export async function POST(request: Request) {
     // Verify both exercises belong to a routine owned by the user and are not already paired
     const { data: rows, error: fetchError } = await supabase
         .from('routine_exercises')
-        .select('id, routine_id, superset_group_id, workout_routines!inner ( user_id )')
+        .select('id, routine_id, order, superset_group_id, workout_routines!inner ( user_id )')
         .in('id', [exerciseAId, exerciseBId]);
 
     if (fetchError || !rows || rows.length !== 2) {
         return NextResponse.json({ error: 'Exercises not found' }, { status: 404 });
     }
 
-    const [a, b] = rows as Array<{ id: string; routine_id: string; superset_group_id: string | null; workout_routines: { user_id: string } }>;
+    const [a, b] = rows as Array<{ id: string; routine_id: string; order: number; superset_group_id: string | null; workout_routines: { user_id: string } }>;
     if (a.workout_routines.user_id !== user.id || b.workout_routines.user_id !== user.id) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     if (a.routine_id !== b.routine_id) {
         return NextResponse.json({ error: 'Exercises must belong to the same routine' }, { status: 400 });
+    }
+    const minOrder = Math.min(a.order, b.order);
+    const maxOrder = Math.max(a.order, b.order);
+    if (maxOrder - minOrder !== 1) {
+        return NextResponse.json({ error: 'Exercises must be adjacent in the routine' }, { status: 400 });
     }
     if (a.superset_group_id !== null || b.superset_group_id !== null) {
         return NextResponse.json({ error: 'One or both exercises are already in a superset' }, { status: 409 });
