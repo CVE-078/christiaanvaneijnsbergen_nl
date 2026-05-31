@@ -754,3 +754,70 @@ describe('computePlates', () => {
         expect(computePlates(12.5, 'dumbbell')).toEqual({ perSide: [5], achievable: true, remainderKg: 0 });
     });
 });
+
+// ── groupExercises ────────────────────────────────────────────────────────────
+import { groupExercises } from '@/lib/pulse/utils';
+import type { ExerciseItem } from '@/lib/pulse/types';
+
+function makeRE(id: string, order: number, superset_group_id: string | null = null) {
+    return {
+        id,
+        routine_id: 'r1',
+        exercise_id: id,
+        workout_type: 'chest' as const,
+        order,
+        sets: '3',
+        reps: '8-12',
+        starting_weight_kg: null,
+        rest_seconds: null,
+        variant: null,
+        superset_group_id,
+        exercise: { id, name: id, category: 'chest' as const, default_sets: '3', default_reps: '8-12', user_id: null },
+    };
+}
+
+describe('groupExercises', () => {
+    it('returns single exercises unchanged', () => {
+        const exercises = [makeRE('a', 1), makeRE('b', 2)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(false);
+        expect(Array.isArray(result[1])).toBe(false);
+    });
+
+    it('groups adjacent exercises with the same superset_group_id into a pair', () => {
+        const gid = 'group-1';
+        const exercises = [makeRE('a', 1, gid), makeRE('b', 2, gid), makeRE('c', 3)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(true);
+        const pair = result[0] as [typeof exercises[0], typeof exercises[0]];
+        expect(pair[0].id).toBe('a');
+        expect(pair[1].id).toBe('b');
+        expect(Array.isArray(result[1])).toBe(false);
+    });
+
+    it('does not group a solo exercise that has a superset_group_id with no adjacent match', () => {
+        const exercises = [makeRE('a', 1, 'group-1'), makeRE('b', 2)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(false);
+        expect(Array.isArray(result[1])).toBe(false);
+    });
+
+    it('handles multiple pairs in the same list', () => {
+        const g1 = 'g1', g2 = 'g2';
+        const exercises = [
+            makeRE('a', 1, g1), makeRE('b', 2, g1),
+            makeRE('c', 3, g2), makeRE('d', 4, g2),
+        ];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(true);
+        expect(Array.isArray(result[1])).toBe(true);
+    });
+
+    it('returns an empty array for empty input', () => {
+        expect(groupExercises([])).toEqual([]);
+    });
+});
