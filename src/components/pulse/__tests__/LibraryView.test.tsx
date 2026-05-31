@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import LibraryView from '../views/LibraryView';
 import type { DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
 
+global.fetch = vi.fn();
+
 vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
 }));
@@ -250,5 +252,94 @@ describe('LibraryView', () => {
         await waitFor(() => {
             expect(mocks.deleteRoutine).toHaveBeenCalledWith('r2');
         });
+    });
+
+    it('shows Pair ↓ button when active routine has two adjacent unpaired exercises', async () => {
+        const twoExerciseRoutine: RoutineWithExercises = {
+            ...activeRoutine,
+            exercises: [
+                {
+                    id: 're1',
+                    routine_id: 'r1',
+                    exercise_id: 'g1',
+                    workout_type: 'chest' as const,
+                    variant: null,
+                    order: 0,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: 60,
+                    superset_group_id: null,
+                    exercise: globalExercise,
+                },
+                {
+                    id: 're2',
+                    routine_id: 'r1',
+                    exercise_id: 'g2',
+                    workout_type: 'back' as const,
+                    variant: null,
+                    order: 1,
+                    sets: '4',
+                    reps: '6-10',
+                    starting_weight_kg: null,
+                    superset_group_id: null,
+                    exercise: pullExercise,
+                },
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: twoExerciseRoutine,
+            routines: [twoExerciseRoutine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
+
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        // First exercise should have "Pair ↓" (it can be paired with the next one)
+        expect(screen.getByText('Pair ↓')).toBeInTheDocument();
+    });
+
+    it('shows Unpair button on the first exercise of a paired pair', async () => {
+        const pairedRoutine: RoutineWithExercises = {
+            ...activeRoutine,
+            exercises: [
+                {
+                    id: 're1',
+                    routine_id: 'r1',
+                    exercise_id: 'g1',
+                    workout_type: 'chest' as const,
+                    variant: null,
+                    order: 0,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: 60,
+                    superset_group_id: 'sg1',
+                    exercise: globalExercise,
+                },
+                {
+                    id: 're2',
+                    routine_id: 'r1',
+                    exercise_id: 'g2',
+                    workout_type: 'back' as const,
+                    variant: null,
+                    order: 1,
+                    sets: '4',
+                    reps: '6-10',
+                    starting_weight_kg: null,
+                    superset_group_id: 'sg1',
+                    exercise: pullExercise,
+                },
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: pairedRoutine,
+            routines: [pairedRoutine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
+
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        // Should show exactly one Unpair button (on the first of the pair)
+        const unpairButtons = screen.getAllByText('Unpair');
+        expect(unpairButtons).toHaveLength(1);
     });
 });

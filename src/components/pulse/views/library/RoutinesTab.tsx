@@ -18,6 +18,10 @@ function RoutineExerciseRow({
     onMove,
     onRemove,
     onUpdate,
+    canMoveUp,
+    canMoveDown,
+    onPair,
+    onUnpair,
 }: {
     re: RoutineExercise;
     index: number;
@@ -32,6 +36,10 @@ function RoutineExerciseRow({
         startingWeightKg: number | null,
         restSeconds: number | null,
     ) => void;
+    canMoveUp: boolean;
+    canMoveDown: boolean;
+    onPair?: () => void;
+    onUnpair?: () => void;
 }) {
     const [editing, setEditing] = useState(false);
     const [sets, setSets] = useState(re.sets);
@@ -77,14 +85,14 @@ function RoutineExerciseRow({
                 )}
                 <button
                     onClick={() => onMove(index, -1)}
-                    disabled={index === 0}
+                    disabled={!canMoveUp}
                     aria-label={`Move ${re.exercise.name} up`}
                     className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                     ↑
                 </button>
                 <button
                     onClick={() => onMove(index, 1)}
-                    disabled={index === total - 1}
+                    disabled={!canMoveDown}
                     aria-label={`Move ${re.exercise.name} down`}
                     className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                     ↓
@@ -95,6 +103,20 @@ function RoutineExerciseRow({
                     className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
                     Edit
                 </button>
+                {onPair && (
+                    <button
+                        onClick={onPair}
+                        className="font-pulse text-xs text-pulse-accent bg-transparent border-none cursor-pointer shrink-0">
+                        Pair ↓
+                    </button>
+                )}
+                {onUnpair && (
+                    <button
+                        onClick={onUnpair}
+                        className="font-pulse text-xs text-red-400 bg-transparent border-none cursor-pointer shrink-0">
+                        Unpair
+                    </button>
+                )}
                 <button
                     onClick={() => onRemove(re.id)}
                     aria-label={`Remove ${re.exercise.name}`}
@@ -227,22 +249,71 @@ export default function RoutinesTab() {
 
     const sortedActiveExercises = activeRoutine ? [...activeRoutine.exercises].sort((a, b) => a.order - b.order) : [];
 
-    function handleMove(index: number, dir: -1 | 1) {
+    async function handleMove(index: number, dir: -1 | 1) {
         if (!activeRoutine) return;
-        const target = index + dir;
-        if (target < 0 || target >= sortedActiveExercises.length) return;
         const reordered = [...sortedActiveExercises];
-        [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-        const orderedIds = reordered.map((re) => re.id);
-        startTransition(async () => {
-            await reorderRoutineExercises(activeRoutine.id, orderedIds);
-        });
+        const re = reordered[index];
+
+        if (re.superset_group_id !== null) {
+            const pairIdx = reordered
+                .map((r, i) => (r.superset_group_id === re.superset_group_id ? i : -1))
+                .filter((i) => i !== -1)
+                .sort((a, b) => a - b);
+            const [fi, si] = pairIdx;
+            if (dir === -1) {
+                if (fi === 0) return;
+                const [above] = reordered.splice(fi - 1, 1);
+                reordered.splice(fi + 1, 0, above);
+            } else {
+                if (si === reordered.length - 1) return;
+                const [below] = reordered.splice(si + 1, 1);
+                reordered.splice(fi, 0, below);
+            }
+        } else {
+            const target = index + dir;
+            if (target < 0 || target >= reordered.length) return;
+            const targetRe = reordered[target];
+            if (targetRe.superset_group_id !== null) {
+                const pairFirst = reordered.findIndex(
+                    (r) => r.superset_group_id === targetRe.superset_group_id,
+                );
+                const [moved] = reordered.splice(index, 1);
+                if (dir === -1) {
+                    reordered.splice(pairFirst, 0, moved);
+                } else {
+                    reordered.splice(pairFirst + 1, 0, moved);
+                }
+            } else {
+                [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+            }
+        }
+
+        const orderedIds = reordered.map((r) => r.id);
+        await reorderRoutineExercises(activeRoutine.id, orderedIds);
     }
 
-    function handleRemove(id: string) {
-        startTransition(async () => {
-            await removeExerciseFromRoutine(id);
+    async function handleRemove(id: string) {
+        const exercise = sortedActiveExercises.find((r) => r.id === id);
+        if (exercise?.superset_group_id) {
+            await fetch(`/api/pulse/supersets/${exercise.superset_group_id}`, { method: 'DELETE' });
+        }
+        await removeExerciseFromRoutine(id);
+    }
+
+    async function handlePair(exerciseAId: string, exerciseBId: string) {
+        const res = await fetch('/api/pulse/supersets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exerciseAId, exerciseBId }),
         });
+        if (!res.ok) return;
+        window.location.reload();
+    }
+
+    async function handleUnpair(groupId: string) {
+        const res = await fetch(`/api/pulse/supersets/${groupId}`, { method: 'DELETE' });
+        if (!res.ok) return;
+        window.location.reload();
     }
 
     function handleUpdateExercise(
@@ -399,18 +470,47 @@ export default function RoutinesTab() {
                                 No exercises in this routine yet.
                             </div>
                         ) : (
-                            sortedActiveExercises.map((re, i) => (
-                                <RoutineExerciseRow
-                                    key={re.id}
-                                    re={re}
-                                    index={i}
-                                    total={sortedActiveExercises.length}
-                                    unit={unit}
-                                    onMove={handleMove}
-                                    onRemove={handleRemove}
-                                    onUpdate={handleUpdateExercise}
-                                />
-                            ))
+                            sortedActiveExercises.map((re, i) => {
+                                const isPaired = re.superset_group_id !== null;
+                                const pairIndices = isPaired
+                                    ? sortedActiveExercises
+                                        .map((r, idx) => r.superset_group_id === re.superset_group_id ? idx : -1)
+                                        .filter(idx => idx !== -1)
+                                        .sort((a, b) => a - b)
+                                    : null;
+                                const firstPairIdx = pairIndices?.[0] ?? i;
+                                const secondPairIdx = pairIndices?.[1] ?? i;
+                                const isFirstInPair = isPaired && i === firstPairIdx;
+                                const next = sortedActiveExercises[i + 1];
+                                const canPairWithNext = !isPaired && next !== undefined && next.superset_group_id === null;
+
+                                let canMoveUp: boolean;
+                                let canMoveDown: boolean;
+                                if (isPaired) {
+                                    canMoveUp = firstPairIdx > 0;
+                                    canMoveDown = secondPairIdx < sortedActiveExercises.length - 1;
+                                } else {
+                                    canMoveUp = i > 0;
+                                    canMoveDown = i < sortedActiveExercises.length - 1;
+                                }
+
+                                return (
+                                    <RoutineExerciseRow
+                                        key={re.id}
+                                        re={re}
+                                        index={i}
+                                        total={sortedActiveExercises.length}
+                                        unit={unit}
+                                        onMove={handleMove}
+                                        onRemove={handleRemove}
+                                        onUpdate={handleUpdateExercise}
+                                        canMoveUp={canMoveUp}
+                                        canMoveDown={canMoveDown}
+                                        onPair={canPairWithNext ? () => handlePair(re.id, next.id) : undefined}
+                                        onUnpair={isFirstInPair ? () => handleUnpair(re.superset_group_id!) : undefined}
+                                    />
+                                );
+                            }))
                         )}
                     </div>
                 </div>
