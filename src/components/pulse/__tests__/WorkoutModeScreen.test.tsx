@@ -28,6 +28,7 @@ const mockExercise = (id: string, name: string): RoutineExercise => ({
     reps: '8-12',
     starting_weight_kg: null,
     rest_seconds: null,
+    superset_group_id: null,
     exercise: { id: 'e1', name, category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null },
 });
 

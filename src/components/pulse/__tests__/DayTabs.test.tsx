@@ -31,6 +31,7 @@ const defaultCtx = {
                 workout_type: 'upper',
                 order: 1,
                 starting_weight_kg: null,
+                superset_group_id: null,
                 exercise: {
                     id: 'e1',
                     name: 'Bench',

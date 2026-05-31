@@ -301,6 +301,7 @@ describe('computeVolumeByTypeAndWeek', () => {
             sets: '3',
             reps: '8',
             starting_weight_kg: null,
+            superset_group_id: null,
             exercise: {
                 id: 'e1',
                 name: 'Bench Press',
@@ -561,6 +562,7 @@ describe('computeShareStats', () => {
             sets: '3',
             reps: '8',
             starting_weight_kg: null,
+            superset_group_id: null,
             exercise: {
                 id: 'ex-1',
                 name: 'Bench Press',
@@ -580,6 +582,7 @@ describe('computeShareStats', () => {
             sets: '3',
             reps: '12',
             starting_weight_kg: null,
+            superset_group_id: null,
             exercise: {
                 id: 'ex-2',
                 name: 'Overhead Press',

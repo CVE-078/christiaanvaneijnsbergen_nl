@@ -53,6 +53,7 @@ const activeRoutine: RoutineWithExercises = {
             sets: '3',
             reps: '8-12',
             starting_weight_kg: 60,
+            superset_group_id: null,
             exercise: globalExercise,
         },
     ],

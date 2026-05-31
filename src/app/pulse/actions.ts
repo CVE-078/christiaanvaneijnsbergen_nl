@@ -414,7 +414,7 @@ export async function addExerciseToRoutine(
             starting_weight_kg: startingWeightKg,
         })
         .select(
-            'id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id )',
+            'id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id )',
         )
         .single();
 

@@ -16,7 +16,7 @@ const EXERCISES_SELECT = 'id, name, category, default_sets, default_reps, user_i
 const NOTES_SELECT = 'week, routine_exercise_id, note';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at,
-            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg, rest_seconds, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
+            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
             schedule:routine_schedule ( day_of_week, workout_type )
         `;
 
