@@ -1,10 +1,11 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { logKey, getPhase, getRIR, parseLogKey, parseMaxSets } from '@/lib/pulse/utils';
+import { logKey, getPhase, getRIR, parseLogKey, parseMaxSets, groupExercises } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
+import SupersetCard from '../SupersetCard';
 import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
 import WorkoutModeScreen from '../WorkoutModeScreen';
 import ShareCard from '../ShareCard';
@@ -78,7 +79,24 @@ export default function LogView() {
         updateLog(key, entry);
         const rid = parseLogKey(key)?.routineExerciseId;
         const exercise = routineExercises.find((r) => r.id === rid);
-        fireTrigger(exercise?.rest_seconds ?? undefined);
+        if (!exercise) return;
+
+        if (exercise.superset_group_id) {
+            const partner = routineExercises.find(
+                (r) => r.superset_group_id === exercise.superset_group_id && r.id !== exercise.id,
+            );
+            if (partner) {
+                if (exercise.order < partner.order) {
+                    // First in pair — suppress rest timer
+                    return;
+                }
+                // Second in pair — fire with first exercise's rest
+                fireTrigger(partner.rest_seconds ?? undefined);
+                return;
+            }
+        }
+
+        fireTrigger(exercise.rest_seconds ?? undefined);
     }
 
     async function handleStartWorkout() {
@@ -206,22 +224,39 @@ export default function LogView() {
                 role="tabpanel"
                 aria-labelledby={activeSchedule.length > 0 ? `tab-day-${activeDay}` : `tab-${activeTab}`}
                 className="pt-1 px-4 pb-8 max-w-[600px] lg:max-w-[820px] mx-auto flex flex-col gap-2">
-                {routineExercises.map((re, i) => (
-                    <ExerciseCard
-                        key={re.id}
-                        routineExercise={re}
-                        exIdx={i}
-                        week={activeWeek}
-                        logs={logs}
-                        prMap={prMap}
-                        unit={unit}
-                        onSave={handleSave}
-                        onDelete={deleteLog}
-                        note={notes[`${activeWeek}-${re.id}`]}
-                        onSaveNote={(n) => saveNote(activeWeek, re.id, n)}
-                        onDeleteNote={() => deleteNote(activeWeek, re.id)}
-                    />
-                ))}
+                {groupExercises(routineExercises).map((item, i) =>
+                    Array.isArray(item) ? (
+                        <SupersetCard
+                            key={`${item[0].id}-${item[1].id}`}
+                            pair={item as [RoutineExercise, RoutineExercise]}
+                            pairIdx={i}
+                            week={activeWeek}
+                            logs={logs}
+                            prMap={prMap}
+                            unit={unit}
+                            onSave={handleSave}
+                            onDelete={deleteLog}
+                            notes={notes}
+                            onSaveNote={(id, n) => saveNote(activeWeek, id, n)}
+                            onDeleteNote={(id) => deleteNote(activeWeek, id)}
+                        />
+                    ) : (
+                        <ExerciseCard
+                            key={item.id}
+                            routineExercise={item}
+                            exIdx={i}
+                            week={activeWeek}
+                            logs={logs}
+                            prMap={prMap}
+                            unit={unit}
+                            onSave={handleSave}
+                            onDelete={deleteLog}
+                            note={notes[`${activeWeek}-${item.id}`]}
+                            onSaveNote={(n) => saveNote(activeWeek, item.id, n)}
+                            onDeleteNote={() => deleteNote(activeWeek, item.id)}
+                        />
+                    )
+                )}
                 {!hasData && (
                     <div className="pt-6 text-center">
                         <div className="font-pulse text-[0.8125rem] text-pulse-muted tracking-[0.04em]">
