@@ -281,7 +281,7 @@ export default function RoutinesTab() {
                 if (dir === -1) {
                     reordered.splice(pairFirst, 0, moved);
                 } else {
-                    reordered.splice(pairFirst + 2, 0, moved);
+                    reordered.splice(pairFirst + 1, 0, moved);
                 }
             } else {
                 [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
