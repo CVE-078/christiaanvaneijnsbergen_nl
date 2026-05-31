@@ -37,6 +37,7 @@
 - Bug fixes sprint — Profile PRs now show exercise names (not UUIDs); Plan view sections filtered by scheduled workout types; WorkoutModeScreen shows instantly on Start Workout (session creates in background); Onboarding re-triggers whenever user has no routines
 - UX polish sprint — onboarding re-triggers on /train when no routines (prominent empty-state CTA added); auto-activate another routine when active one is deleted; Dumbbell naming consistency throughout exercise library; editable default sets/reps per exercise in Library
 - Desktop layout overhaul — two-column sidebar layout for ≥ 1024 px: 180px fixed sidebar (logo, week badge, nav links, streak, active routine context card, sign out) + scrollable content column with rest timer pinned to the bottom
+- Supersets — pair two routine exercises as a superset; merged card in train screen; rest timer fires after both exercises' sets; guided mode treats pair as one step; Pair ↓ / Unpair in routine editor with pair-aware reorder
 
 ---
 
@@ -73,7 +74,6 @@ Differentiation opportunities:
 | # | Feature | Notes |
 |---|---|---|
 | 3 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. (also in: Hevy, Fitbod, Jefit, Boostcamp, Caliber, Setgraph) |
-| 4 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. (also in: Hevy, Strong, Fitbod, Jefit, Boostcamp, Alpha, Caliber) |
 | 5 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. (also in: Strong, Fitbod, Jefit, Alpha, Caliber) |
 | 6 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
 | 7 | Live PR detection | Flag a new PR the moment the set is logged, not just on the post-workout card. Reuses the existing E1RM PR map. Strong motivation hook. (also in: Hevy, Boostcamp, Caliber, Strong) |
