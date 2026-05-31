@@ -1,5 +1,14 @@
 import { vi } from 'vitest';
 
+const mockRoutine = {
+    id: 'r1',
+    user_id: 'u1',
+    name: 'PPL',
+    created_at: '2026-01-01',
+    exercises: [],
+    schedule: [],
+};
+
 const mockContext = {
     navigate: vi.fn(),
     activeWeek: 3,
@@ -54,11 +63,12 @@ vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(() => ({ ...mockContext })),
 }));
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DesktopLayout from '../DesktopLayout';
 import type { View } from '@/lib/pulse/types';
+import { usePulse } from '@/context/PulseContext';
 
 const defaultProps = {
     view: 'train' as View,
@@ -67,6 +77,11 @@ const defaultProps = {
 };
 
 describe('DesktopLayout', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(usePulse).mockReturnValue({ ...mockContext });
+    });
+
     it('renders the brand name in the sidebar', () => {
         render(<DesktopLayout {...defaultProps} />);
         expect(screen.getByText(/pulse/i)).toBeInTheDocument();
@@ -103,12 +118,19 @@ describe('DesktopLayout', () => {
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
-    it('calls handleExport when Export is clicked', async () => {
-        const handleExport = vi.fn();
-        const { usePulse } = await import('@/context/PulseContext');
-        vi.mocked(usePulse).mockReturnValueOnce({ ...mockContext, handleExport });
+    it('does not render an Export button', () => {
         render(<DesktopLayout {...defaultProps} />);
-        await userEvent.click(screen.getByRole('button', { name: /export/i }));
-        expect(handleExport).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('button', { name: /export/i })).not.toBeInTheDocument();
+    });
+
+    it('shows active routine name in context card', () => {
+        vi.mocked(usePulse).mockReturnValueOnce({ ...mockContext, activeRoutine: mockRoutine });
+        render(<DesktopLayout {...defaultProps} />);
+        expect(screen.getByText('PPL')).toBeInTheDocument();
+    });
+
+    it('shows "No routine" in context card when no active routine', () => {
+        render(<DesktopLayout {...defaultProps} />);
+        expect(screen.getByText(/no routine/i)).toBeInTheDocument();
     });
 });
