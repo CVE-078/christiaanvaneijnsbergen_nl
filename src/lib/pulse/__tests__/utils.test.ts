@@ -301,6 +301,7 @@ describe('computeVolumeByTypeAndWeek', () => {
             sets: '3',
             reps: '8',
             starting_weight_kg: null,
+            superset_group_id: null,
             exercise: {
                 id: 'e1',
                 name: 'Bench Press',
@@ -561,6 +562,7 @@ describe('computeShareStats', () => {
             sets: '3',
             reps: '8',
             starting_weight_kg: null,
+            superset_group_id: null,
             exercise: {
                 id: 'ex-1',
                 name: 'Bench Press',
@@ -580,6 +582,7 @@ describe('computeShareStats', () => {
             sets: '3',
             reps: '12',
             starting_weight_kg: null,
+            superset_group_id: null,
             exercise: {
                 id: 'ex-2',
                 name: 'Overhead Press',
@@ -749,5 +752,101 @@ describe('computePlates', () => {
     it('dumbbell: uses the handle weight', () => {
         // 12.5 kg dumbbell on 2.5 handle -> 5 per side -> [5]
         expect(computePlates(12.5, 'dumbbell')).toEqual({ perSide: [5], achievable: true, remainderKg: 0 });
+    });
+});
+
+// ── groupExercises ────────────────────────────────────────────────────────────
+import { groupExercises } from '@/lib/pulse/utils';
+import type { ExerciseItem } from '@/lib/pulse/types';
+
+function makeRE(id: string, order: number, superset_group_id: string | null = null) {
+    return {
+        id,
+        routine_id: 'r1',
+        exercise_id: id,
+        workout_type: 'chest' as const,
+        order,
+        sets: '3',
+        reps: '8-12',
+        starting_weight_kg: null,
+        rest_seconds: null,
+        variant: null,
+        superset_group_id,
+        exercise: { id, name: id, category: 'chest' as const, default_sets: '3', default_reps: '8-12', user_id: null },
+    };
+}
+
+describe('groupExercises', () => {
+    it('returns single exercises unchanged', () => {
+        const exercises = [makeRE('a', 1), makeRE('b', 2)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(false);
+        expect(Array.isArray(result[1])).toBe(false);
+    });
+
+    it('groups adjacent exercises with the same superset_group_id into a pair', () => {
+        const gid = 'group-1';
+        const exercises = [makeRE('a', 1, gid), makeRE('b', 2, gid), makeRE('c', 3)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(true);
+        const pair = result[0] as [typeof exercises[0], typeof exercises[0]];
+        expect(pair[0].id).toBe('a');
+        expect(pair[1].id).toBe('b');
+        expect(Array.isArray(result[1])).toBe(false);
+    });
+
+    it('does not group a solo exercise that has a superset_group_id with no adjacent match', () => {
+        const exercises = [makeRE('a', 1, 'group-1'), makeRE('b', 2)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(false);
+        expect(Array.isArray(result[1])).toBe(false);
+    });
+
+    it('handles multiple pairs in the same list', () => {
+        const g1 = 'g1', g2 = 'g2';
+        const exercises = [
+            makeRE('a', 1, g1), makeRE('b', 2, g1),
+            makeRE('c', 3, g2), makeRE('d', 4, g2),
+        ];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(true);
+        expect(Array.isArray(result[1])).toBe(true);
+    });
+
+    it('renders the third member of a 3+ group as a single (never a triplet)', () => {
+        const g = 'g1';
+        const exercises = [makeRE('a', 1, g), makeRE('b', 2, g), makeRE('c', 3, g)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(true);
+        expect(Array.isArray(result[1])).toBe(false);
+        expect((result[1] as (typeof exercises)[0]).id).toBe('c');
+    });
+
+    it('treats non-adjacent rows of the same group as three singles', () => {
+        const g = 'g1';
+        const exercises = [makeRE('a', 1, g), makeRE('b', 2), makeRE('c', 3, g)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(3);
+        expect(result.every((r) => !Array.isArray(r))).toBe(true);
+    });
+
+    it('groups a pair that sits after a leading single', () => {
+        const g = 'g1';
+        const exercises = [makeRE('a', 1), makeRE('b', 2, g), makeRE('c', 3, g)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(false);
+        const pair = result[1] as [(typeof exercises)[0], (typeof exercises)[0]];
+        expect(pair[0].id).toBe('b');
+        expect(pair[1].id).toBe('c');
+    });
+
+    it('returns an empty array for empty input', () => {
+        expect(groupExercises([])).toEqual([]);
     });
 });

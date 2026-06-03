@@ -30,6 +30,7 @@ const mockRE: RoutineExercise = {
     sets: '3',
     reps: '8-12',
     starting_weight_kg: null,
+    superset_group_id: null,
     exercise: {
         id: 'ex-1',
         name: 'Bench Press',
@@ -136,5 +137,31 @@ describe('LogView', () => {
         renderWithToast(<LogView />);
         await userEvent.click(screen.getByRole('button', { name: /start workout/i }));
         expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+    });
+
+    it('renders a SupersetCard when two exercises share a superset_group_id', async () => {
+        const reA: RoutineExercise = {
+            ...mockRE,
+            id: 're-a',
+            order: 0,
+            superset_group_id: 'grp-1',
+            exercise: { id: 'ex-a', name: 'Bench Press', category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null },
+        };
+        const reB: RoutineExercise = {
+            ...mockRE,
+            id: 're-b',
+            order: 1,
+            superset_group_id: 'grp-1',
+            exercise: { id: 'ex-b', name: 'Cable Fly', category: 'chest', default_sets: '3', default_reps: '12-15', user_id: null },
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            routineExercisesByTabKey: { chest: [reA, reB] },
+            activeRoutine: { id: 'r1', user_id: 'u1', name: 'Push', created_at: '', exercises: [reA, reB] },
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LogView />);
+        expect(screen.getByText(/superset/i)).toBeInTheDocument();
+        expect(screen.getByText('Bench Press')).toBeInTheDocument();
+        expect(screen.getByText('Cable Fly')).toBeInTheDocument();
     });
 });

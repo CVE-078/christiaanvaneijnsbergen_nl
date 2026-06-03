@@ -13,6 +13,7 @@ import type {
     PRMap,
     ShareStats,
     ExerciseCategory,
+    ExerciseItem,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -375,4 +376,24 @@ export function computePlates(targetKg: number, equipment: PlateEquipment): Plat
     }
     const remainderKg = Math.round(perSideKg * 100) / 100;
     return { perSide, achievable: remainderKg === 0, remainderKg };
+}
+
+export function groupExercises(exercises: RoutineExercise[]): ExerciseItem[] {
+    const items: ExerciseItem[] = [];
+    let i = 0;
+    while (i < exercises.length) {
+        const re = exercises[i];
+        if (
+            re.superset_group_id !== null &&
+            i + 1 < exercises.length &&
+            exercises[i + 1].superset_group_id === re.superset_group_id
+        ) {
+            items.push([re, exercises[i + 1]]);
+            i += 2;
+        } else {
+            items.push(re);
+            i++;
+        }
+    }
+    return items;
 }

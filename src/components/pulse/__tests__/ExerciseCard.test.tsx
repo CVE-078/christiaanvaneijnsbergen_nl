@@ -20,6 +20,7 @@ const routineExercise: RoutineExercise = {
     sets: '3-4',
     reps: '8-12',
     starting_weight_kg: null,
+    superset_group_id: null,
     exercise: {
         id: 'ex-1',
         name: 'Dumbbell Bench Press',

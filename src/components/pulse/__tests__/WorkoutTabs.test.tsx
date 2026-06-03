@@ -20,6 +20,7 @@ const mockRE = (id: string, workoutType: WorkoutType = 'push'): RoutineExercise 
     sets: '3',
     reps: '8-12',
     starting_weight_kg: null,
+    superset_group_id: null,
     exercise: { id, name: `Exercise ${id}`, category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null },
 });
 

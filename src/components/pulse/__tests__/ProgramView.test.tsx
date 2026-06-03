@@ -19,6 +19,7 @@ const makeRE = (id: string, name: string, type: 'push' | 'pull' | 'legs' | 'full
     sets: '3',
     reps: '8',
     starting_weight_kg: null,
+    superset_group_id: null,
     exercise: { id, name, category: 'chest', default_sets: '3', default_reps: '8', user_id: null },
 });
 

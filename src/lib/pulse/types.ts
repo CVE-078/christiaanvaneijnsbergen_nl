@@ -159,8 +159,11 @@ export interface RoutineExercise {
     starting_weight_kg: number | null;
     rest_seconds?: number | null;
     variant: WorkoutVariant | null;
+    superset_group_id: string | null;
     exercise: DbExercise;
 }
+
+export type ExerciseItem = RoutineExercise | [RoutineExercise, RoutineExercise];
 
 export interface RoutineWithExercises extends WorkoutRoutine {
     exercises: RoutineExercise[];
