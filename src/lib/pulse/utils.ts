@@ -1,4 +1,5 @@
 import { PHASES } from './data';
+import { BARBELL_KG, DUMBBELL_HANDLE_KG, PLATES_KG } from './constants';
 import type {
     Phase,
     Logs,
@@ -11,6 +12,7 @@ import type {
     WorkoutSession,
     PRMap,
     ShareStats,
+    ExerciseCategory,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -317,4 +319,60 @@ export function computeShareStats(
         topLifts: allLifts.slice(0, 3),
         prCount: allLifts.filter((l) => l.isPR).length,
     };
+}
+
+// Mirrors the PR check inside computeShareStats: a set is a PR when its
+// estimated 1RM meets or beats the recorded best for the exercise.
+export function isSetPR(kg: number, reps: number, routineExerciseId: string, prMap: PRMap): boolean {
+    if (kg <= 0 || reps <= 0) return false;
+    const best = prMap[routineExerciseId] ?? 0;
+    if (best <= 0) return false;
+    return calcE1RM(kg, reps) >= best;
+}
+
+// Sum saved working sets per exercise category for a single week.
+export function computePerMuscleVolume(
+    logs: Logs,
+    routineExercises: RoutineExercise[],
+    week: number,
+): Partial<Record<ExerciseCategory, number>> {
+    const catById = new Map<string, ExerciseCategory>();
+    for (const re of routineExercises) {
+        if (re.exercise?.category) catById.set(re.id, re.exercise.category);
+    }
+    const out: Partial<Record<ExerciseCategory, number>> = {};
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val.saved) continue;
+        const parsed = parseLogKey(key);
+        if (!parsed || parsed.week !== week) continue;
+        const cat = catById.get(parsed.routineExerciseId);
+        if (!cat) continue;
+        out[cat] = (out[cat] ?? 0) + 1;
+    }
+    return out;
+}
+
+export type PlateEquipment = 'barbell' | 'dumbbell';
+export interface PlateResult {
+    perSide: number[];
+    achievable: boolean;
+    remainderKg: number;
+}
+
+// Greedy per-side plate breakdown for a target weight on a barbell or a single
+// dumbbell handle. achievable is false when the target sits below the empty
+// bar/handle or leaves a remainder the available plates cannot fill.
+export function computePlates(targetKg: number, equipment: PlateEquipment): PlateResult {
+    const base = equipment === 'barbell' ? BARBELL_KG : DUMBBELL_HANDLE_KG;
+    if (targetKg < base) return { perSide: [], achievable: false, remainderKg: 0 };
+    let perSideKg = (targetKg - base) / 2;
+    const perSide: number[] = [];
+    for (const plate of PLATES_KG) {
+        while (perSideKg >= plate - 1e-9) {
+            perSide.push(plate);
+            perSideKg = Math.round((perSideKg - plate) * 100) / 100;
+        }
+    }
+    const remainderKg = Math.round(perSideKg * 100) / 100;
+    return { perSide, achievable: remainderKg === 0, remainderKg };
 }

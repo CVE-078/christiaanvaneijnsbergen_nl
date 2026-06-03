@@ -34,6 +34,10 @@ export const WORKOUT_TYPE_OPTIONS: readonly { value: WorkoutType; label: string 
     label: WORKOUT_TYPE_LABELS[t],
 }));
 
+export const BARBELL_KG = 20;
+export const DUMBBELL_HANDLE_KG = 2.5;
+export const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
+
 export const SUGGESTED_DAYS: Record<DaysPerWeek, number[]> = {
     '2-3': [1, 3],
     '4': [1, 2, 4, 5],

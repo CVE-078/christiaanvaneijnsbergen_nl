@@ -17,6 +17,9 @@ import {
     computeLastSession,
     computeWarmupSets,
     computeShareStats,
+    isSetPR,
+    computePerMuscleVolume,
+    computePlates,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession } from '../types';
 
@@ -674,5 +677,77 @@ describe('computeShareStats', () => {
         const stats = computeShareStats(session, completedAt, exercises, logs, {}, 3, 'lbs');
         const bench = stats.topLifts.find((l) => l.name === 'Bench Press')!;
         expect(bench.displayWeight).toBeCloseTo(220.5, 0);
+    });
+});
+
+describe('isSetPR', () => {
+    const prMap = { 'ex-1': 100 }; // best e1rm for ex-1 is 100
+    it('is true when the set e1rm meets the exercise best', () => {
+        // calcE1RM(80,10) ~= 106.7 > 100
+        expect(isSetPR(80, 10, 'ex-1', prMap)).toBe(true);
+    });
+    it('is false when below the best', () => {
+        // calcE1RM(50,5) ~= 58.3 < 100
+        expect(isSetPR(50, 5, 'ex-1', prMap)).toBe(false);
+    });
+    it('is false when there is no recorded best (>0 guard)', () => {
+        expect(isSetPR(80, 10, 'ex-unknown', prMap)).toBe(false);
+    });
+    it('is false for non-positive weight or reps', () => {
+        expect(isSetPR(0, 10, 'ex-1', prMap)).toBe(false);
+        expect(isSetPR(80, 0, 'ex-1', prMap)).toBe(false);
+    });
+});
+
+describe('computePerMuscleVolume', () => {
+    // parseLogKey requires the middle segment to be a valid UUID, so use real
+    // UUIDs for the routineExercise ids the keys reference.
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+    const UUID_B = '550e8400-e29b-41d4-a716-446655440001';
+    // routineExercise -> exercise.category mapping
+    const res = [
+        { id: UUID_A, exercise: { category: 'chest' } },
+        { id: UUID_B, exercise: { category: 'back' } },
+    ] as unknown as RoutineExercise[];
+    const logs: Logs = {
+        [logKey(3, UUID_A, 0)]: { kg: 20, reps: 10, rir: 2, saved: true },
+        [logKey(3, UUID_A, 1)]: { kg: 20, reps: 10, rir: 2, saved: true },
+        [logKey(3, UUID_B, 0)]: { kg: 30, reps: 8, rir: 1, saved: true },
+        [logKey(2, UUID_A, 0)]: { kg: 20, reps: 10, rir: 2, saved: true }, // other week, ignored
+        [logKey(3, UUID_A, 2)]: { kg: 20, reps: 10, rir: 2, saved: false }, // unsaved, ignored
+    };
+    it('counts saved sets per category for the given week', () => {
+        const out = computePerMuscleVolume(logs, res, 3);
+        expect(out.chest).toBe(2);
+        expect(out.back).toBe(1);
+    });
+    it('returns 0 for categories with no sets that week', () => {
+        const out = computePerMuscleVolume(logs, res, 3);
+        expect(out.legs ?? 0).toBe(0);
+    });
+});
+
+describe('computePlates', () => {
+    it('barbell: returns per-side plates for an achievable weight', () => {
+        // 60 kg on a 20 kg bar -> 20 kg per side -> [20]
+        expect(computePlates(60, 'barbell')).toEqual({ perSide: [20], achievable: true, remainderKg: 0 });
+    });
+    it('barbell: greedy multi-plate breakdown', () => {
+        // 100 kg -> 40 per side -> [25,15]
+        expect(computePlates(100, 'barbell')).toEqual({ perSide: [25, 15], achievable: true, remainderKg: 0 });
+    });
+    it('barbell: marks unachievable remainder', () => {
+        // 61 kg -> 20.5 per side -> [20] with 0.5 remainder
+        const r = computePlates(61, 'barbell');
+        expect(r.achievable).toBe(false);
+        expect(r.remainderKg).toBeCloseTo(0.5, 5);
+    });
+    it('returns achievable=false below the bar/handle weight', () => {
+        expect(computePlates(10, 'barbell').achievable).toBe(false);
+        expect(computePlates(2, 'dumbbell').achievable).toBe(false);
+    });
+    it('dumbbell: uses the handle weight', () => {
+        // 12.5 kg dumbbell on 2.5 handle -> 5 per side -> [5]
+        expect(computePlates(12.5, 'dumbbell')).toEqual({ perSide: [5], achievable: true, remainderKg: 0 });
     });
 });
