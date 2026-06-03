@@ -139,6 +139,7 @@ export async function saveLogs(logs: unknown) {
 }
 
 export async function updateProfile(displayName: string | null, unit: Unit, activeRoutineId?: string | null) {
+    if (unit !== 'kg' && unit !== 'lbs') throw new Error('Invalid unit');
     if (displayName !== null && displayName.trim().length > 50)
         throw new Error('Display name must be 50 characters or fewer');
     if (activeRoutineId !== undefined && activeRoutineId !== null && !UUID_RE.test(activeRoutineId))
@@ -172,6 +173,8 @@ export async function updateProfile(displayName: string | null, unit: Unit, acti
 export async function logBodyWeight(weightKg: number, date?: string): Promise<BodyweightEntry> {
     if (typeof weightKg !== 'number' || isNaN(weightKg) || weightKg < 0.5 || weightKg > 500)
         throw new Error('Invalid weight');
+    if (date !== undefined && (typeof date !== 'string' || isNaN(new Date(date).getTime())))
+        throw new Error('Invalid date');
 
     const { supabase, user } = await getUserOrThrow();
 
@@ -187,6 +190,9 @@ export async function logBodyWeight(weightKg: number, date?: string): Promise<Bo
 }
 
 export async function updateGoalWeight(goalWeightKg: number | null): Promise<void> {
+    if (goalWeightKg !== null && (!Number.isFinite(goalWeightKg) || goalWeightKg < 0.5 || goalWeightKg > 500))
+        throw new Error('Invalid goal weight');
+
     const { supabase, user } = await getUserOrThrow();
 
     const { error } = await supabase.from('profiles').update({ goal_weight_kg: goalWeightKg }).eq('id', user.id);
@@ -476,6 +482,8 @@ export async function updateRoutineExercise(
 
 export async function reorderRoutineExercises(routineId: string, orderedIds: string[]): Promise<void> {
     if (!UUID_RE.test(routineId)) throw new Error('Invalid routine id');
+    if (!Array.isArray(orderedIds) || orderedIds.length > 100) throw new Error('Invalid data');
+    if (!orderedIds.every((id) => UUID_RE.test(id))) throw new Error('Invalid id');
 
     const { supabase, user } = await getUserOrThrow();
 
@@ -667,6 +675,7 @@ export async function saveNote(week: number, routineExerciseId: string, note: st
     if (!trimmed || trimmed.length > 500) throw new Error('Invalid note');
 
     const { supabase, user } = await getUserOrThrow();
+    await assertOwnsRoutineExercise(supabase, routineExerciseId, user.id);
 
     const { error } = await supabase
         .from('exercise_notes')
@@ -682,6 +691,7 @@ export async function deleteNote(week: number, routineExerciseId: string): Promi
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid routine exercise id');
 
     const { supabase, user } = await getUserOrThrow();
+    await assertOwnsRoutineExercise(supabase, routineExerciseId, user.id);
 
     await supabase
         .from('exercise_notes')
