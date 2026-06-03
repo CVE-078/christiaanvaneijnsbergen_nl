@@ -59,6 +59,7 @@ function SingleStep({
                             type={re.workout_type}
                             entry={entry}
                             previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                            repsRange={re.reps}
                             unit={unit}
                             isPR={isPR}
                             onSave={(e) => onSave(key, e)}
@@ -116,6 +117,7 @@ function PairStep({
                                 type={first.workout_type}
                                 entry={entry}
                                 previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                                repsRange={first.reps}
                                 unit={unit}
                                 isPR={isPR}
                                 onSave={(e) => onSave(key, e)}
@@ -147,6 +149,7 @@ function PairStep({
                                 type={second.workout_type}
                                 entry={entry}
                                 previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                                repsRange={second.reps}
                                 unit={unit}
                                 isPR={isPR}
                                 onSave={(e) => onSave(key, e)}
