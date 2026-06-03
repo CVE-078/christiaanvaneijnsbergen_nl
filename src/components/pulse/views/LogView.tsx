@@ -78,11 +78,15 @@ export default function LogView() {
     function handleSave(key: string, entry: LogEntry) {
         updateLog(key, entry);
         const rid = parseLogKey(key)?.routineExerciseId;
-        const exercise = routineExercises.find((r) => r.id === rid);
+        // Resolve against the variant-aware list shown in the active context.
+        // In an A/B variant workout the rendered rows live under the variant
+        // tab key, so the base routineExercises list would not contain them and
+        // the rest timer would never fire.
+        const exercise = workoutExercises.find((r) => r.id === rid);
         if (!exercise) return;
 
         if (exercise.superset_group_id) {
-            const partner = routineExercises.find(
+            const partner = workoutExercises.find(
                 (r) => r.superset_group_id === exercise.superset_group_id && r.id !== exercise.id,
             );
             if (partner) {
