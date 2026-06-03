@@ -1,5 +1,5 @@
 'use client';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Hanken_Grotesk, Sora } from 'next/font/google';
 import { SWRConfig } from 'swr';
@@ -50,9 +50,12 @@ export default function PulseLayout({ userId, email, children }: Props) {
         [router],
     );
 
+    // Build the cache provider once per user so its unload listeners register once.
+    const cacheProvider = useMemo(() => makeSWRCacheProvider(userId), [userId]);
+
     return (
         <div className={`${hanken.variable} ${sora.variable}`}>
-            <SWRConfig value={{ provider: makeSWRCacheProvider(userId) }}>
+            <SWRConfig value={{ provider: cacheProvider }}>
                 <ToastProvider>
                     <PulseProvider email={email} navigate={navigate}>
                         <AppShell view={view} navigate={navigate}>
