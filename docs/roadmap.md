@@ -44,6 +44,12 @@
 - Rich set types — drop sets stored in a `drops` jsonb column on `set_logs` plus a failure tag at RIR 0; drop-set editor in SetLogger, rendered in ExerciseCard, WorkoutModeScreen, and history
 - Supersets — pair two routine exercises as a superset; merged card in the train screen; rest timer fires once after both exercises' sets; guided mode treats the pair as one step; Pair / Unpair in the routine editor with pair-aware reorder
 - Exercise instructions — `exercise_instructions` table (read-only RLS) with primary/secondary muscles + technique cues per global exercise; on-demand `ExerciseInstructionModal` opened from a "How to perform" affordance in ExerciseCard and an info icon in the Library exercise list; ~92 exercises seeded
+- Rule-based routine generation — `generation.ts` engine builds a routine from onboarding inputs: split selection by days/experience, session-time-driven volume (with floors so 30-min full body never collapses to one exercise), A/B variations for repeated focuses, exercise selection by equipment + movement pattern; `generateAndSaveRoutine` action; reusable stepped `RoutineSetupFlow` with prominent Generate entry points (Train empty state, Plan, Routines); template "Use this" opens the same flow instead of native dialogs
+- Routine editor session grouping — active routine groups by the session type the schedule uses (`sessionTypeFor`): full body shows Full Body, upper/lower shows Upper/Lower (with A/B variants), never the granular push/pull/legs the exercises are tagged with
+- Routine rename — inline rename per routine in the Library (`renameRoutine` action + optimistic hook)
+- Collapsible desktop sidebar — left rail toggles between a 74px icon rail ("P" mark) and a 208px labelled rail (full "Pulse" wordmark); choice persists in localStorage
+- Scroll-rail muscle filter — single non-wrapping horizontal rail with a per-category count badge and a fade edge, replacing the wrapped 11-chip row
+- Profile polish — streak shown as a coral hero stat; login screen and skeleton loader reskinned to Slate tokens
 
 ---
 
@@ -83,7 +89,7 @@ Differentiation opportunities:
 | 2 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
 | 3 | Mid-workout exercise swap | Swap a busy machine for a similar exercise and carry logged weights to the substitute. Big friction reducer in real gyms. (also in: Boostcamp, Fitbod, Alpha, Caliber) |
 
-_Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions (see Shipped)._
+_Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions, rule-based routine generation, routine editor session grouping, routine rename, collapsible sidebar, scroll-rail muscle filter, streak hero, login + skeleton reskin (see Shipped)._
 
 ---
 
@@ -91,7 +97,7 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 
 | Feature | Notes |
 |---|---|
-| AI workout generation | Rule-based recommendation (onboarding) is shipped. AI v2 adapts split, volume, and exercise selection based on actual logged performance. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
+| AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
 | Auto-progression | Auto-raise the target weight or reps when you beat the last session, instead of only suggesting. Builds on the shipped RIR-adjusted suggestions. (also in: Fitbod, Jefit, Boostcamp, Alpha) |
 | Strength Score | Single 0-100 composite metric from your main-lift E1RM PRs. Legible headline number for non-experts. Computes from data Pulse already has. (also in: Caliber, Boostcamp) |
 | Progress photos | Date-stamped progress photos alongside the existing body measurements. Visual progress comparison. (also in: Hevy, Strong, Jefit, Fitbod) |
@@ -103,9 +109,5 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 | Social / sharing | Friends feed, likes, follow. Requires critical user mass. Not before traction. |
 | Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. |
 | Rest timer auto-advance | Option to automatically navigate to next exercise when rest timer completes. Global toggle or per-exercise setting. |
-| Muscle group filter as dropdown | Current flat chip list for 10 categories is cluttered. Collapse into dropdown or grouped (Push / Pull / Legs / Other). |
-| Login screen refresh | Visual update to match current Pulse design language. |
-| Skeleton loader refresh | Update skeleton styles to match current design tokens. |
-| Streak hero stat | Make streak number more prominent on Profile (currently undersized). |
 | Gender in profile | Add gender field; bias onboarding recommendations toward lower-body templates for female users. |
 | Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). |
