@@ -50,6 +50,7 @@
 - Collapsible desktop sidebar — left rail toggles between a 74px icon rail ("P" mark) and a 208px labelled rail (full "Pulse" wordmark); choice persists in localStorage
 - Scroll-rail muscle filter — single non-wrapping horizontal rail with a per-category count badge and a fade edge, replacing the wrapped 11-chip row
 - Profile polish — streak shown as a coral hero stat; login screen and skeleton loader reskinned to Slate tokens
+- Auto-progression — `computeProgression` double-progression engine: climbs reps within the rep range, then adds weight and resets to the bottom; SetLogger pre-fills both weight and reps and shows the next target, deloading when a set came in harder than the target RIR
 
 ---
 
@@ -98,7 +99,6 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 | Feature | Notes |
 |---|---|
 | AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
-| Auto-progression | Auto-raise the target weight or reps when you beat the last session, instead of only suggesting. Builds on the shipped RIR-adjusted suggestions. (also in: Fitbod, Jefit, Boostcamp, Alpha) |
 | Strength Score | Single 0-100 composite metric from your main-lift E1RM PRs. Legible headline number for non-experts. Computes from data Pulse already has. (also in: Caliber, Boostcamp) |
 | Progress photos | Date-stamped progress photos alongside the existing body measurements. Visual progress comparison. (also in: Hevy, Strong, Jefit, Fitbod) |
 | Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. (also in: Hevy, Jefit, Boostcamp) |
