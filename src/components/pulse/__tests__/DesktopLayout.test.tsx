@@ -56,6 +56,9 @@ const mockContext = {
     notes: {},
     saveNote: vi.fn().mockResolvedValue(undefined),
     deleteNote: vi.fn().mockResolvedValue(undefined),
+    loading: { profile: false, bodyweight: false, logs: false, routines: false, exercises: false, notes: false },
+    errors: { profile: false, bodyweight: false, logs: false, routines: false, exercises: false, notes: false },
+    retry: vi.fn(),
 };
 
 vi.mock('@/context/PulseContext', () => ({

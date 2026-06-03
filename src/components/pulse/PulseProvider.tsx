@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useSWRConfig } from 'swr';
 import { PulseContext } from '@/context/PulseContext';
 import { useWorkoutLogs } from '@/hooks/pulse/useWorkoutLogs';
 import { useProfile } from '@/hooks/pulse/useProfile';
@@ -37,12 +38,12 @@ function orderTabKeys(keys: TabKey[]): TabKey[] {
 }
 
 interface Props {
-    initialLogs: Logs;
-    initialProfile: Profile;
-    initialBodyweightLogs: BodyweightEntry[];
-    initialExercises: DbExercise[];
-    initialRoutines: RoutineWithExercises[];
-    initialNotes: Notes;
+    initialLogs?: Logs;
+    initialProfile?: Profile;
+    initialBodyweightLogs?: BodyweightEntry[];
+    initialExercises?: DbExercise[];
+    initialRoutines?: RoutineWithExercises[];
+    initialNotes?: Notes;
     email: string;
     navigate: (view: View) => void;
     children: React.ReactNode;
@@ -61,15 +62,33 @@ export function PulseProvider({
 }: Props) {
     const { show: showToast } = useToast();
     const onSaveError = useCallback((msg: string) => showToast(msg, 'error'), [showToast]);
-    const { logs, updateLog, deleteLog, handleExport } = useWorkoutLogs(initialLogs, onSaveError);
-    const { profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight } = useProfile(
-        initialProfile,
-        initialBodyweightLogs,
-    );
+    const {
+        logs,
+        updateLog,
+        deleteLog,
+        handleExport,
+        loading: loadingLogs,
+        error: logsError,
+    } = useWorkoutLogs(initialLogs, onSaveError);
+    const {
+        profile,
+        bodyweightLogs,
+        updateProfile,
+        logBodyWeight,
+        deleteBodyWeight,
+        loadingProfile,
+        loadingBodyweight,
+        profileError,
+        bodyweightError,
+    } = useProfile(initialProfile, initialBodyweightLogs);
     const {
         exercises,
         routines,
         activeRoutine,
+        loadingExercises,
+        loadingRoutines,
+        exercisesError,
+        routinesError,
         createRoutine,
         renameRoutine,
         deleteRoutine,
@@ -87,13 +106,44 @@ export function PulseProvider({
     } = useRoutines(initialExercises, initialRoutines, profile.active_routine_id);
     const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
     const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
-    const { notes, saveNote, deleteNote } = useNotes(initialNotes);
+    const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes(initialNotes);
+
+    const { mutate: globalMutate } = useSWRConfig();
+    const retry = useCallback(() => {
+        globalMutate(() => true);
+    }, [globalMutate]);
+
+    const loading = useMemo(
+        () => ({
+            profile: loadingProfile,
+            bodyweight: loadingBodyweight,
+            logs: loadingLogs,
+            routines: loadingRoutines,
+            exercises: loadingExercises,
+            notes: loadingNotes,
+        }),
+        [loadingProfile, loadingBodyweight, loadingLogs, loadingRoutines, loadingExercises, loadingNotes],
+    );
+
+    const errors = useMemo(
+        () => ({
+            profile: !!profileError,
+            bodyweight: !!bodyweightError,
+            logs: !!logsError,
+            routines: !!routinesError,
+            exercises: !!exercisesError,
+            notes: !!notesError,
+        }),
+        [profileError, bodyweightError, logsError, routinesError, exercisesError, notesError],
+    );
 
     const streak = useMemo(() => computeStreak(logs), [logs]);
     const prMap = useMemo(() => computePRMap(logs), [logs]);
 
     const [onboardingOverride, setOnboardingOverride] = useState<boolean | null>(null);
-    const showOnboarding = onboardingOverride ?? routines.length === 0;
+    // Gate on loaded routines so the onboarding modal does not flash before the
+    // client fetch resolves (routines is [] while loading).
+    const showOnboarding = onboardingOverride ?? (!loadingRoutines && routines.length === 0);
     const triggerOnboarding = useCallback(() => setOnboardingOverride(true), []);
     const dismissOnboarding = useCallback(() => setOnboardingOverride(false), []);
 
@@ -248,6 +298,7 @@ export function PulseProvider({
         ],
     );
     const notesValue = useMemo(() => ({ notes, saveNote, deleteNote }), [notes, saveNote, deleteNote]);
+    const loadingValue = useMemo(() => ({ loading, errors, retry }), [loading, errors, retry]);
 
     const contextValue = useMemo(
         () => ({
@@ -258,8 +309,9 @@ export function PulseProvider({
             ...timerValue,
             ...routinesValue,
             ...notesValue,
+            ...loadingValue,
         }),
-        [logsValue, profileValue, computedValue, uiStateValue, timerValue, routinesValue, notesValue],
+        [logsValue, profileValue, computedValue, uiStateValue, timerValue, routinesValue, notesValue, loadingValue],
     );
 
     return <PulseContext.Provider value={contextValue}>{children}</PulseContext.Provider>;

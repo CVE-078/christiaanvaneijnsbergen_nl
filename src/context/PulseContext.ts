@@ -74,6 +74,25 @@ export interface PulseContextValue {
     routineExercisesByType: Partial<Record<WorkoutType, RoutineExercise[]>>;
     routineExercisesByTabKey: Partial<Record<TabKey, RoutineExercise[]>>;
 
+    // Per-domain client-fetch state (phase-1 instant loading)
+    loading: {
+        profile: boolean;
+        bodyweight: boolean;
+        logs: boolean;
+        routines: boolean;
+        exercises: boolean;
+        notes: boolean;
+    };
+    errors: {
+        profile: boolean;
+        bodyweight: boolean;
+        logs: boolean;
+        routines: boolean;
+        exercises: boolean;
+        notes: boolean;
+    };
+    retry: () => void;
+
     // Routine mutations
     createRoutine: (name: string) => Promise<WorkoutRoutine>;
     renameRoutine: (id: string, name: string) => Promise<void>;
