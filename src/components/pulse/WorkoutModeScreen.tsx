@@ -4,7 +4,7 @@ import { logKey, parseMaxSets, computeLastSession, isSetPR, groupExercises } fro
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
-import type { RoutineExercise, Logs, LogEntry, Unit, WorkoutVariant, ExerciseItem } from '@/lib/pulse/types';
+import type { RoutineExercise, Logs, LogEntry, Unit, WorkoutVariant, ExerciseItem, PRMap } from '@/lib/pulse/types';
 
 interface Props {
     exercises: RoutineExercise[];
@@ -24,6 +24,7 @@ function SingleStep({
     week,
     logs,
     unit,
+    prMap,
     onSave,
     onDelete,
 }: {
@@ -31,6 +32,7 @@ function SingleStep({
     week: number;
     logs: Logs;
     unit: Unit;
+    prMap: PRMap;
     onSave: (key: string, entry: LogEntry) => void;
     onDelete: (key: string) => void;
 }) {
@@ -47,16 +49,19 @@ function SingleStep({
                 {Array.from({ length: maxSets }, (_, s) => {
                     const key = logKey(week, re.id, s);
                     const prevKey = logKey(week - 1, re.id, s);
+                    const entry = logs[key];
+                    const isPR = !!(entry?.saved && isSetPR(entry.kg, entry.reps, re.id, prMap));
                     return (
                         <SetLogger
                             key={key}
                             setIdx={s}
                             week={week}
                             type={re.workout_type}
-                            entry={logs[key]}
+                            entry={entry}
                             previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
                             unit={unit}
-                            onSave={(entry) => onSave(key, entry)}
+                            isPR={isPR}
+                            onSave={(e) => onSave(key, e)}
                             onDelete={() => onDelete(key)}
                         />
                     );
@@ -71,6 +76,7 @@ function PairStep({
     week,
     logs,
     unit,
+    prMap,
     onSave,
     onDelete,
 }: {
@@ -78,6 +84,7 @@ function PairStep({
     week: number;
     logs: Logs;
     unit: Unit;
+    prMap: PRMap;
     onSave: (key: string, entry: LogEntry) => void;
     onDelete: (key: string) => void;
 }) {
@@ -99,16 +106,19 @@ function PairStep({
                     {Array.from({ length: firstMax }, (_, s) => {
                         const key = logKey(week, first.id, s);
                         const prevKey = logKey(week - 1, first.id, s);
+                        const entry = logs[key];
+                        const isPR = !!(entry?.saved && isSetPR(entry.kg, entry.reps, first.id, prMap));
                         return (
                             <SetLogger
                                 key={key}
                                 setIdx={s}
                                 week={week}
                                 type={first.workout_type}
-                                entry={logs[key]}
+                                entry={entry}
                                 previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
                                 unit={unit}
-                                onSave={(entry) => onSave(key, entry)}
+                                isPR={isPR}
+                                onSave={(e) => onSave(key, e)}
                                 onDelete={() => onDelete(key)}
                             />
                         );
@@ -127,16 +137,19 @@ function PairStep({
                     {Array.from({ length: secondMax }, (_, s) => {
                         const key = logKey(week, second.id, s);
                         const prevKey = logKey(week - 1, second.id, s);
+                        const entry = logs[key];
+                        const isPR = !!(entry?.saved && isSetPR(entry.kg, entry.reps, second.id, prMap));
                         return (
                             <SetLogger
                                 key={key}
                                 setIdx={s}
                                 week={week}
                                 type={second.workout_type}
-                                entry={logs[key]}
+                                entry={entry}
                                 previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
                                 unit={unit}
-                                onSave={(entry) => onSave(key, entry)}
+                                isPR={isPR}
+                                onSave={(e) => onSave(key, e)}
                                 onDelete={() => onDelete(key)}
                             />
                         );
@@ -198,6 +211,15 @@ export default function WorkoutModeScreen({
               return Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).filter((k) => logs[k]?.saved).length;
           })();
 
+    // Per the spec, a superset step can only advance after a completed round:
+    // at least one saved set from each exercise in the pair. Singles are unchanged.
+    const canAdvance = !isPair
+        ? true
+        : (step as [RoutineExercise, RoutineExercise]).every((re) => {
+              const max = parseMaxSets(re.sets);
+              return Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).some((k) => logs[k]?.saved);
+          });
+
     async function handleFinish() {
         if (!sessionId) return;
         setCompleting(true);
@@ -241,6 +263,7 @@ export default function WorkoutModeScreen({
                         week={week}
                         logs={logs}
                         unit={unit}
+                        prMap={prMap}
                         onSave={handleSetSave}
                         onDelete={onDelete}
                     />
@@ -250,6 +273,7 @@ export default function WorkoutModeScreen({
                         week={week}
                         logs={logs}
                         unit={unit}
+                        prMap={prMap}
                         onSave={handleSetSave}
                         onDelete={onDelete}
                     />
@@ -265,7 +289,8 @@ export default function WorkoutModeScreen({
                     <button
                         aria-label="next exercise"
                         onClick={() => setStepIdx((i) => i + 1)}
-                        className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-black font-semibold text-sm cursor-pointer border-none">
+                        disabled={!canAdvance}
+                        className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-pulse-bg font-semibold text-sm cursor-pointer border-none disabled:opacity-60 disabled:cursor-default">
                         Next exercise →
                     </button>
                 ) : (
@@ -273,7 +298,7 @@ export default function WorkoutModeScreen({
                         aria-label="finish workout"
                         onClick={handleFinish}
                         disabled={completing || sessionId === null}
-                        className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-black font-semibold text-sm cursor-pointer border-none disabled:opacity-60">
+                        className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-pulse-bg font-semibold text-sm cursor-pointer border-none disabled:opacity-60">
                         {completing ? 'Finishing…' : 'Finish workout ✓'}
                     </button>
                 )}
