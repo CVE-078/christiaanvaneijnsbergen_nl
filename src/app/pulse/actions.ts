@@ -84,6 +84,7 @@ export async function saveLogs(logs: unknown) {
                 reps: val.reps,
                 rir: val.rir,
                 saved: true,
+                drops: Array.isArray(val.drops) && val.drops.length > 0 ? val.drops : null,
                 updated_at: new Date().toISOString(),
             };
         });

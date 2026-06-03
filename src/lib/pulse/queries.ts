@@ -9,7 +9,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 // Canonical select strings. These are authoritative: the layout and the API
 // routes should both call the loaders below rather than duplicating queries.
-const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved';
+const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops';
 const PROFILE_SELECT = 'display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg';
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
 const EXERCISES_SELECT = 'id, name, category, default_sets, default_reps, user_id';
@@ -31,6 +31,7 @@ export async function loadLogs(supabase: SupabaseServerClient, userId: string): 
             reps: row.reps,
             rir: row.rir,
             saved: row.saved,
+            ...(Array.isArray(row.drops) && row.drops.length > 0 ? { drops: row.drops } : {}),
         };
     }
     return validateLogs(raw) ? raw : {};

@@ -53,7 +53,7 @@ describe('loadLogs', () => {
         });
         const logs = await loadLogs(client, UID);
         expect(calls.table).toBe('set_logs');
-        expect(calls.select).toBe('week, routine_exercise_id, set_idx, kg, reps, rir, saved');
+        expect(calls.select).toBe('week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops');
         expect(logs[`3-${REID}-0`]).toEqual({ kg: 50, reps: 8, rir: 2, saved: true });
     });
 
