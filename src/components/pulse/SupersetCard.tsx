@@ -34,27 +34,38 @@ export default function SupersetCard({
     const [first, second] = pair;
 
     return (
-        <div className="border border-pulse-accent/35 rounded-xl overflow-hidden bg-pulse-surface">
+        // Grouping conveyed by a tone shift (surface-2 tray) + whitespace, not a border.
+        <div className="bg-pulse-surface-2 rounded-2xl overflow-hidden">
             {/* Header — always visible, shows exercise names in collapsed state */}
             <button
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
                 aria-label={open ? 'Collapse superset' : 'Expand superset'}
-                className="w-full flex items-center gap-3 px-4 py-2.5 bg-pulse-accent/10 border-b border-pulse-accent/20 cursor-pointer text-left">
-                <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase font-bold text-pulse-accent shrink-0">
-                    ⚡ Superset
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-transparent border-none cursor-pointer text-left">
+                <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase font-semibold text-pulse-dim shrink-0">
+                    Superset
                 </span>
                 <span className="font-pulse text-sm text-pulse-text flex-1 truncate">
                     <span>{first.exercise.name}</span>
                     <span className="text-pulse-dim"> + </span>
                     <span>{second.exercise.name}</span>
                 </span>
-                <span className="font-pulse text-xs text-pulse-dim shrink-0">{open ? '▲' : '▼'}</span>
+                <svg
+                    className={`w-4 h-4 text-pulse-muted shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
+                </svg>
             </button>
 
-            {/* Expanded body */}
+            {/* Expanded body — two cards separated by whitespace */}
             {open && (
-                <>
+                <div className="flex flex-col gap-2 px-2 pb-2">
                     <ExerciseCard
                         routineExercise={first}
                         exIdx={pairIdx}
@@ -68,7 +79,6 @@ export default function SupersetCard({
                         onSaveNote={(n) => onSaveNote(first.id, n)}
                         onDeleteNote={() => onDeleteNote(first.id)}
                     />
-                    <div className="h-px bg-pulse-border mx-4" />
                     <ExerciseCard
                         routineExercise={second}
                         exIdx={pairIdx + 1}
@@ -82,7 +92,7 @@ export default function SupersetCard({
                         onSaveNote={(n) => onSaveNote(second.id, n)}
                         onDeleteNote={() => onDeleteNote(second.id)}
                     />
-                </>
+                </div>
             )}
         </div>
     );
