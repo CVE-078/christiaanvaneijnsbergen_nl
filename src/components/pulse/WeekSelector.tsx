@@ -1,6 +1,7 @@
 ﻿'use client';
+import { useMemo } from 'react';
 import { PHASES } from '@/lib/pulse/data';
-import { weekHasData } from '@/lib/pulse/utils';
+import { computeWeeksWithData } from '@/lib/pulse/utils';
 import type { Logs } from '@/lib/pulse/types';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function WeekSelector({ activeWeek, onSelect, logs }: Props) {
+    const weeksWithData = useMemo(() => computeWeeksWithData(logs), [logs]);
     return (
         <div className="flex flex-col gap-4">
             {PHASES.map((phase) => (
@@ -32,7 +34,7 @@ export default function WeekSelector({ activeWeek, onSelect, logs }: Props) {
                                     {w}
                                     <span
                                         className={`block w-1 h-1 rounded-full mx-auto mt-0.5 ${
-                                            weekHasData(w, logs)
+                                            weeksWithData.has(w)
                                                 ? active
                                                     ? 'bg-black'
                                                     : 'bg-pulse-accent'

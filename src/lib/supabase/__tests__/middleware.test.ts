@@ -43,4 +43,11 @@ describe('buildCsp', () => {
         const csp = buildCsp('abc123', host);
         expect(csp).toContain("frame-ancestors 'none'");
     });
+
+    it('locks down object-src, base-uri and form-action', () => {
+        const csp = buildCsp('abc123', host);
+        expect(csp).toContain("object-src 'none'");
+        expect(csp).toContain("base-uri 'self'");
+        expect(csp).toContain("form-action 'self'");
+    });
 });

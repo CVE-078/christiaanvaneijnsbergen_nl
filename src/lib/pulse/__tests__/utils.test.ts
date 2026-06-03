@@ -22,6 +22,7 @@ import {
     computePerMuscleVolume,
     computePlates,
     sessionTypeFor,
+    computeWeeksWithData,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession } from '../types';
 
@@ -910,6 +911,27 @@ describe('groupExercises', () => {
 
     it('returns an empty array for empty input', () => {
         expect(groupExercises([])).toEqual([]);
+    });
+});
+
+describe('computeWeeksWithData', () => {
+    const UUID = '550e8400-e29b-41d4-a716-446655440000';
+
+    it('returns the set of weeks with at least one saved set', () => {
+        const logs: Logs = {
+            [`1-${UUID}-0`]: { kg: 60, reps: 8, rir: 2, saved: true },
+            [`3-${UUID}-0`]: { kg: 60, reps: 8, rir: 2, saved: true },
+            [`2-${UUID}-0`]: { kg: 60, reps: 8, rir: 2, saved: false },
+        };
+        const weeks = computeWeeksWithData(logs);
+        expect(weeks.has(1)).toBe(true);
+        expect(weeks.has(3)).toBe(true);
+        expect(weeks.has(2)).toBe(false);
+        expect(weeks.size).toBe(2);
+    });
+
+    it('returns an empty set for empty logs', () => {
+        expect(computeWeeksWithData({}).size).toBe(0);
     });
 });
 

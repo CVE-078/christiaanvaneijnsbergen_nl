@@ -59,7 +59,7 @@ export function useWorkoutLogs(initialLogs?: Logs, onError?: (msg: string) => vo
         [logs, persist],
     );
 
-    function handleExport() {
+    const handleExport = useCallback(() => {
         const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -69,7 +69,7 @@ export function useWorkoutLogs(initialLogs?: Logs, onError?: (msg: string) => vo
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    }
+    }, [logs]);
 
     return { logs, updateLog, deleteLog, handleExport, loading: isLoading, error };
 }

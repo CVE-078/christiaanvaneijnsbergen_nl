@@ -181,10 +181,15 @@ export default function WorkoutModeScreen({
     const [stepIdx, setStepIdx] = useState(0);
     const [completing, setCompleting] = useState(false);
 
-    const step = steps[stepIdx];
+    // Clamp at read time: `steps` can shrink mid-session (revalidation, A/B swap),
+    // which would otherwise leave stepIdx out of range and make `step` undefined.
+    const safeIdx = steps.length === 0 ? 0 : Math.min(stepIdx, steps.length - 1);
+    const step = steps[safeIdx];
     const isPair = Array.isArray(step);
-    const isFirst = stepIdx === 0;
-    const isLast = stepIdx === steps.length - 1;
+    const isFirst = safeIdx === 0;
+    const isLast = safeIdx === steps.length - 1;
+
+    if (!step) return null;
 
     // Fire a quiet success toast only on the save transition into a PR.
     function handleSetSave(key: string, entry: LogEntry) {
