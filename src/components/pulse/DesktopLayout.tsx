@@ -4,6 +4,7 @@ import { usePulse } from '@/context/PulseContext';
 import { getPhase, getRIR, logKey, parseLogKey, parseMaxSets } from '@/lib/pulse/utils';
 import { tabKeyLabel } from '@/lib/pulse/constants';
 import { useLocalStorage } from '@/hooks/pulse/useLocalStorage';
+import { clearAllSWRCache } from '@/lib/pulse/swrCache';
 import OnboardingModal from './OnboardingModal';
 import RestTimer from './RestTimer';
 import type { RoutineExercise, View } from '@/lib/pulse/types';
@@ -179,6 +180,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                     <form action={logout}>
                         <button
                             type="submit"
+                            onClick={() => clearAllSWRCache()}
                             aria-label="Sign out of Pulse"
                             title="Sign out"
                             className={`bg-transparent border-none cursor-pointer text-pulse-muted hover:text-pulse-text transition-colors [&_svg]:w-[22px] [&_svg]:h-[22px] [&_svg]:shrink-0 ${
