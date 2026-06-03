@@ -1,18 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getUserOrUnauthorized } from '@/lib/pulse/auth';
 import { nextVariant } from '@/lib/pulse/sessions';
+import { UUID_RE } from '@/lib/pulse/utils';
+import { WORKOUT_TYPES } from '@/lib/pulse/types';
+import type { WorkoutType } from '@/lib/pulse/types';
 
 export async function POST(req: NextRequest) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json(null, { status: 401 });
+    const { supabase, user, response } = await getUserOrUnauthorized();
+    if (!user) return response;
 
-    const body = await req.json() as { routineId: string; workoutType: string };
+    const body = (await req.json()) as { routineId: string; workoutType: string };
     const { routineId, workoutType } = body;
 
     if (!routineId || !workoutType) {
         return NextResponse.json({ error: 'Missing routineId or workoutType' }, { status: 400 });
     }
+
+    if (!UUID_RE.test(routineId)) {
+        return NextResponse.json({ error: 'Invalid routineId' }, { status: 400 });
+    }
+
+    if (!(WORKOUT_TYPES as readonly string[]).includes(workoutType)) {
+        return NextResponse.json({ error: 'Invalid workoutType' }, { status: 400 });
+    }
+
+    // Verify the routine belongs to the current user before doing anything else.
+    const { data: routine } = await supabase
+        .from('workout_routines')
+        .select('id')
+        .eq('id', routineId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (!routine) return NextResponse.json({ error: 'Routine not found' }, { status: 404 });
 
     // Return in-progress session if one exists
     const { data: existing } = await supabase
@@ -60,7 +80,7 @@ export async function POST(req: NextRequest) {
         .insert({
             user_id: user.id,
             routine_id: routineId,
-            workout_type: workoutType,
+            workout_type: workoutType as WorkoutType,
             variant: sessionVariant,
         })
         .select()

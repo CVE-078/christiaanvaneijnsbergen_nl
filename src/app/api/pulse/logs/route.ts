@@ -1,32 +1,15 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { validateLogs } from '@/lib/pulse/validation';
-import type { Logs } from '@/lib/pulse/types';
+import { getUserOrUnauthorized } from '@/lib/pulse/auth';
+import { loadLogs } from '@/lib/pulse/queries';
 
 export async function GET() {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json(null, { status: 401 });
+    const { supabase, user, response } = await getUserOrUnauthorized();
+    if (!user) return response;
 
-    const { data, error } = await supabase
-        .from('set_logs')
-        .select('week, routine_exercise_id, set_idx, kg, reps, rir, saved')
-        .eq('user_id', user.id);
-
-    if (error) return NextResponse.json(null, { status: 500 });
-
-    const raw: Record<string, unknown> = {};
-    for (const row of data ?? []) {
-        raw[`${row.week}-${row.routine_exercise_id}-${row.set_idx}`] = {
-            kg: Number(row.kg),
-            reps: row.reps,
-            rir: row.rir,
-            saved: row.saved,
-        };
+    try {
+        const logs = await loadLogs(supabase, user.id);
+        return NextResponse.json(logs);
+    } catch {
+        return NextResponse.json(null, { status: 500 });
     }
-
-    const logs: Logs = validateLogs(raw) ? (raw as Logs) : {};
-    return NextResponse.json(logs);
 }

@@ -28,7 +28,9 @@ describe('useWorkoutLogs', () => {
     });
 
     it('falls back to initialLogs when SWR data is undefined', () => {
-        vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
+        vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
+            typeof useSWR
+        >);
         const initialLogs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         const { result } = renderHook(() => useWorkoutLogs(initialLogs));
         expect(result.current.logs).toEqual(initialLogs);

@@ -1,6 +1,15 @@
 'use client';
 import { useState } from 'react';
-import { logKey, parseMaxSets, calcE1RM, toDisplay, computeLastSession, computeSuggestion, computeWarmupSets } from '@/lib/pulse/utils';
+import {
+    logKey,
+    parseMaxSets,
+    isSetPR,
+    toDisplay,
+    computeLastSession,
+    computeSuggestion,
+    computeWarmupSets,
+} from '@/lib/pulse/utils';
+import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
 import type { Logs, LogEntry, Unit } from '@/lib/pulse/types';
 import type { RoutineExercise } from '@/lib/pulse/types';
@@ -19,61 +28,77 @@ interface Props {
     onDeleteNote: () => Promise<void>;
 }
 
-export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, prMap, unit, onSave, onDelete, note, onSaveNote, onDeleteNote }: Props) {
+export default function ExerciseCard({
+    routineExercise: re,
+    week,
+    logs,
+    prMap,
+    unit,
+    onSave,
+    onDelete,
+    note,
+    onSaveNote,
+    onDeleteNote,
+}: Props) {
+    const { show: showToast } = useToast();
     const [open, setOpen] = useState(false);
     const [noteEditing, setNoteEditing] = useState(false);
     const [noteDraft, setNoteDraft] = useState('');
     const maxSets = parseMaxSets(re.sets);
+
+    // Wrap the save so a newly qualifying PR fires a quiet success toast.
+    // Guard on the save transition: skip when the stored entry was already a
+    // saved PR, so re-saving or editing an existing PR stays silent.
+    function handleSetSave(key: string, entry: LogEntry) {
+        const prev = logs[key];
+        const wasPR = !!(prev?.saved && isSetPR(prev.kg, prev.reps, re.id, prMap));
+        const isNowPR = isSetPR(entry.kg, entry.reps, re.id, prMap);
+        if (isNowPR && !wasPR) {
+            showToast(`New PR on ${re.exercise.name}`, 'success');
+        }
+        onSave(key, entry);
+    }
     const savedCount = Array.from({ length: maxSets }, (_, i) => logKey(week, re.id, i)).filter(
         (k) => logs[k]?.saved,
     ).length;
     const complete = savedCount >= maxSets;
-    const bestE1RM = prMap[re.id] ?? 0;
     const lastSession = computeLastSession(logs, re.id, week);
     const prevKey0 = logKey(week - 1, re.id, 0);
     const prevEntry0 = week > 1 ? logs[prevKey0] : undefined;
     const workingWeightKg =
-        computeSuggestion(prevEntry0?.saved ? prevEntry0 : undefined, week) ??
-        re.starting_weight_kg ??
-        null;
+        computeSuggestion(prevEntry0?.saved ? prevEntry0 : undefined, week) ?? re.starting_weight_kg ?? null;
     const warmupSets = workingWeightKg !== null ? computeWarmupSets(workingWeightKg, unit) : [];
 
     return (
-        <div
-            className={`rounded-2xl overflow-hidden border transition-colors duration-150 ${
-                complete ? 'border-pulse-accent/25 bg-pulse-surface' : 'border-pulse-border bg-pulse-surface'
-            }`}>
+        <div className="rounded-2xl overflow-hidden bg-pulse-surface transition-colors duration-150">
             <button
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
                 aria-label={`${open ? 'Collapse' : 'Expand'} ${re.exercise.name}${complete ? ' — all sets done' : ''}`}
-                className="w-full py-3.5 px-4 bg-transparent border-none cursor-pointer flex items-center gap-3 text-left">
-                {/* Small index chip */}
-                <span
-                    className={`font-pulse text-[0.6875rem] font-bold w-6 h-6 rounded-md flex items-center justify-center shrink-0 select-none ${
-                        complete ? 'bg-pulse-accent/15 text-pulse-accent' : 'bg-pulse-surface-2 text-pulse-dim'
-                    }`}>
-                    {exIdx + 1}
-                </span>
+                className="w-full py-4 px-[1.125rem] bg-transparent border-none cursor-pointer flex items-center gap-3.5 text-left">
                 <div className="flex-1 min-w-0">
-                    <div className={`font-pulse text-[0.9375rem] font-semibold truncate ${complete ? 'text-pulse-text' : 'text-white'}`}>
+                    <div className="font-pulse text-[1.1875rem] font-medium tracking-[-0.01em] truncate text-pulse-text">
                         {re.exercise.name}
                     </div>
-                    <div className="font-pulse text-xs text-pulse-dim mt-0.5">
-                        {re.sets} sets · {re.reps} reps
+                    <div className="font-pulse text-[0.78125rem] tracking-[0.03em] text-pulse-muted mt-1">
+                        {re.sets} × {re.reps} reps
                         {re.starting_weight_kg !== null && (
-                            <> · {toDisplay(re.starting_weight_kg, unit)} {unit} start</>
+                            <>
+                                {' '}
+                                · {toDisplay(re.starting_weight_kg, unit)} {unit} start
+                            </>
                         )}
                     </div>
                     {lastSession && (
-                        <div className="font-pulse text-xs text-pulse-dim mt-0.5">
-                            Last: {toDisplay(lastSession.kg, unit)} {unit} × {lastSession.reps} × {lastSession.setCount} sets
+                        <div className="font-pulse text-[0.8125rem] text-pulse-dim mt-1">
+                            Last: {toDisplay(lastSession.kg, unit)} {unit} × {lastSession.reps} × {lastSession.setCount}{' '}
+                            sets
                         </div>
                     )}
                 </div>
-                {/* Progress pips + count */}
+                {/* Progress count + pips */}
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <span className="font-pulse text-xs font-semibold">
+                    <span className="font-pulse text-[0.8125rem] font-semibold">
                         <span className="text-pulse-text">{savedCount}</span>
                         <span className="text-pulse-muted">/{maxSets}</span>
                     </span>
@@ -84,21 +109,21 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                                 className="block w-[5px] h-[5px] rounded-sm transition-colors duration-200"
                                 style={{
                                     background:
-                                        i < savedCount
-                                            ? 'var(--color-pulse-accent)'
-                                            : 'var(--color-pulse-muted)',
+                                        i < savedCount ? 'var(--color-pulse-accent)' : 'var(--color-pulse-muted)',
                                 }}
                             />
                         ))}
                     </div>
                 </div>
                 {complete && (
-                    <span aria-label="All sets done" className="font-pulse text-xs text-pulse-accent shrink-0">
-                        ✓
+                    <span
+                        aria-label="All sets done"
+                        className="font-pulse text-[0.6875rem] font-semibold tracking-[0.1em] uppercase text-pulse-accent shrink-0">
+                        Done
                     </span>
                 )}
                 <svg
-                    className={`w-3.5 h-3.5 text-pulse-dim shrink-0 transition-transform duration-150 ${open ? 'rotate-90' : ''}`}
+                    className={`w-3.5 h-3.5 text-pulse-muted shrink-0 transition-transform duration-150 ${open ? 'rotate-90' : ''}`}
                     viewBox="0 0 16 16"
                     fill="none"
                     stroke="currentColor"
@@ -111,7 +136,7 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
             </button>
 
             {open && (
-                <div className="border-t border-pulse-border px-4 pt-1 pb-4">
+                <div className="px-[1.125rem] pt-1 pb-4 flex flex-col gap-2.5">
                     {warmupSets.length > 0 && (
                         <div className="pb-3 border-b border-pulse-border mb-1">
                             <div className="font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted mb-1.5">
@@ -132,7 +157,7 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                     {Array.from({ length: maxSets }, (_, i) => {
                         const key = logKey(week, re.id, i);
                         const entry = logs[key];
-                        const isPR = !!(entry?.saved && bestE1RM > 0 && calcE1RM(entry.kg, entry.reps) >= bestE1RM);
+                        const isPR = !!(entry?.saved && isSetPR(entry.kg, entry.reps, re.id, prMap));
                         const prevKey = logKey(week - 1, re.id, i);
                         const prevEntry = week > 1 ? logs[prevKey] : undefined;
                         return (
@@ -145,7 +170,7 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                                 previousEntry={prevEntry?.saved ? prevEntry : undefined}
                                 isPR={isPR}
                                 unit={unit}
-                                onSave={(e) => onSave(key, e)}
+                                onSave={(e) => handleSetSave(key, e)}
                                 onDelete={() => onDelete(key)}
                             />
                         );
@@ -174,7 +199,10 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                                 <p className="font-pulse text-[0.8125rem] text-pulse-dim leading-relaxed">{note}</p>
                                 <div className="flex gap-3 mt-1 justify-end">
                                     <button
-                                        onClick={() => { setNoteDraft(note); setNoteEditing(true); }}
+                                        onClick={() => {
+                                            setNoteDraft(note);
+                                            setNoteEditing(true);
+                                        }}
                                         className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer">
                                         Edit
                                     </button>
@@ -187,7 +215,10 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                             </div>
                         ) : (
                             <button
-                                onClick={() => { setNoteDraft(''); setNoteEditing(true); }}
+                                onClick={() => {
+                                    setNoteDraft('');
+                                    setNoteEditing(true);
+                                }}
                                 className="w-full text-left font-pulse text-[0.8125rem] text-pulse-dim border border-dashed border-pulse-border rounded-lg px-3 py-2 cursor-pointer bg-transparent tracking-[0.02em]">
                                 + Add note
                             </button>

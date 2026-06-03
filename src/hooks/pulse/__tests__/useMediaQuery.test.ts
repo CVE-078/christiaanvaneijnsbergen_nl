@@ -37,4 +37,24 @@ describe('useMediaQuery', () => {
         act(() => mql.dispatch(true));
         expect(result.current).toBe(true);
     });
+
+    it('reads the match synchronously on the first render (no false-to-true flip)', () => {
+        const matchMedia = vi.fn().mockReturnValue({
+            matches: true,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        });
+        Object.defineProperty(window, 'matchMedia', { writable: true, value: matchMedia });
+
+        const renders: boolean[] = [];
+        renderHook(() => {
+            const value = useMediaQuery('(min-width: 1024px)');
+            renders.push(value);
+            return value;
+        });
+
+        // First render already reflects the real viewport, so it never starts false.
+        expect(renders[0]).toBe(true);
+        expect(matchMedia).toHaveBeenCalledWith('(min-width: 1024px)');
+    });
 });

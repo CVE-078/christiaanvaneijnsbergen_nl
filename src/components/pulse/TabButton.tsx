@@ -36,9 +36,10 @@ export default function TabButton({
             } ${className}`}>
             {children}
             {badge != null && (
-                <span className={`font-pulse text-[0.625rem] rounded-full px-1.5 py-0.5 ${
-                    active ? 'bg-pulse-accent/15 text-pulse-accent' : 'bg-pulse-surface-2 text-pulse-dim'
-                }`}>
+                <span
+                    className={`font-pulse text-[0.625rem] rounded-full px-1.5 py-0.5 ${
+                        active ? 'bg-pulse-accent/15 text-pulse-accent' : 'bg-pulse-surface-2 text-pulse-dim'
+                    }`}>
                     {badge}
                 </span>
             )}

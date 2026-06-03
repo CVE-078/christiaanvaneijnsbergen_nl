@@ -10,8 +10,14 @@ import { usePulse } from '@/context/PulseContext';
 import type { RoutineWithExercises, RoutineExercise } from '@/lib/pulse/types';
 
 const makeRE = (id: string, name: string, type: 'push' | 'pull' | 'legs' | 'full_body'): RoutineExercise => ({
-    id, routine_id: 'r1', exercise_id: id,
-    workout_type: type, variant: null, order: 0, sets: '3', reps: '8',
+    id,
+    routine_id: 'r1',
+    exercise_id: id,
+    workout_type: type,
+    variant: null,
+    order: 0,
+    sets: '3',
+    reps: '8',
     starting_weight_kg: null,
     exercise: { id, name, category: 'chest', default_sets: '3', default_reps: '8', user_id: null },
 });
@@ -46,7 +52,11 @@ describe('ProgramView', () => {
 
     it('shows only one section when schedule has a single workout type', () => {
         const routine: RoutineWithExercises = {
-            id: 'r1', user_id: 'u1', name: 'Full Body', created_at: '', schedule: [],
+            id: 'r1',
+            user_id: 'u1',
+            name: 'Full Body',
+            created_at: '',
+            schedule: [],
             exercises: [pushRE, pullRE, legsRE],
         };
         vi.mocked(usePulse).mockReturnValue({

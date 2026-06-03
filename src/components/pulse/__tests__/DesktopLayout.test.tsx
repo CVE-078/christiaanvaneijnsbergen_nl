@@ -1,14 +1,5 @@
 import { vi } from 'vitest';
 
-const mockRoutine = {
-    id: 'r1',
-    user_id: 'u1',
-    name: 'PPL',
-    created_at: '2026-01-01',
-    exercises: [],
-    schedule: [],
-};
-
 const mockContext = {
     navigate: vi.fn(),
     activeWeek: 3,
@@ -21,7 +12,13 @@ const mockContext = {
     activeSchedule: [],
     setActiveWeek: vi.fn(),
     logs: {},
-    profile: { unit: 'kg' as const, display_name: null, active_routine_id: null, onboarding_completed: false, goal_weight_kg: null },
+    profile: {
+        unit: 'kg' as const,
+        display_name: null,
+        active_routine_id: null,
+        onboarding_completed: false,
+        goal_weight_kg: null,
+    },
     prMap: {},
     updateLog: vi.fn(),
     deleteLog: vi.fn(),
@@ -82,9 +79,9 @@ describe('DesktopLayout', () => {
         vi.mocked(usePulse).mockReturnValue({ ...mockContext });
     });
 
-    it('renders the brand name in the sidebar', () => {
+    it('renders the brand mark in the icon rail', () => {
         render(<DesktopLayout {...defaultProps} />);
-        expect(screen.getByText(/pulse/i)).toBeInTheDocument();
+        expect(screen.getByText('P')).toBeInTheDocument();
     });
 
     it('renders all five nav items', () => {
@@ -103,14 +100,42 @@ describe('DesktopLayout', () => {
         expect(navigate).toHaveBeenCalledWith('progress');
     });
 
-    it('shows the active week padded to 2 digits', () => {
-        render(<DesktopLayout {...defaultProps} />);
-        expect(screen.getByText('WK 03')).toBeInTheDocument();
+    it('marks the active nav item with aria-current', () => {
+        render(<DesktopLayout {...defaultProps} view="train" />);
+        expect(screen.getByRole('button', { name: /^train$/i })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: /^plan$/i })).not.toHaveAttribute('aria-current');
     });
 
-    it('shows streak when streak > 0', () => {
+    it('renders the context-rail Today set count and total', () => {
         render(<DesktopLayout {...defaultProps} />);
-        expect(screen.getByText(/2WK/)).toBeInTheDocument();
+        expect(screen.getByText('Today')).toBeInTheDocument();
+        // With empty logs/routine the count is 0 and total is 0.
+        expect(screen.getByText(/\/ 0 sets/)).toBeInTheDocument();
+        expect(screen.getByText(/session in progress/i)).toBeInTheDocument();
+    });
+
+    it('renders the context-rail stat blocks', () => {
+        render(<DesktopLayout {...defaultProps} />);
+        expect(screen.getByText('Streak')).toBeInTheDocument();
+        expect(screen.getByText('Session volume')).toBeInTheDocument();
+        expect(screen.getByText('Target intensity')).toBeInTheDocument();
+    });
+
+    it('shows the target RIR for the active week', () => {
+        render(<DesktopLayout {...defaultProps} />);
+        // Week 3 is Phase 1 with target RIR 2.
+        expect(screen.getByText(/RIR 2/)).toBeInTheDocument();
+    });
+
+    it('shows the streak value', () => {
+        render(<DesktopLayout {...defaultProps} />);
+        expect(screen.getByText('2')).toBeInTheDocument();
+        expect(screen.getByText(/weeks/)).toBeInTheDocument();
+    });
+
+    it('shows the active week in the phase context line', () => {
+        render(<DesktopLayout {...defaultProps} />);
+        expect(screen.getByText(/Week 03/)).toBeInTheDocument();
     });
 
     it('does not render a save error banner (errors shown via toast)', () => {
@@ -123,14 +148,8 @@ describe('DesktopLayout', () => {
         expect(screen.queryByRole('button', { name: /export/i })).not.toBeInTheDocument();
     });
 
-    it('shows active routine name in context card', () => {
-        vi.mocked(usePulse).mockReturnValueOnce({ ...mockContext, activeRoutine: mockRoutine });
+    it('renders a sign out button', () => {
         render(<DesktopLayout {...defaultProps} />);
-        expect(screen.getByText('PPL')).toBeInTheDocument();
-    });
-
-    it('shows "No routine" in context card when no active routine', () => {
-        render(<DesktopLayout {...defaultProps} />);
-        expect(screen.getByText(/no routine/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
     });
 });

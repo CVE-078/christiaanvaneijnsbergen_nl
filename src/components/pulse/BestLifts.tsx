@@ -16,49 +16,38 @@ export default function BestLifts({ allRoutineExercises, bestSets, unit }: BestL
         .sort((a, b) => b.best.e1rm - a.best.e1rm);
 
     if (entries.length === 0) {
-        return (
-            <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">
-                No sets logged yet.
-            </p>
-        );
+        return <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">No sets logged yet.</p>;
     }
 
-    const grouped = WORKOUT_TYPE_ORDER
-        .map((type) => ({
-            type,
-            items: entries.filter((e) => e.re.workout_type === type),
-        }))
-        .filter((g) => g.items.length > 0);
+    const grouped = WORKOUT_TYPE_ORDER.map((type) => ({
+        type,
+        items: entries.filter((e) => e.re.workout_type === type),
+    })).filter((g) => g.items.length > 0);
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
             {grouped.map(({ type, items }) => (
                 <div key={type}>
-                    <div className="font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-dim mb-1">
+                    <div className="font-pulse text-[0.6875rem] tracking-[0.16em] uppercase text-pulse-muted mb-2">
                         {WORKOUT_TYPE_LABELS[type]}
                     </div>
                     <div className="flex flex-col">
                         {items.map(({ re, best }, idx) => (
                             <div
                                 key={re.id}
-                                className="flex items-center gap-3 py-[6px] border-b border-pulse-border last:border-0">
-                                <span className="font-pulse text-[0.6875rem] text-pulse-dim w-4 shrink-0 text-right">
-                                    {idx + 1}
-                                </span>
-                                <span className="text-pulse-text text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                                className="flex items-baseline justify-between gap-3 py-[13px] border-b border-pulse-border last:border-0">
+                                <span className="text-pulse-text text-[0.9rem] overflow-hidden text-ellipsis whitespace-nowrap">
                                     {re.exercise.name}
                                 </span>
-                                <span className="font-pulse text-white font-semibold text-sm shrink-0">
-                                    {toDisplay(best.kg, unit)} {unit} × {best.reps}
-                                </span>
-                                <span className="font-pulse text-[0.6875rem] text-pulse-dim shrink-0">
-                                    {Math.round(toDisplay(best.e1rm, unit))} e1RM
-                                </span>
-                                {idx === 0 && (
-                                    <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
-                                        PR
+                                <span
+                                    className={`font-pulse text-base font-medium shrink-0 ${
+                                        idx === 0 ? 'text-pulse-accent' : 'text-pulse-text'
+                                    }`}>
+                                    {toDisplay(best.kg, unit)}
+                                    <span className="font-pulse-body text-[0.75rem] text-pulse-muted ml-[3px]">
+                                        {unit} × {best.reps}
                                     </span>
-                                )}
+                                </span>
                             </div>
                         ))}
                     </div>

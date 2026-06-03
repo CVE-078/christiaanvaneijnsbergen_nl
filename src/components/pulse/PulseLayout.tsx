@@ -1,11 +1,26 @@
 'use client';
 import { useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { Hanken_Grotesk, Sora } from 'next/font/google';
 import { PulseProvider } from './PulseProvider';
 import { AppShell } from './AppShell';
 import { ToastProvider } from '@/lib/pulse/toast';
 import ToastContainer from './ToastContainer';
 import type { View, Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
+
+const hanken = Hanken_Grotesk({
+    subsets: ['latin'],
+    weight: ['400', '500', '600', '700'],
+    variable: '--font-pulse',
+    display: 'swap',
+});
+
+const sora = Sora({
+    subsets: ['latin'],
+    weight: ['400', '500', '600'],
+    variable: '--font-pulse-body',
+    display: 'swap',
+});
 
 const PATH_TO_VIEW: Record<string, View> = {
     '/pulse/train': 'train',
@@ -31,18 +46,23 @@ export default function PulseLayout({ children, ...providerProps }: Props) {
     const pathname = usePathname();
     const view = (pathname ? PATH_TO_VIEW[pathname] : undefined) ?? 'train';
 
-    const navigate = useCallback((v: View) => {
-        router.push(`/pulse/${v}`);
-    }, [router]);
+    const navigate = useCallback(
+        (v: View) => {
+            router.push(`/pulse/${v}`);
+        },
+        [router],
+    );
 
     return (
-        <ToastProvider>
-            <PulseProvider {...providerProps} navigate={navigate}>
-                <AppShell view={view} navigate={navigate}>
-                    {children}
-                </AppShell>
-                <ToastContainer />
-            </PulseProvider>
-        </ToastProvider>
+        <div className={`${hanken.variable} ${sora.variable}`}>
+            <ToastProvider>
+                <PulseProvider {...providerProps} navigate={navigate}>
+                    <AppShell view={view} navigate={navigate}>
+                        {children}
+                    </AppShell>
+                    <ToastContainer />
+                </PulseProvider>
+            </ToastProvider>
+        </div>
     );
 }

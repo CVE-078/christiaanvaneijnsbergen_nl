@@ -24,7 +24,6 @@ export interface PulseContextValue {
     logs: Logs;
     profile: Profile;
     bodyweightLogs: BodyweightEntry[];
-    isLoading: boolean;
 
     // Computed (memoized in PulseProvider)
     streak: number;
@@ -99,7 +98,12 @@ export interface PulseContextValue {
     completeOnboarding: () => Promise<void>;
 
     // Exercise library mutations
-    createExercise: (name: string, category: ExerciseCategory, defaultSets: string, defaultReps: string) => Promise<DbExercise>;
+    createExercise: (
+        name: string,
+        category: ExerciseCategory,
+        defaultSets: string,
+        defaultReps: string,
+    ) => Promise<DbExercise>;
     updateExercise: (id: string, name: string, defaultSets: string, defaultReps: string) => Promise<void>;
     deleteExercise: (id: string) => Promise<void>;
 }

@@ -95,7 +95,9 @@ describe('useRoutines', () => {
         vi.mocked(useSWR)
             .mockReturnValueOnce({ data: undefined, mutate: exercisesMutate } as unknown as ReturnType<typeof useSWR>)
             // routines SWR returns normal data
-            .mockReturnValueOnce({ data: defaultRoutines, mutate: routinesMutate } as unknown as ReturnType<typeof useSWR>);
+            .mockReturnValueOnce({ data: defaultRoutines, mutate: routinesMutate } as unknown as ReturnType<
+                typeof useSWR
+            >);
 
         const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
         expect(result.current.exercises).toEqual(defaultExercises);

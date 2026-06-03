@@ -3,9 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { ToastProvider, useToast } from '../toast';
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-    <ToastProvider>{children}</ToastProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) => <ToastProvider>{children}</ToastProvider>;
 
 describe('useToast', () => {
     it('starts with no toasts', () => {
@@ -15,20 +13,26 @@ describe('useToast', () => {
 
     it('show() adds a toast with the given message', () => {
         const { result } = renderHook(() => useToast(), { wrapper });
-        act(() => { result.current.show('Hello world'); });
+        act(() => {
+            result.current.show('Hello world');
+        });
         expect(result.current.toasts).toHaveLength(1);
         expect(result.current.toasts[0].message).toBe('Hello world');
     });
 
     it('show() defaults variant to info', () => {
         const { result } = renderHook(() => useToast(), { wrapper });
-        act(() => { result.current.show('Info toast'); });
+        act(() => {
+            result.current.show('Info toast');
+        });
         expect(result.current.toasts[0].variant).toBe('info');
     });
 
     it('show() respects explicit variant', () => {
         const { result } = renderHook(() => useToast(), { wrapper });
-        act(() => { result.current.show('Boom', 'error'); });
+        act(() => {
+            result.current.show('Boom', 'error');
+        });
         expect(result.current.toasts[0].variant).toBe('error');
     });
 
@@ -39,7 +43,9 @@ describe('useToast', () => {
             result.current.show('B');
         });
         const id = result.current.toasts[0].id;
-        act(() => { result.current.dismiss(id); });
+        act(() => {
+            result.current.dismiss(id);
+        });
         expect(result.current.toasts).toHaveLength(1);
         expect(result.current.toasts[0].message).toBe('B');
     });

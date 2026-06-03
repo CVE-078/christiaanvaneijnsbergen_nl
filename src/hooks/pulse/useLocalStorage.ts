@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 
 export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T) => void] {
-    const [value, setValue] = useState<T>(() => {
-        if (typeof window === 'undefined') return defaultValue;
+    const [value, setValue] = useState<T>(defaultValue);
+
+    useEffect(() => {
         try {
             const stored = localStorage.getItem(key);
-            return stored !== null ? (JSON.parse(stored) as T) : defaultValue;
+            if (stored !== null) setValue(JSON.parse(stored) as T);
         } catch {
-            return defaultValue;
+            // localStorage unavailable or invalid JSON, keep the default value.
         }
-    });
+        // Read once on mount so the first client render matches the server render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         try {

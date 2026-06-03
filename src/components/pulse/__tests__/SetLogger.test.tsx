@@ -22,11 +22,12 @@ describe('SetLogger', () => {
         expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
     });
 
-    it('shows a checkmark and no Save button when entry is saved', () => {
+    it('shows the saved value and no Save button when entry is saved', () => {
         const savedEntry: LogEntry = { kg: 60, reps: 10, rir: 3, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} />);
         expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
-        expect(screen.getByText('✓')).toBeInTheDocument();
+        expect(screen.getByText(/60 kg/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
     });
 
     it('pre-fills inputs with saved values when Edit is clicked', async () => {
@@ -47,7 +48,7 @@ describe('SetLogger', () => {
         await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
         // Back to saved view â€” no Cancel button visible
         expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
-        expect(screen.getByText('✓')).toBeInTheDocument();
+        expect(screen.getByText(/80 kg/)).toBeInTheDocument();
     });
 
     it('calls onSave with a valid LogEntry when Save is clicked', async () => {
@@ -74,11 +75,6 @@ describe('SetLogger', () => {
         render(<SetLogger {...defaultProps} entry={savedEntry} onDelete={onDelete} />);
         await userEvent.click(screen.getByRole('button', { name: /✕/i }));
         expect(onDelete).toHaveBeenCalledTimes(1);
-    });
-
-    it('shows the correct set number label', () => {
-        render(<SetLogger {...defaultProps} setIdx={2} />);
-        expect(screen.getByText('03')).toBeInTheDocument();
     });
 
     it('displays the RIR target for the given week', () => {
@@ -109,5 +105,25 @@ describe('SetLogger', () => {
         const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} isPR={false} />);
         expect(screen.queryByText('PR')).not.toBeInTheDocument();
+    });
+
+    it('shows the plate calculator affordance on a saved set above the handle weight', () => {
+        const savedEntry: LogEntry = { kg: 60, reps: 8, rir: 2, saved: true };
+        render(<SetLogger {...defaultProps} entry={savedEntry} />);
+        expect(screen.getByRole('button', { name: /plate calculator/i })).toBeInTheDocument();
+    });
+
+    it('hides the plate calculator affordance when no weight is entered', () => {
+        render(<SetLogger {...defaultProps} />);
+        expect(screen.queryByRole('button', { name: /plate calculator/i })).not.toBeInTheDocument();
+    });
+
+    it('opens the plate calculator and shows per-side chips for the target weight', async () => {
+        const savedEntry: LogEntry = { kg: 100, reps: 8, rir: 2, saved: true };
+        render(<SetLogger {...defaultProps} entry={savedEntry} />);
+        await userEvent.click(screen.getByRole('button', { name: /plate calculator/i }));
+        expect(screen.getByText(/per side/i)).toBeInTheDocument();
+        // 100 kg barbell -> 40 per side -> [25, 15]
+        expect(screen.getByText(/25 kg/)).toBeInTheDocument();
     });
 });

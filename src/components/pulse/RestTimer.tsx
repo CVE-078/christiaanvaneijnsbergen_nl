@@ -88,46 +88,60 @@ export default function RestTimer({ trigger, duration }: Props) {
     const done = remaining === 0;
     const pct = Math.max(0, remaining / totalRef.current);
 
+    const circumference = 2 * Math.PI * 18;
+    const dashOffset = circumference * (1 - pct);
+
     return (
-        <div className="border-b border-pulse-border bg-pulse-surface overflow-hidden">
-            <div className="flex items-center gap-3 py-2 px-4">
-                <span
-                    className={`font-pulse text-[0.75rem] tracking-[0.12em] uppercase ${done ? 'text-pulse-accent' : 'text-pulse-dim'}`}>
-                    {done ? 'Go!' : 'Rest'}
-                </span>
-                <span
-                    className={`font-pulse text-base font-bold tracking-[0.04em] min-w-[2.75rem] ${done ? 'text-pulse-accent' : 'text-white'}`}>
-                    {fmt(remaining)}
-                </span>
-                <div className="ml-auto flex gap-2 items-center">
+        <div className="bg-pulse-surface rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-4 py-4 px-[1.125rem]">
+                <div className="relative w-[42px] h-[42px] shrink-0">
+                    <svg width="42" height="42" viewBox="0 0 42 42" className="-rotate-90">
+                        <circle cx="21" cy="21" r="18" fill="none" stroke="var(--color-pulse-border)" strokeWidth="3" />
+                        {/* dashoffset is a runtime ratio — must stay inline */}
+                        <circle
+                            cx="21"
+                            cy="21"
+                            r="18"
+                            fill="none"
+                            stroke="var(--color-pulse-accent)"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeDasharray={circumference}
+                            style={{ strokeDashoffset: dashOffset }}
+                        />
+                    </svg>
+                </div>
+                <div>
+                    <div
+                        className={`font-pulse text-xl font-medium tracking-[-0.01em] [font-variant-numeric:tabular-nums] ${done ? 'text-pulse-accent' : 'text-pulse-text'}`}>
+                        {fmt(remaining)}
+                    </div>
+                    <div className="font-pulse text-[0.78125rem] tracking-[0.04em] text-pulse-muted">
+                        {done ? 'Go!' : 'Rest before next set'}
+                    </div>
+                </div>
+                <div className="ml-auto flex gap-2.5 items-center">
                     {!done && (
                         <button
                             onClick={addTime}
                             aria-label="Add 30 seconds"
-                            className="font-pulse text-[0.75rem] tracking-[0.06em] text-pulse-dim bg-transparent border border-[#2a2a2a] rounded-sm py-[0.2rem] px-[0.4rem] cursor-pointer">
+                            className="font-pulse text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0">
                             +30s
                         </button>
                     )}
                     <button
                         onClick={cycleDuration}
                         aria-label={`Rest duration: ${DURATIONS[durationIdx]}s. Click to change.`}
-                        className="font-pulse text-[0.75rem] tracking-[0.06em] text-pulse-dim bg-transparent border border-[#2a2a2a] rounded-sm py-[0.2rem] px-[0.4rem] cursor-pointer">
+                        className="font-pulse text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0">
                         {DURATIONS[durationIdx]}s
                     </button>
                     <button
                         onClick={skip}
                         aria-label="Skip rest timer"
-                        className="font-pulse text-[0.75rem] tracking-[0.06em] text-pulse-dim bg-transparent border-none cursor-pointer py-[0.2rem] px-0">
+                        className="font-pulse text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0">
                         Skip
                     </button>
                 </div>
-            </div>
-            <div className="h-[2px] bg-pulse-surface-2">
-                {/* width is a runtime ratio — must stay inline */}
-                <div
-                    className={`h-full transition-[width] duration-1000 ease-linear ${done ? 'bg-pulse-accent' : 'bg-pulse-accent/60'}`}
-                    style={{ width: `${pct * 100}%` }}
-                />
             </div>
         </div>
     );

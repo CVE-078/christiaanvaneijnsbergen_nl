@@ -4,38 +4,32 @@ import type { Logs } from '@/lib/pulse/types';
 
 interface StreakCalendarProps {
     logs: Logs;
+    // The week currently being trained, highlighted with an accent ring.
+    currentWeek?: number;
 }
 
-export default function StreakCalendar({ logs }: StreakCalendarProps) {
+export default function StreakCalendar({ logs, currentWeek }: StreakCalendarProps) {
     return (
-        <svg viewBox="0 0 300 28" className="w-full h-7" aria-hidden="true">
+        <div className="flex flex-wrap items-center gap-3" aria-hidden="true">
             {Array.from({ length: 12 }, (_, i) => {
                 const week = i + 1;
                 const filled = weekHasData(week, logs);
-                const cx = 16 + i * 22;
+                const isNow = week === currentWeek;
+                let cellClass: string;
+                if (isNow) {
+                    cellClass = 'bg-pulse-surface ring-2 ring-pulse-accent ring-offset-2 ring-offset-pulse-bg';
+                } else if (filled) {
+                    cellClass = 'bg-pulse-accent';
+                } else {
+                    cellClass = 'bg-pulse-surface-2';
+                }
                 return (
-                    <g key={week}>
-                        <circle
-                            cx={cx}
-                            cy={14}
-                            r={9}
-                            fill={filled ? 'var(--color-pulse-accent)' : 'var(--color-pulse-surface)'}
-                            stroke={filled ? 'var(--color-pulse-accent)' : 'var(--color-pulse-border)'}
-                            strokeWidth={1}
-                        />
-                        <text
-                            x={cx}
-                            y={18}
-                            textAnchor="middle"
-                            fontSize="7"
-                            fontFamily="var(--font-pulse)"
-                            fill={filled ? 'var(--color-pulse-bg)' : 'var(--color-pulse-dim)'}
-                        >
-                            {week}
-                        </text>
-                    </g>
+                    <div key={week} className="flex flex-col items-center gap-[7px]">
+                        <span className={`block w-[22px] h-[22px] rounded-[7px] ${cellClass}`} />
+                        <span className="font-pulse text-[0.625rem] tracking-[0.04em] text-pulse-muted">{week}</span>
+                    </div>
                 );
             })}
-        </svg>
+        </div>
     );
 }

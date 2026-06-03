@@ -5,11 +5,16 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'train',
         label: 'Train',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
-                <rect x="3" y="3" width="6" height="6" rx="1.5" />
-                <rect x="11" y="3" width="6" height="6" rx="1.5" />
-                <rect x="3" y="11" width="6" height="6" rx="1.5" />
-                <rect x="11" y="11" width="6" height="6" rx="1.5" />
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[21px] h-[21px]"
+                aria-hidden>
+                <path d="M3 12l9-8 9 8M5 10v10h14V10" />
             </svg>
         ),
     },
@@ -17,9 +22,16 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'plan',
         label: 'Plan',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
-                <polyline points="3,14 7,9 11,11 17,5" />
-                <line x1="3" y1="17" x2="17" y2="17" />
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[21px] h-[21px]"
+                aria-hidden>
+                <path d="M4 6h16M4 12h16M4 18h10" />
             </svg>
         ),
     },
@@ -27,9 +39,16 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'progress',
         label: 'Progress',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
-                <circle cx="10" cy="10" r="7" />
-                <polyline points="10,6 10,10 13,12" />
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[21px] h-[21px]"
+                aria-hidden>
+                <path d="M4 19V9m5 10V5m5 14v-7m5 7V11" />
             </svg>
         ),
     },
@@ -37,9 +56,17 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'profile',
         label: 'Profile',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
-                <circle cx="10" cy="7" r="3" />
-                <path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" />
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[21px] h-[21px]"
+                aria-hidden>
+                <circle cx="12" cy="8" r="3.4" />
+                <path d="M5 20c1-3.6 4-5 7-5s6 1.4 7 5" />
             </svg>
         ),
     },
@@ -47,10 +74,17 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'explore',
         label: 'Explore',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
-                <rect x="3" y="4" width="4" height="12" rx="1" />
-                <rect x="8" y="4" width="4" height="12" rx="1" />
-                <rect x="13" y="4" width="4" height="12" rx="1" />
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[21px] h-[21px]"
+                aria-hidden>
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.2-3.2" />
             </svg>
         ),
     },
@@ -65,7 +99,7 @@ export default function BottomNav({ view, onNavigate }: Props) {
     return (
         <nav
             aria-label="Main navigation"
-            className="fixed bottom-0 left-0 right-0 flex h-16 bg-pulse-bg/95 backdrop-blur-sm border-t border-pulse-border z-30"
+            className="fixed bottom-0 left-0 right-0 flex h-16 bg-pulse-surface border-t border-pulse-border z-30"
             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
             {ITEMS.map(({ id, label, icon }) => {
                 const active = view === id;
@@ -75,9 +109,9 @@ export default function BottomNav({ view, onNavigate }: Props) {
                         onClick={() => onNavigate(id)}
                         aria-current={active ? 'page' : undefined}
                         aria-label={label}
-                        className={`flex-1 flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer py-2 transition-colors duration-150 ${active ? 'text-pulse-accent' : 'text-pulse-muted'}`}>
+                        className={`flex-1 flex flex-col items-center justify-center gap-[5px] bg-transparent border-none cursor-pointer py-2 transition-colors duration-150 ${active ? 'text-pulse-accent' : 'text-pulse-muted'}`}>
                         {icon}
-                        <span className="font-pulse text-[0.625rem] font-semibold">{label}</span>
+                        <span className="font-pulse-body text-[0.6875rem] tracking-[0.04em]">{label}</span>
                     </button>
                 );
             })}

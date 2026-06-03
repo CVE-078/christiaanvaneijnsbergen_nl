@@ -4,27 +4,24 @@ import {
     logBodyWeight as serverLogBodyWeight,
     deleteBodyWeight as serverDeleteBodyWeight,
 } from '@/app/pulse/actions';
+import { fetcher } from '@/lib/pulse/fetcher';
 import type { Profile, BodyweightEntry, Unit } from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
 const BODYWEIGHT_KEY = '/api/pulse/bodyweight';
 
-async function fetcher<T>(url: string): Promise<T> {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch');
-    return res.json() as Promise<T>;
-}
-
 export function useProfile(initialProfile: Profile, initialBodyweightLogs: BodyweightEntry[]) {
     const { data: profileData, mutate: mutateProfile } = useSWR<Profile>(PROFILE_KEY, fetcher, {
         fallbackData: initialProfile,
-        revalidateOnFocus: true,
+        revalidateOnFocus: false,
+        revalidateIfStale: false,
     });
     const profile = profileData ?? initialProfile;
 
     const { data: bwData, mutate: mutateBW } = useSWR<BodyweightEntry[]>(BODYWEIGHT_KEY, fetcher, {
         fallbackData: initialBodyweightLogs,
-        revalidateOnFocus: true,
+        revalidateOnFocus: false,
+        revalidateIfStale: false,
     });
     const bodyweightLogs = bwData ?? initialBodyweightLogs;
 

@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse — Quiet Focus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* Warm-light sand/clay/cream */
+    --sand-0: #fbf6ee;
+    --sand-1: #f5ede0;
+    --sand-2: #efe4d3;
+    --sand-3: #e7d8c2;
+    --line: #ddcdb4;
+    --ink: #2c2620;
+    --ink-soft: #5e564b;
+    --ink-mute: #938876;
+    --card: #fffdf8;
+    --card-2: #fdf8f0;
+    /* Single calm accent: terracotta clay */
+    --clay: #c4623c;
+    --clay-deep: #a64e2d;
+    --clay-soft: #e8b79f;
+    --clay-tint: #f6e2d6;
+    /* secondary supportive tones */
+    --sage: #7d8b6a;
+    --sage-tint: #e6ead9;
+    --gold: #c79a3e;
+    --shadow: 0 1px 2px rgba(54,40,24,.05), 0 6px 18px rgba(54,40,24,.07);
+    --shadow-lg: 0 2px 6px rgba(54,40,24,.06), 0 18px 44px rgba(54,40,24,.12);
+    --radius: 20px;
+    --radius-sm: 13px;
+    --radius-xs: 9px;
+    --display: "Fraunces", Georgia, serif;
+    --body: "Be Vietnam Pro", sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body {
+    font-family: var(--body);
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 600px at 12% -8%, #fff6e8 0%, transparent 55%),
+      radial-gradient(900px 700px at 100% 0%, #f7ede0 0%, transparent 50%),
+      linear-gradient(180deg, var(--sand-1), var(--sand-0));
+    background-attachment: fixed;
+    padding: 30px 24px 70px;
+    line-height: 1.45;
+  }
+  /* subtle grain overlay */
+  body::before {
+    content: "";
+    position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: .035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- page scaffolding ---------- */
+  .page-head {
+    max-width: 1500px; margin: 0 auto 30px; display: flex; align-items: flex-end;
+    justify-content: space-between; flex-wrap: wrap; gap: 18px;
+  }
+  .ph-left { display: flex; align-items: center; gap: 16px; }
+  .ph-mark {
+    width: 50px; height: 50px; border-radius: 15px; flex: none;
+    background: linear-gradient(150deg, var(--clay), var(--clay-deep));
+    display: grid; place-items: center; box-shadow: var(--shadow);
+    position: relative;
+  }
+  .ph-mark svg { width: 28px; height: 28px; }
+  .ph-titles h1 { font-family: var(--display); font-weight: 600; font-size: 30px; letter-spacing: -.01em; line-height: 1; }
+  .ph-titles h1 .dot { color: var(--clay); }
+  .ph-titles p { color: var(--ink-mute); font-size: 13px; margin-top: 5px; }
+  .ph-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill {
+    font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    padding: 7px 12px; border-radius: 999px; background: var(--card);
+    border: 1px solid var(--line); color: var(--ink-soft); box-shadow: var(--shadow);
+  }
+  .pill.accent { background: var(--clay-tint); border-color: var(--clay-soft); color: var(--clay-deep); }
+
+  .frames {
+    max-width: 1500px; margin: 0 auto;
+    display: grid; grid-template-columns: minmax(0,1fr) 390px; gap: 26px; align-items: start;
+  }
+  @media (max-width: 1180px){ .frames { grid-template-columns: 1fr; } }
+
+  .frame-label {
+    font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 11px; display: flex; align-items: center; gap: 9px;
+  }
+  .frame-label::before { content: ""; width: 22px; height: 2px; background: var(--clay); border-radius: 2px; }
+
+  /* ---------- DESKTOP FRAME ---------- */
+  .desktop {
+    background: var(--sand-0);
+    border: 1px solid var(--line); border-radius: 26px; box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  .dt-bar {
+    height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 16px;
+    background: var(--sand-2); border-bottom: 1px solid var(--line);
+  }
+  .dt-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--sand-3); display: inline-block; }
+  .dt-bar i:nth-child(1){ background:#d98c6f;} .dt-bar i:nth-child(2){ background:#dcc07e;} .dt-bar i:nth-child(3){ background:#a9c194;}
+  .dt-bar span { margin-left: 12px; font-size: 11px; color: var(--ink-mute); letter-spacing: .03em; }
+
+  .dt-shell { display: grid; grid-template-columns: 78px 1fr; min-height: 880px; }
+
+  /* sidebar */
+  .sidebar {
+    background: linear-gradient(180deg, var(--sand-2), var(--sand-1));
+    border-right: 1px solid var(--line); padding: 18px 0;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+  .sb-logo { width: 42px; height: 42px; border-radius: 13px; background: linear-gradient(150deg, var(--clay), var(--clay-deep)); display: grid; place-items: center; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .sb-logo svg { width: 23px; height: 23px; }
+  .nav-i {
+    width: 54px; height: 54px; border-radius: 15px; display: grid; place-items: center; gap: 3px;
+    color: var(--ink-mute); position: relative; cursor: pointer; transition: .2s;
+  }
+  .nav-i svg { width: 21px; height: 21px; }
+  .nav-i small { font-size: 9px; font-weight: 600; letter-spacing: .02em; }
+  .nav-i.on { color: var(--clay-deep); background: var(--card); box-shadow: var(--shadow); }
+  .nav-i.on::before { content:""; position:absolute; left:-18px; top:14px; bottom:14px; width:3px; border-radius:3px; background: var(--clay); }
+  .nav-i:hover:not(.on){ color: var(--ink); background: rgba(255,255,255,.5); }
+  .sb-foot { margin-top: auto; }
+  .sb-ava { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(150deg,var(--sage),#5f6c4f); color:#fff; display:grid; place-items:center; font-weight:700; font-size:14px; box-shadow: var(--shadow); }
+
+  /* desktop main */
+  .dt-main { padding: 22px 26px 26px; overflow: hidden; }
+
+  /* train header */
+  .train-head {
+    display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: stretch;
+    margin-bottom: 18px;
+  }
+  .th-block { display:flex; flex-direction: column; gap: 12px; }
+  .th-top { display:flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .th-top h2 { font-family: var(--display); font-weight: 600; font-size: 27px; letter-spacing: -.01em; }
+  .th-top .sub { color: var(--ink-mute); font-size: 13px; }
+  .week-track {
+    display:flex; gap: 4px; align-items: center; background: var(--card); border:1px solid var(--line);
+    padding: 9px 12px; border-radius: 14px; box-shadow: var(--shadow);
+  }
+  .wk { width: 13px; height: 22px; border-radius: 5px; background: var(--sand-3); position: relative; }
+  .wk.done { background: linear-gradient(180deg, var(--clay-soft), var(--clay)); }
+  .wk.now { background: var(--clay-deep); box-shadow: 0 0 0 3px var(--clay-tint); }
+  .wk.deload { background: var(--sage-tint); }
+  .wk-label { font-size: 11px; color: var(--ink-mute); margin-left: 6px; font-weight: 600; }
+
+  .stat-row { display:flex; gap: 10px; }
+  .stat {
+    background: var(--card); border:1px solid var(--line); border-radius: 14px; padding: 11px 14px;
+    box-shadow: var(--shadow); min-width: 92px;
+  }
+  .stat .k { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-mute); font-weight: 600; }
+  .stat .v { font-family: var(--display); font-size: 21px; font-weight: 600; margin-top: 2px; line-height: 1; }
+  .stat .v small { font-size: 12px; font-family: var(--body); color: var(--ink-mute); font-weight: 500; }
+  .stat.clay { background: linear-gradient(160deg, var(--clay), var(--clay-deep)); border-color: var(--clay-deep); color:#fff; }
+  .stat.clay .k { color: rgba(255,255,255,.78); }
+  .stat.clay .v small { color: rgba(255,255,255,.8); }
+
+  /* rest timer */
+  .rest-timer {
+    background: var(--card); border:1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+    padding: 14px 16px; display:flex; align-items: center; gap: 14px; min-width: 220px;
+  }
+  .rt-ring { position: relative; width: 58px; height: 58px; flex:none; }
+  .rt-ring svg { transform: rotate(-90deg); }
+  .rt-ring .t { position:absolute; inset:0; display:grid; place-items:center; font-family:var(--display); font-weight:600; font-size:15px; }
+  .rt-info .lab { font-size: 10px; letter-spacing:.07em; text-transform:uppercase; color: var(--ink-mute); font-weight:600; }
+  .rt-info .nm { font-weight: 600; font-size: 14px; margin-top:1px; }
+  .rt-btns { display:flex; gap:6px; margin-top:7px; }
+  .rt-btns button { font: inherit; font-size:11px; font-weight:600; border:1px solid var(--line); background:var(--sand-1); color:var(--ink-soft); border-radius:8px; padding:4px 9px; cursor:pointer; }
+  .rt-btns button.p { background: var(--clay); color:#fff; border-color:var(--clay-deep); }
+
+  /* day selector */
+  .day-sel { display:flex; gap: 8px; margin-bottom: 18px; }
+  .day {
+    flex:1; background: var(--card); border:1px solid var(--line); border-radius: 13px; padding: 9px 8px 10px;
+    text-align:center; cursor:pointer; transition:.18s; box-shadow: var(--shadow);
+  }
+  .day .d { font-size: 11px; color: var(--ink-mute); font-weight: 600; letter-spacing:.04em; }
+  .day .n { font-family: var(--display); font-weight: 600; font-size: 17px; margin: 2px 0 3px; }
+  .day .w { font-size: 10px; color: var(--ink-mute); font-weight:600; text-transform:uppercase; letter-spacing:.02em; }
+  .day.on { background: linear-gradient(160deg, var(--clay), var(--clay-deep)); border-color: var(--clay-deep); color:#fff; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(196,98,60,.28); }
+  .day.on .d, .day.on .w { color: rgba(255,255,255,.85); }
+  .day.rest { opacity:.7; }
+  .day:hover:not(.on){ transform: translateY(-2px); }
+
+  /* train body layout */
+  .train-grid { display:grid; grid-template-columns: 1fr 318px; gap: 18px; }
+
+  .ex-list { display:flex; flex-direction: column; gap: 13px; }
+  .ex-card {
+    background: var(--card); border:1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow:hidden; position: relative;
+  }
+  .ex-card.expanded { border-color: var(--clay-soft); box-shadow: 0 2px 6px rgba(54,40,24,.06), 0 14px 36px rgba(196,98,60,.13); }
+  .ex-head { display:flex; align-items:flex-start; gap: 13px; padding: 14px 16px 12px; }
+  .ex-num {
+    width: 34px; height: 34px; flex:none; border-radius: 11px; background: var(--clay-tint); color: var(--clay-deep);
+    display:grid; place-items:center; font-family:var(--display); font-weight:600; font-size:15px; border:1px solid var(--clay-soft);
+  }
+  .ex-meta { flex:1; min-width:0; }
+  .ex-name { font-family: var(--display); font-weight:600; font-size: 18px; letter-spacing:-.005em; }
+  .ex-presc { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+  .ex-presc b { color: var(--clay-deep); }
+  .ex-last { font-size: 11.5px; color: var(--ink-mute); margin-top: 3px; }
+  .ex-last svg { width:12px; height:12px; vertical-align:-2px; margin-right:3px; }
+  .ex-prog { display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+  .ring-mini { width:40px; height:40px; position:relative; }
+  .ring-mini .pc { position:absolute; inset:0; display:grid; place-items:center; font-size:11px; font-weight:700; color: var(--sage); }
+  .chev { color: var(--ink-mute); width:18px; height:18px; }
+
+  /* set logger */
+  .logger { padding: 0 16px 14px; }
+  .log-grid { width:100%; border-collapse: collapse; }
+  .log-grid th { font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-mute); font-weight:600; text-align:center; padding:3px 4px; }
+  .log-grid th:first-child { text-align:left; }
+  .set-row td { padding: 4px 3px; }
+  .set-cell { background: var(--sand-1); border:1px solid var(--line); border-radius:9px; padding:7px 4px; text-align:center; font-weight:600; font-size:13.5px; }
+  .set-cell.in { color: var(--ink); }
+  .set-no { width:30px; }
+  .set-no span { display:grid; place-items:center; width:24px; height:24px; border-radius:7px; background:var(--sand-2); font-size:11px; font-weight:700; color:var(--ink-mute); margin:0 auto; }
+  .set-row.done .set-cell { background: var(--sage-tint); border-color:#cdd5bd; color: #4f5b3e; }
+  .set-row.done .set-no span { background: var(--sage); color:#fff; }
+  .set-row.target .set-cell { background: var(--clay-tint); border-color: var(--clay-soft); color: var(--clay-deep); border-style:dashed; }
+  .set-row.target .set-no span { background: var(--clay); color:#fff; }
+  .check { width:26px; }
+  .check b { display:grid; place-items:center; width:26px; height:26px; border-radius:8px; border:1.5px solid var(--line); color:var(--ink-mute); cursor:pointer; }
+  .set-row.done .check b { background:var(--sage); border-color:var(--sage); color:#fff; }
+  .check svg { width:15px; height:15px; }
+
+  /* plate calc affordance */
+  .plate-cell { width: 34px; }
+  .plate-btn {
+    width:26px; height:26px; border-radius:8px; border:1px solid var(--line); background: var(--card-2);
+    display:grid; place-items:center; cursor:pointer; color: var(--ink-soft);
+  }
+  .plate-btn svg { width:15px; height:15px; }
+  .plate-row { background: var(--sand-1); border-top:1px dashed var(--line); }
+  .plate-pop { padding:9px 12px 10px; }
+  .plate-pop .ttl { font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-mute); font-weight:600; margin-bottom:6px; display:flex; justify-content:space-between; }
+  .plates { display:flex; gap:6px; align-items:flex-end; }
+  .plate { border-radius:5px; color:#fff; font-size:10px; font-weight:700; display:grid; place-items:center; box-shadow:var(--shadow); }
+  .bar { width:34px; height:6px; background: var(--ink-mute); border-radius:3px; align-self:center; }
+
+  /* live PR badge */
+  .pr-flash {
+    margin: 0 16px 12px; border-radius: 13px; padding: 9px 13px;
+    background: linear-gradient(120deg, #fbeede, #f6dcc7);
+    border:1px solid var(--clay-soft); display:flex; align-items:center; gap:10px;
+    animation: prpulse 2.4s ease-in-out infinite;
+  }
+  @keyframes prpulse { 0%,100%{ box-shadow:0 0 0 0 rgba(196,98,60,.32);} 50%{ box-shadow:0 0 0 7px rgba(196,98,60,0);} }
+  .pr-flash .ic { width:30px; height:30px; flex:none; border-radius:9px; background: linear-gradient(150deg,var(--gold),#a8801f); display:grid; place-items:center; color:#fff; }
+  .pr-flash .ic svg { width:17px;height:17px;}
+  .pr-flash .tx b { font-family:var(--display); font-weight:600; font-size:14px; color: var(--clay-deep); }
+  .pr-flash .tx span { display:block; font-size:11px; color: var(--ink-soft); }
+
+  .ex-note { margin:0 16px 14px; background: var(--card-2); border:1px solid var(--line); border-left:3px solid var(--sage); border-radius:0 11px 11px 0; padding:9px 12px; font-size:12px; color: var(--ink-soft); }
+  .ex-note b { color: var(--ink); }
+  .warmup { margin: 0 16px 12px; display:flex; gap:8px; flex-wrap:wrap; }
+  .warmup .wlab { font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-mute); font-weight:600; align-self:center; }
+  .wchip { font-size:11px; font-weight:600; color:var(--ink-soft); background:var(--sand-1); border:1px solid var(--line); border-radius:999px; padding:4px 10px; }
+
+  .start-cta {
+    width:100%; font:inherit; font-weight:700; font-size:14px; letter-spacing:.01em; color:#fff;
+    background: linear-gradient(150deg, var(--clay), var(--clay-deep)); border:none; border-radius:15px;
+    padding:14px; cursor:pointer; box-shadow: 0 8px 20px rgba(196,98,60,.3); display:flex; align-items:center; justify-content:center; gap:9px;
+  }
+  .start-cta svg { width:18px; height:18px; }
+
+  /* right rail */
+  .rail { display:flex; flex-direction:column; gap:14px; }
+  .rail-card { background: var(--card); border:1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding:15px 16px; }
+  .rc-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
+  .rc-h h4 { font-family:var(--display); font-weight:600; font-size:15px; }
+  .rc-h a { font-size:11px; color:var(--clay-deep); font-weight:600; text-decoration:none; }
+
+  .sess-bar { display:flex; flex-direction:column; gap:9px; }
+  .sb-item { display:flex; align-items:center; gap:10px; }
+  .sb-item .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .sb-item .nm { flex:1; font-size:12.5px; font-weight:500; }
+  .sb-item .ct { font-size:11px; color:var(--ink-mute); font-weight:600; }
+  .progbar { height:5px; border-radius:3px; background:var(--sand-2); overflow:hidden; margin-top:9px; }
+  .progbar i { display:block; height:100%; background: linear-gradient(90deg,var(--clay-soft),var(--clay)); border-radius:3px; }
+
+  .muscle-heat { display:grid; grid-template-columns: repeat(2,1fr); gap:8px; }
+  .mh { background:var(--sand-1); border:1px solid var(--line); border-radius:11px; padding:9px 10px; }
+  .mh .nm { font-size:11px; color:var(--ink-soft); font-weight:600; display:flex; justify-content:space-between; }
+  .mh .nm small { color:var(--ink-mute); font-weight:600; }
+  .mh .track { height:6px; border-radius:3px; background:var(--sand-2); margin-top:6px; overflow:hidden; }
+  .mh .track i { display:block; height:100%; border-radius:3px; }
+
+  .body-map { display:flex; justify-content:center; padding:4px 0 2px; }
+
+  /* ---------- MOBILE FRAME ---------- */
+  .mobile-wrap { position: sticky; top: 24px; }
+  .mobile {
+    width: 390px; background: var(--sand-0); border-radius: 44px; padding: 11px;
+    border:1px solid var(--line); box-shadow: var(--shadow-lg); position: relative;
+  }
+  .mob-screen { background: var(--sand-0); border-radius: 34px; overflow: hidden; position: relative; height: 820px; }
+  .notch { position:absolute; top:11px; left:50%; transform:translateX(-50%); width:120px; height:26px; background:var(--ink); border-radius:0 0 16px 16px; z-index:20; }
+  .mob-scroll { height:100%; overflow:hidden; }
+  .mob-status { display:flex; justify-content:space-between; align-items:center; padding:13px 24px 4px; font-size:12px; font-weight:600; color:var(--ink-soft); }
+  .mob-status .r { display:flex; gap:5px; align-items:center; }
+
+  .mob-pad { padding: 6px 14px 0; }
+  .mob-head { display:flex; align-items:center; justify-content:space-between; margin: 6px 0 12px; }
+  .mh-l h2 { font-family:var(--display); font-weight:600; font-size:23px; line-height:1; }
+  .mh-l p { font-size:11.5px; color:var(--ink-mute); margin-top:4px; }
+  .mh-streak { background:var(--clay-tint); border:1px solid var(--clay-soft); border-radius:12px; padding:7px 11px; text-align:center; }
+  .mh-streak .v { font-family:var(--display); font-weight:600; font-size:18px; color:var(--clay-deep); line-height:1; }
+  .mh-streak .k { font-size:9px; letter-spacing:.05em; text-transform:uppercase; color:var(--clay-deep); font-weight:600; }
+
+  .mob-stats { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .ms { background:var(--card); border:1px solid var(--line); border-radius:13px; padding:9px 10px; box-shadow:var(--shadow); }
+  .ms .k { font-size:9px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-mute); font-weight:600; }
+  .ms .v { font-family:var(--display); font-weight:600; font-size:16px; margin-top:2px; line-height:1; }
+  .ms.clay { background:linear-gradient(160deg,var(--clay),var(--clay-deep)); color:#fff; border-color:var(--clay-deep); }
+  .ms.clay .k { color:rgba(255,255,255,.8); }
+
+  .mob-days { display:flex; gap:6px; margin-bottom:13px; overflow:hidden; }
+  .mday { flex:1; background:var(--card); border:1px solid var(--line); border-radius:11px; padding:7px 3px 8px; text-align:center; box-shadow:var(--shadow); }
+  .mday .d { font-size:9px; color:var(--ink-mute); font-weight:600; }
+  .mday .n { font-family:var(--display); font-weight:600; font-size:14px; margin:1px 0; }
+  .mday.on { background:linear-gradient(160deg,var(--clay),var(--clay-deep)); border-color:var(--clay-deep); color:#fff; box-shadow:0 6px 14px rgba(196,98,60,.3); }
+  .mday.on .d { color:rgba(255,255,255,.85); }
+
+  .mob-rest {
+    background:var(--card); border:1px solid var(--line); border-radius:15px; box-shadow:var(--shadow);
+    padding:10px 13px; display:flex; align-items:center; gap:11px; margin-bottom:13px;
+  }
+  .mob-rest .info { flex:1; }
+  .mob-rest .info .lab { font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-mute); font-weight:600; }
+  .mob-rest .info .nm { font-weight:600; font-size:13px; }
+  .mob-rest .ctl { display:flex; gap:6px; }
+  .mob-rest .ctl button { width:30px; height:30px; border-radius:9px; border:1px solid var(--line); background:var(--sand-1); display:grid; place-items:center; cursor:pointer; color:var(--ink-soft); }
+  .mob-rest .ctl button.p { background:var(--clay); color:#fff; border-color:var(--clay-deep); }
+  .mob-rest .ctl button svg { width:15px; height:15px; }
+
+  .mex { background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); margin-bottom:11px; overflow:hidden; }
+  .mex.exp { border-color:var(--clay-soft); }
+  .mex-head { display:flex; align-items:flex-start; gap:10px; padding:12px 13px 10px; }
+  .mex-num { width:28px; height:28px; flex:none; border-radius:9px; background:var(--clay-tint); border:1px solid var(--clay-soft); color:var(--clay-deep); display:grid; place-items:center; font-family:var(--display); font-weight:600; font-size:13px; }
+  .mex-meta { flex:1; min-width:0; }
+  .mex-name { font-family:var(--display); font-weight:600; font-size:15px; }
+  .mex-presc { font-size:11px; color:var(--ink-soft); }
+  .mex-presc b { color:var(--clay-deep); }
+  .mex-last { font-size:10.5px; color:var(--ink-mute); margin-top:2px; }
+  .mex .ringm { width:34px;height:34px; position:relative; flex:none; }
+  .mex .ringm .pc { position:absolute; inset:0; display:grid; place-items:center; font-size:10px; font-weight:700; color:var(--sage); }
+
+  .mlog { padding:0 13px 12px; }
+  .mlog table { width:100%; border-collapse:collapse; }
+  .mlog th { font-size:9px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-mute); font-weight:600; padding:2px; }
+  .mlog th:first-child { text-align:left; }
+  .mlog td { padding:3px 2px; }
+  .mcell { background:var(--sand-1); border:1px solid var(--line); border-radius:8px; padding:6px 2px; text-align:center; font-weight:600; font-size:12px; }
+  .msetno { display:grid; place-items:center; width:22px;height:22px; margin:0 auto; border-radius:6px; background:var(--sand-2); font-size:10px; font-weight:700; color:var(--ink-mute); }
+  .mrow.done .mcell { background:var(--sage-tint); border-color:#cdd5bd; color:#4f5b3e; }
+  .mrow.done .msetno { background:var(--sage); color:#fff; }
+  .mrow.target .mcell { background:var(--clay-tint); border-color:var(--clay-soft); color:var(--clay-deep); border-style:dashed; }
+  .mrow.target .msetno { background:var(--clay); color:#fff; }
+  .mchk { display:grid; place-items:center; width:24px;height:24px; margin:0 auto; border-radius:7px; border:1.5px solid var(--line); color:var(--ink-mute); }
+  .mrow.done .mchk { background:var(--sage); border-color:var(--sage); color:#fff; }
+  .mchk svg { width:13px;height:13px; }
+  .mplate { width:24px;height:24px; margin:0 auto; border-radius:7px; border:1px solid var(--line); background:var(--card-2); display:grid; place-items:center; color:var(--ink-soft); }
+  .mplate svg { width:13px;height:13px; }
+
+  .mpr {
+    margin:0 13px 11px; border-radius:11px; padding:8px 11px; display:flex; align-items:center; gap:9px;
+    background:linear-gradient(120deg,#fbeede,#f6dcc7); border:1px solid var(--clay-soft);
+    animation: prpulse 2.4s ease-in-out infinite;
+  }
+  .mpr .ic { width:26px;height:26px; flex:none; border-radius:8px; background:linear-gradient(150deg,var(--gold),#a8801f); display:grid;place-items:center;color:#fff; }
+  .mpr .ic svg { width:15px;height:15px; }
+  .mpr b { font-family:var(--display); font-weight:600; font-size:12.5px; color:var(--clay-deep); }
+  .mpr span { display:block; font-size:10px; color:var(--ink-soft); }
+
+  .mstart {
+    width:100%; font:inherit; font-weight:700; font-size:14px; color:#fff;
+    background:linear-gradient(150deg,var(--clay),var(--clay-deep)); border:none; border-radius:14px;
+    padding:13px; box-shadow:0 8px 18px rgba(196,98,60,.3); display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:14px;
+  }
+  .mstart svg { width:17px;height:17px; }
+
+  /* mobile bottom nav */
+  .mob-nav {
+    position:absolute; bottom:0; left:0; right:0; height:74px; background:rgba(255,253,248,.92);
+    backdrop-filter: blur(10px); border-top:1px solid var(--line); display:flex; align-items:flex-start;
+    justify-content:space-around; padding:10px 8px 0; z-index:15;
+  }
+  .mnav-i { display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--ink-mute); font-size:9.5px; font-weight:600; }
+  .mnav-i svg { width:21px;height:21px; }
+  .mnav-i.on { color:var(--clay-deep); }
+  .mnav-i.on .ico { background:var(--clay-tint); border:1px solid var(--clay-soft); }
+  .mnav-i .ico { width:42px;height:30px; border-radius:11px; display:grid; place-items:center; }
+
+  /* ---------- SECOND ROW: progress + plan ---------- */
+  .row2 { max-width:1500px; margin: 30px auto 0; display:grid; grid-template-columns: 1fr 1fr; gap:26px; align-items:start; }
+  @media (max-width: 1180px){ .row2 { grid-template-columns: 1fr; } }
+
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:26px; box-shadow:var(--shadow-lg); overflow:hidden; }
+  .panel-head { padding:16px 22px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; background: linear-gradient(180deg, var(--card-2), var(--card)); }
+  .panel-head h3 { font-family:var(--display); font-weight:600; font-size:19px; }
+  .panel-head .tabs { display:flex; gap:6px; }
+  .panel-head .tabs span { font-size:11px; font-weight:600; padding:6px 11px; border-radius:9px; background:var(--sand-1); border:1px solid var(--line); color:var(--ink-soft); }
+  .panel-head .tabs span.on { background:var(--clay); color:#fff; border-color:var(--clay-deep); }
+  .panel-body { padding:18px 22px 22px; }
+
+  .prog-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  .prog-grid .full { grid-column: 1/-1; }
+  .pcard { background:var(--card-2); border:1px solid var(--line); border-radius:16px; padding:14px 15px; }
+  .pcard h5 { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-mute); font-weight:600; margin-bottom:11px; display:flex; justify-content:space-between; align-items:center; }
+  .pcard h5 b { font-family:var(--display); font-size:13px; color:var(--clay-deep); letter-spacing:0; text-transform:none; }
+
+  .streak-cal { display:flex; gap:7px; flex-wrap:wrap; }
+  .sd { width:30px; text-align:center; }
+  .sd .ring { width:28px;height:28px; border-radius:50%; border:2px solid var(--sand-3); display:grid; place-items:center; margin:0 auto 3px; font-size:10px; font-weight:700; color:var(--ink-mute); }
+  .sd.fill .ring { background:linear-gradient(150deg,var(--clay-soft),var(--clay)); border-color:var(--clay); color:#fff; }
+  .sd.now .ring { border-color:var(--clay-deep); box-shadow:0 0 0 3px var(--clay-tint); }
+  .sd small { font-size:8px; color:var(--ink-mute); }
+
+  .best-lift { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed var(--line); }
+  .best-lift:last-child { border:0; }
+  .bl-ic { width:30px;height:30px; flex:none; border-radius:9px; background:var(--clay-tint); border:1px solid var(--clay-soft); display:grid; place-items:center; color:var(--clay-deep); font-family:var(--display); font-weight:600; font-size:13px; }
+  .bl-nm { flex:1; font-size:12.5px; font-weight:600; }
+  .bl-nm small { display:block; font-size:10.5px; color:var(--ink-mute); font-weight:500; }
+  .bl-v { font-family:var(--display); font-weight:600; font-size:16px; }
+  .bl-v small { font-size:10px; color:var(--sage); font-family:var(--body); font-weight:600; }
+
+  .legend { display:flex; gap:14px; margin-top:10px; flex-wrap:wrap; }
+  .legend span { font-size:10.5px; color:var(--ink-mute); font-weight:600; display:flex; align-items:center; gap:5px; }
+  .legend i { width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+  /* plan / volume curve */
+  .phase-list { display:flex; flex-direction:column; gap:9px; }
+  .phase { display:flex; align-items:center; gap:12px; background:var(--card-2); border:1px solid var(--line); border-radius:13px; padding:10px 13px; }
+  .phase .bar { width:4px; align-self:stretch; border-radius:3px; }
+  .phase .nm { flex:1; }
+  .phase .nm b { font-family:var(--display); font-weight:600; font-size:14px; }
+  .phase .nm small { display:block; font-size:11px; color:var(--ink-mute); }
+  .phase .wk { font-size:11px; color:var(--ink-soft); font-weight:600; background:var(--sand-1); border:1px solid var(--line); border-radius:8px; padding:4px 9px; width:auto; height:auto; }
+  .phase.active { border-color:var(--clay-soft); background:var(--clay-tint); }
+
+  .split-row { display:flex; gap:6px; }
+  .split-day { flex:1; background:var(--card-2); border:1px solid var(--line); border-radius:11px; padding:8px 4px; text-align:center; }
+  .split-day .d { font-size:9px; color:var(--ink-mute); font-weight:700; letter-spacing:.05em; }
+  .split-day .t { font-size:10px; font-weight:600; margin-top:3px; color:var(--ink-soft); }
+  .split-day .badge { width:22px;height:5px; border-radius:3px; margin:5px auto 0; }
+
+  .foot-note { max-width:1500px; margin:28px auto 0; text-align:center; font-size:12px; color:var(--ink-mute); }
+  .foot-note b { color:var(--clay-deep); font-family:var(--display); font-weight:600; }
+
+  /* load-in animation */
+  .rise { opacity:0; transform: translateY(14px); animation: rise .7s cubic-bezier(.2,.7,.3,1) forwards; }
+  @keyframes rise { to { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+
+  <header class="page-head rise" style="animation-delay:.02s">
+    <div class="ph-left">
+      <div class="ph-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-7 4 14 2-7h8"/></svg>
+      </div>
+      <div class="ph-titles">
+        <h1>Pulse<span class="dot">.</span></h1>
+        <p>Quiet Focus — warm, tactile, focus-first redesign</p>
+      </div>
+    </div>
+    <div class="ph-meta">
+      <span class="pill accent">Week 03 / 12</span>
+      <span class="pill">Phase 1 · Accumulation</span>
+      <span class="pill">Target RIR 2–3</span>
+      <span class="pill">6 wk streak</span>
+    </div>
+  </header>
+
+  <div class="frames">
+
+    <!-- ============ DESKTOP ============ -->
+    <section class="rise" style="animation-delay:.08s">
+      <div class="frame-label">Desktop · 1320px · Train</div>
+      <div class="desktop">
+        <div class="dt-bar"><i></i><i></i><i></i><span>pulse.app / train · Monday — Push Day</span></div>
+        <div class="dt-shell">
+
+          <!-- sidebar -->
+          <nav class="sidebar">
+            <div class="sb-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-7 4 14 2-7h8"/></svg></div>
+            <div class="nav-i on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg><small>Train</small></div>
+            <div class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><small>Plan</small></div>
+            <div class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg><small>Progress</small></div>
+            <div class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><small>Profile</small></div>
+            <div class="nav-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><small>Explore</small></div>
+            <div class="sb-foot"><div class="sb-ava">CE</div></div>
+          </nav>
+
+          <!-- main -->
+          <main class="dt-main">
+
+            <!-- header -->
+            <div class="train-head">
+              <div class="th-block">
+                <div class="th-top">
+                  <h2>Push Day</h2>
+                  <span class="sub">Monday · 5 exercises · ~52 min</span>
+                </div>
+                <div class="stat-row">
+                  <div class="stat clay"><div class="k">Week</div><div class="v">03<small> / 12</small></div></div>
+                  <div class="stat"><div class="k">Phase</div><div class="v" style="font-size:15px">Accumulation<small style="display:block">Phase 1</small></div></div>
+                  <div class="stat"><div class="k">Target RIR</div><div class="v">2–3</div></div>
+                  <div class="stat"><div class="k">Streak</div><div class="v">6<small> wk</small></div></div>
+                  <div class="week-track">
+                    <div class="wk done"></div><div class="wk done"></div><div class="wk now"></div>
+                    <div class="wk"></div><div class="wk"></div><div class="wk"></div>
+                    <div class="wk"></div><div class="wk"></div><div class="wk"></div>
+                    <div class="wk deload"></div><div class="wk deload"></div><div class="wk deload"></div>
+                    <span class="wk-label">12-week block</span>
+                  </div>
+                </div>
+              </div>
+              <!-- rest timer -->
+              <div class="rest-timer">
+                <div class="rt-ring">
+                  <svg width="58" height="58"><circle cx="29" cy="29" r="25" fill="none" stroke="#e7d8c2" stroke-width="6"/><circle cx="29" cy="29" r="25" fill="none" stroke="#c4623c" stroke-width="6" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="52"/></svg>
+                  <div class="t">1:30</div>
+                </div>
+                <div class="rt-info">
+                  <div class="lab">Rest timer</div>
+                  <div class="nm">After set 2 · Bench</div>
+                  <div class="rt-btns"><button>−15s</button><button class="p">Skip</button><button>+15s</button></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- day selector -->
+            <div class="day-sel">
+              <div class="day on"><div class="d">MON</div><div class="n">03</div><div class="w">Push</div></div>
+              <div class="day"><div class="d">TUE</div><div class="n">04</div><div class="w">Pull</div></div>
+              <div class="day"><div class="d">WED</div><div class="n">05</div><div class="w">Legs</div></div>
+              <div class="day rest"><div class="d">THU</div><div class="n">06</div><div class="w">Rest</div></div>
+              <div class="day"><div class="d">FRI</div><div class="n">07</div><div class="w">Push</div></div>
+              <div class="day"><div class="d">SAT</div><div class="n">08</div><div class="w">Pull</div></div>
+              <div class="day rest"><div class="d">SUN</div><div class="n">09</div><div class="w">Rest</div></div>
+            </div>
+
+            <!-- body -->
+            <div class="train-grid">
+              <div class="ex-list">
+
+                <!-- Exercise 1 expanded -->
+                <div class="ex-card expanded">
+                  <div class="ex-head">
+                    <div class="ex-num">1</div>
+                    <div class="ex-meta">
+                      <div class="ex-name">Dumbbell Bench Press</div>
+                      <div class="ex-presc">3–4 sets · <b>8–12 reps</b> · RIR 2–3</div>
+                      <div class="ex-last"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Last: 22.5 kg × 10 × 3 sets</div>
+                    </div>
+                    <div class="ex-prog">
+                      <div class="ring-mini"><svg width="40" height="40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e7d8c2" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="#7d8b6a" stroke-width="5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="33" transform="rotate(-90 20 20)"/></svg><div class="pc">2/3</div></div>
+                      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 15 6-6 6 6"/></svg>
+                    </div>
+                  </div>
+
+                  <!-- live PR flash -->
+                  <div class="pr-flash">
+                    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.7V18M14 14.7V18M6 4h12v5a6 6 0 0 1-12 0Z"/></svg></div>
+                    <div class="tx"><b>New PR — set just beat your record!</b><span>25 kg × 10 = est. 1RM 33.3 kg · +1.4 kg over Apr 28</span></div>
+                  </div>
+
+                  <!-- warmup -->
+                  <div class="warmup">
+                    <span class="wlab">Warmup</span>
+                    <span class="wchip">50% × 5</span>
+                    <span class="wchip">65% × 3</span>
+                    <span class="wchip">80% × 1</span>
+                  </div>
+
+                  <!-- logger -->
+                  <div class="logger">
+                    <table class="log-grid">
+                      <thead><tr><th class="set-no">Set</th><th>Weight kg</th><th>Reps</th><th>RIR</th><th></th><th></th></tr></thead>
+                      <tbody>
+                        <tr class="set-row done"><td class="set-no"><span>1</span></td><td><div class="set-cell">22.5</div></td><td><div class="set-cell">11</div></td><td><div class="set-cell">3</div></td><td class="plate-cell"><div class="plate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td class="check"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></b></td></tr>
+                        <tr class="set-row done"><td class="set-no"><span>2</span></td><td><div class="set-cell">25</div></td><td><div class="set-cell">10</div></td><td><div class="set-cell">2</div></td><td class="plate-cell"><div class="plate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td class="check"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></b></td></tr>
+                        <tr class="set-row target"><td class="set-no"><span>3</span></td><td><div class="set-cell">25</div></td><td><div class="set-cell">—</div></td><td><div class="set-cell">2</div></td><td class="plate-cell"><div class="plate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td class="check"><b></b></td></tr>
+                      </tbody>
+                    </table>
+                    <!-- plate calc popover row -->
+                    <div class="plate-row" style="margin:6px -16px 0; border-radius:0">
+                      <div class="plate-pop">
+                        <div class="ttl"><span>Plate calculator · 25 kg per dumbbell</span><span style="color:var(--clay-deep)">handle 2.5 kg · per side 11.25 kg</span></div>
+                        <div class="plates">
+                          <div class="plate" style="height:42px;width:26px;background:#9a4a2c">10</div>
+                          <div class="plate" style="height:30px;width:22px;background:#c4623c">1.25</div>
+                          <div class="bar" style="flex:1"></div>
+                          <div class="plate" style="height:30px;width:22px;background:#c4623c">1.25</div>
+                          <div class="plate" style="height:42px;width:26px;background:#9a4a2c">10</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ex-note"><b>Note:</b> Pause 1s on chest. Last week felt strong at 22.5 — bumped to 25 today, RIR held at 2.</div>
+                </div>
+
+                <!-- Exercise 2 collapsed -->
+                <div class="ex-card">
+                  <div class="ex-head">
+                    <div class="ex-num">2</div>
+                    <div class="ex-meta">
+                      <div class="ex-name">Incline Dumbbell Press</div>
+                      <div class="ex-presc">3 sets · <b>10–12 reps</b> · RIR 2–3</div>
+                      <div class="ex-last"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Last: 18 kg × 11 × 3 sets</div>
+                    </div>
+                    <div class="ex-prog"><div class="ring-mini"><svg width="40" height="40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e7d8c2" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="#ddcdb4" stroke-width="5" stroke-dasharray="100" stroke-dashoffset="100"/></svg><div class="pc" style="color:var(--ink-mute)">0/3</div></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                  </div>
+                  <div class="logger">
+                    <table class="log-grid">
+                      <thead><tr><th class="set-no">Set</th><th>Weight kg</th><th>Reps</th><th>RIR</th><th></th><th></th></tr></thead>
+                      <tbody>
+                        <tr class="set-row"><td class="set-no"><span>1</span></td><td><div class="set-cell">18</div></td><td><div class="set-cell">—</div></td><td><div class="set-cell">3</div></td><td class="plate-cell"><div class="plate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td class="check"><b></b></td></tr>
+                        <tr class="set-row"><td class="set-no"><span>2</span></td><td><div class="set-cell">18</div></td><td><div class="set-cell">—</div></td><td><div class="set-cell">3</div></td><td class="plate-cell"><div class="plate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td class="check"><b></b></td></tr>
+                        <tr class="set-row"><td class="set-no"><span>3</span></td><td><div class="set-cell">18</div></td><td><div class="set-cell">—</div></td><td><div class="set-cell">2</div></td><td class="plate-cell"><div class="plate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td class="check"><b></b></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Exercise 3,4,5 compact -->
+                <div class="ex-card">
+                  <div class="ex-head">
+                    <div class="ex-num">3</div>
+                    <div class="ex-meta"><div class="ex-name">Dumbbell Shoulder Press</div><div class="ex-presc">3 sets · <b>8–10 reps</b> · RIR 2–3</div><div class="ex-last"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Last: 16 kg × 9 × 3 sets</div></div>
+                    <div class="ex-prog"><div class="ring-mini"><svg width="40" height="40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e7d8c2" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="#ddcdb4" stroke-width="5" stroke-dasharray="100" stroke-dashoffset="100"/></svg><div class="pc" style="color:var(--ink-mute)">0/3</div></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                  </div>
+                </div>
+                <div class="ex-card">
+                  <div class="ex-head">
+                    <div class="ex-num">4</div>
+                    <div class="ex-meta"><div class="ex-name">Dumbbell Lateral Raise</div><div class="ex-presc">4 sets · <b>12–15 reps</b> · RIR 1–2</div><div class="ex-last"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Last: 9 kg × 14 × 4 sets</div></div>
+                    <div class="ex-prog"><div class="ring-mini"><svg width="40" height="40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e7d8c2" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="#ddcdb4" stroke-width="5" stroke-dasharray="100" stroke-dashoffset="100"/></svg><div class="pc" style="color:var(--ink-mute)">0/4</div></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                  </div>
+                </div>
+                <div class="ex-card">
+                  <div class="ex-head">
+                    <div class="ex-num">5</div>
+                    <div class="ex-meta"><div class="ex-name">Overhead Triceps Extension</div><div class="ex-presc">3 sets · <b>10–12 reps</b> · RIR 1–2</div><div class="ex-last"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Last: 20 kg × 12 × 3 sets</div></div>
+                    <div class="ex-prog"><div class="ring-mini"><svg width="40" height="40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e7d8c2" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="#ddcdb4" stroke-width="5" stroke-dasharray="100" stroke-dashoffset="100"/></svg><div class="pc" style="color:var(--ink-mute)">0/3</div></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- right rail -->
+              <aside class="rail">
+                <button class="start-cta"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 4 14 8-14 8z"/></svg>Start guided workout</button>
+
+                <div class="rail-card">
+                  <div class="rc-h"><h4>Today's session</h4><a href="#">Edit</a></div>
+                  <div class="sess-bar">
+                    <div class="sb-item"><span class="dot" style="background:var(--sage)"></span><span class="nm">Bench Press</span><span class="ct">2 / 3</span></div>
+                    <div class="sb-item"><span class="dot" style="background:var(--sand-3)"></span><span class="nm">Incline Press</span><span class="ct">0 / 3</span></div>
+                    <div class="sb-item"><span class="dot" style="background:var(--sand-3)"></span><span class="nm">Shoulder Press</span><span class="ct">0 / 3</span></div>
+                    <div class="sb-item"><span class="dot" style="background:var(--sand-3)"></span><span class="nm">Lateral Raise</span><span class="ct">0 / 4</span></div>
+                    <div class="sb-item"><span class="dot" style="background:var(--sand-3)"></span><span class="nm">Triceps Ext.</span><span class="ct">0 / 3</span></div>
+                  </div>
+                  <div class="progbar"><i style="width:13%"></i></div>
+                  <div style="font-size:11px;color:var(--ink-mute);margin-top:6px;font-weight:600">2 of 16 sets logged · 13%</div>
+                </div>
+
+                <div class="rail-card">
+                  <div class="rc-h"><h4>Volume this week</h4><a href="#">Progress</a></div>
+                  <div class="muscle-heat">
+                    <div class="mh"><div class="nm">Chest <small>14 sets</small></div><div class="track"><i style="width:88%;background:var(--clay)"></i></div></div>
+                    <div class="mh"><div class="nm">Shoulders <small>11 sets</small></div><div class="track"><i style="width:70%;background:var(--clay)"></i></div></div>
+                    <div class="mh"><div class="nm">Triceps <small>9 sets</small></div><div class="track"><i style="width:58%;background:var(--gold)"></i></div></div>
+                    <div class="mh"><div class="nm">Back <small>12 sets</small></div><div class="track"><i style="width:76%;background:var(--sage)"></i></div></div>
+                  </div>
+                  <div class="legend"><span><i style="background:var(--clay)"></i>On target</span><span><i style="background:var(--gold)"></i>Below target</span><span><i style="background:var(--sage)"></i>Recovered</span></div>
+                </div>
+
+                <div class="rail-card">
+                  <div class="rc-h"><h4>Recent PRs</h4></div>
+                  <div class="best-lift"><div class="bl-ic">B</div><div class="bl-nm">Bench Press<small>est. 1RM</small></div><div class="bl-v">33.3<small> kg</small></div></div>
+                  <div class="best-lift"><div class="bl-ic">S</div><div class="bl-nm">Shoulder Press<small>est. 1RM</small></div><div class="bl-v">22.1<small> kg</small></div></div>
+                </div>
+              </aside>
+            </div>
+
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MOBILE ============ -->
+    <section class="mobile-wrap rise" style="animation-delay:.16s">
+      <div class="frame-label">Mobile · 390px · Train</div>
+      <div class="mobile">
+        <div class="mob-screen">
+          <div class="notch"></div>
+          <div class="mob-scroll">
+            <div class="mob-status">
+              <span>9:41</span>
+              <span class="r">
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4" y="4" width="3" height="8" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/><rect x="12" y="0" width="3" height="12" rx="1"/></svg>
+                <svg width="22" height="12" viewBox="0 0 24 12" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="20" height="10" rx="2.5"/><rect x="3" y="3" width="14" height="6" rx="1" fill="currentColor"/><rect x="22" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+
+            <div class="mob-pad">
+              <div class="mob-head">
+                <div class="mh-l">
+                  <h2>Push Day</h2>
+                  <p>Mon · Week 03/12 · Phase 1 Accumulation</p>
+                </div>
+                <div class="mh-streak"><div class="v">6</div><div class="k">wk</div></div>
+              </div>
+
+              <div class="mob-stats">
+                <div class="ms clay"><div class="k">Target RIR</div><div class="v">2–3</div></div>
+                <div class="ms"><div class="k">Sets done</div><div class="v">2 / 16</div></div>
+                <div class="ms"><div class="k">Est. time</div><div class="v">52 min</div></div>
+              </div>
+
+              <div class="mob-days">
+                <div class="mday on"><div class="d">M</div><div class="n">03</div></div>
+                <div class="mday"><div class="d">T</div><div class="n">04</div></div>
+                <div class="mday"><div class="d">W</div><div class="n">05</div></div>
+                <div class="mday"><div class="d">T</div><div class="n">06</div></div>
+                <div class="mday"><div class="d">F</div><div class="n">07</div></div>
+                <div class="mday"><div class="d">S</div><div class="n">08</div></div>
+                <div class="mday"><div class="d">S</div><div class="n">09</div></div>
+              </div>
+
+              <div class="mob-rest">
+                <div class="rt-ring" style="width:46px;height:46px">
+                  <svg width="46" height="46"><circle cx="23" cy="23" r="19" fill="none" stroke="#e7d8c2" stroke-width="5"/><circle cx="23" cy="23" r="19" fill="none" stroke="#c4623c" stroke-width="5" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="40" transform="rotate(-90 23 23)"/></svg>
+                  <div class="t" style="font-size:12px">1:30</div>
+                </div>
+                <div class="info"><div class="lab">Rest timer</div><div class="nm">After set 2 · Bench</div></div>
+                <div class="ctl">
+                  <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/></svg></button>
+                  <button class="p"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 4 12 8-12 8zM20 4v16"/></svg></button>
+                </div>
+              </div>
+
+              <!-- expanded mobile exercise -->
+              <div class="mex exp">
+                <div class="mex-head">
+                  <div class="mex-num">1</div>
+                  <div class="mex-meta">
+                    <div class="mex-name">Dumbbell Bench Press</div>
+                    <div class="mex-presc">3–4 sets · <b>8–12 reps</b></div>
+                    <div class="mex-last">Last: 22.5 kg × 10 × 3</div>
+                  </div>
+                  <div class="ringm"><svg width="34" height="34"><circle cx="17" cy="17" r="13" fill="none" stroke="#e7d8c2" stroke-width="4"/><circle cx="17" cy="17" r="13" fill="none" stroke="#7d8b6a" stroke-width="4" stroke-linecap="round" stroke-dasharray="82" stroke-dashoffset="27" transform="rotate(-90 17 17)"/></svg><div class="pc">2/3</div></div>
+                </div>
+
+                <div class="mpr">
+                  <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.7V18M14 14.7V18M6 4h12v5a6 6 0 0 1-12 0Z"/></svg></div>
+                  <div><b>New PR!</b><span>25 kg × 10 · est. 1RM 33.3 kg</span></div>
+                </div>
+
+                <div class="mlog">
+                  <table>
+                    <thead><tr><th style="width:24px">#</th><th>kg</th><th>reps</th><th>RIR</th><th style="width:26px"></th><th style="width:26px"></th></tr></thead>
+                    <tbody>
+                      <tr class="mrow done"><td><div class="msetno">1</div></td><td><div class="mcell">22.5</div></td><td><div class="mcell">11</div></td><td><div class="mcell">3</div></td><td><div class="mplate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td><div class="mchk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></div></td></tr>
+                      <tr class="mrow done"><td><div class="msetno">2</div></td><td><div class="mcell">25</div></td><td><div class="mcell">10</div></td><td><div class="mcell">2</div></td><td><div class="mplate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td><div class="mchk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></div></td></tr>
+                      <tr class="mrow target"><td><div class="msetno">3</div></td><td><div class="mcell">25</div></td><td><div class="mcell">—</div></td><td><div class="mcell">2</div></td><td><div class="mplate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="3" height="12" rx="1"/><rect x="9" y="3" width="3" height="18" rx="1"/><rect x="15" y="6" width="3" height="12" rx="1"/></svg></div></td><td><div class="mchk"></div></td></tr>
+                    </tbody>
+                  </table>
+                  <div class="plate-row" style="margin:6px -13px 0;border-radius:0">
+                    <div class="plate-pop" style="padding:8px 13px 9px">
+                      <div class="ttl" style="font-size:9px"><span>Plates · 25 kg / dumbbell</span><span style="color:var(--clay-deep)">11.25 kg / side</span></div>
+                      <div class="plates"><div class="plate" style="height:32px;width:22px;background:#9a4a2c">10</div><div class="plate" style="height:24px;width:18px;background:#c4623c">1.25</div><div class="bar" style="flex:1"></div><div class="plate" style="height:24px;width:18px;background:#c4623c">1.25</div><div class="plate" style="height:32px;width:22px;background:#9a4a2c">10</div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- collapsed mobile exercises -->
+              <div class="mex">
+                <div class="mex-head">
+                  <div class="mex-num">2</div>
+                  <div class="mex-meta"><div class="mex-name">Incline DB Press</div><div class="mex-presc">3 sets · <b>10–12</b> · Last 18 kg × 11</div></div>
+                  <div class="ringm"><svg width="34" height="34"><circle cx="17" cy="17" r="13" fill="none" stroke="#e7d8c2" stroke-width="4"/></svg><div class="pc" style="color:var(--ink-mute)">0/3</div></div>
+                </div>
+              </div>
+              <div class="mex">
+                <div class="mex-head">
+                  <div class="mex-num">3</div>
+                  <div class="mex-meta"><div class="mex-name">DB Shoulder Press</div><div class="mex-presc">3 sets · <b>8–10</b> · Last 16 kg × 9</div></div>
+                  <div class="ringm"><svg width="34" height="34"><circle cx="17" cy="17" r="13" fill="none" stroke="#e7d8c2" stroke-width="4"/></svg><div class="pc" style="color:var(--ink-mute)">0/3</div></div>
+                </div>
+              </div>
+              <div class="mex" style="margin-bottom:14px">
+                <div class="mex-head">
+                  <div class="mex-num">4</div>
+                  <div class="mex-meta"><div class="mex-name">DB Lateral Raise</div><div class="mex-presc">4 sets · <b>12–15</b> · Last 9 kg × 14</div></div>
+                  <div class="ringm"><svg width="34" height="34"><circle cx="17" cy="17" r="13" fill="none" stroke="#e7d8c2" stroke-width="4"/></svg><div class="pc" style="color:var(--ink-mute)">0/4</div></div>
+                </div>
+              </div>
+
+              <button class="mstart"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 4 14 8-14 8z"/></svg>Start guided workout</button>
+              <div style="height:80px"></div>
+            </div>
+          </div>
+
+          <!-- bottom nav -->
+          <nav class="mob-nav">
+            <div class="mnav-i on"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-6 4 12 2-6h8"/></svg></div>Train</div>
+            <div class="mnav-i"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div>Plan</div>
+            <div class="mnav-i"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg></div>Progress</div>
+            <div class="mnav-i"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>Profile</div>
+            <div class="mnav-i"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div>Explore</div>
+          </nav>
+
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ROW 2: PROGRESS + PLAN ============ -->
+  <div class="row2">
+
+    <!-- PROGRESS -->
+    <section class="panel rise" style="animation-delay:.24s">
+      <div class="panel-head">
+        <h3>Progress</h3>
+        <div class="tabs"><span class="on">Bench Press</span><span>Volume</span><span>By muscle</span></div>
+      </div>
+      <div class="panel-body">
+        <div class="prog-grid">
+
+          <!-- streak calendar -->
+          <div class="pcard full">
+            <h5>Weekly streak <b>6 weeks · best 9</b></h5>
+            <div class="streak-cal">
+              <div class="sd fill"><div class="ring">✓</div><small>W1</small></div>
+              <div class="sd fill"><div class="ring">✓</div><small>W2</small></div>
+              <div class="sd fill"><div class="ring">✓</div><small>W3</small></div>
+              <div class="sd fill"><div class="ring">✓</div><small>W4</small></div>
+              <div class="sd fill"><div class="ring">✓</div><small>W5</small></div>
+              <div class="sd fill now"><div class="ring">✓</div><small>W6</small></div>
+              <div class="sd"><div class="ring">7</div><small>W7</small></div>
+              <div class="sd"><div class="ring">8</div><small>W8</small></div>
+              <div class="sd"><div class="ring">9</div><small>W9</small></div>
+              <div class="sd"><div class="ring">10</div><small>W10</small></div>
+              <div class="sd"><div class="ring">11</div><small>W11</small></div>
+              <div class="sd"><div class="ring">12</div><small>W12</small></div>
+            </div>
+          </div>
+
+          <!-- e1RM line chart -->
+          <div class="pcard full">
+            <h5>Est. 1RM — Dumbbell Bench Press <b>33.3 kg · +18% block</b></h5>
+            <svg viewBox="0 0 520 180" width="100%" height="150" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4623c" stop-opacity=".28"/><stop offset="1" stop-color="#c4623c" stop-opacity="0"/></linearGradient>
+              </defs>
+              <line x1="0" y1="45" x2="520" y2="45" stroke="#e7d8c2" stroke-dasharray="3 5"/>
+              <line x1="0" y1="90" x2="520" y2="90" stroke="#e7d8c2" stroke-dasharray="3 5"/>
+              <line x1="0" y1="135" x2="520" y2="135" stroke="#e7d8c2" stroke-dasharray="3 5"/>
+              <path d="M0 150 L75 142 L150 128 L225 120 L300 95 L375 78 L450 55 L520 40 L520 180 L0 180 Z" fill="url(#g1)"/>
+              <path d="M0 150 L75 142 L150 128 L225 120 L300 95 L375 78 L450 55 L520 40" fill="none" stroke="#c4623c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- PR markers -->
+              <circle cx="300" cy="95" r="5" fill="#fff" stroke="#c79a3e" stroke-width="3"/>
+              <circle cx="450" cy="55" r="5" fill="#fff" stroke="#c79a3e" stroke-width="3"/>
+              <circle cx="520" cy="40" r="6" fill="#c4623c" stroke="#fff" stroke-width="3"/>
+              <text x="450" y="42" font-size="10" fill="#a8801f" font-weight="700" text-anchor="middle">PR</text>
+            </svg>
+            <div class="legend"><span><i style="background:var(--clay)"></i>e1RM trend</span><span><i style="background:var(--gold)"></i>PR set</span><span style="margin-left:auto">28.3 → 33.3 kg · Apr–Jun</span></div>
+          </div>
+
+          <!-- volume chart -->
+          <div class="pcard">
+            <h5>Sets / week <b>by type</b></h5>
+            <svg viewBox="0 0 240 130" width="100%" height="120">
+              <line x1="0" y1="110" x2="240" y2="110" stroke="#ddcdb4"/>
+              <!-- groups w1..w6 rising then deload -->
+              <g>
+                <rect x="8" y="62" width="22" height="48" rx="3" fill="#e8b79f"/>
+                <rect x="42" y="50" width="22" height="60" rx="3" fill="#e0a085"/>
+                <rect x="76" y="40" width="22" height="70" rx="3" fill="#d4825f"/>
+                <rect x="110" y="30" width="22" height="80" rx="3" fill="#c4623c"/>
+                <rect x="144" y="22" width="22" height="88" rx="3" fill="#c4623c"/>
+                <rect x="178" y="14" width="22" height="96" rx="3" fill="#a64e2d"/>
+                <rect x="212" y="74" width="22" height="36" rx="3" fill="#7d8b6a"/>
+              </g>
+              <text x="19" y="124" font-size="8" fill="#938876" text-anchor="middle">W1</text>
+              <text x="121" y="124" font-size="8" fill="#938876" text-anchor="middle">W4</text>
+              <text x="223" y="124" font-size="8" fill="#938876" text-anchor="middle">D</text>
+            </svg>
+            <div class="legend"><span><i style="background:var(--clay)"></i>12→20 sets</span><span><i style="background:var(--sage)"></i>Deload 10</span></div>
+          </div>
+
+          <!-- per-muscle heat -->
+          <div class="pcard">
+            <h5>By muscle <b>this week</b></h5>
+            <div class="muscle-heat" style="grid-template-columns:1fr">
+              <div class="mh"><div class="nm">Chest <small>14 / 16 sets</small></div><div class="track"><i style="width:88%;background:var(--clay)"></i></div></div>
+              <div class="mh"><div class="nm">Back <small>12 / 16 sets</small></div><div class="track"><i style="width:76%;background:var(--sage)"></i></div></div>
+              <div class="mh"><div class="nm">Legs <small>10 / 18 sets</small></div><div class="track"><i style="width:56%;background:var(--gold)"></i></div></div>
+              <div class="mh"><div class="nm">Shoulders <small>11 / 14 sets</small></div><div class="track"><i style="width:78%;background:var(--clay)"></i></div></div>
+            </div>
+          </div>
+
+          <!-- best lifts + history -->
+          <div class="pcard full">
+            <h5>Best lifts <b>est. 1RM</b></h5>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 22px">
+              <div class="best-lift"><div class="bl-ic">B</div><div class="bl-nm">Bench Press<small>25 kg × 10 · today</small></div><div class="bl-v">33.3<small> +1.4</small></div></div>
+              <div class="best-lift"><div class="bl-ic">S</div><div class="bl-nm">Shoulder Press<small>16 kg × 9 · May 30</small></div><div class="bl-v">22.1<small> +0.8</small></div></div>
+              <div class="best-lift"><div class="bl-ic">I</div><div class="bl-nm">Incline Press<small>18 kg × 11 · May 27</small></div><div class="bl-v">24.6<small> +1.1</small></div></div>
+              <div class="best-lift"><div class="bl-ic">L</div><div class="bl-nm">Lateral Raise<small>9 kg × 14 · May 30</small></div><div class="bl-v">13.2<small> +0.5</small></div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAN -->
+    <section class="panel rise" style="animation-delay:.3s">
+      <div class="panel-head">
+        <h3>Plan · 12-week block</h3>
+        <div class="tabs"><span class="on">Phases</span><span>Split</span><span>Volume</span></div>
+      </div>
+      <div class="panel-body">
+
+        <div class="phase-list" style="margin-bottom:16px">
+          <div class="phase active"><div class="bar" style="background:var(--clay)"></div><div class="nm"><b>Accumulation</b><small>RIR 3 → 2 · build volume base</small></div><div class="wk">W1–3</div></div>
+          <div class="phase"><div class="bar" style="background:var(--clay-deep)"></div><div class="nm"><b>Intensification</b><small>RIR 2 → 1 · add load</small></div><div class="wk">W4–6</div></div>
+          <div class="phase"><div class="bar" style="background:#8a3a20"></div><div class="nm"><b>Overreach</b><small>RIR 1 → 0 · peak stimulus</small></div><div class="wk">W7–9</div></div>
+          <div class="phase"><div class="bar" style="background:var(--sage)"></div><div class="nm"><b>Peak & Deload</b><small>taper · restore freshness</small></div><div class="wk">W10–12</div></div>
+        </div>
+
+        <!-- volume curve -->
+        <div class="pcard" style="margin-bottom:16px">
+          <h5>Volume curve <b>sets / week</b></h5>
+          <svg viewBox="0 0 520 150" width="100%" height="130">
+            <defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d8b6a" stop-opacity=".26"/><stop offset="1" stop-color="#7d8b6a" stop-opacity="0"/></linearGradient></defs>
+            <line x1="0" y1="35" x2="520" y2="35" stroke="#e7d8c2" stroke-dasharray="3 5"/>
+            <line x1="0" y1="80" x2="520" y2="80" stroke="#e7d8c2" stroke-dasharray="3 5"/>
+            <path d="M10 100 L57 92 L104 84 L151 70 L198 60 L245 48 L292 36 L339 28 L386 22 L433 110 L480 118 L510 120 L510 150 L10 150 Z" fill="url(#g2)"/>
+            <path d="M10 100 L57 92 L104 84 L151 70 L198 60 L245 48 L292 36 L339 28 L386 22 L433 110 L480 118 L510 120" fill="none" stroke="#7d8b6a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="386" cy="22" r="5" fill="#fff" stroke="#c4623c" stroke-width="3"/>
+            <text x="386" y="14" font-size="9" fill="#a64e2d" font-weight="700" text-anchor="middle">20 sets</text>
+            <circle cx="510" cy="120" r="5" fill="#7d8b6a"/>
+            <text x="495" y="138" font-size="9" fill="#7d8b6a" font-weight="700" text-anchor="middle">deload 10</text>
+            <text x="14" y="138" font-size="9" fill="#938876">W1 · 12 sets</text>
+          </svg>
+        </div>
+
+        <!-- weekly split -->
+        <h5 style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:9px">Weekly split</h5>
+        <div class="split-row">
+          <div class="split-day"><div class="d">MON</div><div class="t">Push</div><div class="badge" style="background:var(--clay)"></div></div>
+          <div class="split-day"><div class="d">TUE</div><div class="t">Pull</div><div class="badge" style="background:var(--clay-deep)"></div></div>
+          <div class="split-day"><div class="d">WED</div><div class="t">Legs</div><div class="badge" style="background:var(--gold)"></div></div>
+          <div class="split-day"><div class="d">THU</div><div class="t">Rest</div><div class="badge" style="background:var(--sand-3)"></div></div>
+          <div class="split-day"><div class="d">FRI</div><div class="t">Push</div><div class="badge" style="background:var(--clay)"></div></div>
+          <div class="split-day"><div class="d">SAT</div><div class="t">Pull</div><div class="badge" style="background:var(--clay-deep)"></div></div>
+          <div class="split-day"><div class="d">SUN</div><div class="t">Rest</div><div class="badge" style="background:var(--sand-3)"></div></div>
+        </div>
+
+        <!-- profile glimpse -->
+        <h5 style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin:18px 0 9px">Profile glimpse</h5>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="pcard">
+            <h5>Bodyweight <b>78.4 kg → 76 goal</b></h5>
+            <svg viewBox="0 0 230 80" width="100%" height="70">
+              <line x1="0" y1="58" x2="230" y2="58" stroke="#7d8b6a" stroke-dasharray="3 4" stroke-width="1.5"/>
+              <text x="2" y="54" font-size="8" fill="#7d8b6a" font-weight="700">goal 76</text>
+              <path d="M5 22 L45 28 L85 26 L125 38 L165 42 L210 50" fill="none" stroke="#c4623c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="210" cy="50" r="4" fill="#c4623c"/>
+            </svg>
+          </div>
+          <div class="pcard">
+            <h5>Measurements <b>kg / cm</b></h5>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div class="mh" style="padding:6px 9px"><div class="nm">Waist <small>82 cm · −3</small></div></div>
+              <div class="mh" style="padding:6px 9px"><div class="nm">Chest <small>104 cm · +2</small></div></div>
+              <div class="mh" style="padding:6px 9px"><div class="nm">Arms <small>38 cm · +1.5</small></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <p class="foot-note">Pulse — <b>Quiet Focus</b> direction · Fraunces + Be Vietnam Pro · warm sand neutrals with a single clay accent · calm but dense where it counts.</p>
+
+<script>
+  // tiny vanilla load-in: stagger any extra .rise that were added late (no-op safety) + animate rest ring tick
+  (function(){
+    var ring = document.querySelector('.rt-ring circle:last-child');
+    if(!ring) return;
+    var off = 52, max = 157;
+    setInterval(function(){
+      off += 1.6; if(off > max) off = 52;
+      ring.setAttribute('stroke-dashoffset', off.toFixed(1));
+    }, 1000);
+  })();
+</script>
+</body>
+</html>

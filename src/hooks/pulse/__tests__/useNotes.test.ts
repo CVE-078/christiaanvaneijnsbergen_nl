@@ -31,7 +31,9 @@ describe('useNotes', () => {
     });
 
     it('falls back to initialNotes when SWR data is undefined', () => {
-        vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
+        vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
+            typeof useSWR
+        >);
         const initialNotes: Notes = { [`1-${UUID}`]: 'felt good' };
         const { result } = renderHook(() => useNotes(initialNotes));
         expect(result.current.notes).toEqual(initialNotes);

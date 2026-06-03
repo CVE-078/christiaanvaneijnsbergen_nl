@@ -4,25 +4,50 @@ import type { DaysPerWeek, ExperienceLevel } from './recommendation';
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
-    push: 'Push', pull: 'Pull', legs: 'Legs',
-    chest: 'Chest', back: 'Back', shoulders: 'Shoulders', arms: 'Arms',
-    upper: 'Upper', lower: 'Lower', full_body: 'Full Body',
+    push: 'Push',
+    pull: 'Pull',
+    legs: 'Legs',
+    chest: 'Chest',
+    back: 'Back',
+    shoulders: 'Shoulders',
+    arms: 'Arms',
+    upper: 'Upper',
+    lower: 'Lower',
+    full_body: 'Full Body',
 };
 
 export const WORKOUT_TYPE_ORDER: readonly WorkoutType[] = [
-    'push', 'pull', 'legs', 'chest', 'back', 'shoulders', 'arms', 'upper', 'lower', 'full_body',
+    'push',
+    'pull',
+    'legs',
+    'chest',
+    'back',
+    'shoulders',
+    'arms',
+    'upper',
+    'lower',
+    'full_body',
 ];
+
+export const WORKOUT_TYPE_OPTIONS: readonly { value: WorkoutType; label: string }[] = WORKOUT_TYPE_ORDER.map((t) => ({
+    value: t,
+    label: WORKOUT_TYPE_LABELS[t],
+}));
+
+export const BARBELL_KG = 20;
+export const DUMBBELL_HANDLE_KG = 2.5;
+export const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
 
 export const SUGGESTED_DAYS: Record<DaysPerWeek, number[]> = {
     '2-3': [1, 3],
-    '4':   [1, 2, 4, 5],
+    '4': [1, 2, 4, 5],
     '5-6': [1, 2, 3, 4, 5],
 };
 
 export const EXPERIENCE_LEVEL_COLOR: Record<ExperienceLevel, string> = {
-    beginner:     'text-emerald-400',
+    beginner: 'text-emerald-400',
     intermediate: 'text-amber-400',
-    advanced:     'text-red-400',
+    advanced: 'text-red-400',
 };
 
 export function tabKeyLabel(key: TabKey): string {

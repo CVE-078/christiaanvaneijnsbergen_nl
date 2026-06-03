@@ -21,7 +21,7 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
             <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
                 {/* Branding */}
                 <div className="mb-6 text-center">
-                    <span className="font-pulse font-bold text-[1.125rem] tracking-[0.08em] text-white uppercase">
+                    <span className="font-pulse font-medium text-[1.375rem] tracking-[-0.01em] text-pulse-text">
                         Pulse<span className="text-pulse-accent">.</span>
                     </span>
                     <p className="font-pulse text-[0.6875rem] text-pulse-muted tracking-[0.06em] mt-0.5">
@@ -30,10 +30,12 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
                 </div>
 
                 {/* Card */}
-                <div className="w-full max-w-[340px] bg-pulse-surface border border-pulse-border rounded-2xl p-5">
+                <div className="w-full max-w-[340px] bg-pulse-surface rounded-2xl p-5">
                     {/* Workout header */}
                     <div className="mb-4">
-                        <h2 className="font-pulse text-xl font-bold text-white">{stats.workoutLabel}</h2>
+                        <h2 className="font-pulse text-2xl font-medium text-pulse-text tracking-[-0.015em]">
+                            {stats.workoutLabel}
+                        </h2>
                         <p className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">{stats.date}</p>
                     </div>
 
@@ -42,8 +44,7 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
                         {[`${stats.durationMin} min`, `${stats.totalSets} sets`, `Week ${week}`].map((label) => (
                             <span
                                 key={label}
-                                className="font-pulse text-[0.6875rem] font-semibold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/20 rounded-full px-2.5 py-1 tracking-[0.04em]"
-                            >
+                                className="font-pulse text-[0.6875rem] font-semibold text-pulse-accent bg-pulse-accent/10 rounded-full px-2.5 py-1 tracking-[0.04em]">
                                 {label}
                             </span>
                         ))}
@@ -57,11 +58,11 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
                                     <span className="font-pulse text-[0.8125rem] text-pulse-text flex-1 truncate">
                                         {lift.name}
                                     </span>
-                                    <span className="font-pulse text-[0.8125rem] font-semibold text-white shrink-0">
+                                    <span className="font-pulse text-[0.8125rem] font-medium text-pulse-text shrink-0">
                                         {lift.displayWeight} {unit} × {lift.reps}
                                     </span>
                                     {lift.isPR && (
-                                        <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
+                                        <span className="font-pulse text-[0.6875rem] font-semibold tracking-[0.1em] uppercase text-pulse-accent shrink-0">
                                             PR
                                         </span>
                                     )}
@@ -88,7 +89,7 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
             <div className="px-6 pb-8">
                 <button
                     onClick={onDismiss}
-                    className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-black font-semibold text-sm cursor-pointer border-none">
+                    className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-pulse-bg font-semibold text-sm cursor-pointer border-none">
                     Done
                 </button>
             </div>

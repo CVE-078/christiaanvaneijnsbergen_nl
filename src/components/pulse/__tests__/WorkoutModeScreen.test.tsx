@@ -1,7 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { RoutineExercise, Logs, PRMap } from '@/lib/pulse/types';
+
+let prMap: PRMap = {};
+const showToast = vi.fn();
+
+vi.mock('@/context/PulseContext', () => ({
+    usePulse: () => ({ prMap }),
+}));
+
+vi.mock('@/lib/pulse/toast', () => ({
+    useToast: () => ({ show: showToast }),
+}));
+
+// Import after the mocks so the component picks them up.
 import WorkoutModeScreen from '../WorkoutModeScreen';
-import type { RoutineExercise, Logs } from '@/lib/pulse/types';
 
 const mockExercise = (id: string, name: string): RoutineExercise => ({
     id,
@@ -31,7 +45,10 @@ const defaultProps = {
 };
 
 describe('WorkoutModeScreen', () => {
-    beforeEach(() => vi.clearAllMocks());
+    beforeEach(() => {
+        vi.clearAllMocks();
+        prMap = {};
+    });
 
     it('shows first exercise and progress', () => {
         render(<WorkoutModeScreen {...defaultProps} />);
@@ -72,11 +89,47 @@ describe('WorkoutModeScreen', () => {
     });
 
     it('disables finish and early-finish buttons when sessionId is null', () => {
-        render(<WorkoutModeScreen
-            {...defaultProps}
-            exercises={[mockExercise('re1', 'Bench Press')]}
-            sessionId={null}
-        />);
+        render(
+            <WorkoutModeScreen {...defaultProps} exercises={[mockExercise('re1', 'Bench Press')]} sessionId={null} />,
+        );
         expect(screen.getByRole('button', { name: /finish workout/i })).toBeDisabled();
+    });
+
+    it('renders a PR tag on a saved set that beats the exercise best', () => {
+        prMap = { re1: 100 }; // calcE1RM(80,10) ~= 106.7 > 100
+        const logs: Logs = { '1-re1-0': { kg: 80, reps: 10, rir: 2, saved: true } };
+        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        expect(screen.getByText('PR')).toBeInTheDocument();
+    });
+
+    it('does not render a PR tag when the set is below the best', () => {
+        prMap = { re1: 200 };
+        const logs: Logs = { '1-re1-0': { kg: 50, reps: 5, rir: 2, saved: true } };
+        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        expect(screen.queryByText('PR')).not.toBeInTheDocument();
+    });
+
+    it('fires a success toast when a save newly qualifies as a PR', async () => {
+        prMap = { re1: 100 };
+        const onSave = vi.fn();
+        render(<WorkoutModeScreen {...defaultProps} onSave={onSave} />);
+        const kgInputs = screen.getAllByRole('spinbutton', { name: /weight in kg/i });
+        const repsInputs = screen.getAllByRole('spinbutton', { name: /repetitions/i });
+        await userEvent.type(kgInputs[0], '80');
+        await userEvent.type(repsInputs[0], '10');
+        await userEvent.click(screen.getAllByRole('button', { name: /save/i })[0]);
+        expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/new pr on bench press/i), 'success');
+        expect(onSave).toHaveBeenCalled();
+    });
+
+    it('does not fire a PR toast for a non-PR save', async () => {
+        prMap = { re1: 500 };
+        render(<WorkoutModeScreen {...defaultProps} />);
+        const kgInputs = screen.getAllByRole('spinbutton', { name: /weight in kg/i });
+        const repsInputs = screen.getAllByRole('spinbutton', { name: /repetitions/i });
+        await userEvent.type(kgInputs[0], '40');
+        await userEvent.type(repsInputs[0], '5');
+        await userEvent.click(screen.getAllByRole('button', { name: /save/i })[0]);
+        expect(showToast).not.toHaveBeenCalled();
     });
 });

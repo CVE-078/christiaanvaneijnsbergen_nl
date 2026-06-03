@@ -29,7 +29,14 @@ const exercises: RoutineExercise[] = [
         sets: '3',
         reps: '8',
         starting_weight_kg: null,
-        exercise: { id: 'ex-1', name: 'Bench Press', category: 'chest', default_sets: '3', default_reps: '8', user_id: null },
+        exercise: {
+            id: 'ex-1',
+            name: 'Bench Press',
+            category: 'chest',
+            default_sets: '3',
+            default_reps: '8',
+            user_id: null,
+        },
     },
 ];
 

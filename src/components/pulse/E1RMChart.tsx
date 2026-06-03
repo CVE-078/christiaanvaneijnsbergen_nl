@@ -10,7 +10,7 @@ interface E1RMChartProps {
 export default function E1RMChart({ history, unit }: E1RMChartProps) {
     if (history.length < 2) {
         return (
-            <div className="h-20 flex items-center justify-center">
+            <div className="h-[150px] flex items-center justify-center">
                 <span className="font-pulse text-[0.75rem] text-pulse-dim">
                     Log at least two sessions to see progression.
                 </span>
@@ -18,10 +18,14 @@ export default function E1RMChart({ history, unit }: E1RMChartProps) {
         );
     }
 
-    const PL = 34, PR = 8, PT = 10, PB = 16;
-    const VW = 300, VH = 80;
-    const W = VW - PL - PR;  // 258
-    const H = VH - PT - PB;  // 54
+    const PL = 34,
+        PR = 14,
+        PT = 22,
+        PB = 24;
+    const VW = 420,
+        VH = 150;
+    const W = VW - PL - PR; // 372
+    const H = VH - PT - PB; // 104
 
     const e1rms = history.map((p) => p.e1rm);
     const minE = Math.min(...e1rms);
@@ -35,73 +39,81 @@ export default function E1RMChart({ history, unit }: E1RMChartProps) {
     const px = (week: number) => PL + ((week - minWeek) / weekRange) * W;
     const py = (e1rm: number) => PT + H - ((e1rm - minE) / eRange) * H;
 
-    const pathD = history
-        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${px(p.week).toFixed(1)} ${py(p.e1rm).toFixed(1)}`)
-        .join(' ');
+    const points = history.map((p) => `${px(p.week).toFixed(1)},${py(p.e1rm).toFixed(1)}`).join(' ');
 
-    const prPoint = history.reduce((a, b) => (a.e1rm >= b.e1rm ? a : b));
+    // The most recent session is the "now" point, drawn solid with its value.
+    const lastPoint = history[history.length - 1];
     const yTicks = [minE, (minE + maxE) / 2, maxE];
 
     return (
-        <svg viewBox={`0 0 ${VW} ${VH}`} className="w-full h-20" aria-hidden="true">
-            <defs>
-                <linearGradient id="e1rm-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-pulse-accent)" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="var(--color-pulse-accent)" stopOpacity={0} />
-                </linearGradient>
-            </defs>
+        <svg viewBox={`0 0 ${VW} ${VH}`} className="w-full" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            {/* Baseline grid */}
+            <line x1={PL} y1={PT + H} x2={PL + W} y2={PT + H} stroke="var(--color-pulse-surface-2)" strokeWidth={1} />
 
             {/* Y-axis ticks */}
             {yTicks.map((v, i) => (
                 <text
                     key={i}
-                    x={PL - 3}
+                    x={PL - 6}
                     y={py(v) + 3}
                     textAnchor="end"
-                    fontSize="8"
+                    fontSize="10"
+                    letterSpacing="0.04em"
                     fontFamily="var(--font-pulse)"
-                    fill="var(--color-pulse-dim)"
-                >
+                    fill="var(--color-pulse-muted)">
                     {Math.round(toDisplay(v, unit))}
                 </text>
             ))}
 
-            {/* Area fill */}
-            <path
-                d={`${pathD} L ${px(maxWeek).toFixed(1)} ${(PT + H).toFixed(1)} L ${px(minWeek).toFixed(1)} ${(PT + H).toFixed(1)} Z`}
-                fill="url(#e1rm-grad)"
-            />
-
             {/* Line */}
-            <path
-                d={pathD}
+            <polyline
+                points={points}
                 fill="none"
                 stroke="var(--color-pulse-accent)"
-                strokeWidth={1.5}
+                strokeWidth={2.4}
                 strokeLinejoin="round"
                 strokeLinecap="round"
             />
 
-            {/* Data dots */}
-            {history.map((p) => (
+            {/* Hollow data points for every session except the latest */}
+            {history.slice(0, -1).map((p) => (
                 <circle
                     key={p.week}
                     cx={px(p.week)}
                     cy={py(p.e1rm)}
-                    r={2.5}
-                    fill="var(--color-pulse-accent)"
+                    r={3}
+                    fill="var(--color-pulse-bg)"
+                    stroke="var(--color-pulse-accent)"
+                    strokeWidth={2}
                 />
             ))}
 
-            {/* PR ring */}
-            <circle
-                cx={px(prPoint.week)}
-                cy={py(prPoint.e1rm)}
-                r={5}
-                fill="none"
-                stroke="var(--color-pulse-accent)"
-                strokeWidth={1.5}
-            />
+            {/* Current (latest) point - solid accent */}
+            <circle cx={px(lastPoint.week)} cy={py(lastPoint.e1rm)} r={4.5} fill="var(--color-pulse-accent)" />
+            <text
+                x={px(lastPoint.week)}
+                y={py(lastPoint.e1rm) - 11}
+                textAnchor="middle"
+                fontSize="11"
+                fontFamily="var(--font-pulse)"
+                fill="var(--color-pulse-accent)">
+                {Math.round(toDisplay(lastPoint.e1rm, unit))} {unit}
+            </text>
+
+            {/* X-axis labels */}
+            {history.map((p, i) => (
+                <text
+                    key={p.week}
+                    x={px(p.week)}
+                    y={VH - 6}
+                    textAnchor="middle"
+                    fontSize="10"
+                    letterSpacing="0.04em"
+                    fontFamily="var(--font-pulse)"
+                    fill="var(--color-pulse-muted)">
+                    {i === history.length - 1 ? 'Now' : `W${p.week}`}
+                </text>
+            ))}
         </svg>
     );
 }
