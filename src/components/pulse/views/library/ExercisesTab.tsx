@@ -5,6 +5,7 @@ import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
 import type { DbExercise, ExerciseCategory } from '@/lib/pulse/types';
 import { INPUT, BTN_PRIMARY, BTN_GHOST, CARD } from '@/components/pulse/ui';
 import CategoryBadge from './CategoryBadge';
+import ExerciseInstructionModal from '@/components/pulse/ExerciseInstructionModal';
 
 const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
 
@@ -20,6 +21,7 @@ export default function ExercisesTab() {
     const [newDefaultReps, setNewDefaultReps] = useState('8-12');
 
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [instructionsFor, setInstructionsFor] = useState<DbExercise | null>(null);
     const [editName, setEditName] = useState('');
     const [editDefaultSets, setEditDefaultSets] = useState('');
     const [editDefaultReps, setEditDefaultReps] = useState('');
@@ -217,6 +219,30 @@ export default function ExercisesTab() {
                                             {ex.name}
                                         </span>
                                         <CategoryBadge category={ex.category} />
+                                        {!isUser && (
+                                            <button
+                                                onClick={() => setInstructionsFor(ex)}
+                                                aria-label={`Instructions for ${ex.name}`}
+                                                className="shrink-0 cursor-pointer border-none bg-transparent text-pulse-dim hover:text-pulse-accent">
+                                                <svg
+                                                    className="h-4 w-4"
+                                                    viewBox="0 0 16 16"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth={1.5}
+                                                    aria-hidden>
+                                                    <circle cx="8" cy="8" r="6.5" />
+                                                    <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
+                                                    <circle
+                                                        cx="8"
+                                                        cy="4.75"
+                                                        r="0.6"
+                                                        fill="currentColor"
+                                                        stroke="none"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        )}
                                         {isUser && (
                                             <>
                                                 <button
@@ -240,6 +266,14 @@ export default function ExercisesTab() {
                     })
                 )}
             </div>
+
+            {instructionsFor && (
+                <ExerciseInstructionModal
+                    exerciseId={instructionsFor.id}
+                    exerciseName={instructionsFor.name}
+                    onClose={() => setInstructionsFor(null)}
+                />
+            )}
         </div>
     );
 }
