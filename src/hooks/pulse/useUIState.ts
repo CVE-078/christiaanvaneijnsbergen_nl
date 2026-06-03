@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import type { TabKey } from '@/lib/pulse/types';
 
@@ -11,9 +11,7 @@ export function useUIState() {
     const activeWeek = clampWeek(rawWeek);
     const [activeTab, setActiveTab] = useState<TabKey>('push');
 
-    function setActiveWeek(week: number) {
-        setRawWeek(week);
-    }
+    const setActiveWeek = useCallback((week: number) => setRawWeek(week), [setRawWeek]);
 
     return { activeWeek, setActiveWeek, activeTab, setActiveTab };
 }
