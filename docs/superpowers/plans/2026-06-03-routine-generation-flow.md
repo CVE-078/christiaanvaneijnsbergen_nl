@@ -338,15 +338,17 @@ git -c commit.gpgsign=false commit -m "feat(generation): group routine editor by
 **Files:**
 - Possibly create: `docs/migrations/2026-06-03-template-fixes.sql` (only if data is wrong)
 
-- [ ] **Step 1: Audit**
+- [x] **Step 1: Audit**
 
 For each of the 17 templates, confirm `cloneTemplate` now yields a sane routine at `~30 / 45–60 / 90+` and 2-3 / 4 / 5-6 days using the volume model (no empty/one-exercise days). The volume floor in Task 1 already prevents the reported failure. Read the template seed migrations and spot-check the female "Full Body Tone" templates for too-few exercises per session.
 
-- [ ] **Step 2: Fix data if needed**
+**Audit result (2026-06-03):** Counted exercises per `(template, workout_type, variant)` group across all three seed migrations (`2026-05-27-routine-templates.sql`, `2026-05-29-female-templates.sql`, `2026-05-29-template-ab-data.sql`). Every group has **≥2** exercises. The smallest groups (2 each) are the full-body templates (001–003), where push/pull/legs subdivide a single session; PPL/upper-lower templates run 3–6 per group; "Full Body Tone — Dumbbells" (017) has 6 in one `full_body` session. `applyTemplateVolume` keeps `Math.min(len, Math.max(perSession, 3))`, so a clone preserves every available exercise and can never collapse a session to one row. The reported "Full Body Tone → 1 exercise/day at 3×30 min" bug was caused by the retired slice-based `applyVolume`, not by template data.
 
-If a template genuinely has too few exercises to fill even the floor, add a migration that inserts the missing `template_exercises`. If no data is wrong (the floor + volume model is enough), record that in the audit note and skip the migration.
+- [x] **Step 2: Fix data if needed**
 
-- [ ] **Step 3: Commit (only if a migration was needed).**
+No template has too few exercises to fill the floor — the floor + volume model is sufficient. **No migration needed.**
+
+- [x] **Step 3: Commit (only if a migration was needed).** Skipped — no data change.
 
 ---
 
