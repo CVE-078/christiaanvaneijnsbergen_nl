@@ -139,6 +139,9 @@ export interface DbExercise {
     default_sets: string;
     default_reps: string;
     user_id: string | null;
+    equipment?: EquipmentKey[];
+    movement_pattern?: MovementPattern | null;
+    is_compound?: boolean;
 }
 
 export interface WorkoutRoutine {
@@ -182,6 +185,29 @@ export interface WorkoutSession {
 
 export const EQUIPMENT_KEYS = ['dumbbells', 'barbell', 'bench', 'cables', 'machines'] as const;
 export type EquipmentKey = (typeof EQUIPMENT_KEYS)[number];
+// Bodyweight exercises are represented by an empty `equipment` array (always
+// available), so it is intentionally NOT an EquipmentKey.
+
+export const MOVEMENT_PATTERNS = [
+    'horizontal_push',
+    'vertical_push',
+    'horizontal_pull',
+    'vertical_pull',
+    'squat',
+    'hinge',
+    'lunge',
+    'calf',
+    'core',
+    'chest_iso',
+    'back_iso',
+    'shoulder_iso',
+    'biceps_iso',
+    'triceps_iso',
+    'glute_iso',
+] as const;
+export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
+
+export type SessionTime = '~30 min' | '45–60 min' | '90+ min';
 
 export interface RoutineTemplate {
     id: string;
