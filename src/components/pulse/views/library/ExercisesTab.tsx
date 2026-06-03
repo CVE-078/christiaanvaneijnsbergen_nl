@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { usePulse } from '@/context/PulseContext';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
 import type { DbExercise, ExerciseCategory } from '@/lib/pulse/types';
@@ -27,6 +27,13 @@ export default function ExercisesTab() {
     const [editDefaultReps, setEditDefaultReps] = useState('');
 
     const filtered = exercises.filter((ex) => filter === 'all' || ex.category === filter);
+
+    // Per-category counts so each filter chip can show how many exercises it holds.
+    const categoryCounts = useMemo(() => {
+        const m = new Map<ExerciseCategory, number>();
+        for (const ex of exercises) m.set(ex.category, (m.get(ex.category) ?? 0) + 1);
+        return m;
+    }, [exercises]);
 
     function handleAdd() {
         const name = newName.trim();
@@ -68,23 +75,36 @@ export default function ExercisesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Filter row */}
-            <div className="flex flex-wrap gap-2">
-                {(['all', ...EXERCISE_CATEGORIES] as const).map((f) => {
-                    const active = filter === f;
-                    return (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`font-pulse text-xs tracking-[0.04em] uppercase rounded-full px-3 py-1.5 cursor-pointer border-none ${
-                                active
-                                    ? 'bg-pulse-accent text-pulse-bg font-semibold'
-                                    : 'bg-pulse-surface-2 text-pulse-dim'
-                            }`}>
-                            {f}
-                        </button>
-                    );
-                })}
+            {/* Filter rail — single non-wrapping scroll line; each chip shows its count,
+                a fade edge on the right signals there is more to scroll. */}
+            <div className="relative -mx-1">
+                <div className="flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {(['all', ...EXERCISE_CATEGORIES] as const).map((f) => {
+                        const active = filter === f;
+                        const count = f === 'all' ? exercises.length : (categoryCounts.get(f) ?? 0);
+                        return (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                aria-label={f}
+                                aria-pressed={active}
+                                className={`font-pulse text-xs tracking-[0.02em] capitalize rounded-full px-3 py-1.5 cursor-pointer border-none shrink-0 inline-flex items-center gap-1.5 transition-colors ${
+                                    active
+                                        ? 'bg-pulse-accent text-pulse-bg font-semibold'
+                                        : 'bg-pulse-surface-2 text-pulse-dim'
+                                }`}>
+                                {f}
+                                <span
+                                    className={`font-pulse text-[0.625rem] font-semibold tabular-nums rounded px-1 ${
+                                        active ? 'bg-pulse-bg/20 text-pulse-bg' : 'bg-white/5 text-pulse-muted'
+                                    }`}>
+                                    {count}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-l from-pulse-bg to-transparent" />
             </div>
 
             {/* Add form */}

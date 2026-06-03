@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pulse — Muscle Filter · 3 options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0e1113;
+    --surface: #161a1d;
+    --surface-2: #1c2125;
+    --border: #262c31;
+    --accent: #ff7d66;
+    --accent-dim: #b0503d;
+    --text: #e7ebed;
+    --dim: #aab2b7;
+    --muted: #6f787e;
+    --body: "Hanken Grotesk", system-ui, sans-serif;
+    --display: "Sora", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(1100px 540px at 78% -8%, rgba(255, 125, 102, 0.10), transparent 60%),
+      radial-gradient(800px 420px at 0% 100%, rgba(255, 125, 102, 0.045), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    padding: 48px 28px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* faint grain */
+  body::before {
+    content: "";
+    position: fixed; inset: 0; pointer-events: none; opacity: 0.025; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; position: relative; z-index: 1; }
+
+  header { margin-bottom: 44px; }
+  .brand {
+    font-family: var(--display); font-weight: 700; font-size: 0.9375rem;
+    letter-spacing: 0.16em; text-transform: uppercase; color: #fff;
+  }
+  .brand span { color: var(--accent); }
+  h1 {
+    font-family: var(--display); font-weight: 600; font-size: clamp(1.5rem, 3vw, 2.1rem);
+    letter-spacing: -0.015em; margin-top: 14px; line-height: 1.1;
+  }
+  .sub { color: var(--dim); font-size: 0.9375rem; margin-top: 10px; max-width: 640px; line-height: 1.55; }
+  .sub code { color: var(--accent); background: rgba(255,125,102,0.08); padding: 1px 6px; border-radius: 5px; font-size: 0.85em; }
+
+  .grid {
+    display: grid; gap: 22px;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+  }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; } }
+
+  .col { opacity: 0; transform: translateY(14px); animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+  .col:nth-child(1) { animation-delay: 0.05s; }
+  .col:nth-child(2) { animation-delay: 0.16s; }
+  .col:nth-child(3) { animation-delay: 0.27s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  }
+  .tag .num {
+    font-family: var(--display); font-weight: 700; font-size: 0.7rem;
+    width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
+    background: var(--accent); color: var(--bg);
+  }
+  .tag .name { font-family: var(--display); font-weight: 600; font-size: 0.95rem; letter-spacing: 0.01em; }
+  .blurb { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; margin-bottom: 16px; min-height: 54px; }
+  .rec { color: var(--accent); }
+
+  /* phone frame */
+  .phone {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px 14px 18px;
+    box-shadow: 0 24px 60px -28px rgba(0,0,0,0.8);
+  }
+  .phone-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 2px 4px 14px;
+  }
+  .phone-head .t { font-family: var(--display); font-weight: 600; font-size: 0.95rem; }
+  .phone-head .c { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+  .label { font-size: 0.625rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 0 4px 8px; }
+
+  /* ── shared exercise list ── */
+  .list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding: 0 2px; }
+  .ex {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2); border-radius: 9px; padding: 9px 11px;
+    animation: exin 0.32s ease both;
+  }
+  @keyframes exin { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .ex .nm { font-size: 0.8125rem; color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ex .cat { font-size: 0.5625rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .empty { color: var(--muted); font-size: 0.78rem; padding: 14px 6px; text-align: center; }
+  .count-note { font-size: 0.6875rem; color: var(--muted); padding: 10px 4px 0; }
+  .count-note b { color: var(--dim); font-weight: 600; }
+
+  /* ════ Option A — dropdown ════ */
+  .dd { position: relative; padding: 0 2px; }
+  .dd-btn {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 11px;
+    padding: 11px 13px; cursor: pointer; color: var(--text); font-family: var(--body);
+    transition: border-color 0.18s ease;
+  }
+  .dd-btn:hover { border-color: #343c42; }
+  .dd-btn.open { border-color: var(--accent); }
+  .dd-btn .lead { display: flex; align-items: center; gap: 9px; }
+  .dd-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .dd-btn .val { font-size: 0.875rem; font-weight: 500; text-transform: capitalize; }
+  .dd-btn .cnt { font-size: 0.6875rem; color: var(--muted); }
+  .dd-btn .chev { color: var(--dim); transition: transform 0.22s ease; }
+  .dd-btn.open .chev { transform: rotate(180deg); }
+  .dd-menu {
+    position: absolute; left: 2px; right: 2px; top: calc(100% + 6px); z-index: 20;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 6px; max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height 0.26s ease, opacity 0.2s ease, padding 0.2s ease;
+    box-shadow: 0 18px 44px -20px rgba(0,0,0,0.85);
+  }
+  .dd-menu.open { max-height: 460px; opacity: 1; }
+  .dd-opt {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 0.8125rem; color: var(--dim);
+    text-transform: capitalize; transition: background 0.14s ease, color 0.14s ease;
+  }
+  .dd-opt:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .dd-opt.sel { color: var(--accent); }
+  .dd-opt .n { font-size: 0.6875rem; color: var(--muted); }
+  .dd-opt.sel .n { color: var(--accent-dim); }
+
+  /* ════ Option B — grouped + sub-row ════ */
+  .seg { display: flex; gap: 6px; padding: 0 2px; }
+  .seg button {
+    flex: 1; font-family: var(--body); font-size: 0.78rem; font-weight: 600;
+    padding: 9px 4px; border-radius: 10px; cursor: pointer; border: 1px solid transparent;
+    background: var(--surface-2); color: var(--dim); transition: all 0.16s ease;
+  }
+  .seg button:hover { color: var(--text); }
+  .seg button.on { background: var(--accent); color: var(--bg); }
+  .subrow { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 2px 0; }
+  .subrow.hide { display: none; }
+  .subchip {
+    font-size: 0.7rem; text-transform: capitalize; padding: 5px 11px; border-radius: 999px;
+    cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--dim);
+    transition: all 0.15s ease;
+  }
+  .subchip:hover { border-color: #3a4248; color: var(--text); }
+  .subchip.on { background: rgba(255,125,102,0.12); border-color: rgba(255,125,102,0.4); color: var(--accent); }
+
+  /* ════ Option C — single-line scroll rail w/ counts ════ */
+  .rail-wrap { position: relative; padding: 0 2px; }
+  .rail {
+    display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
+    scroll-behavior: smooth;
+  }
+  .rail::-webkit-scrollbar { display: none; }
+  .rail-wrap::after {
+    content: ""; position: absolute; top: 0; right: 2px; bottom: 0; width: 38px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--surface));
+  }
+  .rchip {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+    background: var(--surface-2); color: var(--dim); border: 1px solid transparent;
+    text-transform: capitalize; white-space: nowrap; transition: all 0.15s ease;
+  }
+  .rchip:hover { color: var(--text); }
+  .rchip.on { background: var(--accent); color: var(--bg); font-weight: 600; }
+  .rchip .b {
+    font-size: 0.625rem; font-weight: 600; color: var(--muted);
+    background: rgba(255,255,255,0.05); border-radius: 6px; padding: 0 5px; line-height: 1.5;
+  }
+  .rchip.on .b { color: var(--bg); background: rgba(14,17,19,0.22); }
+
+  .verdict {
+    margin-top: 48px; background: linear-gradient(180deg, var(--surface), #13171a);
+    border: 1px solid var(--border); border-radius: 16px; padding: 24px 26px;
+    opacity: 0; animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) 0.4s forwards;
+  }
+  .verdict h2 { font-family: var(--display); font-size: 1.05rem; font-weight: 600; margin-bottom: 12px; }
+  .verdict h2 b { color: var(--accent); }
+  .verdict p { color: var(--dim); font-size: 0.875rem; line-height: 1.6; max-width: 760px; }
+  .verdict p + p { margin-top: 10px; }
+  .verdict .pill { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Pulse<span>.</span></div>
+    <h1>Muscle filter — three directions</h1>
+    <p class="sub">Replacing the flat row of 11 uppercase chips in <code>ExercisesTab</code>. Each option filters the same sample library live — click around. Built in the real Slate tokens and fonts.</p>
+  </header>
+
+  <div class="grid">
+    <!-- ░░░ OPTION A ░░░ -->
+    <div class="col">
+      <div class="tag"><span class="num">A</span><span class="name">Dropdown</span></div>
+      <p class="blurb">A single compact control. Collapses all 11 to one line, shows the active filter + its count, opens a scrollable menu with per-muscle counts.</p>
+      <div class="phone">
+        <div class="phone-head"><span class="t">Exercises</span><span class="c">Library</span></div>
+        <div class="label">Filter</div>
+        <div class="dd" id="ddRoot">
+          <button class="dd-btn" id="ddBtn">
+            <span class="lead"><span class="dot"></span><span class="val" id="ddVal">All muscles</span><span class="cnt" id="ddCnt"></span></span>
+            <svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="dd-menu" id="ddMenu"></div>
+        </div>
+        <div class="list" id="listA"></div>
+      </div>
+    </div>
+
+    <!-- ░░░ OPTION B ░░░ -->
+    <div class="col">
+      <div class="tag"><span class="num">B</span><span class="name">Grouped</span></div>
+      <p class="blurb">Five one-tap parents (Push / Pull / Legs / Core). Picking one reveals its muscles as sub-chips for fine filtering — progressive disclosure.</p>
+      <div class="phone">
+        <div class="phone-head"><span class="t">Exercises</span><span class="c">Library</span></div>
+        <div class="label">Group</div>
+        <div class="seg" id="segRoot"></div>
+        <div class="subrow hide" id="subRoot"></div>
+        <div class="list" id="listB"></div>
+      </div>
+    </div>
+
+    <!-- ░░░ OPTION C ░░░ -->
+    <div class="col">
+      <div class="tag"><span class="num">C</span><span class="name">Scroll rail</span></div>
+      <p class="blurb">One-tap, one-level, no wrapping. Single horizontal scroll line with a count badge per muscle and a fade edge signalling more. Closest to today, fixed.</p>
+      <div class="phone">
+        <div class="phone-head"><span class="t">Exercises</span><span class="c">Library</span></div>
+        <div class="label">Filter</div>
+        <div class="rail-wrap"><div class="rail" id="railRoot"></div></div>
+        <div class="list" id="listC"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <h2>Recommendation — <b>Option C, the scroll rail</b></h2>
+    <p>It keeps the filter to <span class="pill">one tap, one level</span> — no menu to open, no second sub-row to learn. That matches how the current chips already work, so it's the smallest behavioural change and the lowest-risk edit. The fixes that matter are real: a single non-wrapping line (kills the cluttered multi-row wrap), a <span class="pill">count badge per muscle</span> so empty categories are obvious before you tap, and a fade edge that signals there's more to scroll.</p>
+    <p><b>A (dropdown)</b> is the densest and scales best, but it hides every option behind a tap and adds an interaction to a filter people flick through constantly. <b>B (grouped)</b> is elegant but coarser and two-level — overkill for 10 categories, and the Push/Pull/Legs grouping fights the fact that the library is browsed by single muscle. Pick <b>C</b> unless you expect the category list to grow well beyond 10, in which case <b>A</b> ages better.</p>
+  </div>
+</div>
+
+<script>
+  const CATS = ["chest","shoulders","triceps","back","biceps","legs","glutes","calves","abs","other"];
+  const GROUPS = {
+    Push: ["chest","shoulders","triceps"],
+    Pull: ["back","biceps"],
+    Legs: ["legs","glutes","calves"],
+    Core: ["abs","other"],
+  };
+  const EX = [
+    ["Barbell Bench Press","chest"],["Incline Dumbbell Press","chest"],["Cable Fly","chest"],
+    ["Overhead Press","shoulders"],["Lateral Raise","shoulders"],
+    ["Rope Pushdown","triceps"],["Skullcrusher","triceps"],
+    ["Pull-Up","back"],["Barbell Row","back"],["Lat Pulldown","back"],
+    ["Dumbbell Curl","biceps"],["Hammer Curl","biceps"],
+    ["Back Squat","legs"],["Leg Press","legs"],["Romanian Deadlift","legs"],
+    ["Hip Thrust","glutes"],["Glute Bridge","glutes"],
+    ["Standing Calf Raise","calves"],
+    ["Hanging Leg Raise","abs"],["Cable Crunch","abs"],
+    ["Farmer's Carry","other"],
+  ];
+  const countFor = (c) => c === "all" ? EX.length : EX.filter(e => e[1] === c).length;
+
+  function renderList(el, pred) {
+    const items = EX.filter(pred);
+    el.innerHTML = items.length
+      ? items.map((e,i) => `<div class="ex" style="animation-delay:${i*22}ms"><span class="nm">${e[0]}</span><span class="cat">${e[1]}</span></div>`).join("")
+      : `<div class="empty">No exercises here yet.</div>`;
+  }
+
+  /* ── A: dropdown ── */
+  const ddBtn = document.getElementById("ddBtn"), ddMenu = document.getElementById("ddMenu");
+  const ddVal = document.getElementById("ddVal"), ddCnt = document.getElementById("ddCnt");
+  let aSel = "all";
+  function buildMenu() {
+    const opts = ["all", ...CATS];
+    ddMenu.innerHTML = opts.map(o => `<div class="dd-opt ${o===aSel?'sel':''}" data-v="${o}"><span>${o==="all"?"All muscles":o}</span><span class="n">${countFor(o)}</span></div>`).join("");
+    ddMenu.querySelectorAll(".dd-opt").forEach(op => op.onclick = () => { aSel = op.dataset.v; syncA(); toggleA(false); });
+  }
+  function syncA() {
+    ddVal.textContent = aSel === "all" ? "All muscles" : aSel;
+    ddCnt.textContent = `· ${countFor(aSel)}`;
+    renderList(document.getElementById("listA"), e => aSel==="all" || e[1]===aSel);
+    buildMenu();
+  }
+  function toggleA(force) {
+    const open = force ?? !ddMenu.classList.contains("open");
+    ddMenu.classList.toggle("open", open); ddBtn.classList.toggle("open", open);
+  }
+  ddBtn.onclick = (e) => { e.stopPropagation(); toggleA(); };
+  document.addEventListener("click", () => toggleA(false));
+  ddMenu.onclick = (e) => e.stopPropagation();
+  syncA();
+
+  /* ── B: grouped ── */
+  const segRoot = document.getElementById("segRoot"), subRoot = document.getElementById("subRoot");
+  let bGroup = "all", bMuscle = null;
+  const segItems = ["all", ...Object.keys(GROUPS)];
+  segRoot.innerHTML = segItems.map(g => `<button data-g="${g}">${g==="all"?"All":g}</button>`).join("");
+  function syncB() {
+    segRoot.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.g===bGroup && !bMuscle));
+    if (bGroup === "all") { subRoot.classList.add("hide"); }
+    else {
+      subRoot.classList.remove("hide");
+      const muscles = GROUPS[bGroup];
+      subRoot.innerHTML = muscles.map(m => `<span class="subchip ${m===bMuscle?'on':''}" data-m="${m}">${m}</span>`).join("");
+      subRoot.querySelectorAll(".subchip").forEach(c => c.onclick = () => { bMuscle = (bMuscle===c.dataset.m)?null:c.dataset.m; syncB(); });
+    }
+    renderList(document.getElementById("listB"), e => {
+      if (bGroup === "all") return true;
+      if (bMuscle) return e[1] === bMuscle;
+      return GROUPS[bGroup].includes(e[1]);
+    });
+  }
+  segRoot.querySelectorAll("button").forEach(b => b.onclick = () => { bGroup = b.dataset.g; bMuscle = null; syncB(); });
+  syncB();
+
+  /* ── C: scroll rail ── */
+  const railRoot = document.getElementById("railRoot");
+  let cSel = "all";
+  const railItems = ["all", ...CATS];
+  railRoot.innerHTML = railItems.map(c => `<button class="rchip ${c===cSel?'on':''}" data-c="${c}">${c==="all"?"All":c}<span class="b">${countFor(c)}</span></button>`).join("");
+  function syncC() {
+    railRoot.querySelectorAll(".rchip").forEach(b => b.classList.toggle("on", b.dataset.c===cSel));
+    renderList(document.getElementById("listC"), e => cSel==="all" || e[1]===cSel);
+  }
+  railRoot.querySelectorAll(".rchip").forEach(b => b.onclick = () => { cSel = b.dataset.c; syncC(); });
+  syncC();
+</script>
+</body>
+</html>

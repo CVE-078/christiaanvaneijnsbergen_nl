@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LibraryView from '../views/LibraryView';
 import type { DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
@@ -120,6 +120,14 @@ describe('LibraryView', () => {
         await userEvent.click(screen.getByRole('button', { name: /^back$/i }));
         expect(screen.getByText('Barbell Row')).toBeInTheDocument();
         expect(screen.queryByText('Bench Press')).not.toBeInTheDocument();
+    });
+
+    it('shows a per-category count badge on each filter chip', () => {
+        render(<LibraryView />);
+        // Sample library: 2 chest (Bench Press, Cable Fly) + 1 back (Barbell Row) = 3 total.
+        expect(within(screen.getByRole('button', { name: 'all' })).getByText('3')).toBeInTheDocument();
+        expect(within(screen.getByRole('button', { name: 'chest' })).getByText('2')).toBeInTheDocument();
+        expect(within(screen.getByRole('button', { name: 'back' })).getByText('1')).toBeInTheDocument();
     });
 
     it('only shows edit/delete on user exercises', () => {
