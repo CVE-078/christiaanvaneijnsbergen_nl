@@ -99,8 +99,15 @@ export default function BottomNav({ view, onNavigate }: Props) {
     return (
         <nav
             aria-label="Main navigation"
-            className="fixed bottom-0 left-0 right-0 flex h-16 bg-pulse-surface border-t border-pulse-border z-30"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+            className="fixed bottom-0 left-0 right-0 flex bg-pulse-surface border-t border-pulse-border z-30"
+            style={{
+                // Content stays 4rem tall; the safe-area inset is added BELOW it
+                // (as extra height + padding) instead of eating into a fixed
+                // height, so the icons never get squished/clipped when iOS
+                // Safari's bottom bar shows and hides on scroll.
+                height: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            }}>
             {ITEMS.map(({ id, label, icon }) => {
                 const active = view === id;
                 return (
