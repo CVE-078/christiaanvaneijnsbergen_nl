@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { getUserOrUnauthorized } from '@/lib/pulse/auth';
+import { UUID_RE } from '@/lib/pulse/utils';
 
 export async function POST(request: Request) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { supabase, user, response } = await getUserOrUnauthorized();
+    if (response) return response;
 
     let body: unknown;
     try { body = await request.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
@@ -30,16 +28,26 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Exercises not found' }, { status: 404 });
     }
 
-    const [a, b] = rows as Array<{ id: string; routine_id: string; order: number; superset_group_id: string | null; workout_routines: { user_id: string } }>;
+    const [a, b] = rows as unknown as Array<{ id: string; routine_id: string; order: number; superset_group_id: string | null; workout_routines: { user_id: string } }>;
     if (a.workout_routines.user_id !== user.id || b.workout_routines.user_id !== user.id) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     if (a.routine_id !== b.routine_id) {
         return NextResponse.json({ error: 'Exercises must belong to the same routine' }, { status: 400 });
     }
-    const minOrder = Math.min(a.order, b.order);
-    const maxOrder = Math.max(a.order, b.order);
-    if (maxOrder - minOrder !== 1) {
+    // Adjacency by sorted position, not raw order values: deletes leave gaps in
+    // `order`, so two genuinely adjacent rows can differ by more than 1.
+    const { data: routineRows, error: orderError } = await supabase
+        .from('routine_exercises')
+        .select('id, order')
+        .eq('routine_id', a.routine_id)
+        .order('order', { ascending: true });
+    if (orderError || !routineRows) {
+        return NextResponse.json({ error: 'Failed to verify adjacency' }, { status: 500 });
+    }
+    const posA = routineRows.findIndex((r) => r.id === exerciseAId);
+    const posB = routineRows.findIndex((r) => r.id === exerciseBId);
+    if (posA === -1 || posB === -1 || Math.abs(posA - posB) !== 1) {
         return NextResponse.json({ error: 'Exercises must be adjacent in the routine' }, { status: 400 });
     }
     if (a.superset_group_id !== null || b.superset_group_id !== null) {
