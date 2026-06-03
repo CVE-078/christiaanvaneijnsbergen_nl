@@ -32,6 +32,11 @@ const EXERCISES_KEY = '/api/pulse/exercises';
 const ROUTINES_KEY = '/api/pulse/routines';
 const PROFILE_KEY = '/api/pulse/profile';
 
+// Stable empty defaults so the `?? EMPTY` fallbacks keep constant identity across
+// renders (otherwise the provider's routinesValue memo and downstream memos churn).
+const EMPTY_EXERCISES: DbExercise[] = [];
+const EMPTY_ROUTINES: RoutineWithExercises[] = [];
+
 export function useRoutines(
     initialExercises?: DbExercise[],
     initialRoutines?: RoutineWithExercises[],
@@ -63,7 +68,7 @@ export function useRoutines(
         dedupingInterval: 5000,
     });
 
-    const activeRoutine = (routines ?? []).find((r) => r.id === activeRoutineId) ?? null;
+    const activeRoutine = (routines ?? EMPTY_ROUTINES).find((r) => r.id === activeRoutineId) ?? null;
 
     const createRoutine = useCallback(
         async (name: string): Promise<WorkoutRoutine> => {
@@ -226,8 +231,8 @@ export function useRoutines(
     );
 
     return {
-        exercises: exercises ?? [],
-        routines: routines ?? [],
+        exercises: exercises ?? EMPTY_EXERCISES,
+        routines: routines ?? EMPTY_ROUTINES,
         activeRoutine,
         loadingExercises,
         loadingRoutines,
