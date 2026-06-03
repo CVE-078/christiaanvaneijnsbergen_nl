@@ -10,18 +10,20 @@
 
     --text-xxs: 10px;
 
-    /* Pulse design tokens */
-    --font-pulse: 'Outfit', sans-serif;
-    --color-pulse-accent: #3ecf8e;
-    --color-pulse-bg: #0b0d12;
-    --color-pulse-surface: #131720;
-    --color-pulse-surface-2: #1a1f2e;
-    --color-pulse-border: rgba(255,255,255,0.06);
-    --color-pulse-dim: #5e6a80;
-    --color-pulse-muted: #2c3445;
+    /* Pulse design tokens — Slate */
+    --font-pulse: 'Hanken Grotesk', sans-serif;
+    --font-pulse-body: 'Sora', sans-serif;
+    --color-pulse-accent: #ff7d66;        /* coral */
+    --color-pulse-accent-dim: #b0503d;    /* coral dim */
+    --color-pulse-bg: #0e1113;
+    --color-pulse-surface: #161a1d;
+    --color-pulse-surface-2: #1c2125;
+    --color-pulse-border: #262c31;
+    --color-pulse-dim: #aab2b7;
+    --color-pulse-muted: #6f787e;
     --color-pulse-error: #f43f5e;
     --color-pulse-success: #4ade80;
-    --color-pulse-text: #eef0f6;
+    --color-pulse-text: #e7ebed;
 }
 
 :focus-visible {
