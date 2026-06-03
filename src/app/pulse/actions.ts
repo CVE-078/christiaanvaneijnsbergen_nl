@@ -6,6 +6,8 @@ import { validateLogs } from '@/lib/pulse/validation';
 import { parseLogKey, UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
+import { applyTemplateVolume } from '@/lib/pulse/generation';
+import type { ExperienceLevel } from '@/lib/pulse/recommendation';
 import type {
     Logs,
     Unit,
@@ -15,6 +17,7 @@ import type {
     WorkoutRoutine,
     RoutineExercise,
     ExerciseCategory,
+    SessionTime,
 } from '@/lib/pulse/types';
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -482,46 +485,15 @@ export async function reorderRoutineExercises(routineId: string, orderedIds: str
     if (failed?.error) throw new Error('Failed to reorder exercises');
 }
 
-function adjustSets(sets: string, delta: number): string {
-    const parts = sets.split('-').map(Number);
-    if (parts.length === 1) {
-        return String(Math.min(5, Math.max(2, parts[0] + delta)));
-    }
-    return `${Math.min(5, Math.max(2, parts[0] + delta))}-${Math.min(5, Math.max(2, parts[1] + delta))}`;
-}
-
-function applyVolume(
-    exercises: Array<{
-        exercise_id: string;
-        workout_type: string;
-        variant: string | null;
-        order: number;
-        sets: string;
-        reps: string;
-    }>,
-    sessionTime: string,
-): typeof exercises {
-    if (sessionTime === '~30 min') {
-        const groups: Record<string, typeof exercises> = {};
-        for (const ex of exercises) {
-            const key = ex.variant ? `${ex.workout_type}:${ex.variant}` : ex.workout_type;
-            groups[key] = groups[key] ?? [];
-            groups[key].push(ex);
-        }
-        return Object.values(groups)
-            .flatMap((group) => group.slice(0, 4))
-            .map((ex) => ({ ...ex, sets: adjustSets(ex.sets, -1) }));
-    }
-    if (sessionTime === '90+ min') {
-        return exercises.map((ex) => ({ ...ex, sets: adjustSets(ex.sets, 1) }));
-    }
-    return exercises;
-}
+// Volume sizing now lives in src/lib/pulse/generation.ts (applyTemplateVolume),
+// keyed by session length and experience with a floor that prevents the old
+// 30-minute bug of trimming a routine down to a single exercise.
 
 export async function cloneTemplate(
     slug: string,
     trainingDays?: number[],
     sessionTime?: string,
+    experience?: ExperienceLevel,
 ): Promise<WorkoutRoutine> {
     if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid slug');
 
@@ -551,7 +523,10 @@ export async function cloneTemplate(
         sets: string;
         reps: string;
     }>;
-    const exercises = sessionTime ? applyVolume(rawExercises, sessionTime) : rawExercises;
+    const exercises =
+        sessionTime && experience
+            ? applyTemplateVolume(rawExercises, sessionTime as SessionTime, experience)
+            : rawExercises;
 
     if (exercises.length > 0) {
         const { error: exErr } = await supabase.from('routine_exercises').insert(

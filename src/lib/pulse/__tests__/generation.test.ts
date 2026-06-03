@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { selectSplit, volumeFor, repRangeFor, generateRoutine } from '@/lib/pulse/generation';
+import { selectSplit, volumeFor, repRangeFor, generateRoutine, applyTemplateVolume } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import type { EquipmentKey, MovementPattern, ExerciseCategory } from '@/lib/pulse/types';
 
@@ -112,5 +112,25 @@ describe('generateRoutine', () => {
         const bp = generateRoutine(baseInput);
         expect(bp.schedule.map((s) => s.day_of_week)).toEqual([1, 3, 5]);
         expect(bp.exercises.every((e) => e.reps === '8-12')).toBe(true);
+    });
+});
+
+describe('applyTemplateVolume', () => {
+    const full = Array.from({ length: 8 }, (_, i) => ({
+        workout_type: 'full_body',
+        variant: null,
+        order: i,
+        sets: '4',
+    }));
+    it('30-min keeps at least 3 exercises per session (regression: never 1)', () => {
+        expect(applyTemplateVolume(full, '~30 min', 'beginner').length).toBeGreaterThanOrEqual(3);
+    });
+    it('90-min keeps more than 30-min', () => {
+        expect(applyTemplateVolume(full, '90+ min', 'advanced').length).toBeGreaterThan(
+            applyTemplateVolume(full, '~30 min', 'beginner').length,
+        );
+    });
+    it('does not invent exercises beyond what the template has', () => {
+        expect(applyTemplateVolume(full.slice(0, 2), '90+ min', 'advanced').length).toBe(2);
     });
 });

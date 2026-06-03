@@ -22,6 +22,7 @@ import type {
     RoutineExercise,
     ExerciseCategory,
 } from '@/lib/pulse/types';
+import type { ExperienceLevel } from '@/lib/pulse/recommendation';
 import { fetcher } from '@/lib/pulse/fetcher';
 
 const EXERCISES_KEY = '/api/pulse/exercises';
@@ -132,8 +133,13 @@ export function useRoutines(
     );
 
     const cloneTemplate = useCallback(
-        async (slug: string, trainingDays?: number[], sessionTime?: string): Promise<WorkoutRoutine> => {
-            const routine = await serverCloneTemplate(slug, trainingDays, sessionTime);
+        async (
+            slug: string,
+            trainingDays?: number[],
+            sessionTime?: string,
+            experience?: ExperienceLevel,
+        ): Promise<WorkoutRoutine> => {
+            const routine = await serverCloneTemplate(slug, trainingDays, sessionTime, experience);
             await mutateRoutines();
             await globalMutate(PROFILE_KEY);
             return routine;
