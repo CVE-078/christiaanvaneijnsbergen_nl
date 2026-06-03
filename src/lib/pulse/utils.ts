@@ -166,6 +166,33 @@ export function computeSuggestion(previousEntry: LogEntry | undefined, week: num
     return Math.max(previousEntry.kg - 2.5, MIN_KG);
 }
 
+// Double progression: climb reps inside the rep range first, then add weight and
+// reset to the bottom of the range. Compares the current set to the same set's
+// previous session (previousEntry). Returns the next target { kg, reps }, or null
+// when there is no history to progress from (week 1 / no previous entry).
+//   - Harder than planned (rir < targetRIR)      -> deload weight, reps = lo
+//   - Met/beat and at the top of the range        -> +2.5 kg, reps = lo
+//   - Met/beat and mid-range                       -> same kg, reps + 1 (capped at hi)
+// A single-number rep target (lo === hi) reduces to linear weight progression.
+export function computeProgression(
+    previousEntry: LogEntry | undefined,
+    repsRange: string,
+    week: number,
+): { kg: number; reps: number } | null {
+    if (!previousEntry || week <= 1) return null;
+    const targetRIR = getRIR(week - 1);
+    const nums = (repsRange.match(/\d+/g) ?? []).map(Number);
+    const lo = nums.length ? nums[0] : previousEntry.reps;
+    const hi = nums.length ? nums[nums.length - 1] : previousEntry.reps;
+    if (previousEntry.rir < targetRIR) {
+        return { kg: Math.max(previousEntry.kg - 2.5, MIN_KG), reps: lo };
+    }
+    if (previousEntry.reps >= hi) {
+        return { kg: previousEntry.kg + 2.5, reps: lo };
+    }
+    return { kg: previousEntry.kg, reps: Math.min(previousEntry.reps + 1, hi) };
+}
+
 export function weekHasData(week: number, logs: Logs): boolean {
     const prefix = `${week}-`;
     return Object.keys(logs).some((k) => k.startsWith(prefix) && logs[k]?.saved);
