@@ -3,6 +3,7 @@ export interface LogEntry {
     reps: number;
     rir: number;
     saved: boolean;
+    drops?: Array<{ kg: number; reps: number }>;
 }
 
 export type Logs = Record<string, LogEntry>;
