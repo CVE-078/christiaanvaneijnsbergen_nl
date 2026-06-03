@@ -21,6 +21,9 @@ export function buildCsp(nonce: string, supabaseHost: string): string {
         "img-src 'self' data:",
         "font-src 'self'",
         "frame-ancestors 'none'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
     ].join('; ');
 }
 
