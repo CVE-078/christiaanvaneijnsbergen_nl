@@ -7,6 +7,7 @@ import { defaultWorkoutType } from '@/lib/pulse/types';
 import type { ExerciseCategory, RoutineExercise, Unit, WorkoutType } from '@/lib/pulse/types';
 import { WORKOUT_TYPE_OPTIONS } from '@/lib/pulse/constants';
 import { INPUT, BTN_PRIMARY, CARD } from '@/components/pulse/ui';
+import GenerateRoutineButton from '@/components/pulse/GenerateRoutineButton';
 
 const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
 
@@ -303,9 +304,7 @@ export default function RoutinesTab() {
             if (target < 0 || target >= reordered.length) return;
             const targetRe = reordered[target];
             if (targetRe.superset_group_id !== null) {
-                const pairFirst = reordered.findIndex(
-                    (r) => r.superset_group_id === targetRe.superset_group_id,
-                );
+                const pairFirst = reordered.findIndex((r) => r.superset_group_id === targetRe.superset_group_id);
                 const [moved] = reordered.splice(index, 1);
                 if (dir === -1) {
                     reordered.splice(pairFirst, 0, moved);
@@ -359,6 +358,8 @@ export default function RoutinesTab() {
 
     return (
         <div className="flex flex-col gap-4">
+            <GenerateRoutineButton label="Generate routine" className={`${BTN_PRIMARY} self-start`} />
+
             {/* Create routine */}
             <div className={`${CARD} flex flex-col gap-3`}>
                 <div className={SECTION_LABEL}>Create routine</div>
@@ -503,15 +504,16 @@ export default function RoutinesTab() {
                                 const isPaired = re.superset_group_id !== null;
                                 const pairIndices = isPaired
                                     ? sortedActiveExercises
-                                        .map((r, idx) => r.superset_group_id === re.superset_group_id ? idx : -1)
-                                        .filter(idx => idx !== -1)
-                                        .sort((a, b) => a - b)
+                                          .map((r, idx) => (r.superset_group_id === re.superset_group_id ? idx : -1))
+                                          .filter((idx) => idx !== -1)
+                                          .sort((a, b) => a - b)
                                     : null;
                                 const firstPairIdx = pairIndices?.[0] ?? i;
                                 const secondPairIdx = pairIndices?.[1] ?? i;
                                 const isFirstInPair = isPaired && i === firstPairIdx;
                                 const next = sortedActiveExercises[i + 1];
-                                const canPairWithNext = !isPaired && next !== undefined && next.superset_group_id === null;
+                                const canPairWithNext =
+                                    !isPaired && next !== undefined && next.superset_group_id === null;
 
                                 let canMoveUp: boolean;
                                 let canMoveDown: boolean;
