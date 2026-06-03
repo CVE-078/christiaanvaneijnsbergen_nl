@@ -627,7 +627,7 @@ ON CONFLICT (exercise_id) DO NOTHING;
 -- ── CALVES ────────────────────────────────────────────────────────────────────
 
 INSERT INTO exercise_instructions (exercise_id, primary_muscles, secondary_muscles, cues)
-SELECT id, ARRAY['Calves'], ARRAY[],
+SELECT id, ARRAY['Calves'], ARRAY[]::text[],
 ARRAY['Stand with toes on a step edge for full range of motion',
       'Lower heels fully below step for a complete stretch',
       'Rise onto toes as high as possible — hold at the top for 1 second']
@@ -635,7 +635,7 @@ FROM exercises WHERE name = 'Standing Calf Raise' AND user_id IS NULL
 ON CONFLICT (exercise_id) DO NOTHING;
 
 INSERT INTO exercise_instructions (exercise_id, primary_muscles, secondary_muscles, cues)
-SELECT id, ARRAY['Calves'], ARRAY[],
+SELECT id, ARRAY['Calves'], ARRAY[]::text[],
 ARRAY['Stand with toes on a step edge for full range of motion',
       'Lower heels fully below step for a complete stretch',
       'Rise onto toes as high as possible — hold at the top for 1 second']
@@ -643,7 +643,7 @@ FROM exercises WHERE name = 'Dumbbell Calf Raise' AND user_id IS NULL
 ON CONFLICT (exercise_id) DO NOTHING;
 
 INSERT INTO exercise_instructions (exercise_id, primary_muscles, secondary_muscles, cues)
-SELECT id, ARRAY['Soleus','Calves'], ARRAY[],
+SELECT id, ARRAY['Soleus','Calves'], ARRAY[]::text[],
 ARRAY['Knee bent at 90° — this position hits the soleus (deep calf) more than standing',
       'Full range: lower heel fully, raise as high as possible',
       'Slow reps: 2 seconds up, hold, 2 seconds down']
@@ -651,7 +651,7 @@ FROM exercises WHERE name = 'Seated Calf Raise' AND user_id IS NULL
 ON CONFLICT (exercise_id) DO NOTHING;
 
 INSERT INTO exercise_instructions (exercise_id, primary_muscles, secondary_muscles, cues)
-SELECT id, ARRAY['Calves'], ARRAY[],
+SELECT id, ARRAY['Calves'], ARRAY[]::text[],
 ARRAY['Use the leg press machine; toes on the bottom edge of the footplate',
       'Push through the balls of your feet to extend at the ankle',
       'Full range: deep stretch then full contraction, do not rush']
@@ -659,7 +659,7 @@ FROM exercises WHERE name = 'Leg Press Calf Raise' AND user_id IS NULL
 ON CONFLICT (exercise_id) DO NOTHING;
 
 INSERT INTO exercise_instructions (exercise_id, primary_muscles, secondary_muscles, cues)
-SELECT id, ARRAY['Calves'], ARRAY[],
+SELECT id, ARRAY['Calves'], ARRAY[]::text[],
 ARRAY['Unilateral — each calf works independently',
       'Full range of motion: deep stretch at the bottom, full rise at the top',
       'Use a step for range; hold dumbbell on same side for resistance']
@@ -667,7 +667,7 @@ FROM exercises WHERE name = 'Single-Leg Calf Raise' AND user_id IS NULL
 ON CONFLICT (exercise_id) DO NOTHING;
 
 INSERT INTO exercise_instructions (exercise_id, primary_muscles, secondary_muscles, cues)
-SELECT id, ARRAY['Calves'], ARRAY[],
+SELECT id, ARRAY['Calves'], ARRAY[]::text[],
 ARRAY['Lean forward with hips resting on a partner or pad — this increases stretch',
       'Full range: deep heel drop then full toe raise',
       'Historically popular for its extreme range of motion']
@@ -675,7 +675,7 @@ FROM exercises WHERE name = 'Donkey Calf Raise' AND user_id IS NULL
 ON CONFLICT (exercise_id) DO NOTHING;
 
 INSERT INTO exercise_instructions (exercise_id, primary_muscles, secondary_muscles, cues)
-SELECT id, ARRAY['Calves'], ARRAY[],
+SELECT id, ARRAY['Calves'], ARRAY[]::text[],
 ARRAY['Smith machine stabilises the bar for solo calf work',
       'Toes on a step for full range; same technique as standing calf raise',
       'Full stretch at the bottom, hold contraction at the top']
@@ -683,7 +683,7 @@ FROM exercises WHERE name = 'Smith Machine Calf Raise' AND user_id IS NULL
 ON CONFLICT (exercise_id) DO NOTHING;
 
 INSERT INTO exercise_instructions (exercise_id, primary_muscles, secondary_muscles, cues)
-SELECT id, ARRAY['Calves'], ARRAY[],
+SELECT id, ARRAY['Calves'], ARRAY[]::text[],
 ARRAY['Stand on a step for full range of motion',
       'Lower heel fully, rise onto toes and hold briefly',
       'Use a machine or barbell to add resistance once bodyweight is easy']
