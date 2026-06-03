@@ -1,6 +1,14 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { logKey, getPhase, getRIR, parseLogKey, parseMaxSets, groupExercises } from '@/lib/pulse/utils';
+import {
+    logKey,
+    getPhase,
+    getRIR,
+    parseLogKey,
+    parseMaxSets,
+    groupExercises,
+    computeWeeksWithData,
+} from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import WorkoutTabs from '../WorkoutTabs';
@@ -50,21 +58,9 @@ export default function LogView() {
     const unit = profile.unit;
     const routineExercises: RoutineExercise[] = routineExercisesByTabKey[activeTab] ?? [];
 
-    // Build the set of weeks that have saved data once per logs change, so the
-    // 12-week strip can do O(1) lookups instead of scanning all logs 12 times.
-    // Mirrors weekHasData: the week is the number before the first '-' and the
-    // entry must be saved.
-    const weeksWithData = useMemo(() => {
-        const set = new Set<number>();
-        for (const key of Object.keys(logs)) {
-            if (!logs[key]?.saved) continue;
-            const firstDash = key.indexOf('-');
-            if (firstDash === -1) continue;
-            const week = Number(key.slice(0, firstDash));
-            if (!isNaN(week)) set.add(week);
-        }
-        return set;
-    }, [logs]);
+    // Set of weeks with saved data, computed once per logs change so the 12-week
+    // strip can do O(1) lookups instead of scanning all logs 12 times.
+    const weeksWithData = useMemo(() => computeWeeksWithData(logs), [logs]);
 
     const hasData = routineExercises.some((re) =>
         Array.from({ length: parseMaxSets(re.sets) }, (_, s) => logKey(activeWeek, re.id, s)).some(

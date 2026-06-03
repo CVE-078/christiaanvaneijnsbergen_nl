@@ -198,6 +198,21 @@ export function weekHasData(week: number, logs: Logs): boolean {
     return Object.keys(logs).some((k) => k.startsWith(prefix) && logs[k]?.saved);
 }
 
+// One pass over logs returning the set of weeks that have at least one saved set.
+// Lets the 12-week strips do O(1) `.has(week)` lookups instead of scanning all
+// logs once per week (which `weekHasData` does per call).
+export function computeWeeksWithData(logs: Logs): Set<number> {
+    const set = new Set<number>();
+    for (const key of Object.keys(logs)) {
+        if (!logs[key]?.saved) continue;
+        const firstDash = key.indexOf('-');
+        if (firstDash === -1) continue;
+        const week = Number(key.slice(0, firstDash));
+        if (!isNaN(week)) set.add(week);
+    }
+    return set;
+}
+
 export function buildHistory(logs: Logs): HistorySession[] {
     const sessions: Record<string, HistorySession> = {};
 

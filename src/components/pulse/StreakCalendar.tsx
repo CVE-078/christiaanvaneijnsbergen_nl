@@ -1,5 +1,6 @@
 'use client';
-import { weekHasData } from '@/lib/pulse/utils';
+import { useMemo } from 'react';
+import { computeWeeksWithData } from '@/lib/pulse/utils';
 import type { Logs } from '@/lib/pulse/types';
 
 interface StreakCalendarProps {
@@ -9,11 +10,12 @@ interface StreakCalendarProps {
 }
 
 export default function StreakCalendar({ logs, currentWeek }: StreakCalendarProps) {
+    const weeksWithData = useMemo(() => computeWeeksWithData(logs), [logs]);
     return (
         <div className="flex flex-wrap items-center gap-3" aria-hidden="true">
             {Array.from({ length: 12 }, (_, i) => {
                 const week = i + 1;
-                const filled = weekHasData(week, logs);
+                const filled = weeksWithData.has(week);
                 const isNow = week === currentWeek;
                 let cellClass: string;
                 if (isNow) {
