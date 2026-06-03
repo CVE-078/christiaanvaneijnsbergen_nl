@@ -165,6 +165,13 @@ export interface RoutineExercise {
 
 export type ExerciseItem = RoutineExercise | [RoutineExercise, RoutineExercise];
 
+export interface ExerciseInstruction {
+    exercise_id: string;
+    primary_muscles: string[];
+    secondary_muscles: string[];
+    cues: string[];
+}
+
 export interface RoutineWithExercises extends WorkoutRoutine {
     exercises: RoutineExercise[];
     schedule: ScheduleEntry[];

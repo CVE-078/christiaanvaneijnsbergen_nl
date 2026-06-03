@@ -43,6 +43,7 @@
 - Plate calculator — `computePlates` pure function (barbell + loadable dumbbell, default bar/handle weights and plate set); compact affordance in SetLogger showing the per-side plate breakdown for the target weight
 - Rich set types — drop sets stored in a `drops` jsonb column on `set_logs` plus a failure tag at RIR 0; drop-set editor in SetLogger, rendered in ExerciseCard, WorkoutModeScreen, and history
 - Supersets — pair two routine exercises as a superset; merged card in the train screen; rest timer fires once after both exercises' sets; guided mode treats the pair as one step; Pair / Unpair in the routine editor with pair-aware reorder
+- Exercise instructions — `exercise_instructions` table (read-only RLS) with primary/secondary muscles + technique cues per global exercise; on-demand `ExerciseInstructionModal` opened from a "How to perform" affordance in ExerciseCard and an info icon in the Library exercise list; ~92 exercises seeded
 
 ---
 
@@ -79,11 +80,10 @@ Differentiation opportunities:
 | # | Feature | Notes |
 |---|---|---|
 | 1 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. (also in: Hevy, Fitbod, Jefit, Boostcamp, Caliber, Setgraph) |
-| 2 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. (also in: Strong, Fitbod, Jefit, Alpha, Caliber) |
-| 3 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
-| 4 | Mid-workout exercise swap | Swap a busy machine for a similar exercise and carry logged weights to the substitute. Big friction reducer in real gyms. (also in: Boostcamp, Fitbod, Alpha, Caliber) |
+| 2 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
+| 3 | Mid-workout exercise swap | Swap a busy machine for a similar exercise and carry logged weights to the substitute. Big friction reducer in real gyms. (also in: Boostcamp, Fitbod, Alpha, Caliber) |
 
-_Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets (see Shipped)._
+_Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions (see Shipped)._
 
 ---
 
