@@ -6,13 +6,14 @@ import type { Logs, LogEntry } from '@/lib/pulse/types';
 
 const LOGS_KEY = '/api/pulse/logs';
 
-export function useWorkoutLogs(initialLogs: Logs, onError?: (msg: string) => void) {
-    const { data, mutate } = useSWR<Logs>(LOGS_KEY, fetcher, {
+export function useWorkoutLogs(initialLogs?: Logs, onError?: (msg: string) => void) {
+    const { data, mutate, isLoading, error } = useSWR<Logs>(LOGS_KEY, fetcher, {
         fallbackData: initialLogs,
         revalidateOnFocus: false,
-        revalidateIfStale: false,
+        revalidateIfStale: true,
+        dedupingInterval: 5000,
     });
-    const logs = data ?? initialLogs;
+    const logs = data ?? {};
 
     const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -66,5 +67,5 @@ export function useWorkoutLogs(initialLogs: Logs, onError?: (msg: string) => voi
         URL.revokeObjectURL(url);
     }
 
-    return { logs, updateLog, deleteLog, handleExport };
+    return { logs, updateLog, deleteLog, handleExport, loading: isLoading, error };
 }

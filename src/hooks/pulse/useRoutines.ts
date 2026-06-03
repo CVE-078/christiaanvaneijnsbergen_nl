@@ -33,25 +33,37 @@ const ROUTINES_KEY = '/api/pulse/routines';
 const PROFILE_KEY = '/api/pulse/profile';
 
 export function useRoutines(
-    initialExercises: DbExercise[],
-    initialRoutines: RoutineWithExercises[],
-    activeRoutineId: string | null,
+    initialExercises?: DbExercise[],
+    initialRoutines?: RoutineWithExercises[],
+    activeRoutineId: string | null = null,
 ) {
     const { mutate: globalMutate } = useSWRConfig();
 
-    const { data: exercises, mutate: mutateExercises } = useSWR<DbExercise[]>(EXERCISES_KEY, fetcher, {
+    const {
+        data: exercises,
+        mutate: mutateExercises,
+        isLoading: loadingExercises,
+        error: exercisesError,
+    } = useSWR<DbExercise[]>(EXERCISES_KEY, fetcher, {
         fallbackData: initialExercises,
         revalidateOnFocus: false,
-        revalidateIfStale: false,
+        revalidateIfStale: true,
+        dedupingInterval: 5000,
     });
 
-    const { data: routines, mutate: mutateRoutines } = useSWR<RoutineWithExercises[]>(ROUTINES_KEY, fetcher, {
+    const {
+        data: routines,
+        mutate: mutateRoutines,
+        isLoading: loadingRoutines,
+        error: routinesError,
+    } = useSWR<RoutineWithExercises[]>(ROUTINES_KEY, fetcher, {
         fallbackData: initialRoutines,
         revalidateOnFocus: false,
-        revalidateIfStale: false,
+        revalidateIfStale: true,
+        dedupingInterval: 5000,
     });
 
-    const activeRoutine = (routines ?? initialRoutines).find((r) => r.id === activeRoutineId) ?? null;
+    const activeRoutine = (routines ?? []).find((r) => r.id === activeRoutineId) ?? null;
 
     const createRoutine = useCallback(
         async (name: string): Promise<WorkoutRoutine> => {
@@ -214,9 +226,13 @@ export function useRoutines(
     );
 
     return {
-        exercises: exercises ?? initialExercises,
-        routines: routines ?? initialRoutines,
+        exercises: exercises ?? [],
+        routines: routines ?? [],
         activeRoutine,
+        loadingExercises,
+        loadingRoutines,
+        exercisesError,
+        routinesError,
         createRoutine,
         renameRoutine,
         deleteRoutine,
