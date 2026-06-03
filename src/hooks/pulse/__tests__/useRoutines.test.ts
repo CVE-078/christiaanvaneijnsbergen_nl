@@ -89,7 +89,7 @@ describe('useRoutines', () => {
         expect(result.current.exercises).toEqual(defaultExercises);
     });
 
-    it('falls back to initialExercises when SWR data is undefined', () => {
+    it('defaults to an empty exercise list when SWR data is undefined', () => {
         vi.mocked(useSWR).mockReset();
         // exercises SWR returns undefined data
         vi.mocked(useSWR)
@@ -100,7 +100,8 @@ describe('useRoutines', () => {
             >);
 
         const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
-        expect(result.current.exercises).toEqual(defaultExercises);
+        // initial props are only SWR fallbackData now; no resolved data -> empty.
+        expect(result.current.exercises).toEqual([]);
     });
 
     it('returns routines from SWR data', () => {

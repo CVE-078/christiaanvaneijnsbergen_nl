@@ -2,11 +2,13 @@
 import { useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Hanken_Grotesk, Sora } from 'next/font/google';
+import { SWRConfig } from 'swr';
 import { PulseProvider } from './PulseProvider';
 import { AppShell } from './AppShell';
 import { ToastProvider } from '@/lib/pulse/toast';
 import ToastContainer from './ToastContainer';
-import type { View, Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
+import { makeSWRCacheProvider } from '@/lib/pulse/swrCache';
+import type { View } from '@/lib/pulse/types';
 
 const hanken = Hanken_Grotesk({
     subsets: ['latin'],
@@ -31,17 +33,12 @@ const PATH_TO_VIEW: Record<string, View> = {
 };
 
 interface Props {
-    initialLogs: Logs;
-    initialProfile: Profile;
-    initialBodyweightLogs: BodyweightEntry[];
-    initialExercises: DbExercise[];
-    initialRoutines: RoutineWithExercises[];
-    initialNotes: Notes;
+    userId: string;
     email: string;
     children: React.ReactNode;
 }
 
-export default function PulseLayout({ children, ...providerProps }: Props) {
+export default function PulseLayout({ userId, email, children }: Props) {
     const router = useRouter();
     const pathname = usePathname();
     const view = (pathname ? PATH_TO_VIEW[pathname] : undefined) ?? 'train';
@@ -55,14 +52,16 @@ export default function PulseLayout({ children, ...providerProps }: Props) {
 
     return (
         <div className={`${hanken.variable} ${sora.variable}`}>
-            <ToastProvider>
-                <PulseProvider {...providerProps} navigate={navigate}>
-                    <AppShell view={view} navigate={navigate}>
-                        {children}
-                    </AppShell>
-                    <ToastContainer />
-                </PulseProvider>
-            </ToastProvider>
+            <SWRConfig value={{ provider: makeSWRCacheProvider(userId) }}>
+                <ToastProvider>
+                    <PulseProvider email={email} navigate={navigate}>
+                        <AppShell view={view} navigate={navigate}>
+                            {children}
+                        </AppShell>
+                        <ToastContainer />
+                    </PulseProvider>
+                </ToastProvider>
+            </SWRConfig>
         </div>
     );
 }

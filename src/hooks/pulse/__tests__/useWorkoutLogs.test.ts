@@ -27,13 +27,15 @@ describe('useWorkoutLogs', () => {
         expect(result.current.logs).toEqual(logs);
     });
 
-    it('falls back to initialLogs when SWR data is undefined', () => {
+    it('defaults to empty logs when SWR data is undefined', () => {
         vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
             typeof useSWR
         >);
         const initialLogs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         const { result } = renderHook(() => useWorkoutLogs(initialLogs));
-        expect(result.current.logs).toEqual(initialLogs);
+        // initialLogs is now only SWR fallbackData; with no resolved data the hook
+        // reports empty (client-fetch model) rather than echoing the initial prop.
+        expect(result.current.logs).toEqual({});
     });
 
     it('updateLog calls mutate optimistically then calls saveLogs', async () => {

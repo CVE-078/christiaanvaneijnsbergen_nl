@@ -30,13 +30,14 @@ describe('useNotes', () => {
         expect(result.current.notes).toEqual(notes);
     });
 
-    it('falls back to initialNotes when SWR data is undefined', () => {
+    it('defaults to empty notes when SWR data is undefined', () => {
         vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
             typeof useSWR
         >);
         const initialNotes: Notes = { [`1-${UUID}`]: 'felt good' };
         const { result } = renderHook(() => useNotes(initialNotes));
-        expect(result.current.notes).toEqual(initialNotes);
+        // initialNotes is now only SWR fallbackData; no resolved data -> empty.
+        expect(result.current.notes).toEqual({});
     });
 
     it('saveNote calls mutate optimistically then calls server action', async () => {

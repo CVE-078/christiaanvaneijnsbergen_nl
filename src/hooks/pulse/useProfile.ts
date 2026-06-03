@@ -10,20 +10,40 @@ import type { Profile, BodyweightEntry, Unit } from '@/lib/pulse/types';
 const PROFILE_KEY = '/api/pulse/profile';
 const BODYWEIGHT_KEY = '/api/pulse/bodyweight';
 
-export function useProfile(initialProfile: Profile, initialBodyweightLogs: BodyweightEntry[]) {
-    const { data: profileData, mutate: mutateProfile } = useSWR<Profile>(PROFILE_KEY, fetcher, {
+const DEFAULT_PROFILE: Profile = {
+    display_name: null,
+    unit: 'kg',
+    active_routine_id: null,
+    onboarding_completed: false,
+    goal_weight_kg: null,
+};
+
+export function useProfile(initialProfile?: Profile, initialBodyweightLogs?: BodyweightEntry[]) {
+    const {
+        data: profileData,
+        mutate: mutateProfile,
+        isLoading: loadingProfile,
+        error: profileError,
+    } = useSWR<Profile>(PROFILE_KEY, fetcher, {
         fallbackData: initialProfile,
         revalidateOnFocus: false,
-        revalidateIfStale: false,
+        revalidateIfStale: true,
+        dedupingInterval: 5000,
     });
-    const profile = profileData ?? initialProfile;
+    const profile = profileData ?? DEFAULT_PROFILE;
 
-    const { data: bwData, mutate: mutateBW } = useSWR<BodyweightEntry[]>(BODYWEIGHT_KEY, fetcher, {
+    const {
+        data: bwData,
+        mutate: mutateBW,
+        isLoading: loadingBodyweight,
+        error: bodyweightError,
+    } = useSWR<BodyweightEntry[]>(BODYWEIGHT_KEY, fetcher, {
         fallbackData: initialBodyweightLogs,
         revalidateOnFocus: false,
-        revalidateIfStale: false,
+        revalidateIfStale: true,
+        dedupingInterval: 5000,
     });
-    const bodyweightLogs = bwData ?? initialBodyweightLogs;
+    const bodyweightLogs = bwData ?? [];
 
     async function updateProfile(displayName: string | null, unit: Unit): Promise<void> {
         mutateProfile({ ...profile, display_name: displayName, unit }, false);
@@ -52,5 +72,15 @@ export function useProfile(initialProfile: Profile, initialBodyweightLogs: Bodyw
         }
     }
 
-    return { profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight };
+    return {
+        profile,
+        bodyweightLogs,
+        updateProfile,
+        logBodyWeight,
+        deleteBodyWeight,
+        loadingProfile,
+        loadingBodyweight,
+        profileError,
+        bodyweightError,
+    };
 }

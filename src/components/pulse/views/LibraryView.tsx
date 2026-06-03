@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { usePulse } from '@/context/PulseContext';
+import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import TemplatesTab from './TemplatesTab';
 import ExercisesTab from './library/ExercisesTab';
 import RoutinesTab from './library/RoutinesTab';
@@ -7,6 +9,10 @@ import RoutinesTab from './library/RoutinesTab';
 // ── LibraryView ──────────────────────────────────────────────────────────────
 export default function LibraryView() {
     const [tab, setTab] = useState<'exercises' | 'routines' | 'templates'>('exercises');
+    const { loading, errors, retry } = usePulse();
+
+    if (errors?.exercises || errors?.routines) return <ErrorState onRetry={retry} />;
+    if (loading?.exercises || loading?.routines) return <PageSkeleton />;
 
     return (
         <div className="pt-5 px-4 pb-12 max-w-[600px] lg:max-w-[820px] mx-auto flex flex-col gap-5">

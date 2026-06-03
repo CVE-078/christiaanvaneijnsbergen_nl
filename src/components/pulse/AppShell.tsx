@@ -1,5 +1,6 @@
 'use client';
 import { logout } from '@/app/pulse/actions';
+import { clearAllSWRCache } from '@/lib/pulse/swrCache';
 import { usePulse } from '@/context/PulseContext';
 import DesktopLayout from './DesktopLayout';
 import RestTimer from './RestTimer';
@@ -52,6 +53,7 @@ export function AppShell({
                         <form action={logout} className="inline">
                             <button
                                 type="submit"
+                                onClick={() => clearAllSWRCache()}
                                 aria-label="Sign out of Pulse"
                                 className="font-pulse-body text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer tracking-[0.02em]">
                                 Sign out
