@@ -16,6 +16,7 @@ import StreakCalendar from '@/components/pulse/StreakCalendar';
 import E1RMChart from '@/components/pulse/E1RMChart';
 import BestLifts from '@/components/pulse/BestLifts';
 import MuscleVolumeBars from '@/components/pulse/MuscleVolumeBars';
+import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import type { Unit } from '@/lib/pulse/types';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
@@ -98,7 +99,7 @@ const SessionCard = memo(function SessionCard({ session, unit }: { session: Sess
 });
 
 export default function HistoryView() {
-    const { logs, profile, prMap, routines, streak, activeWeek, activeRoutine } = usePulse();
+    const { logs, profile, prMap, routines, streak, activeWeek, activeRoutine, loading, errors, retry } = usePulse();
     const unit = profile.unit;
 
     const allRoutineExercises = useMemo(() => routines.flatMap((r) => r.exercises), [routines]);
@@ -165,6 +166,9 @@ export default function HistoryView() {
     );
 
     const hasData = sessions.length > 0;
+
+    if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
+    if (loading?.routines || loading?.logs) return <PageSkeleton />;
 
     return (
         <div className="p-4 sm:p-8 max-w-[960px] mx-auto">

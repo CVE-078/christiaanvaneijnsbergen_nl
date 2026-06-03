@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import { logKey, getPhase, getRIR, parseLogKey, parseMaxSets, groupExercises } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
+import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
@@ -31,6 +32,9 @@ export default function LogView() {
         notes,
         saveNote,
         deleteNote,
+        loading,
+        errors,
+        retry,
     } = usePulse();
 
     const { session, startSession, completeSession, clearSession } = useWorkoutSession();
@@ -134,6 +138,9 @@ export default function LogView() {
         clearSession();
         setWorkoutModeOpen(false);
     }
+
+    if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
+    if (loading?.routines || loading?.logs) return <PageSkeleton />;
 
     if (!activeRoutine) {
         return (

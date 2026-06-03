@@ -5,6 +5,7 @@ import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import type { BodyweightEntry } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
+import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import { updateGoalWeight, logBodyMeasurement, logBodyWeight as logBodyWeightAction } from '@/app/pulse/actions';
 
 // ── Shared styles (Slate) ───────────────────────────────────────────────────────
@@ -104,6 +105,9 @@ export default function ProfileView() {
         streak,
         prMap,
         routines,
+        loading,
+        errors,
+        retry,
     } = usePulse();
     const toast = useToast();
 
@@ -199,6 +203,9 @@ export default function ProfileView() {
         const d = new Date(iso);
         return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     }
+
+    if (errors?.profile || errors?.bodyweight) return <ErrorState onRetry={retry} />;
+    if (loading?.profile || loading?.bodyweight) return <PageSkeleton rows={3} />;
 
     return (
         <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto flex flex-col gap-7 lg:flex-row lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12 lg:gap-10">

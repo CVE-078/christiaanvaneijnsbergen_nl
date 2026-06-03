@@ -8,13 +8,15 @@ import type { WorkoutType, RoutineExercise } from '@/lib/pulse/types';
 import WeekSelector from '../WeekSelector';
 import SectionLabel from '../SectionLabel';
 import GenerateRoutineButton from '../GenerateRoutineButton';
+import PageSkeleton, { ErrorState } from '../PageSkeleton';
 
 type Section = { type: WorkoutType; exercises: RoutineExercise[] };
 
 const BAR_MAX_HEIGHT_PX = 44;
 
 export default function ProgramView() {
-    const { activeWeek, setActiveWeek, logs, activeSchedule, activeRoutine, routineExercisesByType } = usePulse();
+    const { activeWeek, setActiveWeek, logs, activeSchedule, activeRoutine, routineExercisesByType, loading, errors, retry } =
+        usePulse();
     const phase = getPhase(activeWeek);
     const maxSets = Math.max(...VOLUME.map((v) => v.sets));
 
@@ -42,6 +44,9 @@ export default function ProgramView() {
             .map((type) => ({ type, exercises: (routineExercisesByType[type] ?? []) as RoutineExercise[] }))
             .filter((s) => s.exercises.length > 0);
     }, [activeSchedule, activeRoutine, routineExercisesByType]);
+
+    if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
+    if (loading?.routines || loading?.logs) return <PageSkeleton />;
 
     return (
         <div className="p-4 max-w-[600px] mx-auto">
