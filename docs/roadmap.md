@@ -48,14 +48,39 @@ Nothing currently in progress.
 
 ---
 
+## Competitive analysis (2026-06-03)
+
+Reviewed 8 trackers: Hevy, Strong, Fitbod, Jefit, Boostcamp, Alpha Progression, Caliber, Setgraph.
+
+Biggest gaps versus the field:
+
+- Live PR detection. Every serious tracker (Hevy, Boostcamp, Caliber, Strong) flags a personal record the moment you hit it. Pulse only surfaces PRs after the workout. Pulse already computes E1RM, so this is a small add with a big motivation payoff.
+- Per-muscle weekly volume. Hevy, Fitbod, Jefit, Boostcamp, and Strong all show sets per muscle group per week, often as a body-diagram heat map. Pulse has a 10-category taxonomy and a volume-by-type chart already, so it can derive this from exercise tags.
+- Plate calculator. Hevy, Strong, Boostcamp, Setgraph, and Caliber all ship one. It is a pure function with near-zero backend cost and removes real friction at the rack.
+- Rich set types. Drop sets and failure sets are standard in Hevy, Strong, and Boostcamp. Pulse only has warmup and working sets.
+- Mid-workout exercise swap. Boostcamp, Fitbod, Alpha, and Caliber let you swap a busy machine for a similar exercise and carry your weights across. High friction reducer for real gyms.
+
+Differentiation opportunities:
+
+- Recovery-aware volume nudges. Combine per-muscle volume with the existing RIR data to flag under- and over-trained muscles. Fitbod and Boostcamp do versions of this, but none pair it tightly with a fixed 12-week progressive-overload plan the way Pulse can.
+- A single Strength Score. Caliber and Boostcamp prove a 0-100 composite metric drives engagement. Pulse already has E1RM PRs to compute it from, and it gives non-experts a legible headline number.
+- Stay private and fast. Strong and Setgraph win on being distraction-free with no social noise. Pulse can lean into solo progressive overload as a positioning choice and skip the heavy social race that needs user mass.
+
+---
+
 ## Near-term
 
 | # | Feature | Notes |
 |---|---|---|
-| 3 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. |
-| 4 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. |
-| 5 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. |
-| 6 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. |
+| 3 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. (also in: Hevy, Fitbod, Jefit, Boostcamp, Caliber, Setgraph) |
+| 4 | Supersets | Group two exercises, shared rest timer, fast switching. Most-requested feature in workout apps. (also in: Hevy, Strong, Fitbod, Jefit, Boostcamp, Alpha, Caliber) |
+| 5 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. (also in: Strong, Fitbod, Jefit, Alpha, Caliber) |
+| 6 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
+| 7 | Live PR detection | Flag a new PR the moment the set is logged, not just on the post-workout card. Reuses the existing E1RM PR map. Strong motivation hook. (also in: Hevy, Boostcamp, Caliber, Strong) |
+| 8 | Per-muscle weekly volume | Tag exercises by muscle group and derive sets per muscle per week. Optional body-diagram heat map. Extends the existing category taxonomy and VolumeChart. (also in: Hevy, Fitbod, Jefit, Boostcamp, Strong) |
+| 9 | Plate calculator | Show which plates to load per side for a target weight. Pure function, fits in SetLogger. Removes mental math at the rack. (also in: Hevy, Strong, Boostcamp, Setgraph, Caliber) |
+| 10 | Rich set types (drop / failure) | Add drop sets and failure tagging to the set logger, beyond the current warmup / working split. (also in: Hevy, Strong, Boostcamp) |
+| 11 | Mid-workout exercise swap | Swap a busy machine for a similar exercise and carry logged weights to the substitute. Big friction reducer in real gyms. (also in: Boostcamp, Fitbod, Alpha, Caliber) |
 
 ---
 
@@ -63,8 +88,14 @@ Nothing currently in progress.
 
 | Feature | Notes |
 |---|---|
-| AI workout generation | Rule-based recommendation (onboarding) is shipped. AI v2 adapts split, volume, and exercise selection based on actual logged performance. |
-| Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data — badges only land well at milestones users actually reach. |
+| AI workout generation | Rule-based recommendation (onboarding) is shipped. AI v2 adapts split, volume, and exercise selection based on actual logged performance. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
+| Auto-progression | Auto-raise the target weight or reps when you beat the last session, instead of only suggesting. Builds on the shipped RIR-adjusted suggestions. (also in: Fitbod, Jefit, Boostcamp, Alpha) |
+| Strength Score | Single 0-100 composite metric from your main-lift E1RM PRs. Legible headline number for non-experts. Computes from data Pulse already has. (also in: Caliber, Boostcamp) |
+| Progress photos | Date-stamped progress photos alongside the existing body measurements. Visual progress comparison. (also in: Hevy, Strong, Jefit, Fitbod) |
+| Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. (also in: Hevy, Jefit, Boostcamp) |
+| CSV data export | Export full workout history for users who want their own analysis or a backup. (also in: Strong, Alpha, Caliber) |
+| Recovery-aware volume nudges | Combine per-muscle volume with RIR to flag under- and over-trained muscles within the 12-week plan. Differentiator. (inspired by: Fitbod, Boostcamp) |
+| Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data, badges only land well at milestones users actually reach. (also in: Jefit, Boostcamp) |
 | Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support ships. |
 | Social / sharing | Friends feed, likes, follow. Requires critical user mass. Not before traction. |
 | Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. |

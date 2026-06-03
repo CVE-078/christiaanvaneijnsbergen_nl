@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16161a;
+    --ink-2:#5b5d63;
+    --ink-3:#9a9ca3;
+    --line:#e4e4e7;
+    --line-2:#eeeeef;
+    --paper:#fbfbfa;
+    --card:#ffffff;
+    --accent:#ff4d2e;          /* the single accent */
+    --num: "Archivo", system-ui, sans-serif;
+    --ui: "Archivo", system-ui, sans-serif; /* characterful grotesque, not Inter/Roboto */
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{ -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility }
+  body{
+    font-family:var(--ui);
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.45;
+    padding:48px 32px 96px;
+  }
+
+  /* ---------- page scaffold ---------- */
+  .page{ max-width:1480px; margin:0 auto }
+  .page-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding-bottom:20px; margin-bottom:40px;
+    border-bottom:1px solid var(--line);
+  }
+  .wordmark{ font-family:var(--ui); font-weight:600; font-size:20px; letter-spacing:-0.02em; display:flex; align-items:center; gap:7px }
+  .wordmark .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); transform:translateY(1px) }
+  .page-head .meta{ font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3) }
+
+  .frames{
+    display:grid;
+    grid-template-columns: 390px 1fr;
+    gap:56px;
+    align-items:start;
+  }
+  @media (max-width:1180px){ .frames{ grid-template-columns:1fr; gap:64px } }
+
+  .frame-label{
+    font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--ink-3); margin-bottom:14px; display:flex; gap:10px; align-items:center;
+  }
+  .frame-label::after{ content:""; flex:1; height:1px; background:var(--line) }
+
+  /* ---------- device shells ---------- */
+  .shell{ background:var(--card); border:1px solid var(--line); border-radius:22px; overflow:hidden }
+  .mobile{ width:390px; max-width:100% }
+  .desktop .shell{ border-radius:18px }
+
+  /* ===================================================
+     TRAIN — shared building blocks
+     =================================================== */
+  .train-head{ padding:26px 24px 22px }
+  .desktop .train-head{ padding:30px 36px 26px }
+
+  .crumb{
+    display:flex; align-items:baseline; gap:14px;
+    font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-3);
+  }
+  .crumb b{ color:var(--ink); font-weight:600 }
+  .crumb .sep{ color:var(--line) }
+
+  .phase{
+    margin-top:14px;
+    font-family:var(--num);
+    font-weight:400;
+    font-size:30px;
+    letter-spacing:-0.01em;
+    line-height:1.05;
+  }
+  .phase em{ font-style:italic; color:var(--ink-2) }
+  .desktop .phase{ font-size:38px }
+
+  .head-sub{
+    margin-top:10px; display:flex; gap:22px; font-size:13px; color:var(--ink-2);
+  }
+  .head-sub span b{ color:var(--ink); font-weight:600 }
+  .head-sub .streak{ color:var(--accent); font-weight:600 }
+
+  /* day selector — quiet, baseline aligned, no boxes */
+  .days{
+    display:flex; gap:0; margin-top:24px;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .day{
+    flex:1; text-align:center; padding:12px 0 13px;
+    cursor:pointer; position:relative;
+  }
+  .day .d{ font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3) }
+  .day .n{ font-family:var(--num); font-size:17px; margin-top:3px; color:var(--ink-2) }
+  .day.today .n{ color:var(--ink); font-weight:500 }
+  .day.today::after{
+    content:""; position:absolute; left:50%; bottom:-1px; transform:translateX(-50%);
+    width:22px; height:2px; background:var(--accent);
+  }
+  .day.today .d{ color:var(--accent) }
+
+  /* exercise list */
+  .ex-section-label{
+    padding:24px 24px 0; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3);
+  }
+  .desktop .ex-section-label{ padding:0 0 0 0 }
+
+  .ex{ padding:20px 24px; border-bottom:1px solid var(--line-2) }
+  .ex:last-child{ border-bottom:0 }
+  .desktop .ex{ padding:22px 0 }
+
+  .ex-top{ display:flex; align-items:baseline; justify-content:space-between; gap:16px }
+  .ex-name{ font-size:16px; font-weight:600; letter-spacing:-0.01em }
+  .ex-target{ font-size:12px; color:var(--ink-3); white-space:nowrap; letter-spacing:0.02em }
+  .ex-last{ margin-top:4px; font-size:12.5px; color:var(--ink-2) }
+
+  /* set rows — the big legible numerals live here */
+  .sets{ margin-top:16px; display:flex; flex-direction:column; gap:2px }
+  .set{
+    display:grid;
+    grid-template-columns: 18px 1fr auto;
+    align-items:center;
+    gap:14px;
+    padding:9px 0;
+  }
+  .set + .set{ border-top:1px solid var(--line-2) }
+  .set .idx{ font-size:12px; color:var(--ink-3); font-variant-numeric:tabular-nums }
+  .figures{ display:flex; align-items:baseline; gap:10px }
+  .fig{ font-family:var(--num); font-size:26px; font-weight:500; letter-spacing:-0.01em; font-variant-numeric:tabular-nums; line-height:1 }
+  .x{ font-family:var(--num); font-size:15px; color:var(--ink-3); font-style:italic }
+  .rir{ font-size:12px; color:var(--ink-2); letter-spacing:0.02em; align-self:center }
+  .rir b{ color:var(--ink); font-weight:600 }
+
+  .set.pending .fig{ color:var(--ink-3) }
+  .set.pending .rir{ color:var(--ink-3) }
+
+  .check{
+    width:22px; height:22px; border-radius:50%;
+    border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .set.done .check{ border-color:var(--ink); background:var(--ink) }
+  .set.done .check svg{ stroke:#fff }
+  .set.pending .check{ border-style:dashed }
+
+  .pr{
+    font-size:10px; font-weight:600; letter-spacing:0.1em; color:var(--accent);
+    border:1px solid var(--accent); border-radius:3px; padding:1px 4px; margin-left:8px;
+    vertical-align:middle;
+  }
+
+  .add-set{
+    margin-top:6px; padding-top:9px;
+    font-size:12.5px; color:var(--ink-2); background:none; border:0; cursor:pointer;
+    font-family:var(--ui); display:flex; align-items:center; gap:7px;
+  }
+  .add-set .plate{ font-size:11px; color:var(--ink-3) }
+  .add-set:hover{ color:var(--ink) }
+
+  /* rest timer — calm, single line */
+  .rest{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 24px; border-top:1px solid var(--line);
+  }
+  .desktop .rest{ padding:16px 0; border-top:1px solid var(--line) }
+  .rest .label{ font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3) }
+  .rest .time{ font-family:var(--num); font-size:24px; font-variant-numeric:tabular-nums; letter-spacing:0.01em }
+  .rest .bar{ flex:1; height:1px; background:var(--line); margin:0 18px; position:relative }
+  .rest .bar i{ position:absolute; left:0; top:0; height:1px; width:42%; background:var(--accent) }
+
+  /* mobile bottom nav */
+  .botnav{
+    display:flex; border-top:1px solid var(--line); background:var(--card);
+  }
+  .botnav a{
+    flex:1; text-align:center; padding:14px 0 16px; text-decoration:none;
+    font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-3);
+    position:relative;
+  }
+  .botnav a.on{ color:var(--ink); font-weight:600 }
+  .botnav a.on::before{
+    content:""; position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:18px; height:2px; background:var(--accent);
+  }
+
+  /* ===================================================
+     DESKTOP TRAIN — sidebar + logging column + context rail
+     =================================================== */
+  .desk-grid{
+    display:grid;
+    grid-template-columns: 188px 1fr 300px;
+    min-height:760px;
+  }
+  .sidebar{
+    border-right:1px solid var(--line);
+    padding:30px 26px;
+    display:flex; flex-direction:column;
+  }
+  .sidebar .wordmark{ margin-bottom:44px }
+  .sidenav{ display:flex; flex-direction:column; gap:2px }
+  .sidenav a{
+    text-decoration:none; color:var(--ink-2); font-size:14px; font-weight:500;
+    padding:9px 0; letter-spacing:-0.01em; display:flex; align-items:center; gap:10px;
+  }
+  .sidenav a .tick{ width:14px; height:1px; background:transparent }
+  .sidenav a.on{ color:var(--ink) }
+  .sidenav a.on .tick{ background:var(--accent); height:2px }
+  .sidenav a:hover{ color:var(--ink) }
+  .sidebar .foot{ margin-top:auto; font-size:12px; color:var(--ink-3); letter-spacing:0.02em }
+  .sidebar .foot b{ color:var(--ink); font-weight:600 }
+
+  .col-main{ padding:30px 40px 36px; min-width:0 }
+  .rail{
+    border-left:1px solid var(--line);
+    padding:30px 28px;
+    display:flex; flex-direction:column; gap:30px;
+  }
+  .rail h4{ font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin-bottom:14px }
+
+  .rail .now{ }
+  .rail .now .nm{ font-size:15px; font-weight:600; letter-spacing:-0.01em }
+  .rail .now .tg{ font-size:12.5px; color:var(--ink-2); margin-top:3px }
+
+  .uplist{ list-style:none; display:flex; flex-direction:column; gap:0 }
+  .uplist li{ display:flex; justify-content:space-between; align-items:baseline; padding:11px 0; border-top:1px solid var(--line-2); font-size:13.5px }
+  .uplist li:first-child{ border-top:0 }
+  .uplist li span{ color:var(--ink) }
+  .uplist li em{ font-style:normal; font-size:12px; color:var(--ink-3); font-variant-numeric:tabular-nums }
+  .uplist li.done span{ color:var(--ink-3) }
+
+  .sess-stat{ display:flex; flex-direction:column; gap:12px }
+  .sess-stat .row{ display:flex; align-items:baseline; justify-content:space-between }
+  .sess-stat .row .k{ font-size:12.5px; color:var(--ink-2) }
+  .sess-stat .row .v{ font-family:var(--num); font-size:22px; font-variant-numeric:tabular-nums }
+
+  /* ===================================================
+     PROGRESS
+     =================================================== */
+  .progress-wrap{ margin-top:72px }
+  .prog-grid{
+    display:grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:16px;
+    overflow:hidden;
+  }
+  .panel{ background:var(--card); padding:26px 28px }
+  .panel h4{ font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); font-weight:600 }
+  .panel .big{ font-family:var(--num); font-size:34px; margin-top:8px; line-height:1; font-weight:500 }
+  .panel .sub{ font-size:12.5px; color:var(--ink-2); margin-top:8px }
+  .panel .sub b{ color:var(--accent); font-weight:600 }
+
+  .col-3{ grid-column:span 3 } .col-4{ grid-column:span 4 } .col-5{ grid-column:span 5 }
+  .col-6{ grid-column:span 6 } .col-7{ grid-column:span 7 } .col-8{ grid-column:span 8 } .col-12{ grid-column:span 12 }
+  @media (max-width:1180px){
+    .col-3,.col-4,.col-5,.col-6,.col-7,.col-8{ grid-column:span 12 }
+  }
+
+  /* streak dots */
+  .streak-row{ display:flex; gap:9px; margin-top:20px; flex-wrap:wrap }
+  .sdot{ width:13px; height:13px; border-radius:50%; border:1.5px solid var(--line) }
+  .sdot.full{ background:var(--ink); border-color:var(--ink) }
+  .sdot.cur{ background:var(--accent); border-color:var(--accent) }
+
+  .svg-box{ margin-top:18px }
+  .best li{ display:flex; justify-content:space-between; align-items:baseline; padding:12px 0; border-top:1px solid var(--line-2); font-size:14px }
+  .best li:first-child{ border-top:0 }
+  .best li .w{ font-family:var(--num); font-size:18px; font-variant-numeric:tabular-nums }
+  .best{ list-style:none; margin-top:14px }
+
+  .legend{ display:flex; gap:18px; margin-top:14px; font-size:12px; color:var(--ink-3) }
+  .legend i{ display:inline-block; width:14px; height:2px; vertical-align:middle; margin-right:6px }
+
+  /* load-in */
+  .ld{ opacity:0; transform:translateY(10px); animation:ld .7s cubic-bezier(.2,.7,.3,1) forwards }
+  @keyframes ld{ to{ opacity:1; transform:none } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-head ld" style="animation-delay:.02s">
+    <div class="wordmark">Pulse<span class="dot"></span></div>
+    <div class="meta">Train · Redesign 2026</div>
+  </div>
+
+  <div class="frames">
+
+    <!-- ============ MOBILE ============ -->
+    <div class="mobile-wrap ld" style="animation-delay:.08s">
+      <div class="frame-label">Train · Mobile · 390</div>
+      <div class="shell mobile">
+
+        <div class="train-head">
+          <div class="crumb">
+            <span>Week <b>03</b> / 12</span><span class="sep">·</span><span>RIR <b>2–3</b></span>
+          </div>
+          <div class="phase">Phase 1 — <em>Accumulation</em></div>
+          <div class="head-sub">
+            <span class="streak">6-week streak</span>
+            <span><b>Push</b> day</span>
+          </div>
+
+          <div class="days">
+            <div class="day"><div class="d">Mon</div><div class="n">01</div></div>
+            <div class="day"><div class="d">Tue</div><div class="n">02</div></div>
+            <div class="day today"><div class="d">Wed</div><div class="n">03</div></div>
+            <div class="day"><div class="d">Thu</div><div class="n">04</div></div>
+            <div class="day"><div class="d">Fri</div><div class="n">05</div></div>
+            <div class="day"><div class="d">Sat</div><div class="n">06</div></div>
+            <div class="day"><div class="d">Sun</div><div class="n">07</div></div>
+          </div>
+        </div>
+
+        <div class="ex">
+          <div class="ex-top">
+            <div class="ex-name">Dumbbell Bench Press</div>
+            <div class="ex-target">3–4 × 8–12</div>
+          </div>
+          <div class="ex-last">Last: 22.5 kg × 10 × 3 sets</div>
+
+          <div class="sets">
+            <div class="set done">
+              <span class="idx">1</span>
+              <span class="figures"><span class="fig">22.5</span><span class="x">×</span><span class="fig">10</span><span class="rir">@ RIR <b>2</b></span></span>
+              <span class="check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke-width="2"><path d="M2 6l2.5 2.5L9 3"/></svg></span>
+            </div>
+            <div class="set done">
+              <span class="idx">2</span>
+              <span class="figures"><span class="fig">22.5</span><span class="x">×</span><span class="fig">10</span><span class="rir">@ RIR <b>2</b><span class="pr">PR</span></span></span>
+              <span class="check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke-width="2"><path d="M2 6l2.5 2.5L9 3"/></svg></span>
+            </div>
+            <div class="set pending">
+              <span class="idx">3</span>
+              <span class="figures"><span class="fig">22.5</span><span class="x">×</span><span class="fig">10</span><span class="rir">@ RIR 3</span></span>
+              <span class="check"></span>
+            </div>
+          </div>
+          <button class="add-set">+ Add set <span class="plate">· 22.5 = 20 + 2×1.25</span></button>
+        </div>
+
+        <div class="ex">
+          <div class="ex-top">
+            <div class="ex-name">Incline Dumbbell Press</div>
+            <div class="ex-target">3 × 10–12</div>
+          </div>
+          <div class="ex-last">Last: 18 kg × 11 × 3 sets</div>
+        </div>
+
+        <div class="ex">
+          <div class="ex-top">
+            <div class="ex-name">Dumbbell Shoulder Press</div>
+            <div class="ex-target">3 × 8–10</div>
+          </div>
+          <div class="ex-last">Last: 16 kg × 9 × 3 sets</div>
+        </div>
+
+        <div class="ex">
+          <div class="ex-top">
+            <div class="ex-name">Dumbbell Lateral Raise</div>
+            <div class="ex-target">3 × 12–15</div>
+          </div>
+          <div class="ex-last">Last: 9 kg × 14 × 3 sets</div>
+        </div>
+
+        <div class="ex">
+          <div class="ex-top">
+            <div class="ex-name">Overhead Triceps Extension</div>
+            <div class="ex-target">3 × 12–15</div>
+          </div>
+          <div class="ex-last">Last: 20 kg × 13 × 3 sets</div>
+        </div>
+
+        <div class="rest">
+          <span class="label">Rest</span>
+          <span class="bar"><i></i></span>
+          <span class="time">1:30</span>
+        </div>
+
+        <div class="botnav">
+          <a href="#" class="on">Train</a>
+          <a href="#">Plan</a>
+          <a href="#">Progress</a>
+          <a href="#">Profile</a>
+          <a href="#">Explore</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DESKTOP ============ -->
+    <div class="desktop ld" style="animation-delay:.16s">
+      <div class="frame-label">Train · Desktop · 1280</div>
+      <div class="shell">
+        <div class="desk-grid">
+
+          <!-- sidebar nav -->
+          <aside class="sidebar">
+            <div class="wordmark">Pulse<span class="dot"></span></div>
+            <nav class="sidenav">
+              <a href="#" class="on"><span class="tick"></span>Train</a>
+              <a href="#"><span class="tick"></span>Plan</a>
+              <a href="#"><span class="tick"></span>Progress</a>
+              <a href="#"><span class="tick"></span>Profile</a>
+              <a href="#"><span class="tick"></span>Explore</a>
+            </nav>
+            <div class="foot">Week <b>03</b> / 12<br>6-week streak</div>
+          </aside>
+
+          <!-- logging column -->
+          <section class="col-main">
+            <div class="crumb">
+              <span>Wed 03</span><span class="sep">·</span><span><b>Push</b></span><span class="sep">·</span><span>RIR <b>2–3</b></span>
+            </div>
+            <div class="phase">Phase 1 — <em>Accumulation</em></div>
+
+            <div style="margin-top:28px">
+              <div class="ex" style="padding-top:0">
+                <div class="ex-top">
+                  <div class="ex-name">Dumbbell Bench Press</div>
+                  <div class="ex-target">3–4 × 8–12 reps · Last: 22.5 kg × 10 × 3</div>
+                </div>
+                <div class="sets">
+                  <div class="set done">
+                    <span class="idx">1</span>
+                    <span class="figures"><span class="fig">22.5</span><span class="x">×</span><span class="fig">10</span><span class="rir">@ RIR <b>2</b></span></span>
+                    <span class="check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke-width="2"><path d="M2 6l2.5 2.5L9 3"/></svg></span>
+                  </div>
+                  <div class="set done">
+                    <span class="idx">2</span>
+                    <span class="figures"><span class="fig">22.5</span><span class="x">×</span><span class="fig">10</span><span class="rir">@ RIR <b>2</b><span class="pr">PR</span></span></span>
+                    <span class="check"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke-width="2"><path d="M2 6l2.5 2.5L9 3"/></svg></span>
+                  </div>
+                  <div class="set pending">
+                    <span class="idx">3</span>
+                    <span class="figures"><span class="fig">22.5</span><span class="x">×</span><span class="fig">10</span><span class="rir">@ RIR 3</span></span>
+                    <span class="check"></span>
+                  </div>
+                </div>
+                <button class="add-set">+ Add set <span class="plate">· plates 20 + 2×1.25</span></button>
+              </div>
+
+              <div class="ex">
+                <div class="ex-top">
+                  <div class="ex-name">Incline Dumbbell Press</div>
+                  <div class="ex-target">3 × 10–12 reps · Last: 18 kg × 11 × 3</div>
+                </div>
+              </div>
+              <div class="ex">
+                <div class="ex-top">
+                  <div class="ex-name">Dumbbell Shoulder Press</div>
+                  <div class="ex-target">3 × 8–10 reps · Last: 16 kg × 9 × 3</div>
+                </div>
+              </div>
+              <div class="ex">
+                <div class="ex-top">
+                  <div class="ex-name">Dumbbell Lateral Raise</div>
+                  <div class="ex-target">3 × 12–15 reps · Last: 9 kg × 14 × 3</div>
+                </div>
+              </div>
+              <div class="ex">
+                <div class="ex-top">
+                  <div class="ex-name">Overhead Triceps Extension</div>
+                  <div class="ex-target">3 × 12–15 reps · Last: 20 kg × 13 × 3</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rest">
+              <span class="label">Rest</span>
+              <span class="bar"><i></i></span>
+              <span class="time">1:30</span>
+            </div>
+          </section>
+
+          <!-- context rail -->
+          <aside class="rail">
+            <div class="now">
+              <h4>Now</h4>
+              <div class="nm">Dumbbell Bench Press</div>
+              <div class="tg">Set 3 of 3 · target 22.5 × 10 @ RIR 3</div>
+            </div>
+
+            <div>
+              <h4>Today</h4>
+              <ul class="uplist">
+                <li class="done"><span>Bench Press</span><em>2 / 3</em></li>
+                <li><span>Incline Press</span><em>0 / 3</em></li>
+                <li><span>Shoulder Press</span><em>0 / 3</em></li>
+                <li><span>Lateral Raise</span><em>0 / 3</em></li>
+                <li><span>Triceps Ext.</span><em>0 / 3</em></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4>Session</h4>
+              <div class="sess-stat">
+                <div class="row"><span class="k">Sets logged</span><span class="v">2</span></div>
+                <div class="row"><span class="k">Volume</span><span class="v">450<span style="font-size:13px;color:var(--ink-3)"> kg</span></span></div>
+                <div class="row"><span class="k">Elapsed</span><span class="v">18:42</span></div>
+              </div>
+            </div>
+          </aside>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ PROGRESS ============ -->
+  <div class="progress-wrap ld" style="animation-delay:.28s">
+    <div class="frame-label">Progress · Desktop</div>
+    <div class="prog-grid">
+
+      <div class="panel col-4">
+        <h4>Current streak</h4>
+        <div class="big">6 wks</div>
+        <div class="sub">Best <b>6</b> · 12-week block, weeks completed</div>
+        <div class="streak-row">
+          <div class="sdot full"></div><div class="sdot full"></div><div class="sdot full"></div>
+          <div class="sdot full"></div><div class="sdot full"></div><div class="sdot full"></div>
+          <div class="sdot cur"></div>
+          <div class="sdot"></div><div class="sdot"></div><div class="sdot"></div>
+          <div class="sdot"></div><div class="sdot"></div>
+        </div>
+      </div>
+
+      <div class="panel col-4">
+        <h4>Sets per week</h4>
+        <div class="svg-box">
+          <svg viewBox="0 0 280 110" width="100%" height="110" preserveAspectRatio="xMidYMid meet" fill="none">
+            <line x1="0" y1="100" x2="280" y2="100" stroke="#e4e4e7" stroke-width="1"/>
+            <!-- bars -->
+            <g fill="#16161a">
+              <rect x="6"   y="58" width="14" height="42"/>
+              <rect x="34"  y="50" width="14" height="50"/>
+              <rect x="62"  y="44" width="14" height="56"/>
+              <rect x="90"  y="40" width="14" height="60"/>
+              <rect x="118" y="34" width="14" height="66"/>
+              <rect x="146" y="28" width="14" height="72"/>
+            </g>
+            <rect x="146" y="28" width="14" height="72" fill="#ff4d2e"/>
+            <g fill="#9a9ca3">
+              <rect x="174" y="50" width="14" height="50"/>
+              <rect x="202" y="50" width="14" height="50"/>
+              <rect x="230" y="50" width="14" height="50"/>
+              <rect x="258" y="50" width="14" height="50"/>
+            </g>
+          </svg>
+        </div>
+        <div class="sub">This week <b>21 sets</b> · trending up</div>
+      </div>
+
+      <div class="panel col-4">
+        <h4>Estimated 1RM · Bench</h4>
+        <div class="svg-box">
+          <svg viewBox="0 0 280 110" width="100%" height="110" preserveAspectRatio="xMidYMid meet" fill="none">
+            <line x1="0" y1="100" x2="280" y2="100" stroke="#e4e4e7" stroke-width="1"/>
+            <polyline points="6,80 52,74 98,66 144,58 190,46 236,38 274,30"
+              fill="none" stroke="#16161a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="274" cy="30" r="3.5" fill="#ff4d2e"/>
+          </svg>
+        </div>
+        <div class="sub">Now <b>78 kg</b> est. · +9 kg in 6 weeks</div>
+      </div>
+
+      <div class="panel col-7">
+        <h4>Volume trend · 12 weeks</h4>
+        <div class="svg-box">
+          <svg viewBox="0 0 560 150" width="100%" height="150" preserveAspectRatio="xMidYMid meet" fill="none">
+            <g stroke="#eeeeef" stroke-width="1">
+              <line x1="0" y1="36" x2="560" y2="36"/>
+              <line x1="0" y1="78" x2="560" y2="78"/>
+              <line x1="0" y1="120" x2="560" y2="120"/>
+            </g>
+            <polyline points="10,110 56,104 102,96 148,90 194,80 240,68 286,60 332,68 378,58 424,50 470,46 516,40"
+              fill="none" stroke="#16161a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="286" cy="60" r="3.5" fill="#ff4d2e"/>
+            <text x="286" y="50" font-family="Archivo" font-size="10" fill="#ff4d2e" text-anchor="middle">wk 06</text>
+          </svg>
+        </div>
+        <div class="legend"><span><i style="background:#16161a"></i>Total tonnage / week</span><span><i style="background:#ff4d2e"></i>Current week</span></div>
+      </div>
+
+      <div class="panel col-5">
+        <h4>Best lifts</h4>
+        <ul class="best">
+          <li><span>Dumbbell Bench Press</span><span class="w">22.5 <small style="font-size:11px;color:var(--ink-3)">× 10</small></span></li>
+          <li><span>Incline Dumbbell Press</span><span class="w">18 <small style="font-size:11px;color:var(--ink-3)">× 11</small></span></li>
+          <li><span>Dumbbell Shoulder Press</span><span class="w">16 <small style="font-size:11px;color:var(--ink-3)">× 9</small></span></li>
+          <li><span>Dumbbell Lateral Raise</span><span class="w">9 <small style="font-size:11px;color:var(--ink-3)">× 14</small></span></li>
+          <li><span>Overhead Triceps Ext.</span><span class="w">20 <small style="font-size:11px;color:var(--ink-3)">× 13</small></span></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
