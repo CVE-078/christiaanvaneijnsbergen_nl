@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { validateLogs } from '@/lib/pulse/validation';
+import { validateLogEntry } from '@/lib/pulse/validation';
 import { parseLogKey, UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
@@ -10,7 +10,7 @@ import { applyTemplateVolume, generateRoutine } from '@/lib/pulse/generation';
 import type { ExerciseMeta } from '@/lib/pulse/generation';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 import type {
-    Logs,
+    LogEntry,
     Unit,
     BodyweightEntry,
     DbExercise,
@@ -49,93 +49,52 @@ export async function logout() {
     redirect('/pulse/login');
 }
 
-export async function saveLogs(logs: unknown) {
-    if (!validateLogs(logs)) throw new Error('Invalid data');
-    if (Object.keys(logs).length > 2000) throw new Error('Data too large');
+// Upsert a single set log by its "week-routineExerciseId-setIdx" key. Replaces the
+// old whole-table saveLogs rewrite: one targeted upsert per save instead of
+// re-writing and re-diffing every logged set on the hot path.
+export async function upsertLog(key: string, entry: LogEntry): Promise<void> {
+    const parsed = parseLogKey(key);
+    if (!parsed) throw new Error('Invalid data');
+    if (parsed.week < 1 || parsed.week > 52 || parsed.setIdx < 0 || parsed.setIdx > 9) throw new Error('Invalid data');
+    if (!validateLogEntry(entry)) throw new Error('Invalid data');
 
     const { supabase, user } = await getUserOrThrow();
+    await assertOwnsRoutineExercise(supabase, parsed.routineExerciseId, user.id);
 
-    const validLogs = logs as Logs;
-    const savedEntries = Object.entries(validLogs).filter(([, v]) => v.saved);
-
-    // Upsert all current saved entries
-    if (savedEntries.length > 0) {
-        const parsedEntries = savedEntries.map(([key, val]) => {
-            const parsed = parseLogKey(key);
-            if (!parsed) throw new Error('Invalid data');
-            return { parsed, val };
-        });
-
-        // Defense-in-depth IDOR check: every referenced routine_exercise_id must
-        // belong to a routine owned by the current user.
-        const referencedIds = [...new Set(parsedEntries.map((e) => e.parsed.routineExerciseId))];
-        const { data: ownedRows } = await supabase
-            .from('routine_exercises')
-            .select('id, workout_routines!inner ( user_id )')
-            .in('id', referencedIds)
-            .eq('workout_routines.user_id', user.id);
-
-        const ownedIds = new Set((ownedRows ?? []).map((r: { id: string }) => r.id));
-        if (referencedIds.some((id) => !ownedIds.has(id))) throw new Error('Unauthorized');
-
-        const rows = parsedEntries.map(({ parsed, val }) => {
-            return {
-                user_id: user.id,
-                week: parsed.week,
-                routine_exercise_id: parsed.routineExerciseId,
-                set_idx: parsed.setIdx,
-                kg: val.kg,
-                reps: val.reps,
-                rir: val.rir,
-                saved: true,
-                drops: Array.isArray(val.drops) && val.drops.length > 0 ? val.drops : null,
-                updated_at: new Date().toISOString(),
-            };
-        });
-
-        const { error } = await supabase
-            .from('set_logs')
-            .upsert(rows, { onConflict: 'user_id,week,routine_exercise_id,set_idx' });
-        if (error) throw new Error('Failed to save');
-    }
-
-    // Delete rows in DB that are no longer in the current logs (e.g. user deleted a set)
-    const currentKeys = new Set(savedEntries.map(([k]) => k));
-    const { data: existing } = await supabase
-        .from('set_logs')
-        .select('week, routine_exercise_id, set_idx')
-        .eq('user_id', user.id);
-
-    const toDelete = (existing ?? []).filter(
-        (row: { week: number; routine_exercise_id: string; set_idx: number }) =>
-            !currentKeys.has(`${row.week}-${row.routine_exercise_id}-${row.set_idx}`),
+    const { error } = await supabase.from('set_logs').upsert(
+        {
+            user_id: user.id,
+            week: parsed.week,
+            routine_exercise_id: parsed.routineExerciseId,
+            set_idx: parsed.setIdx,
+            kg: entry.kg,
+            reps: entry.reps,
+            rir: entry.rir,
+            saved: true,
+            drops: Array.isArray(entry.drops) && entry.drops.length > 0 ? entry.drops : null,
+            updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,week,routine_exercise_id,set_idx' },
     );
+    if (error) throw new Error('Failed to save');
+}
 
-    if (toDelete.length > 0) {
-        const keysToDelete = new Set(
-            toDelete.map(
-                (row: { week: number; routine_exercise_id: string; set_idx: number }) =>
-                    `${row.week}-${row.routine_exercise_id}-${row.set_idx}`,
-            ),
-        );
+// Delete a single set log by its key (the user removed a set).
+export async function deleteLogRow(key: string): Promise<void> {
+    const parsed = parseLogKey(key);
+    if (!parsed) throw new Error('Invalid data');
 
-        const { data: rowsWithIds } = await supabase
-            .from('set_logs')
-            .select('id, week, routine_exercise_id, set_idx')
-            .eq('user_id', user.id);
+    const { supabase, user } = await getUserOrThrow();
+    await assertOwnsRoutineExercise(supabase, parsed.routineExerciseId, user.id);
 
-        const idsToDelete = (rowsWithIds ?? [])
-            .filter((r: { id: string; week: number; routine_exercise_id: string; set_idx: number }) =>
-                keysToDelete.has(`${r.week}-${r.routine_exercise_id}-${r.set_idx}`),
-            )
-            .map((r: { id: string }) => r.id);
-
-        if (idsToDelete.length > 0) {
-            await supabase.from('set_logs').delete().in('id', idsToDelete).eq('user_id', user.id);
-        }
-    }
-
-    revalidatePath('/pulse');
+    const { error } = await supabase
+        .from('set_logs')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('week', parsed.week)
+        .eq('routine_exercise_id', parsed.routineExerciseId)
+        .eq('set_idx', parsed.setIdx);
+    if (error) throw new Error('Failed to delete');
 }
 
 export async function updateProfile(displayName: string | null, unit: Unit, activeRoutineId?: string | null) {

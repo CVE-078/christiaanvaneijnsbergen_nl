@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { useCallback, useRef, useEffect } from 'react';
-import { saveLogs } from '@/app/pulse/actions';
+import { upsertLog, deleteLogRow } from '@/app/pulse/actions';
 import { fetcher } from '@/lib/pulse/fetcher';
 import type { Logs, LogEntry } from '@/lib/pulse/types';
 
@@ -27,36 +27,38 @@ export function useWorkoutLogs(initialLogs?: Logs, onError?: (msg: string) => vo
         };
     }, []);
 
-    const persist = useCallback(
-        (newLogs: Logs) => {
-            mutate(newLogs, false);
+    // Run a single-row write with one retry on failure. The optimistic SWR mutate
+    // is done by the caller before this; only the server write is retried.
+    const runWithRetry = useCallback(
+        (op: () => Promise<unknown>) => {
             if (retryRef.current) clearTimeout(retryRef.current);
-
-            saveLogs(newLogs).catch(() => {
+            op().catch(() => {
                 onError?.('Failed to save. Retrying…');
                 retryRef.current = setTimeout(
-                    () => saveLogs(newLogs).catch(() => onError?.('Save failed. Check your connection.')),
+                    () => op().catch(() => onError?.('Save failed. Check your connection.')),
                     3000,
                 );
             });
         },
-        [mutate, onError],
+        [onError],
     );
 
     const updateLog = useCallback(
         (key: string, entry: LogEntry) => {
-            persist({ ...logs, [key]: entry });
+            mutate({ ...logs, [key]: entry }, false);
+            runWithRetry(() => upsertLog(key, entry));
         },
-        [logs, persist],
+        [logs, mutate, runWithRetry],
     );
 
     const deleteLog = useCallback(
         (key: string) => {
             const newLogs = { ...logs };
             delete newLogs[key];
-            persist(newLogs);
+            mutate(newLogs, false);
+            runWithRetry(() => deleteLogRow(key));
         },
-        [logs, persist],
+        [logs, mutate, runWithRetry],
     );
 
     const handleExport = useCallback(() => {
