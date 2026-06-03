@@ -1,7 +1,7 @@
 import useSWR from 'swr';
 import { useCallback, useRef, useEffect } from 'react';
 import { upsertLog, deleteLogRow } from '@/app/pulse/actions';
-import { fetcher } from '@/lib/pulse/fetcher';
+import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import type { Logs, LogEntry } from '@/lib/pulse/types';
 
 const LOGS_KEY = '/api/pulse/logs';
@@ -13,9 +13,7 @@ const EMPTY_LOGS: Logs = {};
 export function useWorkoutLogs(initialLogs?: Logs, onError?: (msg: string) => void) {
     const { data, mutate, isLoading, error } = useSWR<Logs>(LOGS_KEY, fetcher, {
         fallbackData: initialLogs,
-        revalidateOnFocus: false,
-        revalidateIfStale: true,
-        dedupingInterval: 5000,
+        ...SWR_READ_OPTS,
     });
     const logs = data ?? EMPTY_LOGS;
 

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useProfile } from '../useProfile';
 
 vi.mock('@/lib/pulse/fetcher', () => ({
+    SWR_READ_OPTS: {},
     fetcher: vi.fn(async (key: string) => {
         if (key === '/api/pulse/profile')
             return {

@@ -1,7 +1,7 @@
 import useSWR from 'swr';
 import { useCallback } from 'react';
 import { saveNote as serverSaveNote, deleteNote as serverDeleteNote } from '@/app/pulse/actions';
-import { fetcher } from '@/lib/pulse/fetcher';
+import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import type { Notes } from '@/lib/pulse/types';
 
 const NOTES_KEY = '/api/pulse/notes';
@@ -13,9 +13,7 @@ const EMPTY_NOTES: Notes = {};
 export function useNotes(initialNotes?: Notes) {
     const { data, mutate, isLoading, error } = useSWR<Notes>(NOTES_KEY, fetcher, {
         fallbackData: initialNotes,
-        revalidateOnFocus: false,
-        revalidateIfStale: true,
-        dedupingInterval: 5000,
+        ...SWR_READ_OPTS,
     });
     const notes = data ?? EMPTY_NOTES;
 
