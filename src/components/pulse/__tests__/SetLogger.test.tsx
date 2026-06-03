@@ -118,6 +118,37 @@ describe('SetLogger', () => {
         expect(screen.queryByRole('button', { name: /plate calculator/i })).not.toBeInTheDocument();
     });
 
+    it('shows a failure tag when a saved set is logged at RIR 0', () => {
+        const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 0, saved: true };
+        render(<SetLogger {...defaultProps} entry={savedEntry} />);
+        expect(screen.getByText(/failure/i)).toBeInTheDocument();
+    });
+
+    it('does not show the failure tag at RIR > 0', () => {
+        const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
+        render(<SetLogger {...defaultProps} entry={savedEntry} />);
+        expect(screen.queryByText(/failure/i)).not.toBeInTheDocument();
+    });
+
+    it('logs a drop set: adding a drop segment and saving includes drops', async () => {
+        const onSave = vi.fn();
+        render(<SetLogger {...defaultProps} onSave={onSave} />);
+
+        await userEvent.type(screen.getByRole('spinbutton', { name: /weight in kg/i }), '80');
+        await userEvent.type(screen.getByRole('spinbutton', { name: /repetitions/i }), '8');
+        await userEvent.click(screen.getByRole('button', { name: /add drop/i }));
+        await userEvent.type(screen.getByRole('spinbutton', { name: /drop 1 weight in kg/i }), '60');
+        await userEvent.type(screen.getByRole('spinbutton', { name: /drop 1 repetitions/i }), '8');
+        await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+        expect(onSave).toHaveBeenCalledWith(
+            expect.objectContaining({
+                saved: true,
+                drops: [expect.objectContaining({ kg: expect.any(Number), reps: expect.any(Number) })],
+            }),
+        );
+    });
+
     it('opens the plate calculator and shows per-side chips for the target weight', async () => {
         const savedEntry: LogEntry = { kg: 100, reps: 8, rir: 2, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} />);

@@ -32,6 +32,7 @@ type SessionCardSet = {
     kg: number;
     name: string;
     isPR: boolean;
+    drops?: Array<{ kg: number; reps: number }>;
 };
 
 type SessionCardData = {
@@ -53,22 +54,42 @@ const SessionCard = memo(function SessionCard({ session, unit }: { session: Sess
             </div>
             <div className="px-4 pb-3 flex flex-col">
                 {session.sets.map((set, i) => (
-                    <div key={i} className="flex items-center gap-3 py-[6px]">
-                        <span className="font-pulse text-[0.6875rem] text-pulse-muted w-5 shrink-0">
-                            {String(set.setIdx + 1).padStart(2, '0')}
-                        </span>
-                        <span className="text-pulse-text text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                            {set.name}
-                        </span>
-                        <span className="font-pulse text-pulse-text font-medium text-sm shrink-0">
-                            {toDisplay(set.kg, unit)} {unit} × {set.reps}
-                        </span>
-                        {set.isPR && (
-                            <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent shrink-0">
-                                PR
+                    <div key={i} className="flex flex-col py-[6px]">
+                        <div className="flex items-center gap-3">
+                            <span className="font-pulse text-[0.6875rem] text-pulse-muted w-5 shrink-0">
+                                {String(set.setIdx + 1).padStart(2, '0')}
                             </span>
+                            <span className="text-pulse-text text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                                {set.name}
+                            </span>
+                            <span className="font-pulse text-pulse-text font-medium text-sm shrink-0">
+                                {toDisplay(set.kg, unit)} {unit} × {set.reps}
+                            </span>
+                            {set.isPR && (
+                                <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent shrink-0">
+                                    PR
+                                </span>
+                            )}
+                            {set.rir === 0 && (
+                                <span
+                                    className="font-pulse text-[0.625rem] uppercase tracking-[0.08em] text-pulse-accent shrink-0"
+                                    title="Taken to failure">
+                                    Failure
+                                </span>
+                            )}
+                            <span className="font-pulse text-pulse-muted text-[0.75rem] shrink-0">{set.rir} RIR</span>
+                        </div>
+                        {set.drops && set.drops.length > 0 && (
+                            <div className="font-pulse text-[0.6875rem] text-pulse-dim pl-8 mt-0.5">
+                                ↓{' '}
+                                {set.drops.map((d, di) => (
+                                    <span key={di}>
+                                        {di > 0 && <span className="text-pulse-muted"> · </span>}
+                                        {toDisplay(d.kg, unit)} × {d.reps}
+                                    </span>
+                                ))}
+                            </div>
                         )}
-                        <span className="font-pulse text-pulse-muted text-[0.75rem] shrink-0">{set.rir} RIR</span>
                     </div>
                 ))}
             </div>
@@ -136,6 +157,7 @@ export default function HistoryView() {
                         kg: set.kg,
                         name: nameMap.get(set.routineExerciseId) ?? '—',
                         isPR,
+                        ...(set.drops && set.drops.length > 0 ? { drops: set.drops } : {}),
                     };
                 }),
             })),

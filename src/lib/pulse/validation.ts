@@ -10,11 +10,20 @@ export function validateLogs(value: unknown): value is Logs {
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
         if (!LOG_KEY_RE.test(key)) return false;
         if (typeof entry !== 'object' || entry === null) return false;
-        const { kg, reps, rir, saved } = entry as Record<string, unknown>;
+        const { kg, reps, rir, saved, drops } = entry as Record<string, unknown>;
         if (typeof kg !== 'number' || kg <= 0 || kg > 500) return false;
         if (typeof reps !== 'number' || !Number.isInteger(reps) || reps < 1 || reps > 100) return false;
         if (typeof rir !== 'number' || !Number.isInteger(rir) || rir < 0 || rir > 10) return false;
         if (typeof saved !== 'boolean') return false;
+        if (drops !== undefined && drops !== null) {
+            if (!Array.isArray(drops) || drops.length > 6) return false;
+            for (const d of drops) {
+                if (typeof d !== 'object' || d === null) return false;
+                const { kg: dkg, reps: dreps } = d as Record<string, unknown>;
+                if (typeof dkg !== 'number' || dkg <= 0 || dkg > 500) return false;
+                if (typeof dreps !== 'number' || !Number.isInteger(dreps) || dreps < 1 || dreps > 100) return false;
+            }
+        }
     }
     return true;
 }
