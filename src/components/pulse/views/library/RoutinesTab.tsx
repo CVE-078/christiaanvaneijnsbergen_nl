@@ -4,8 +4,8 @@ import { mutate } from 'swr';
 import { usePulse } from '@/context/PulseContext';
 import { toDisplay, toKg } from '@/lib/pulse/utils';
 import { defaultWorkoutType } from '@/lib/pulse/types';
-import type { ExerciseCategory, RoutineExercise, Unit, WorkoutType } from '@/lib/pulse/types';
-import { WORKOUT_TYPE_OPTIONS } from '@/lib/pulse/constants';
+import type { ExerciseCategory, RoutineExercise, Unit, WorkoutType, WorkoutVariant } from '@/lib/pulse/types';
+import { WORKOUT_TYPE_OPTIONS, WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { INPUT, BTN_PRIMARY, CARD } from '@/components/pulse/ui';
 import GenerateRoutineButton from '@/components/pulse/GenerateRoutineButton';
 
@@ -356,6 +356,70 @@ export default function RoutinesTab() {
         });
     }
 
+    // Group the active routine into sessions by (workout_type, variant), keeping
+    // each row's global index into sortedActiveExercises so move/pair logic stays
+    // unchanged. One group means a single-session routine -> render the flat list.
+    const sessionGroups: {
+        type: WorkoutType;
+        variant: WorkoutVariant | null;
+        items: { re: RoutineExercise; index: number }[];
+    }[] = [];
+    {
+        const byKey = new Map<string, number>();
+        sortedActiveExercises.forEach((re, index) => {
+            const key = `${re.workout_type}:${re.variant ?? ''}`;
+            let gi = byKey.get(key);
+            if (gi === undefined) {
+                gi = sessionGroups.length;
+                byKey.set(key, gi);
+                sessionGroups.push({ type: re.workout_type, variant: re.variant ?? null, items: [] });
+            }
+            sessionGroups[gi].items.push({ re, index });
+        });
+    }
+
+    function renderRow(re: RoutineExercise, i: number) {
+        const isPaired = re.superset_group_id !== null;
+        const pairIndices = isPaired
+            ? sortedActiveExercises
+                  .map((r, idx) => (r.superset_group_id === re.superset_group_id ? idx : -1))
+                  .filter((idx) => idx !== -1)
+                  .sort((a, b) => a - b)
+            : null;
+        const firstPairIdx = pairIndices?.[0] ?? i;
+        const secondPairIdx = pairIndices?.[1] ?? i;
+        const isFirstInPair = isPaired && i === firstPairIdx;
+        const next = sortedActiveExercises[i + 1];
+        const canPairWithNext = !isPaired && next !== undefined && next.superset_group_id === null;
+
+        let canMoveUp: boolean;
+        let canMoveDown: boolean;
+        if (isPaired) {
+            canMoveUp = firstPairIdx > 0;
+            canMoveDown = secondPairIdx < sortedActiveExercises.length - 1;
+        } else {
+            canMoveUp = i > 0;
+            canMoveDown = i < sortedActiveExercises.length - 1;
+        }
+
+        return (
+            <RoutineExerciseRow
+                key={re.id}
+                re={re}
+                index={i}
+                total={sortedActiveExercises.length}
+                unit={unit}
+                onMove={handleMove}
+                onRemove={handleRemove}
+                onUpdate={handleUpdateExercise}
+                canMoveUp={canMoveUp}
+                canMoveDown={canMoveDown}
+                onPair={canPairWithNext ? () => handlePair(re.id, next.id) : undefined}
+                onUnpair={isFirstInPair ? () => handleUnpair(re.superset_group_id!) : undefined}
+            />
+        );
+    }
+
     return (
         <div className="flex flex-col gap-4">
             <GenerateRoutineButton label="Generate routine" className={`${BTN_PRIMARY} self-start`} />
@@ -494,54 +558,25 @@ export default function RoutinesTab() {
                     </div>
 
                     {/* Routine exercise list */}
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                         {sortedActiveExercises.length === 0 ? (
                             <div className="font-pulse text-[0.8125rem] text-pulse-muted tracking-[0.04em]">
                                 No exercises in this routine yet.
                             </div>
+                        ) : sessionGroups.length <= 1 ? (
+                            <div className="flex flex-col gap-2">
+                                {sortedActiveExercises.map((re, i) => renderRow(re, i))}
+                            </div>
                         ) : (
-                            sortedActiveExercises.map((re, i) => {
-                                const isPaired = re.superset_group_id !== null;
-                                const pairIndices = isPaired
-                                    ? sortedActiveExercises
-                                          .map((r, idx) => (r.superset_group_id === re.superset_group_id ? idx : -1))
-                                          .filter((idx) => idx !== -1)
-                                          .sort((a, b) => a - b)
-                                    : null;
-                                const firstPairIdx = pairIndices?.[0] ?? i;
-                                const secondPairIdx = pairIndices?.[1] ?? i;
-                                const isFirstInPair = isPaired && i === firstPairIdx;
-                                const next = sortedActiveExercises[i + 1];
-                                const canPairWithNext =
-                                    !isPaired && next !== undefined && next.superset_group_id === null;
-
-                                let canMoveUp: boolean;
-                                let canMoveDown: boolean;
-                                if (isPaired) {
-                                    canMoveUp = firstPairIdx > 0;
-                                    canMoveDown = secondPairIdx < sortedActiveExercises.length - 1;
-                                } else {
-                                    canMoveUp = i > 0;
-                                    canMoveDown = i < sortedActiveExercises.length - 1;
-                                }
-
-                                return (
-                                    <RoutineExerciseRow
-                                        key={re.id}
-                                        re={re}
-                                        index={i}
-                                        total={sortedActiveExercises.length}
-                                        unit={unit}
-                                        onMove={handleMove}
-                                        onRemove={handleRemove}
-                                        onUpdate={handleUpdateExercise}
-                                        canMoveUp={canMoveUp}
-                                        canMoveDown={canMoveDown}
-                                        onPair={canPairWithNext ? () => handlePair(re.id, next.id) : undefined}
-                                        onUnpair={isFirstInPair ? () => handleUnpair(re.superset_group_id!) : undefined}
-                                    />
-                                );
-                            })
+                            sessionGroups.map((group) => (
+                                <div key={`${group.type}:${group.variant ?? ''}`} className="flex flex-col gap-2">
+                                    <div className={SECTION_LABEL}>
+                                        {WORKOUT_TYPE_LABELS[group.type]}
+                                        {group.variant ? ` · ${group.variant}` : ''}
+                                    </div>
+                                    {group.items.map(({ re, index }) => renderRow(re, index))}
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
