@@ -17,8 +17,9 @@ import type {
     RoutineTemplate,
     ExerciseCategory,
     ScheduleEntry,
+    SessionTime,
 } from '@/lib/pulse/types';
-import type { ExperienceLevel } from '@/lib/pulse/recommendation';
+import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 
 export interface PulseContextValue {
     // Data
@@ -100,6 +101,12 @@ export interface PulseContextValue {
         trainingDays?: number[],
         sessionTime?: string,
         experience?: ExperienceLevel,
+    ) => Promise<WorkoutRoutine>;
+    generateRoutine: (
+        answers: OnboardingAnswers,
+        trainingDays: number[],
+        sessionTime: SessionTime,
+        name?: string,
     ) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
 

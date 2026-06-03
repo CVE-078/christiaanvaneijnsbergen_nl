@@ -6,8 +6,9 @@ import { validateLogs } from '@/lib/pulse/validation';
 import { parseLogKey, UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
-import { applyTemplateVolume } from '@/lib/pulse/generation';
-import type { ExperienceLevel } from '@/lib/pulse/recommendation';
+import { applyTemplateVolume, generateRoutine } from '@/lib/pulse/generation';
+import type { ExerciseMeta } from '@/lib/pulse/generation';
+import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 import type {
     Logs,
     Unit,
@@ -561,6 +562,72 @@ export async function cloneTemplate(
     }
 
     // Set as active routine
+    const { error: profileErr } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, active_routine_id: routine.id }, { onConflict: 'id' });
+    if (profileErr) throw new Error('Failed to set active routine');
+
+    revalidatePath('/pulse');
+    return routine as WorkoutRoutine;
+}
+
+export async function generateAndSaveRoutine(
+    answers: OnboardingAnswers,
+    trainingDays: number[],
+    sessionTime: SessionTime,
+    name?: string,
+): Promise<WorkoutRoutine> {
+    const { supabase, user } = await getUserOrThrow();
+    if (!trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error('Invalid training days');
+
+    const { data: pool } = await supabase
+        .from('exercises')
+        .select('id, category, equipment, movement_pattern, is_compound')
+        .is('user_id', null);
+
+    const blueprint = generateRoutine({
+        answers,
+        sessionTime,
+        trainingDays,
+        pool: (pool ?? []) as unknown as ExerciseMeta[],
+    });
+
+    const { data: routine, error: routineErr } = await supabase
+        .from('workout_routines')
+        .insert({ user_id: user.id, name: name ?? 'Generated routine' })
+        .select('id, user_id, name, created_at')
+        .single();
+    if (routineErr || !routine) throw new Error('Failed to create routine');
+
+    if (blueprint.exercises.length > 0) {
+        const { error: exErr } = await supabase.from('routine_exercises').insert(
+            blueprint.exercises.map((e) => ({
+                routine_id: routine.id,
+                exercise_id: e.exercise_id,
+                workout_type: e.workout_type,
+                variant: e.variant,
+                order: e.order,
+                sets: e.sets,
+                reps: e.reps,
+                starting_weight_kg: null,
+            })),
+        );
+        if (exErr) throw new Error('Failed to save generated exercises');
+    }
+
+    // Schedule maps day -> workout_type. There is no variant column on
+    // routine_schedule; A/B lives on routine_exercises and is surfaced via the
+    // train-screen tabs.
+    const scheduleRows = blueprint.schedule.map((s) => ({
+        routine_id: routine.id,
+        day_of_week: s.day_of_week,
+        workout_type: s.workout_type,
+    }));
+    if (scheduleRows.length > 0) {
+        const { error: schedErr } = await supabase.from('routine_schedule').insert(scheduleRows);
+        if (schedErr) throw new Error('Failed to create schedule');
+    }
+
     const { error: profileErr } = await supabase
         .from('profiles')
         .upsert({ id: user.id, active_routine_id: routine.id }, { onConflict: 'id' });
