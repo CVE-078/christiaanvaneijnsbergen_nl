@@ -12,7 +12,7 @@ import {
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
 import ExerciseInstructionModal from './ExerciseInstructionModal';
-import type { Logs, LogEntry, Unit } from '@/lib/pulse/types';
+import type { Logs, LogEntry, Unit, LastSession } from '@/lib/pulse/types';
 import type { RoutineExercise } from '@/lib/pulse/types';
 
 interface Props {
@@ -27,6 +27,10 @@ interface Props {
     note?: string;
     onSaveNote: (note: string) => Promise<void>;
     onDeleteNote: () => Promise<void>;
+    // Optional precomputed last session. When omitted (e.g. SupersetCard), it is
+    // computed from `logs` here. Callers rendering many cards pass it to avoid
+    // each card scanning the whole log set.
+    lastSession?: LastSession | null;
 }
 
 export default function ExerciseCard({
@@ -40,6 +44,7 @@ export default function ExerciseCard({
     note,
     onSaveNote,
     onDeleteNote,
+    lastSession: lastSessionProp,
 }: Props) {
     const { show: showToast } = useToast();
     const [open, setOpen] = useState(false);
@@ -64,7 +69,7 @@ export default function ExerciseCard({
         (k) => logs[k]?.saved,
     ).length;
     const complete = savedCount >= maxSets;
-    const lastSession = computeLastSession(logs, re.id, week);
+    const lastSession = lastSessionProp !== undefined ? lastSessionProp : computeLastSession(logs, re.id, week);
     const prevKey0 = logKey(week - 1, re.id, 0);
     const prevEntry0 = week > 1 ? logs[prevKey0] : undefined;
     const workingWeightKg =

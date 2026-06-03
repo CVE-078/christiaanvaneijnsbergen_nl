@@ -8,6 +8,7 @@ import {
     parseMaxSets,
     groupExercises,
     computeWeeksWithData,
+    computeLastSessionMap,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
@@ -61,6 +62,10 @@ export default function LogView() {
     // Set of weeks with saved data, computed once per logs change so the 12-week
     // strip can do O(1) lookups instead of scanning all logs 12 times.
     const weeksWithData = useMemo(() => computeWeeksWithData(logs), [logs]);
+
+    // Last session per exercise in one pass, so each card reads its own instead of
+    // scanning the whole log set. Depends only on weeks before the current one.
+    const lastSessionMap = useMemo(() => computeLastSessionMap(logs, activeWeek), [logs, activeWeek]);
 
     const hasData = routineExercises.some((re) =>
         Array.from({ length: parseMaxSets(re.sets) }, (_, s) => logKey(activeWeek, re.id, s)).some(
@@ -266,6 +271,7 @@ export default function LogView() {
                             note={notes[`${activeWeek}-${item.id}`]}
                             onSaveNote={(n) => saveNote(activeWeek, item.id, n)}
                             onDeleteNote={() => deleteNote(activeWeek, item.id)}
+                            lastSession={lastSessionMap.get(item.id) ?? null}
                         />
                     ),
                 )}
