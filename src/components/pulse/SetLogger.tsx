@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getRIR, computeSuggestion, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
+import { getRIR, computeProgression, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { DUMBBELL_HANDLE_KG } from '@/lib/pulse/constants';
 import PlateCalculator from './PlateCalculator';
 import type { LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
@@ -11,6 +11,7 @@ interface Props {
     type: WorkoutType;
     entry: LogEntry | undefined;
     previousEntry?: LogEntry;
+    repsRange?: string;
     isPR?: boolean;
     unit: Unit;
     onSave: (entry: LogEntry) => void;
@@ -20,17 +21,33 @@ interface Props {
 const inputClass =
     'w-[3.75rem] h-10 px-2 bg-pulse-surface-2 border border-pulse-border rounded-lg text-pulse-text font-pulse text-base font-semibold text-center outline-none focus:border-pulse-accent/50 transition-colors';
 
-export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, unit, onSave, onDelete }: Props) {
-    const suggestion = computeSuggestion(previousEntry, week);
+export default function SetLogger({
+    setIdx,
+    week,
+    entry,
+    previousEntry,
+    repsRange,
+    isPR,
+    unit,
+    onSave,
+    onDelete,
+}: Props) {
+    const progression = computeProgression(previousEntry, repsRange ?? '', week);
 
     function initKg() {
         if (entry?.kg !== undefined) return String(toDisplay(entry.kg, unit));
-        if (suggestion !== null) return String(toDisplay(suggestion, unit));
+        if (progression) return String(toDisplay(progression.kg, unit));
+        return '';
+    }
+
+    function initReps() {
+        if (entry?.reps !== undefined) return String(entry.reps);
+        if (progression) return String(progression.reps);
         return '';
     }
 
     const [kg, setKg] = useState(initKg);
-    const [reps, setReps] = useState(entry?.reps?.toString() ?? '');
+    const [reps, setReps] = useState(initReps);
     const [drops, setDrops] = useState<Array<{ kg: string; reps: string }>>(
         () => entry?.drops?.map((d) => ({ kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ?? [],
     );
@@ -44,8 +61,10 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!saved || editing) {
-            const base = entry?.kg ?? (suggestion !== null ? suggestion : null);
-            if (base !== null) setKg(String(toDisplay(base, unit)));
+            const baseKg = entry?.kg ?? progression?.kg ?? null;
+            if (baseKg !== null) setKg(String(toDisplay(baseKg, unit)));
+            const baseReps = entry?.reps ?? progression?.reps ?? null;
+            if (baseReps !== null) setReps(String(baseReps));
             setDrops(entry?.drops?.map((d) => ({ kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ?? []);
         }
     }, [unit]);
@@ -186,6 +205,13 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                             {previousEntry && (
                                 <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
                                     → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
+                                </span>
+                            )}
+                            {progression && (
+                                <span
+                                    aria-label="Auto-progression target"
+                                    className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
+                                    ↑ target {toDisplay(progression.kg, unit)} {unit} × {progression.reps}
                                 </span>
                             )}
                             {inputError && (

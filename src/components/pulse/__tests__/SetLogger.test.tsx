@@ -88,11 +88,27 @@ describe('SetLogger', () => {
         expect(screen.getByText(/60 kg × 8/)).toBeInTheDocument();
     });
 
-    it('pre-fills kg input with suggested weight when previous RIR exceeded target', () => {
-        // week 2, prevTarget = getRIR(1) = 3, prev.rir = 4 > 3 â†’ +2.5 â†’ 62.5
-        const prev: LogEntry = { kg: 60, reps: 8, rir: 4, saved: true };
-        render(<SetLogger {...defaultProps} week={2} previousEntry={prev} />);
+    it('pre-fills weight and reps and shows the target hint when the top of the range is hit', () => {
+        // week 2, targetRIR = getRIR(1) = 3; rir 3 >= 3 and reps 12 >= hi 12 → 62.5 × 8
+        const prev: LogEntry = { kg: 60, reps: 12, rir: 3, saved: true };
+        render(<SetLogger {...defaultProps} week={2} previousEntry={prev} repsRange="8-12" />);
         expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(62.5);
+        expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
+        expect(screen.getByLabelText(/auto-progression target/i)).toHaveTextContent('62.5');
+    });
+
+    it('pre-fills a rep bump when mid-range', () => {
+        // reps 8 < hi 12 → same weight, reps 9
+        const prev: LogEntry = { kg: 60, reps: 8, rir: 3, saved: true };
+        render(<SetLogger {...defaultProps} week={2} previousEntry={prev} repsRange="8-12" />);
+        expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(60);
+        expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(9);
+    });
+
+    it('shows no target hint when there is no previous entry', () => {
+        render(<SetLogger {...defaultProps} repsRange="8-12" />);
+        expect(screen.queryByLabelText(/auto-progression target/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(null);
     });
 
     it('shows PR badge when isPR is true and entry is saved', () => {

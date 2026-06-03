@@ -59,6 +59,7 @@ function SingleStep({
                             type={re.workout_type}
                             entry={entry}
                             previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                            repsRange={re.reps}
                             unit={unit}
                             isPR={isPR}
                             onSave={(e) => onSave(key, e)}
@@ -116,6 +117,7 @@ function PairStep({
                                 type={first.workout_type}
                                 entry={entry}
                                 previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                                repsRange={first.reps}
                                 unit={unit}
                                 isPR={isPR}
                                 onSave={(e) => onSave(key, e)}
@@ -147,6 +149,7 @@ function PairStep({
                                 type={second.workout_type}
                                 entry={entry}
                                 previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                                repsRange={second.reps}
                                 unit={unit}
                                 isPR={isPR}
                                 onSave={(e) => onSave(key, e)}
@@ -203,7 +206,10 @@ export default function WorkoutModeScreen({
     const savedCount = isPair
         ? [step[0], step[1]].reduce((sum, re) => {
               const max = parseMaxSets(re.sets);
-              return sum + Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).filter((k) => logs[k]?.saved).length;
+              return (
+                  sum +
+                  Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).filter((k) => logs[k]?.saved).length
+              );
           }, 0)
         : (() => {
               const re = step as RoutineExercise;
@@ -278,9 +284,7 @@ export default function WorkoutModeScreen({
                         onDelete={onDelete}
                     />
                 )}
-                <div className="mt-3 font-pulse text-xs text-pulse-muted">
-                    {savedCount} sets logged
-                </div>
+                <div className="mt-3 font-pulse text-xs text-pulse-muted">{savedCount} sets logged</div>
             </div>
 
             {/* Footer */}

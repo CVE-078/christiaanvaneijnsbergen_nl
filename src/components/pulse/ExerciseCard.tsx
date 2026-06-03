@@ -190,6 +190,7 @@ export default function ExerciseCard({
                                     type="push"
                                     entry={entry}
                                     previousEntry={prevEntry?.saved ? prevEntry : undefined}
+                                    repsRange={re.reps}
                                     isPR={isPR}
                                     unit={unit}
                                     onSave={(e) => handleSetSave(key, e)}

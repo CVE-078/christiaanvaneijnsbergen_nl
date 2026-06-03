@@ -11,6 +11,7 @@ import {
     computePRMap,
     computeStreak,
     computeSuggestion,
+    computeProgression,
     computeVolumeByTypeAndWeek,
     computeE1RMHistory,
     computeBestSets,
@@ -268,6 +269,68 @@ describe('computeSuggestion', () => {
     });
     it('never suggests below 0.5 kg', () => {
         expect(computeSuggestion({ kg: 2, reps: 8, rir: 1, saved: true }, 2)).toBe(0.5);
+    });
+});
+
+describe('computeProgression', () => {
+    it('returns null on week 1 or with no previous entry', () => {
+        expect(computeProgression(undefined, '8-12', 3)).toBeNull();
+        expect(computeProgression({ kg: 60, reps: 8, rir: 3, saved: true }, '8-12', 1)).toBeNull();
+    });
+
+    it('adds a rep when mid-range and the set met target RIR', () => {
+        // week 2 → targetRIR = getRIR(1) = 3; rir 3 >= 3, reps 8 < hi 12 → same kg, reps+1
+        expect(computeProgression({ kg: 60, reps: 8, rir: 3, saved: true }, '8-12', 2)).toEqual({
+            kg: 60,
+            reps: 9,
+        });
+    });
+
+    it('adds weight and resets reps to the bottom when the top of the range is reached', () => {
+        // rir 3 >= 3, reps 12 >= hi 12 → +2.5 kg, reps reset to lo 8
+        expect(computeProgression({ kg: 60, reps: 12, rir: 3, saved: true }, '8-12', 2)).toEqual({
+            kg: 62.5,
+            reps: 8,
+        });
+    });
+
+    it('adds weight when the set was easier than target at the top of the range', () => {
+        // rir 4 > 3, reps 12 >= 12 → +2.5, reps 8
+        expect(computeProgression({ kg: 60, reps: 12, rir: 4, saved: true }, '8-12', 2)).toEqual({
+            kg: 62.5,
+            reps: 8,
+        });
+    });
+
+    it('deloads weight and resets reps when the set was harder than target', () => {
+        // rir 2 < 3 → kg-2.5, reps reset to lo 8
+        expect(computeProgression({ kg: 60, reps: 8, rir: 2, saved: true }, '8-12', 2)).toEqual({
+            kg: 57.5,
+            reps: 8,
+        });
+    });
+
+    it('clamps the deload to MIN_KG', () => {
+        expect(computeProgression({ kg: 2, reps: 8, rir: 1, saved: true }, '8-12', 2)).toEqual({
+            kg: 0.5,
+            reps: 8,
+        });
+    });
+
+    it('treats a single-number rep target as linear weight progression', () => {
+        // lo === hi === 8; reps 8 >= 8 and rir met → weight bump
+        expect(computeProgression({ kg: 60, reps: 8, rir: 3, saved: true }, '8', 2)).toEqual({
+            kg: 62.5,
+            reps: 8,
+        });
+    });
+
+    it('falls back to last-session reps when the range string has no numbers', () => {
+        // no numbers → lo = hi = previous reps (8); reps 8 >= 8 → weight bump (backward compatible)
+        expect(computeProgression({ kg: 60, reps: 8, rir: 3, saved: true }, '', 2)).toEqual({
+            kg: 62.5,
+            reps: 8,
+        });
     });
 });
 
