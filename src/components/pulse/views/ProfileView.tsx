@@ -250,14 +250,18 @@ export default function ProfileView() {
                     </div>
                 </div>
 
-                {/* Streak */}
+                {/* Streak — hero stat */}
                 <section className={SECTION}>
                     <SectionLabel className="mb-2">Streak</SectionLabel>
-                    <div className="flex items-baseline gap-1">
-                        <span className="font-pulse text-3xl font-medium text-pulse-text tracking-[-0.01em]">
+                    <div className="flex items-baseline gap-3">
+                        <span className="font-pulse text-6xl font-bold leading-none tracking-[-0.03em] text-pulse-accent tabular-nums">
                             {streak}
                         </span>
-                        <span className="font-pulse text-sm text-pulse-dim">consecutive weeks trained</span>
+                        <span className="font-pulse text-sm text-pulse-dim leading-tight">
+                            consecutive
+                            <br />
+                            {streak === 1 ? 'week' : 'weeks'} trained
+                        </span>
                     </div>
                 </section>
 
