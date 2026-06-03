@@ -315,6 +315,21 @@ export async function createRoutine(name: string): Promise<WorkoutRoutine> {
     return data as WorkoutRoutine;
 }
 
+export async function renameRoutine(id: string, name: string): Promise<void> {
+    if (!UUID_RE.test(id)) throw new Error('Invalid id');
+    const trimmed = name.trim();
+    if (!trimmed || trimmed.length > 100) throw new Error('Invalid routine name');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('workout_routines')
+        .update({ name: trimmed })
+        .eq('id', id)
+        .eq('user_id', user.id);
+    if (error) throw new Error('Failed to rename routine');
+}
+
 export async function deleteRoutine(id: string): Promise<void> {
     if (!UUID_RE.test(id)) throw new Error('Invalid id');
 

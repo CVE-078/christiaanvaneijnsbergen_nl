@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import {
     createRoutine as serverCreateRoutine,
+    renameRoutine as serverRenameRoutine,
     deleteRoutine as serverDeleteRoutine,
     setActiveRoutine as serverSetActiveRoutine,
     addExerciseToRoutine as serverAddExerciseToRoutine,
@@ -57,6 +58,19 @@ export function useRoutines(
             const routine = await serverCreateRoutine(name);
             await mutateRoutines();
             return routine;
+        },
+        [mutateRoutines],
+    );
+
+    const renameRoutine = useCallback(
+        async (id: string, name: string): Promise<void> => {
+            // Optimistic: update the name in place, then persist and revalidate.
+            await mutateRoutines(
+                (prev?: RoutineWithExercises[]) => prev?.map((r) => (r.id === id ? { ...r, name } : r)),
+                false,
+            );
+            await serverRenameRoutine(id, name);
+            await mutateRoutines();
         },
         [mutateRoutines],
     );
@@ -204,6 +218,7 @@ export function useRoutines(
         routines: routines ?? initialRoutines,
         activeRoutine,
         createRoutine,
+        renameRoutine,
         deleteRoutine,
         setActiveRoutine,
         addExerciseToRoutine,
