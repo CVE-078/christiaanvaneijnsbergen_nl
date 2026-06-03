@@ -56,12 +56,18 @@ export async function POST(request: Request) {
 
     const groupId = crypto.randomUUID();
 
-    const { error: updateError } = await supabase
+    // Verify-and-rollback: if the paired update does not touch exactly both rows,
+    // clear the group so we never leave a half-formed (single-member) superset.
+    const { data: updated, error: updateError } = await supabase
         .from('routine_exercises')
         .update({ superset_group_id: groupId })
-        .in('id', [exerciseAId, exerciseBId]);
+        .in('id', [exerciseAId, exerciseBId])
+        .select('id');
 
-    if (updateError) return NextResponse.json({ error: 'Failed to create superset' }, { status: 500 });
+    if (updateError || !updated || updated.length !== 2) {
+        await supabase.from('routine_exercises').update({ superset_group_id: null }).eq('superset_group_id', groupId);
+        return NextResponse.json({ error: 'Failed to create superset' }, { status: 500 });
+    }
 
     return NextResponse.json({ groupId });
 }
