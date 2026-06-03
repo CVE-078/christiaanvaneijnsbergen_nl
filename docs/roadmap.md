@@ -37,7 +37,12 @@
 - Bug fixes sprint — Profile PRs now show exercise names (not UUIDs); Plan view sections filtered by scheduled workout types; WorkoutModeScreen shows instantly on Start Workout (session creates in background); Onboarding re-triggers whenever user has no routines
 - UX polish sprint — onboarding re-triggers on /train when no routines (prominent empty-state CTA added); auto-activate another routine when active one is deleted; Dumbbell naming consistency throughout exercise library; editable default sets/reps per exercise in Library
 - Desktop layout overhaul — two-column sidebar layout for ≥ 1024 px: 180px fixed sidebar (logo, week badge, nav links, streak, active routine context card, sign out) + scrollable content column with rest timer pinned to the bottom
-- Supersets — pair two routine exercises as a superset; merged card in train screen; rest timer fires after both exercises' sets; guided mode treats pair as one step; Pair ↓ / Unpair in routine editor with pair-aware reorder
+- Slate UX redesign — full reskin to the dark "Slate" direction with a coral accent (Hanken Grotesk + Sora), three-zone desktop shell (icon rail + content + context rail) with a CSS-driven responsive split, tone-shift surfaces over borders
+- Live PR detection — `isSetPR` flags a new E1RM personal record the moment a set is logged, inline coral PR badge on the set row plus a quiet toast, in ExerciseCard and WorkoutModeScreen
+- Per-muscle weekly volume — `computePerMuscleVolume` derives sets per muscle category for the week from the existing taxonomy; `MuscleVolumeBars` horizontal bar list on Progress
+- Plate calculator — `computePlates` pure function (barbell + loadable dumbbell, default bar/handle weights and plate set); compact affordance in SetLogger showing the per-side plate breakdown for the target weight
+- Rich set types — drop sets stored in a `drops` jsonb column on `set_logs` plus a failure tag at RIR 0; drop-set editor in SetLogger, rendered in ExerciseCard, WorkoutModeScreen, and history
+- Supersets — pair two routine exercises as a superset; merged card in the train screen; rest timer fires once after both exercises' sets; guided mode treats the pair as one step; Pair / Unpair in the routine editor with pair-aware reorder
 
 ---
 
@@ -73,14 +78,12 @@ Differentiation opportunities:
 
 | # | Feature | Notes |
 |---|---|---|
-| 3 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. (also in: Hevy, Fitbod, Jefit, Boostcamp, Caliber, Setgraph) |
-| 5 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. (also in: Strong, Fitbod, Jefit, Alpha, Caliber) |
-| 6 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
-| 7 | Live PR detection | Flag a new PR the moment the set is logged, not just on the post-workout card. Reuses the existing E1RM PR map. Strong motivation hook. (also in: Hevy, Boostcamp, Caliber, Strong) |
-| 8 | Per-muscle weekly volume | Tag exercises by muscle group and derive sets per muscle per week. Optional body-diagram heat map. Extends the existing category taxonomy and VolumeChart. (also in: Hevy, Fitbod, Jefit, Boostcamp, Strong) |
-| 9 | Plate calculator | Show which plates to load per side for a target weight. Pure function, fits in SetLogger. Removes mental math at the rack. (also in: Hevy, Strong, Boostcamp, Setgraph, Caliber) |
-| 10 | Rich set types (drop / failure) | Add drop sets and failure tagging to the set logger, beyond the current warmup / working split. (also in: Hevy, Strong, Boostcamp) |
-| 11 | Mid-workout exercise swap | Swap a busy machine for a similar exercise and carry logged weights to the substitute. Big friction reducer in real gyms. (also in: Boostcamp, Fitbod, Alpha, Caliber) |
+| 1 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. (also in: Hevy, Fitbod, Jefit, Boostcamp, Caliber, Setgraph) |
+| 2 | Exercise instructions | Muscle group diagram, cues, equipment tags per exercise. Needed for new lifters. (also in: Strong, Fitbod, Jefit, Alpha, Caliber) |
+| 3 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
+| 4 | Mid-workout exercise swap | Swap a busy machine for a similar exercise and carry logged weights to the substitute. Big friction reducer in real gyms. (also in: Boostcamp, Fitbod, Alpha, Caliber) |
+
+_Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets (see Shipped)._
 
 ---
 
