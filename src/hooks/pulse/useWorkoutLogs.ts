@@ -6,6 +6,10 @@ import type { Logs, LogEntry } from '@/lib/pulse/types';
 
 const LOGS_KEY = '/api/pulse/logs';
 
+// Stable empty default so the `data ?? EMPTY` fallback keeps a constant identity
+// across renders (otherwise the useCallback deps below churn every render).
+const EMPTY_LOGS: Logs = {};
+
 export function useWorkoutLogs(initialLogs?: Logs, onError?: (msg: string) => void) {
     const { data, mutate, isLoading, error } = useSWR<Logs>(LOGS_KEY, fetcher, {
         fallbackData: initialLogs,
@@ -13,7 +17,7 @@ export function useWorkoutLogs(initialLogs?: Logs, onError?: (msg: string) => vo
         revalidateIfStale: true,
         dedupingInterval: 5000,
     });
-    const logs = data ?? {};
+    const logs = data ?? EMPTY_LOGS;
 
     const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

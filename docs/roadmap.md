@@ -51,6 +51,7 @@
 - Scroll-rail muscle filter — single non-wrapping horizontal rail with a per-category count badge and a fade edge, replacing the wrapped 11-chip row
 - Profile polish — streak shown as a coral hero stat; login screen and skeleton loader reskinned to Slate tokens
 - Auto-progression — `computeProgression` double-progression engine: climbs reps within the rep range, then adds weight and resets to the bottom; SetLogger pre-fills both weight and reps and shows the next target, deloading when a set came in harder than the target RIR
+- Instant loading (phase 1 of offline-first) — shell-first render; data fetched client-side via SWR with per-view Slate skeletons; user-scoped localStorage SWR cache (cleared on logout) makes warm visits instant via stale-while-revalidate
 
 ---
 

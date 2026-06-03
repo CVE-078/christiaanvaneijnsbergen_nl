@@ -15,8 +15,17 @@ type Section = { type: WorkoutType; exercises: RoutineExercise[] };
 const BAR_MAX_HEIGHT_PX = 44;
 
 export default function ProgramView() {
-    const { activeWeek, setActiveWeek, logs, activeSchedule, activeRoutine, routineExercisesByType, loading, errors, retry } =
-        usePulse();
+    const {
+        activeWeek,
+        setActiveWeek,
+        logs,
+        activeSchedule,
+        activeRoutine,
+        routineExercisesByType,
+        loading,
+        errors,
+        retry,
+    } = usePulse();
     const phase = getPhase(activeWeek);
     const maxSets = Math.max(...VOLUME.map((v) => v.sets));
 

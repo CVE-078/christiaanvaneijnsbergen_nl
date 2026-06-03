@@ -6,6 +6,10 @@ import type { Notes } from '@/lib/pulse/types';
 
 const NOTES_KEY = '/api/pulse/notes';
 
+// Stable empty default so the `data ?? EMPTY` fallback keeps a constant identity
+// across renders (otherwise the useCallback deps below churn every render).
+const EMPTY_NOTES: Notes = {};
+
 export function useNotes(initialNotes?: Notes) {
     const { data, mutate, isLoading, error } = useSWR<Notes>(NOTES_KEY, fetcher, {
         fallbackData: initialNotes,
@@ -13,7 +17,7 @@ export function useNotes(initialNotes?: Notes) {
         revalidateIfStale: true,
         dedupingInterval: 5000,
     });
-    const notes = data ?? {};
+    const notes = data ?? EMPTY_NOTES;
 
     const saveNote = useCallback(
         async (week: number, routineExerciseId: string, note: string): Promise<void> => {

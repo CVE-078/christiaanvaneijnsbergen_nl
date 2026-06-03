@@ -4,10 +4,9 @@
 // leaks another account's cached data; cleared on logout.
 const PREFIX = 'pulse-swr-cache:';
 
-// SWR's cache provider expects a Map of internal State entries; `any` here matches
-// the canonical SWR localStorage-persistence recipe and keeps it structurally
-// compatible with SWR's Cache type.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// SWR's cache provider expects a Map of internal State entries; the loose value
+// type matches the canonical SWR localStorage-persistence recipe and keeps it
+// structurally compatible with SWR's Cache type.
 type SWRCacheMap = Map<string, any>;
 
 export function makeSWRCacheProvider(userId: string): () => SWRCacheMap {
