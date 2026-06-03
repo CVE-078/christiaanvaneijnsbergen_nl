@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useTransition } from 'react';
+import { mutate } from 'swr';
 import { usePulse } from '@/context/PulseContext';
 import { toDisplay, toKg } from '@/lib/pulse/utils';
 import { defaultWorkoutType } from '@/lib/pulse/types';
@@ -113,7 +114,7 @@ function RoutineExerciseRow({
                 {onUnpair && (
                     <button
                         onClick={onUnpair}
-                        className="font-pulse text-xs text-red-400 bg-transparent border-none cursor-pointer shrink-0">
+                        className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
                         Unpair
                     </button>
                 )}
@@ -262,12 +263,40 @@ export default function RoutinesTab() {
             const [fi, si] = pairIdx;
             if (dir === -1) {
                 if (fi === 0) return;
-                const [above] = reordered.splice(fi - 1, 1);
-                reordered.splice(fi + 1, 0, above);
+                const above = reordered[fi - 1];
+                if (above.superset_group_id !== null) {
+                    // The neighbor above is itself a pair: move both of its members
+                    // as a unit so its adjacency is preserved.
+                    const neighbor = reordered
+                        .map((r, i) => (r.superset_group_id === above.superset_group_id ? i : -1))
+                        .filter((i) => i !== -1)
+                        .sort((a, b) => a - b);
+                    const start = neighbor[0];
+                    const count = neighbor.length;
+                    const moved = reordered.splice(start, count);
+                    reordered.splice(si + 1 - count, 0, ...moved);
+                } else {
+                    const [moved] = reordered.splice(fi - 1, 1);
+                    reordered.splice(fi + 1, 0, moved);
+                }
             } else {
                 if (si === reordered.length - 1) return;
-                const [below] = reordered.splice(si + 1, 1);
-                reordered.splice(fi, 0, below);
+                const below = reordered[si + 1];
+                if (below.superset_group_id !== null) {
+                    // The neighbor below is itself a pair: move both of its members
+                    // as a unit so its adjacency is preserved.
+                    const neighbor = reordered
+                        .map((r, i) => (r.superset_group_id === below.superset_group_id ? i : -1))
+                        .filter((i) => i !== -1)
+                        .sort((a, b) => a - b);
+                    const start = neighbor[0];
+                    const count = neighbor.length;
+                    const moved = reordered.splice(start, count);
+                    reordered.splice(fi, 0, ...moved);
+                } else {
+                    const [moved] = reordered.splice(si + 1, 1);
+                    reordered.splice(fi, 0, moved);
+                }
             }
         } else {
             const target = index + dir;
@@ -307,13 +336,13 @@ export default function RoutinesTab() {
             body: JSON.stringify({ exerciseAId, exerciseBId }),
         });
         if (!res.ok) return;
-        window.location.reload();
+        await mutate('/api/pulse/routines');
     }
 
     async function handleUnpair(groupId: string) {
         const res = await fetch(`/api/pulse/supersets/${groupId}`, { method: 'DELETE' });
         if (!res.ok) return;
-        window.location.reload();
+        await mutate('/api/pulse/routines');
     }
 
     function handleUpdateExercise(
@@ -510,7 +539,7 @@ export default function RoutinesTab() {
                                         onUnpair={isFirstInPair ? () => handleUnpair(re.superset_group_id!) : undefined}
                                     />
                                 );
-                            }))
+                            })
                         )}
                     </div>
                 </div>
