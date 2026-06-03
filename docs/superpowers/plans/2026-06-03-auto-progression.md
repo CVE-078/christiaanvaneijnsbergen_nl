@@ -319,47 +319,15 @@ GIT_CONFIG_GLOBAL=/dev/null git commit -m "feat(progression): thread rep range i
 
 ---
 
-## Task 4: Remove the now-unused `computeSuggestion`
+## Task 4: ~~Remove the now-unused `computeSuggestion`~~ — CANCELLED
 
-**Files:**
-- Modify: `src/lib/pulse/utils.ts` (delete `computeSuggestion`, ~lines 130–136)
-- Modify: `src/lib/pulse/__tests__/utils.test.ts` (delete the `computeSuggestion` describe block, ~lines 250–271, and remove it from the import)
-
-- [ ] **Step 1: Confirm there are no remaining references**
-
-Run: `grep -rn "computeSuggestion" src/`
-Expected: only the definition in `utils.ts`, its export, and the test file — no app/component usage (SetLogger switched in Task 2).
-
-- [ ] **Step 2: Delete `computeSuggestion` and its tests**
-
-In `src/lib/pulse/utils.ts`, delete the entire `computeSuggestion` function:
-
-```ts
-export function computeSuggestion(previousEntry: LogEntry | undefined, week: number): number | null {
-    if (!previousEntry || week <= 1) return null;
-    const prevTargetRIR = getRIR(week - 1);
-    if (previousEntry.rir > prevTargetRIR) return previousEntry.kg + 2.5;
-    if (previousEntry.rir === prevTargetRIR) return previousEntry.kg;
-    return Math.max(previousEntry.kg - 2.5, MIN_KG);
-}
-```
-
-In `src/lib/pulse/__tests__/utils.test.ts`, remove `computeSuggestion,` from the import block (line ~13) and delete the whole `describe('computeSuggestion', () => { ... })` block (~lines 250–271).
-
-- [ ] **Step 3: Verify**
-
-Run: `bun run typecheck`
-Expected: no errors.
-
-Run: `bun run test:run src/lib/pulse/__tests__/utils.test.ts`
-Expected: PASS (computeProgression tests present, computeSuggestion tests gone).
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add src/lib/pulse/utils.ts src/lib/pulse/__tests__/utils.test.ts
-GIT_CONFIG_GLOBAL=/dev/null git commit -m "refactor(progression): remove unused computeSuggestion"
-```
+**Finding during execution:** the spec's assumption that `computeSuggestion` is only
+consumed by SetLogger was wrong. `ExerciseCard.tsx:70` still uses it to derive the
+warmup **base weight** (`workingWeightKg = computeSuggestion(...) ?? re.starting_weight_kg`,
+feeding `computeWarmupSets`). It is therefore NOT dead code — removing it would break
+the warmup generator. **Decision: keep `computeSuggestion` and its tests unchanged.**
+No removal. (Migrating the warmup base to `computeProgression` is out of scope and would
+change warmup-weight behaviour.)
 
 ---
 

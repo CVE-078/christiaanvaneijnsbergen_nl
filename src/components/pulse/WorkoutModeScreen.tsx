@@ -206,7 +206,10 @@ export default function WorkoutModeScreen({
     const savedCount = isPair
         ? [step[0], step[1]].reduce((sum, re) => {
               const max = parseMaxSets(re.sets);
-              return sum + Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).filter((k) => logs[k]?.saved).length;
+              return (
+                  sum +
+                  Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).filter((k) => logs[k]?.saved).length
+              );
           }, 0)
         : (() => {
               const re = step as RoutineExercise;
@@ -281,9 +284,7 @@ export default function WorkoutModeScreen({
                         onDelete={onDelete}
                     />
                 )}
-                <div className="mt-3 font-pulse text-xs text-pulse-muted">
-                    {savedCount} sets logged
-                </div>
+                <div className="mt-3 font-pulse text-xs text-pulse-muted">{savedCount} sets logged</div>
             </div>
 
             {/* Footer */}
