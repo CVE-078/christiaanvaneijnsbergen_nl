@@ -32,6 +32,37 @@ const WORKOUT_LABELS: Partial<Record<WorkoutType, string>> = {
     full_body: 'Full Body',
 };
 
+// Roll a granular workout type up toward its broadest parent. Full-body routines
+// schedule a single `full_body` session but tag their exercises push/pull/legs, so
+// those must collapse to `full_body`; upper/lower and PPL splits already match the
+// session they belong to. Used to group the routine editor by real sessions.
+const WORKOUT_TYPE_PARENT: Partial<Record<WorkoutType, WorkoutType>> = {
+    chest: 'push',
+    shoulders: 'push',
+    arms: 'upper',
+    back: 'pull',
+    push: 'upper',
+    pull: 'upper',
+    legs: 'lower',
+    upper: 'full_body',
+    lower: 'full_body',
+};
+
+// Map an exercise's workout type to the session type the routine actually uses,
+// walking up the parent chain until it hits one of `sessionTypes`. Falls back to
+// the exercise's own type when the routine has no schedule to anchor sessions.
+export function sessionTypeFor(type: WorkoutType, sessionTypes: WorkoutType[]): WorkoutType {
+    if (sessionTypes.length === 0) return type;
+    let cur: WorkoutType | undefined = type;
+    const seen = new Set<WorkoutType>();
+    while (cur && !seen.has(cur)) {
+        if (sessionTypes.includes(cur)) return cur;
+        seen.add(cur);
+        cur = WORKOUT_TYPE_PARENT[cur];
+    }
+    return sessionTypes[0];
+}
+
 export const MIN_KG = 0.5;
 export const MAX_KG = 500;
 export const KG_TO_LBS = 2.20462;

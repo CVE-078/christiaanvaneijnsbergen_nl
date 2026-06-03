@@ -76,6 +76,7 @@ const mocks = {
     updateExercise: vi.fn().mockResolvedValue(undefined),
     deleteExercise: vi.fn().mockResolvedValue(undefined),
     createRoutine: vi.fn().mockResolvedValue(inactiveRoutine),
+    renameRoutine: vi.fn().mockResolvedValue(undefined),
     deleteRoutine: vi.fn().mockResolvedValue(undefined),
     setActiveRoutine: vi.fn().mockResolvedValue(undefined),
     addExerciseToRoutine: vi.fn().mockResolvedValue(undefined),
@@ -200,6 +201,18 @@ describe('LibraryView', () => {
         await userEvent.click(screen.getByRole('button', { name: /set active/i }));
         await waitFor(() => {
             expect(mocks.setActiveRoutine).toHaveBeenCalledWith('r2');
+        });
+    });
+
+    it('renames a routine inline', async () => {
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: /rename push day/i }));
+        const input = screen.getByRole('textbox', { name: /rename push day/i });
+        await userEvent.clear(input);
+        await userEvent.type(input, 'Leg Smasher{Enter}');
+        await waitFor(() => {
+            expect(mocks.renameRoutine).toHaveBeenCalledWith('r1', 'Leg Smasher');
         });
     });
 
@@ -568,5 +581,52 @@ describe('LibraryView', () => {
         // The exercise row renders, but there is no `Type · Variant` session header.
         expect(screen.getAllByText('Bench Press').length).toBeGreaterThan(0);
         expect(screen.queryByText(/·/)).not.toBeInTheDocument();
+    });
+
+    it('rolls a full-body routine up to Full Body sessions even though exercises are tagged push/pull/legs', async () => {
+        // Mirrors a cloned full-body template: schedule is full_body, but the
+        // template tags exercises push/pull/legs. Sections must read Full Body,
+        // split only by variant — never Push/Pull/Legs.
+        const re = (id: string, type: string, variant: string | null, order: number) => ({
+            id,
+            routine_id: 'r1',
+            exercise_id: 'g1',
+            workout_type: type,
+            variant,
+            order,
+            sets: '3',
+            reps: '8-12',
+            starting_weight_kg: null,
+            superset_group_id: null,
+            exercise: globalExercise,
+        });
+        const routine = {
+            ...activeRoutine,
+            schedule: [
+                { day_of_week: 1, workout_type: 'full_body' as const },
+                { day_of_week: 3, workout_type: 'full_body' as const },
+            ],
+            exercises: [
+                re('a', 'push', 'A', 0),
+                re('b', 'pull', 'A', 1),
+                re('c', 'legs', 'A', 2),
+                re('d', 'push', 'B', 3),
+                re('e', 'pull', 'B', 4),
+                re('f', 'legs', 'B', 5),
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: routine,
+            routines: [routine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        expect(screen.getByText('Full Body · A')).toBeInTheDocument();
+        expect(screen.getByText('Full Body · B')).toBeInTheDocument();
+        // The granular per-exercise types must not surface as section headers.
+        expect(screen.queryByText('Push · A')).not.toBeInTheDocument();
+        expect(screen.queryByText('Pull · A')).not.toBeInTheDocument();
+        expect(screen.queryByText('Legs · A')).not.toBeInTheDocument();
     });
 });

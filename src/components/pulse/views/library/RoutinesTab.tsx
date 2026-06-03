@@ -2,7 +2,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { mutate } from 'swr';
 import { usePulse } from '@/context/PulseContext';
-import { toDisplay, toKg } from '@/lib/pulse/utils';
+import { toDisplay, toKg, sessionTypeFor } from '@/lib/pulse/utils';
 import { defaultWorkoutType } from '@/lib/pulse/types';
 import type { ExerciseCategory, RoutineExercise, Unit, WorkoutType, WorkoutVariant } from '@/lib/pulse/types';
 import { WORKOUT_TYPE_OPTIONS, WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
@@ -187,6 +187,7 @@ export default function RoutinesTab() {
         exercises,
         profile,
         createRoutine,
+        renameRoutine,
         deleteRoutine,
         setActiveRoutine,
         addExerciseToRoutine,
@@ -199,6 +200,8 @@ export default function RoutinesTab() {
     const unit = profile.unit;
 
     const [routineName, setRoutineName] = useState('');
+    const [renamingId, setRenamingId] = useState<string | null>(null);
+    const [renameInput, setRenameInput] = useState('');
 
     const [pickExerciseId, setPickExerciseId] = useState('');
     const [addSets, setAddSets] = useState('3');
@@ -233,6 +236,15 @@ export default function RoutinesTab() {
         if (!window.confirm(`Delete routine "${name}"? This cannot be undone.`)) return;
         startTransition(async () => {
             await deleteRoutine(id);
+        });
+    }
+
+    function handleRenameSave(id: string) {
+        const name = renameInput.trim();
+        setRenamingId(null);
+        if (!name) return;
+        startTransition(async () => {
+            await renameRoutine(id, name);
         });
     }
 
@@ -356,9 +368,12 @@ export default function RoutinesTab() {
         });
     }
 
-    // Group the active routine into sessions by (workout_type, variant), keeping
+    // Group the active routine into sessions by (session type, variant), keeping
     // each row's global index into sortedActiveExercises so move/pair logic stays
-    // unchanged. One group means a single-session routine -> render the flat list.
+    // unchanged. The session type comes from what the routine actually schedules:
+    // a full-body routine tags exercises push/pull/legs but is one "Full Body"
+    // session, so those roll up via sessionTypeFor. One group -> flat list.
+    const scheduleTypes = activeRoutine ? [...new Set(activeRoutine.schedule.map((s) => s.workout_type))] : [];
     const sessionGroups: {
         type: WorkoutType;
         variant: WorkoutVariant | null;
@@ -367,12 +382,13 @@ export default function RoutinesTab() {
     {
         const byKey = new Map<string, number>();
         sortedActiveExercises.forEach((re, index) => {
-            const key = `${re.workout_type}:${re.variant ?? ''}`;
+            const sessionType = sessionTypeFor(re.workout_type, scheduleTypes);
+            const key = `${sessionType}:${re.variant ?? ''}`;
             let gi = byKey.get(key);
             if (gi === undefined) {
                 gi = sessionGroups.length;
                 byKey.set(key, gi);
-                sessionGroups.push({ type: re.workout_type, variant: re.variant ?? null, items: [] });
+                sessionGroups.push({ type: sessionType, variant: re.variant ?? null, items: [] });
             }
             sessionGroups[gi].items.push({ re, index });
         });
@@ -459,12 +475,27 @@ export default function RoutinesTab() {
                                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
                                     isActive ? 'bg-pulse-surface ring-1 ring-pulse-accent/40' : 'bg-pulse-surface'
                                 }`}>
-                                <div className="flex-1 min-w-0">
-                                    <div className="font-pulse text-sm text-pulse-text truncate">{r.name}</div>
-                                    <div className="font-pulse text-xs text-pulse-dim">
-                                        {r.exercises.length} {r.exercises.length === 1 ? 'exercise' : 'exercises'}
+                                {renamingId === r.id ? (
+                                    <input
+                                        autoFocus
+                                        aria-label={`Rename ${r.name}`}
+                                        value={renameInput}
+                                        onChange={(e) => setRenameInput(e.target.value)}
+                                        onBlur={() => handleRenameSave(r.id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleRenameSave(r.id);
+                                            if (e.key === 'Escape') setRenamingId(null);
+                                        }}
+                                        className={`${INPUT} flex-1 min-w-0`}
+                                    />
+                                ) : (
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-pulse text-sm text-pulse-text truncate">{r.name}</div>
+                                        <div className="font-pulse text-xs text-pulse-dim">
+                                            {r.exercises.length} {r.exercises.length === 1 ? 'exercise' : 'exercises'}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                                 {isActive ? (
                                     <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 rounded-full px-2 py-0.5 shrink-0">
                                         Active
@@ -474,6 +505,17 @@ export default function RoutinesTab() {
                                         onClick={() => handleSetActive(r.id)}
                                         className="font-pulse text-xs text-pulse-dim bg-pulse-surface-2 border-none rounded-lg px-3 py-1.5 cursor-pointer shrink-0">
                                         Set active
+                                    </button>
+                                )}
+                                {renamingId !== r.id && (
+                                    <button
+                                        onClick={() => {
+                                            setRenamingId(r.id);
+                                            setRenameInput(r.name);
+                                        }}
+                                        aria-label={`Rename ${r.name}`}
+                                        className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
+                                        Rename
                                     </button>
                                 )}
                                 <button

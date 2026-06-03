@@ -20,6 +20,7 @@ import {
     isSetPR,
     computePerMuscleVolume,
     computePlates,
+    sessionTypeFor,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession } from '../types';
 
@@ -791,7 +792,7 @@ describe('groupExercises', () => {
         const result = groupExercises(exercises);
         expect(result).toHaveLength(2);
         expect(Array.isArray(result[0])).toBe(true);
-        const pair = result[0] as [typeof exercises[0], typeof exercises[0]];
+        const pair = result[0] as [(typeof exercises)[0], (typeof exercises)[0]];
         expect(pair[0].id).toBe('a');
         expect(pair[1].id).toBe('b');
         expect(Array.isArray(result[1])).toBe(false);
@@ -806,11 +807,9 @@ describe('groupExercises', () => {
     });
 
     it('handles multiple pairs in the same list', () => {
-        const g1 = 'g1', g2 = 'g2';
-        const exercises = [
-            makeRE('a', 1, g1), makeRE('b', 2, g1),
-            makeRE('c', 3, g2), makeRE('d', 4, g2),
-        ];
+        const g1 = 'g1',
+            g2 = 'g2';
+        const exercises = [makeRE('a', 1, g1), makeRE('b', 2, g1), makeRE('c', 3, g2), makeRE('d', 4, g2)];
         const result = groupExercises(exercises);
         expect(result).toHaveLength(2);
         expect(Array.isArray(result[0])).toBe(true);
@@ -848,5 +847,38 @@ describe('groupExercises', () => {
 
     it('returns an empty array for empty input', () => {
         expect(groupExercises([])).toEqual([]);
+    });
+});
+
+describe('sessionTypeFor', () => {
+    it('rolls push/pull/legs up to full_body when the routine only schedules full_body', () => {
+        const s: WorkoutType[] = ['full_body'];
+        expect(sessionTypeFor('push', s)).toBe('full_body');
+        expect(sessionTypeFor('pull', s)).toBe('full_body');
+        expect(sessionTypeFor('legs', s)).toBe('full_body');
+        expect(sessionTypeFor('chest', s)).toBe('full_body');
+        expect(sessionTypeFor('full_body', s)).toBe('full_body');
+    });
+
+    it('keeps upper/lower distinct and rolls granular types into them', () => {
+        const s: WorkoutType[] = ['upper', 'lower'];
+        expect(sessionTypeFor('upper', s)).toBe('upper');
+        expect(sessionTypeFor('lower', s)).toBe('lower');
+        expect(sessionTypeFor('push', s)).toBe('upper');
+        expect(sessionTypeFor('chest', s)).toBe('upper');
+        expect(sessionTypeFor('legs', s)).toBe('lower');
+    });
+
+    it('leaves push/pull/legs as themselves in a PPL routine', () => {
+        const s: WorkoutType[] = ['push', 'pull', 'legs'];
+        expect(sessionTypeFor('push', s)).toBe('push');
+        expect(sessionTypeFor('pull', s)).toBe('pull');
+        expect(sessionTypeFor('legs', s)).toBe('legs');
+        expect(sessionTypeFor('chest', s)).toBe('push');
+    });
+
+    it('falls back to the exercise type when the routine has no schedule', () => {
+        expect(sessionTypeFor('chest', [])).toBe('chest');
+        expect(sessionTypeFor('full_body', [])).toBe('full_body');
     });
 });
