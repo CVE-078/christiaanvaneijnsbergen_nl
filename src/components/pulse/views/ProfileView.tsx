@@ -7,11 +7,11 @@ import type { BodyweightEntry } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
 import { updateGoalWeight, logBodyMeasurement, logBodyWeight as logBodyWeightAction } from '@/app/pulse/actions';
 
-// ── Shared styles ──────────────────────────────────────────────────────────────
+// ── Shared styles (Slate) ───────────────────────────────────────────────────────
 const INPUT =
-    'bg-pulse-bg border border-pulse-border rounded-[3px] px-2 py-[0.375rem] text-white font-pulse text-[0.9375rem] outline-none focus:border-pulse-accent/50';
+    'bg-pulse-bg border border-pulse-border rounded-lg px-3 py-2 text-pulse-text font-pulse text-sm outline-none focus:border-pulse-accent';
 const BTN_PRIMARY =
-    'bg-pulse-accent text-black font-pulse text-[0.75rem] tracking-[0.06em] uppercase font-semibold rounded-[3px] px-3 py-[0.4375rem] cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed';
+    'bg-pulse-accent text-pulse-bg font-pulse text-sm font-semibold rounded-lg px-4 py-2 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed';
 const SECTION = '';
 
 function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 'kg' | 'lbs' }) {
@@ -71,7 +71,7 @@ function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 
                         y={PT + ch}
                         textAnchor="end"
                         fontSize={8}
-                        fontFamily="Outfit, sans-serif"
+                        fontFamily="Sora, sans-serif"
                         fill="var(--color-pulse-dim)"
                         dy="0">
                         {fmt(minVal)}
@@ -81,7 +81,7 @@ function BodyweightChart({ entries, unit }: { entries: BodyweightEntry[]; unit: 
                         y={PT}
                         textAnchor="end"
                         fontSize={8}
-                        fontFamily="Outfit, sans-serif"
+                        fontFamily="Sora, sans-serif"
                         fill="var(--color-pulse-dim)"
                         dy="8">
                         {fmt(maxVal)}
@@ -205,7 +205,7 @@ export default function ProfileView() {
             <div className="flex flex-col gap-7 lg:w-[280px] lg:shrink-0">
                 {/* Identity */}
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-[6px] shrink-0 bg-pulse-surface border border-pulse-border flex items-center justify-center font-pulse text-xl font-bold text-pulse-accent tracking-[-0.02em]">
+                    <div className="w-14 h-14 rounded-xl shrink-0 bg-pulse-accent flex items-center justify-center font-pulse text-xl font-semibold text-pulse-bg tracking-[-0.02em]">
                         {initials}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -217,7 +217,7 @@ export default function ProfileView() {
                                 onBlur={handleNameSave}
                                 onKeyDown={handleNameKeyDown}
                                 placeholder="Display name"
-                                className="font-pulse text-base font-semibold text-white bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
+                                className="font-pulse text-base font-semibold text-pulse-text bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
                             />
                         ) : (
                             <button
@@ -225,7 +225,7 @@ export default function ProfileView() {
                                     setNameInput(displayName ?? '');
                                     setEditingName(true);
                                 }}
-                                className={`font-pulse text-base font-semibold bg-transparent border-none p-0 cursor-text text-left block w-full ${displayName ? 'text-white' : 'text-pulse-dim'}`}>
+                                className={`font-pulse text-base font-semibold bg-transparent border-none p-0 cursor-text text-left block w-full ${displayName ? 'text-pulse-text' : 'text-pulse-dim'}`}>
                                 {displayName ?? 'Add display name'}
                             </button>
                         )}
@@ -243,7 +243,7 @@ export default function ProfileView() {
                             <button
                                 key={u}
                                 onClick={() => handleUnitChange(u)}
-                                className={`font-pulse text-[0.9375rem] font-semibold tracking-[0.06em] uppercase py-[0.375rem] px-4 rounded-[3px] cursor-pointer ${unit === u ? 'bg-pulse-accent border border-pulse-accent text-black' : 'bg-transparent border border-pulse-border text-pulse-dim'}`}>
+                                className={`font-pulse text-sm font-semibold tracking-[0.06em] uppercase py-2 px-4 rounded-lg cursor-pointer border-none ${unit === u ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
                                 {u}
                             </button>
                         ))}
@@ -254,7 +254,9 @@ export default function ProfileView() {
                 <section className={SECTION}>
                     <SectionLabel className="mb-2">Streak</SectionLabel>
                     <div className="flex items-baseline gap-1">
-                        <span className="font-pulse text-3xl font-bold text-white">{streak}</span>
+                        <span className="font-pulse text-3xl font-medium text-pulse-text tracking-[-0.01em]">
+                            {streak}
+                        </span>
                         <span className="font-pulse text-sm text-pulse-dim">consecutive weeks trained</span>
                     </div>
                 </section>
@@ -276,11 +278,13 @@ export default function ProfileView() {
                     {topPRs.length === 0 ? (
                         <p className="font-pulse text-xs text-pulse-muted">No records yet — start logging sets.</p>
                     ) : (
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col">
                             {topPRs.map((pr) => (
-                                <div key={pr.name} className="flex justify-between items-center">
-                                    <span className="font-pulse text-sm text-white">{pr.name}</span>
-                                    <span className="font-pulse text-xs text-pulse-accent font-semibold">
+                                <div
+                                    key={pr.name}
+                                    className="flex justify-between items-baseline py-[0.8125rem] border-b border-pulse-border last:border-b-0">
+                                    <span className="font-pulse-body text-[0.9375rem] text-pulse-text">{pr.name}</span>
+                                    <span className="font-pulse text-base text-pulse-accent font-medium tracking-[-0.005em]">
                                         {unit === 'lbs'
                                             ? `${toDisplay(pr.e1rm, 'lbs').toFixed(1)} lbs`
                                             : `${pr.e1rm.toFixed(1)} kg`}
@@ -319,7 +323,7 @@ export default function ProfileView() {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleLogBodyweight();
                                     }}
-                                    className={`w-[5.5rem] py-[0.375rem] px-2 bg-pulse-bg rounded-[3px] text-white font-pulse text-[0.9375rem] outline-none border ${bwError ? 'border-pulse-error' : 'border-pulse-border'}`}
+                                    className={`w-[5.5rem] py-2 px-3 bg-pulse-bg rounded-lg text-pulse-text font-pulse text-sm outline-none border focus:border-pulse-accent ${bwError ? 'border-pulse-error' : 'border-pulse-border'}`}
                                 />
                             </div>
                             {bwError && (
@@ -331,13 +335,13 @@ export default function ProfileView() {
                             disabled={isPending}
                             /* opacity/cursor are runtime booleans — must stay inline */
                             style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
-                            className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase py-[0.4375rem] px-3 bg-transparent border border-pulse-border rounded-[3px] text-pulse-dim shrink-0">
+                            className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase py-2 px-4 bg-pulse-surface-2 border-none rounded-lg text-pulse-dim shrink-0">
                             Log
                         </button>
                     </div>
 
                     {bodyweightLogs.length >= 2 && (
-                        <div className="bg-pulse-surface border border-pulse-border rounded pt-[0.625rem] px-2 pb-2 mb-3">
+                        <div className="bg-pulse-surface rounded-xl pt-[0.625rem] px-2 pb-2 mb-3">
                             <BodyweightChart entries={bodyweightLogs} unit={unit} />
                         </div>
                     )}
@@ -347,11 +351,11 @@ export default function ProfileView() {
                             {bodyweightLogs.map((entry) => (
                                 <div
                                     key={entry.id}
-                                    className="flex items-center gap-3 py-[0.4375rem] border-b border-[#111]">
-                                    <span className="font-pulse text-[0.8125rem] text-pulse-dim flex-1">
+                                    className="flex items-center gap-3 py-[0.5rem] border-b border-pulse-border last:border-b-0">
+                                    <span className="font-pulse-body text-[0.8125rem] text-pulse-dim flex-1">
                                         {fmtDate(entry.logged_at)}
                                     </span>
-                                    <span className="font-pulse text-[0.9375rem] text-pulse-text font-semibold">
+                                    <span className="font-pulse text-[0.9375rem] text-pulse-text font-medium">
                                         {toDisplay(entry.weight_kg, unit)} {unit}
                                     </span>
                                     <button
@@ -376,7 +380,7 @@ export default function ProfileView() {
                     <SectionLabel className="mb-2">Goal Weight</SectionLabel>
                     {profile.goal_weight_kg ? (
                         <div className="flex items-center gap-3">
-                            <span className="font-pulse text-lg font-bold text-white">
+                            <span className="font-pulse text-lg font-medium text-pulse-text tracking-[-0.005em]">
                                 {unit === 'lbs'
                                     ? `${toDisplay(profile.goal_weight_kg, 'lbs').toFixed(1)} lbs`
                                     : `${profile.goal_weight_kg} kg`}
@@ -385,7 +389,7 @@ export default function ProfileView() {
                                 <span
                                     className={`font-pulse text-xs ${
                                         bodyweightLogs[0].weight_kg <= profile.goal_weight_kg
-                                            ? 'text-emerald-400'
+                                            ? 'text-pulse-success'
                                             : 'text-pulse-dim'
                                     }`}>
                                     {Math.abs(bodyweightLogs[0].weight_kg - profile.goal_weight_kg).toFixed(1)} kg to go

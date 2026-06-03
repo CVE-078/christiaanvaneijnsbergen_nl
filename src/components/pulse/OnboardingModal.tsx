@@ -11,10 +11,10 @@ import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/li
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 'result';
 
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
-const CARD = 'bg-pulse-surface border border-pulse-border rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
-const Q = 'font-pulse text-base font-semibold text-white';
+const CARD = 'bg-pulse-surface rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
+const Q = 'font-pulse text-lg font-medium text-pulse-text tracking-[-0.01em]';
 const BTN_PRIMARY =
-    'font-pulse text-sm font-semibold bg-pulse-accent text-black rounded-lg px-5 py-2.5 cursor-pointer border-none disabled:opacity-50 w-full';
+    'font-pulse text-sm font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-5 py-2.5 cursor-pointer border-none disabled:opacity-50 w-full';
 
 function ProgressBar({ current }: { current: number }) {
     return (
@@ -61,10 +61,12 @@ function OptionRow({
     return (
         <button
             onClick={onClick}
-            className={`text-left flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors w-full ${
-                active ? 'border-pulse-accent bg-pulse-accent/10' : 'border-pulse-border bg-pulse-bg'
+            className={`text-left flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors w-full ${
+                active
+                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                    : 'bg-pulse-surface-2 ring-0 hover:bg-pulse-surface-2/70'
             }`}>
-            <span className="font-pulse text-sm font-semibold text-white flex-1">{label}</span>
+            <span className="font-pulse text-sm font-medium text-pulse-text flex-1">{label}</span>
             {desc && <span className="font-pulse text-xs text-pulse-dim">{desc}</span>}
         </button>
     );
@@ -139,10 +141,10 @@ export default function OnboardingModal() {
                         {EQUIPMENT_OPTIONS.map(({ key, label }) => (
                             <label
                                 key={key}
-                                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
                                     equipment.has(key)
-                                        ? 'border-pulse-accent bg-pulse-accent/10'
-                                        : 'border-pulse-border bg-pulse-bg'
+                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                        : 'bg-pulse-surface-2 ring-0'
                                 }`}>
                                 <input
                                     type="checkbox"
@@ -151,12 +153,12 @@ export default function OnboardingModal() {
                                     className="sr-only"
                                 />
                                 <div
-                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${equipment.has(key) ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-dim'}`}>
+                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${equipment.has(key) ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
                                     {equipment.has(key) && (
-                                        <span className="text-black text-[10px] font-bold leading-none">✓</span>
+                                        <span className="text-pulse-bg text-[10px] font-bold leading-none">✓</span>
                                     )}
                                 </div>
-                                <span className="font-pulse text-sm text-white">{label}</span>
+                                <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
                             </label>
                         ))}
                     </div>
@@ -279,10 +281,10 @@ export default function OnboardingModal() {
                                         prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
                                     )
                                 }
-                                className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border cursor-pointer transition-colors ${
+                                className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border-none cursor-pointer transition-colors ${
                                     trainingDays.includes(d)
-                                        ? 'bg-pulse-accent text-black border-pulse-accent'
-                                        : 'bg-transparent text-pulse-dim border-pulse-border'
+                                        ? 'bg-pulse-accent text-pulse-bg'
+                                        : 'bg-pulse-surface-2 text-pulse-dim'
                                 }`}>
                                 {DAY_NAMES[d]}
                             </button>
@@ -336,11 +338,11 @@ export default function OnboardingModal() {
             return (
                 <div className={WRAP}>
                     <div className={CARD}>
-                        <div className="font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted">
+                        <div className="font-pulse text-[0.625rem] tracking-[0.16em] uppercase text-pulse-muted">
                             Recommended for you
                         </div>
                         <div>
-                            <div className="font-pulse text-base font-semibold text-white">
+                            <div className="font-pulse text-lg font-medium text-pulse-text tracking-[-0.01em]">
                                 {tpl?.name ?? recommendedSlug}
                             </div>
                             <div className="font-pulse text-xs text-pulse-dim mt-1">
@@ -387,12 +389,12 @@ export default function OnboardingModal() {
                             <button
                                 key={t.slug}
                                 onClick={() => setPickedSlug(t.slug)}
-                                className={`text-left p-3 rounded-xl border cursor-pointer transition-colors ${
+                                className={`text-left p-3 rounded-xl cursor-pointer transition-colors ${
                                     pickedSlug === t.slug
-                                        ? 'border-pulse-accent bg-pulse-accent/10'
-                                        : 'border-pulse-border bg-pulse-bg'
+                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                        : 'bg-pulse-surface-2 ring-0'
                                 }`}>
-                                <div className="font-pulse text-sm font-semibold text-white">{t.name}</div>
+                                <div className="font-pulse text-sm font-medium text-pulse-text">{t.name}</div>
                                 <div className="flex gap-2 mt-1">
                                     <span
                                         className={`font-pulse text-[0.625rem] tracking-[0.08em] uppercase ${EXPERIENCE_LEVEL_COLOR[t.experience_level]}`}>

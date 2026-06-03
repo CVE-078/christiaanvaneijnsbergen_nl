@@ -123,7 +123,7 @@ export default function LogView() {
                 </div>
                 <button
                     onClick={() => navigate('explore')}
-                    className="font-pulse text-sm font-semibold bg-pulse-accent text-black rounded-lg px-5 py-2.5 cursor-pointer border-none">
+                    className="font-pulse text-sm font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-5 py-2.5 cursor-pointer border-none">
                     Go to Library
                 </button>
             </div>
@@ -160,6 +160,13 @@ export default function LogView() {
                 />
             )}
 
+            <div className="px-4 pt-6 pb-1">
+                <div className="font-pulse text-[0.78125rem] text-pulse-muted tracking-[0.02em]">
+                    <span className="text-pulse-dim font-medium">Week {String(activeWeek).padStart(2, '0')}</span> / 12
+                    · {phase.label} · target <span className="text-pulse-dim font-medium">RIR {rir}</span>
+                </div>
+            </div>
+
             {activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}
 
             <div className="flex px-4 gap-1 overflow-x-auto [scrollbar-width:none] pb-3">
@@ -170,10 +177,10 @@ export default function LogView() {
                         <button
                             key={w}
                             onClick={() => setActiveWeek(w)}
-                            className={`font-pulse text-sm min-w-[2.25rem] h-8 flex flex-col items-center justify-center rounded-full border cursor-pointer shrink-0 transition-all duration-150 ${
+                            className={`font-pulse text-sm min-w-[2.25rem] h-8 flex flex-col items-center justify-center rounded-full cursor-pointer shrink-0 transition-colors duration-150 ${
                                 active
-                                    ? 'font-bold text-pulse-accent bg-pulse-accent/10 border-pulse-accent/25'
-                                    : 'font-normal text-pulse-dim bg-transparent border-transparent hover:border-pulse-border'
+                                    ? 'font-semibold text-pulse-bg bg-pulse-accent'
+                                    : 'font-normal text-pulse-dim bg-transparent hover:bg-pulse-surface'
                             }`}>
                             {w}
                             <span
@@ -184,19 +191,11 @@ export default function LogView() {
                 })}
             </div>
 
-            <div className="flex items-center justify-between gap-3 px-4 pb-3">
-                <div className="flex items-center gap-3">
-                    <span className="font-pulse text-xs font-semibold tracking-[0.08em] uppercase text-pulse-dim">
-                        {phase.label}
-                    </span>
-                    <span className="font-pulse text-xs font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-full px-2 py-0.5">
-                        {rir} RIR
-                    </span>
-                </div>
+            <div className="flex items-center justify-end gap-3 px-4 pb-3">
                 {routineExercises.length > 0 && (
                     <button
                         onClick={handleStartWorkout}
-                        className="font-pulse text-xs font-semibold bg-pulse-accent text-black rounded-full px-3 py-1.5 cursor-pointer border-none">
+                        className="font-pulse text-xs font-semibold bg-pulse-accent text-pulse-bg rounded-full px-3.5 py-1.5 cursor-pointer border-none">
                         Start workout
                     </button>
                 )}

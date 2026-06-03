@@ -1,22 +1,10 @@
 import type { ExerciseCategory } from '@/lib/pulse/types';
 
-const CATEGORY_COLOR: Record<ExerciseCategory, string> = {
-    chest: 'text-rose-400',
-    shoulders: 'text-orange-400',
-    triceps: 'text-amber-400',
-    back: 'text-sky-400',
-    biceps: 'text-indigo-400',
-    legs: 'text-violet-400',
-    glutes: 'text-pink-400',
-    calves: 'text-teal-400',
-    abs: 'text-lime-400',
-    other: 'text-pulse-dim',
-};
-
+// Slate keeps a single accent, so category badges read as a calm neutral chip
+// (tone shift, no border) rather than a rainbow of per-category hues.
 export default function CategoryBadge({ category }: { category: ExerciseCategory }) {
     return (
-        <span
-            className={`font-pulse text-[0.625rem] tracking-[0.08em] uppercase ${CATEGORY_COLOR[category]} bg-pulse-bg border border-pulse-border rounded-full px-2 py-0.5`}>
+        <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-dim bg-pulse-surface-2 rounded-full px-2 py-0.5">
             {category}
         </span>
     );

@@ -74,10 +74,10 @@ export default function ExercisesTab() {
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`font-pulse text-xs tracking-[0.04em] uppercase rounded-full px-3 py-1.5 cursor-pointer border ${
+                            className={`font-pulse text-xs tracking-[0.04em] uppercase rounded-full px-3 py-1.5 cursor-pointer border-none ${
                                 active
-                                    ? 'bg-pulse-accent text-black border-pulse-accent font-semibold'
-                                    : 'bg-transparent text-pulse-dim border-pulse-border'
+                                    ? 'bg-pulse-accent text-pulse-bg font-semibold'
+                                    : 'bg-pulse-surface-2 text-pulse-dim'
                             }`}>
                             {f}
                         </button>
@@ -160,7 +160,7 @@ export default function ExercisesTab() {
                         return (
                             <div
                                 key={ex.id}
-                                className="flex items-center gap-3 bg-pulse-surface border border-pulse-border rounded-lg px-3 py-2.5">
+                                className="flex items-center gap-3 bg-pulse-surface rounded-lg px-3 py-2.5">
                                 {isEditing ? (
                                     <div className="flex-1 flex flex-col gap-2">
                                         <input
@@ -213,7 +213,7 @@ export default function ExercisesTab() {
                                     </div>
                                 ) : (
                                     <>
-                                        <span className="font-pulse text-sm text-white flex-1 min-w-0 truncate">
+                                        <span className="font-pulse text-sm text-pulse-text flex-1 min-w-0 truncate">
                                             {ex.name}
                                         </span>
                                         <CategoryBadge category={ex.category} />

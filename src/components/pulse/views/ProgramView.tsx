@@ -46,8 +46,8 @@ export default function ProgramView() {
         <div className="p-4 max-w-[600px] mx-auto">
             <WeekSelector activeWeek={activeWeek} onSelect={handleSelectWeek} logs={logs} />
 
-            <div className="my-5 py-[0.875rem] px-4 bg-pulse-surface rounded border-l-[3px] border-pulse-accent">
-                <div className="font-pulse font-bold text-sm tracking-[0.06em] uppercase text-pulse-accent">
+            <div className="my-5 py-[0.875rem] px-4 bg-pulse-surface rounded-xl border-l-[3px] border-pulse-accent">
+                <div className="font-pulse font-semibold text-sm tracking-[0.06em] uppercase text-pulse-accent">
                     {phase.label} — {phase.subtitle}
                 </div>
                 {WEEK_NOTES[activeWeek] && (
@@ -88,7 +88,7 @@ export default function ProgramView() {
                                         {DAY_SHORT[dow]}
                                     </div>
                                     <div
-                                        className={`py-[0.375rem] rounded-[3px] font-pulse text-[0.75rem] font-bold ${isRest ? 'bg-pulse-bg text-pulse-muted border border-pulse-border' : 'bg-pulse-accent/10 text-pulse-accent border border-pulse-accent/20'}`}>
+                                        className={`py-[0.375rem] rounded-lg font-pulse text-[0.75rem] font-semibold ${isRest ? 'bg-pulse-surface text-pulse-muted opacity-55' : 'bg-pulse-accent text-pulse-bg'}`}>
                                         {label}
                                     </div>
                                 </div>
@@ -104,19 +104,21 @@ export default function ProgramView() {
 
             {sections.map(({ type, exercises }) => (
                 <div key={type} className="mb-6">
-                    <div className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase text-pulse-accent font-bold mb-3">
+                    <div className="font-pulse text-[0.75rem] tracking-[0.16em] uppercase text-pulse-muted font-medium mb-3">
                         {WORKOUT_TYPE_LABELS[type as WorkoutType] ?? type}
                     </div>
                     {exercises.map((re, i) => (
-                        <div key={re.id} className="py-2 border-b border-pulse-border flex gap-4 items-baseline">
+                        <div
+                            key={re.id}
+                            className="py-3 border-b border-pulse-border last:border-b-0 flex gap-4 items-baseline">
                             <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0 w-5">
                                 {String(i + 1).padStart(2, '0')}
                             </span>
                             <div>
-                                <div className="text-pulse-text text-[0.875rem] font-medium">
+                                <div className="font-pulse text-pulse-text text-[1.0625rem] font-medium tracking-[-0.01em]">
                                     {re.exercise?.name ?? ''}
                                 </div>
-                                <div className="font-pulse text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-0.5">
+                                <div className="font-pulse-body text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-1">
                                     {re.sets} sets · {re.reps} reps
                                 </div>
                             </div>

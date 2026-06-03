@@ -20,10 +20,12 @@ const FILTER_LABELS: Record<EquipmentFilter, string> = {
     gym: 'Full Gym',
 };
 
+// One-accent Slate rule: experience level is differentiated by its uppercase
+// tracked label, not by color (matches the neutralized CategoryBadge).
 const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
-    beginner: 'text-emerald-400',
-    intermediate: 'text-amber-400',
-    advanced: 'text-red-400',
+    beginner: 'text-pulse-dim',
+    intermediate: 'text-pulse-dim',
+    advanced: 'text-pulse-dim',
 };
 
 export default function TemplatesTab() {
@@ -59,7 +61,7 @@ export default function TemplatesTab() {
                         onClick={() => setFilter(f)}
                         className={`font-pulse text-xs tracking-[0.04em] capitalize rounded-full px-3 py-1.5 border cursor-pointer ${
                             filter === f
-                                ? 'bg-pulse-accent text-black border-pulse-accent font-semibold'
+                                ? 'bg-pulse-accent text-pulse-bg border-pulse-accent font-semibold'
                                 : 'bg-transparent text-pulse-dim border-pulse-border'
                         }`}>
                         {FILTER_LABELS[f]}
@@ -71,7 +73,7 @@ export default function TemplatesTab() {
                     key={t.slug}
                     className="bg-pulse-surface border border-pulse-border rounded-xl p-4 flex flex-col gap-2">
                     <div className="flex items-start justify-between gap-3">
-                        <span className="font-pulse text-sm font-semibold text-white">{t.name}</span>
+                        <span className="font-pulse text-sm font-semibold text-pulse-text">{t.name}</span>
                         <button
                             onClick={() => handleUse(t)}
                             disabled={loading === t.slug}

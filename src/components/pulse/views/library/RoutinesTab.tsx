@@ -60,10 +60,10 @@ function RoutineExerciseRow({
     }
 
     return (
-        <div className="flex flex-col gap-2 bg-pulse-surface border border-pulse-border rounded-lg px-3 py-2.5">
+        <div className="flex flex-col gap-2 bg-pulse-surface rounded-lg px-3 py-2.5">
             <div className="flex items-center gap-3">
-                <span className="font-pulse text-xs text-pulse-dim w-5 shrink-0">{index + 1}</span>
-                <span className="font-pulse text-sm text-white flex-1 min-w-0 truncate">{re.exercise.name}</span>
+                <span className="font-pulse text-xs text-pulse-muted w-5 shrink-0">{index + 1}</span>
+                <span className="font-pulse text-sm text-pulse-text flex-1 min-w-0 truncate">{re.exercise.name}</span>
                 {!editing && (
                     <span className="font-pulse text-xs text-pulse-dim shrink-0">
                         {re.sets} × {re.reps}
@@ -291,23 +291,23 @@ export default function RoutinesTab() {
                         return (
                             <div
                                 key={r.id}
-                                className={`flex items-center gap-3 bg-pulse-surface rounded-lg px-3 py-2.5 border ${
-                                    isActive ? 'border-pulse-accent/40' : 'border-pulse-border'
+                                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
+                                    isActive ? 'bg-pulse-surface ring-1 ring-pulse-accent/40' : 'bg-pulse-surface'
                                 }`}>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-pulse text-sm text-white truncate">{r.name}</div>
+                                    <div className="font-pulse text-sm text-pulse-text truncate">{r.name}</div>
                                     <div className="font-pulse text-xs text-pulse-dim">
                                         {r.exercises.length} {r.exercises.length === 1 ? 'exercise' : 'exercises'}
                                     </div>
                                 </div>
                                 {isActive ? (
-                                    <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-full px-2 py-0.5 shrink-0">
+                                    <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 rounded-full px-2 py-0.5 shrink-0">
                                         Active
                                     </span>
                                 ) : (
                                     <button
                                         onClick={() => handleSetActive(r.id)}
-                                        className="font-pulse text-xs text-pulse-dim bg-transparent border border-pulse-border rounded-lg px-3 py-1.5 cursor-pointer shrink-0">
+                                        className="font-pulse text-xs text-pulse-dim bg-pulse-surface-2 border-none rounded-lg px-3 py-1.5 cursor-pointer shrink-0">
                                         Set active
                                     </button>
                                 )}
@@ -326,7 +326,7 @@ export default function RoutinesTab() {
             {/* Active routine editor */}
             {activeRoutine && (
                 <div className={`${CARD} flex flex-col gap-4`}>
-                    <div className="font-pulse text-sm font-semibold text-white">
+                    <div className="font-pulse text-sm font-semibold text-pulse-text">
                         Active: <span className="text-pulse-accent">{activeRoutine.name}</span>
                     </div>
 

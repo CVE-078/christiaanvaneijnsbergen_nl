@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import LogView from '../views/LogView';
+import { ToastProvider } from '@/lib/pulse/toast';
 import type { RoutineExercise } from '@/lib/pulse/types';
+
+function renderWithToast(ui: ReactElement) {
+    return render(<ToastProvider>{ui}</ToastProvider>);
+}
 
 vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
@@ -83,7 +89,7 @@ describe('LogView', () => {
     });
 
     it('shows an empty state hint when no sets are logged for the current week', () => {
-        render(<LogView />);
+        renderWithToast(<LogView />);
         expect(screen.getByText(/tap an exercise/i)).toBeInTheDocument();
     });
 
@@ -92,7 +98,7 @@ describe('LogView', () => {
             ...defaultContext,
             logs: { '1-re-test-uuid-0': { kg: 60, reps: 10, rir: 3, saved: true } },
         } as unknown as ReturnType<typeof usePulse>);
-        render(<LogView />);
+        renderWithToast(<LogView />);
         expect(screen.queryByText(/tap an exercise/i)).not.toBeInTheDocument();
     });
 
@@ -104,7 +110,7 @@ describe('LogView', () => {
                 '3-re-test-uuid-0': { kg: 60, reps: 10, rir: 3, saved: false },
             },
         } as unknown as ReturnType<typeof usePulse>);
-        const { container } = render(<LogView />);
+        const { container } = renderWithToast(<LogView />);
         const weekButtons = Array.from(container.querySelectorAll('button')).filter((b) =>
             /^\d+$/.test(b.textContent ?? ''),
         );
@@ -127,7 +133,7 @@ describe('LogView', () => {
             completeSession: vi.fn(),
             clearSession: vi.fn(),
         } as unknown as ReturnType<typeof useWorkoutSession>);
-        render(<LogView />);
+        renderWithToast(<LogView />);
         await userEvent.click(screen.getByRole('button', { name: /start workout/i }));
         expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
     });

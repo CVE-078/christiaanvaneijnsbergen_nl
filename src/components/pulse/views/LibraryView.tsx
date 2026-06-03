@@ -20,10 +20,10 @@ export default function LibraryView() {
                             role="tab"
                             aria-selected={active}
                             onClick={() => setTab(t)}
-                            className={`font-pulse text-sm tracking-[0.04em] capitalize rounded-lg px-4 py-2 cursor-pointer border ${
+                            className={`font-pulse text-sm tracking-[0.04em] capitalize rounded-lg px-4 py-2 cursor-pointer border-none ${
                                 active
-                                    ? 'bg-pulse-accent/10 text-pulse-accent border-pulse-accent/25 font-semibold'
-                                    : 'bg-transparent text-pulse-dim border-pulse-border'
+                                    ? 'bg-pulse-accent text-pulse-bg font-semibold'
+                                    : 'bg-pulse-surface-2 text-pulse-dim'
                             }`}>
                             {t}
                         </button>
