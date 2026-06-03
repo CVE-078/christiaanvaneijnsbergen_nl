@@ -156,4 +156,35 @@ describe('WorkoutModeScreen', () => {
         expect(screen.getByText(/bench press/i)).toBeInTheDocument();
         expect(screen.getByText(/cable fly/i)).toBeInTheDocument();
     });
+
+    it('treats a superset pair as a single step in the count and labels', () => {
+        const base = mockExercise('x', 'X');
+        const s = { ...base, id: 's', order: 1, superset_group_id: null, exercise: { ...base.exercise, name: 'Single Lift' } };
+        const a = { ...base, id: 'a', order: 2, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'A Lift' } };
+        const b = { ...base, id: 'b', order: 3, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'B Lift' } };
+        render(<WorkoutModeScreen {...defaultProps} variant={null} exercises={[s, a, b]} />);
+        // [single, pair] => 2 steps; single is first
+        expect(screen.getByText(/exercise 1 of 2/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /next exercise/i }));
+        // step 2 is the pair (also last): superset label + Finish
+        expect(screen.getByText(/step 2 of 2/i)).toBeInTheDocument();
+        expect(screen.getByText('A Lift')).toBeInTheDocument();
+        expect(screen.getByText('B Lift')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /finish workout/i })).toBeInTheDocument();
+    });
+
+    it('gates Next on a superset step until both exercises have a logged set', () => {
+        const base = mockExercise('x', 'X');
+        const a = { ...base, id: 'a', order: 1, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'A Lift' } };
+        const b = { ...base, id: 'b', order: 2, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'B Lift' } };
+        const c = { ...base, id: 'c', order: 3, superset_group_id: null, exercise: { ...base.exercise, name: 'C Lift' } };
+        // [pair, single] => the pair is the first (non-last) step
+        const both = { '1-a-0': { kg: 50, reps: 8, rir: 2, saved: true }, '1-b-0': { kg: 40, reps: 8, rir: 2, saved: true } };
+        const { rerender } = render(<WorkoutModeScreen {...defaultProps} variant={null} exercises={[a, b, c]} logs={{}} />);
+        expect(screen.getByRole('button', { name: /next exercise/i })).toBeDisabled();
+        rerender(<WorkoutModeScreen {...defaultProps} variant={null} exercises={[a, b, c]} logs={{ '1-a-0': { kg: 50, reps: 8, rir: 2, saved: true } } as Logs} />);
+        expect(screen.getByRole('button', { name: /next exercise/i })).toBeDisabled();
+        rerender(<WorkoutModeScreen {...defaultProps} variant={null} exercises={[a, b, c]} logs={both as Logs} />);
+        expect(screen.getByRole('button', { name: /next exercise/i })).not.toBeDisabled();
+    });
 });

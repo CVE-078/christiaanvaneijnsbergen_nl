@@ -817,6 +817,35 @@ describe('groupExercises', () => {
         expect(Array.isArray(result[1])).toBe(true);
     });
 
+    it('renders the third member of a 3+ group as a single (never a triplet)', () => {
+        const g = 'g1';
+        const exercises = [makeRE('a', 1, g), makeRE('b', 2, g), makeRE('c', 3, g)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(true);
+        expect(Array.isArray(result[1])).toBe(false);
+        expect((result[1] as (typeof exercises)[0]).id).toBe('c');
+    });
+
+    it('treats non-adjacent rows of the same group as three singles', () => {
+        const g = 'g1';
+        const exercises = [makeRE('a', 1, g), makeRE('b', 2), makeRE('c', 3, g)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(3);
+        expect(result.every((r) => !Array.isArray(r))).toBe(true);
+    });
+
+    it('groups a pair that sits after a leading single', () => {
+        const g = 'g1';
+        const exercises = [makeRE('a', 1), makeRE('b', 2, g), makeRE('c', 3, g)];
+        const result = groupExercises(exercises);
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result[0])).toBe(false);
+        const pair = result[1] as [(typeof exercises)[0], (typeof exercises)[0]];
+        expect(pair[0].id).toBe('b');
+        expect(pair[1].id).toBe('c');
+    });
+
     it('returns an empty array for empty input', () => {
         expect(groupExercises([])).toEqual([]);
     });

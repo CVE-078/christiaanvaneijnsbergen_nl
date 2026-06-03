@@ -342,4 +342,57 @@ describe('LibraryView', () => {
         const unpairButtons = screen.getAllByText('Unpair');
         expect(unpairButtons).toHaveLength(1);
     });
+
+    it('moves a single down past a superset pair as a block', async () => {
+        const routine: RoutineWithExercises = {
+            ...activeRoutine,
+            exercises: [
+                { id: 's', routine_id: 'r1', exercise_id: 'g1', workout_type: 'chest' as const, variant: null, order: 0, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: null, exercise: globalExercise },
+                { id: 'a', routine_id: 'r1', exercise_id: 'g2', workout_type: 'back' as const, variant: null, order: 1, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: 'sg1', exercise: pullExercise },
+                { id: 'b', routine_id: 'r1', exercise_id: 'u1', workout_type: 'back' as const, variant: null, order: 2, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: 'sg1', exercise: userExercise },
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({ ...defaultContext, activeRoutine: routine, routines: [routine, inactiveRoutine] } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: `Move ${globalExercise.name} down` }));
+        expect(mocks.reorderRoutineExercises).toHaveBeenCalledWith(expect.any(String), ['a', 'b', 's']);
+    });
+
+    it('pairs two adjacent exercises via the supersets API', async () => {
+        vi.mocked(global.fetch).mockClear();
+        vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
+        const routine: RoutineWithExercises = {
+            ...activeRoutine,
+            exercises: [
+                { id: 're1', routine_id: 'r1', exercise_id: 'g1', workout_type: 'chest' as const, variant: null, order: 0, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: null, exercise: globalExercise },
+                { id: 're2', routine_id: 'r1', exercise_id: 'g2', workout_type: 'back' as const, variant: null, order: 1, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: null, exercise: pullExercise },
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({ ...defaultContext, activeRoutine: routine, routines: [routine, inactiveRoutine] } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByText('Pair ↓'));
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/api/pulse/supersets',
+            expect.objectContaining({ method: 'POST', body: JSON.stringify({ exerciseAId: 're1', exerciseBId: 're2' }) }),
+        );
+    });
+
+    it('unpairs a superset via the supersets API', async () => {
+        vi.mocked(global.fetch).mockClear();
+        vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
+        const routine: RoutineWithExercises = {
+            ...activeRoutine,
+            exercises: [
+                { id: 're1', routine_id: 'r1', exercise_id: 'g1', workout_type: 'chest' as const, variant: null, order: 0, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: 'sg1', exercise: globalExercise },
+                { id: 're2', routine_id: 'r1', exercise_id: 'g2', workout_type: 'back' as const, variant: null, order: 1, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: 'sg1', exercise: pullExercise },
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({ ...defaultContext, activeRoutine: routine, routines: [routine, inactiveRoutine] } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByText('Unpair'));
+        expect(global.fetch).toHaveBeenCalledWith('/api/pulse/supersets/sg1', { method: 'DELETE' });
+    });
 });
