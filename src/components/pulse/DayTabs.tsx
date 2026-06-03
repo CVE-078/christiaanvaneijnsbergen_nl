@@ -10,9 +10,9 @@ const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
 export default function DayTabs() {
     const { activeDay, setActiveDay, activeSchedule, activeWeek, logs, routineExercisesByType } = usePulse();
     const today = new Date().getDay();
-    const scheduleMap = Object.fromEntries(
-        activeSchedule.map((e) => [e.day_of_week, e.workout_type])
-    ) as Partial<Record<number, WorkoutType>>;
+    const scheduleMap = Object.fromEntries(activeSchedule.map((e) => [e.day_of_week, e.workout_type])) as Partial<
+        Record<number, WorkoutType>
+    >;
 
     return (
         <div role="tablist" className="flex items-center gap-1.5 p-4 pb-3 overflow-x-auto [scrollbar-width:none]">
@@ -56,11 +56,15 @@ export default function DayTabs() {
                         badge={total > 0 ? `${done}/${total}` : undefined}
                         className="relative flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl shrink-0">
                         <span className="font-pulse text-sm font-semibold">{DAY_NAMES[dow]}</span>
-                        <span className={`font-pulse text-[0.625rem] tracking-[0.04em] ${active ? 'text-pulse-accent' : 'text-pulse-muted'}`}>
+                        <span
+                            className={`font-pulse text-[0.625rem] tracking-[0.04em] ${active ? 'text-pulse-accent' : 'text-pulse-muted'}`}>
                             {WORKOUT_TYPE_LABELS[workoutType!]}
                         </span>
                         {isToday && (
-                            <span aria-label="today" className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pulse-accent" />
+                            <span
+                                aria-label="today"
+                                className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pulse-accent"
+                            />
                         )}
                     </TabButton>
                 );

@@ -29,8 +29,7 @@ export default function StreakCalendar({ logs }: StreakCalendarProps) {
                             textAnchor="middle"
                             fontSize="7"
                             fontFamily="var(--font-pulse)"
-                            fill={filled ? 'var(--color-pulse-bg)' : 'var(--color-pulse-dim)'}
-                        >
+                            fill={filled ? 'var(--color-pulse-bg)' : 'var(--color-pulse-dim)'}>
                             {week}
                         </text>
                     </g>

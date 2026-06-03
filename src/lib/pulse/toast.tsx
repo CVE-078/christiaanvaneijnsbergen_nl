@@ -45,11 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'REMOVE', id });
     }, []);
 
-    return (
-        <ToastContext.Provider value={{ toasts, show, dismiss }}>
-            {children}
-        </ToastContext.Provider>
-    );
+    return <ToastContext.Provider value={{ toasts, show, dismiss }}>{children}</ToastContext.Provider>;
 }
 
 export function useToast(): ToastContextValue {

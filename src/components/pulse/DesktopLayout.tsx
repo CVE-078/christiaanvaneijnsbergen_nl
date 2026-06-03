@@ -91,9 +91,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
 
             {/* Content column */}
             <div className="flex-1 flex flex-col overflow-hidden">
-                <main className="flex-1 overflow-y-auto">
-                    {children}
-                </main>
+                <main className="flex-1 overflow-y-auto">{children}</main>
                 <RestTimer trigger={timerTrigger} duration={timerDuration ?? undefined} />
             </div>
 

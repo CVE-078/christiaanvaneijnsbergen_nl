@@ -5,7 +5,15 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'train',
         label: 'Train',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
+            <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5"
+                aria-hidden>
                 <rect x="3" y="3" width="6" height="6" rx="1.5" />
                 <rect x="11" y="3" width="6" height="6" rx="1.5" />
                 <rect x="3" y="11" width="6" height="6" rx="1.5" />
@@ -17,7 +25,15 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'plan',
         label: 'Plan',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
+            <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5"
+                aria-hidden>
                 <polyline points="3,14 7,9 11,11 17,5" />
                 <line x1="3" y1="17" x2="17" y2="17" />
             </svg>
@@ -27,7 +43,15 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'progress',
         label: 'Progress',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
+            <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5"
+                aria-hidden>
                 <circle cx="10" cy="10" r="7" />
                 <polyline points="10,6 10,10 13,12" />
             </svg>
@@ -37,7 +61,15 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'profile',
         label: 'Profile',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
+            <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5"
+                aria-hidden>
                 <circle cx="10" cy="7" r="3" />
                 <path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" />
             </svg>
@@ -47,7 +79,15 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         id: 'explore',
         label: 'Explore',
         icon: (
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden>
+            <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5"
+                aria-hidden>
                 <rect x="3" y="4" width="4" height="12" rx="1" />
                 <rect x="8" y="4" width="4" height="12" rx="1" />
                 <rect x="13" y="4" width="4" height="12" rx="1" />

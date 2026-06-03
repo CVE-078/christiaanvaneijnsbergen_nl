@@ -72,11 +72,9 @@ describe('WorkoutModeScreen', () => {
     });
 
     it('disables finish and early-finish buttons when sessionId is null', () => {
-        render(<WorkoutModeScreen
-            {...defaultProps}
-            exercises={[mockExercise('re1', 'Bench Press')]}
-            sessionId={null}
-        />);
+        render(
+            <WorkoutModeScreen {...defaultProps} exercises={[mockExercise('re1', 'Bench Press')]} sessionId={null} />,
+        );
         expect(screen.getByRole('button', { name: /finish workout/i })).toBeDisabled();
     });
 });

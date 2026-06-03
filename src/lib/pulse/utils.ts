@@ -1,8 +1,20 @@
 import { PHASES } from './data';
-import type { Phase, Logs, HistorySession, LogEntry, Unit, RoutineExercise, WorkoutType, BestSet, WorkoutSession, PRMap, ShareStats } from './types';
+import type {
+    Phase,
+    Logs,
+    HistorySession,
+    LogEntry,
+    Unit,
+    RoutineExercise,
+    WorkoutType,
+    BestSet,
+    WorkoutSession,
+    PRMap,
+    ShareStats,
+} from './types';
 
 // UUID v4 pattern used in new log keys
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const WORKOUT_LABELS: Partial<Record<WorkoutType, string>> = {
     push: 'Push Day',
@@ -55,6 +67,23 @@ export function logKey(week: number, routineExerciseId: string, setIdx: number):
     return `${week}-${routineExerciseId}-${setIdx}`;
 }
 
+// Parse a log key of the form "<week>-<routineExerciseId>-<setIdx>".
+// week is the number before the first '-', routineExerciseId is the slice
+// between the first and last '-', setIdx is the number after the last '-'.
+// Returns null when the structure is wrong, the middle is not a valid UUID,
+// or either numeric segment is NaN.
+export function parseLogKey(key: string): { week: number; routineExerciseId: string; setIdx: number } | null {
+    const firstDash = key.indexOf('-');
+    const lastDash = key.lastIndexOf('-');
+    if (firstDash === -1 || lastDash === firstDash) return null;
+    const routineExerciseId = key.slice(firstDash + 1, lastDash);
+    if (!UUID_RE.test(routineExerciseId)) return null;
+    const week = Number(key.slice(0, firstDash));
+    const setIdx = Number(key.slice(lastDash + 1));
+    if (isNaN(week) || isNaN(setIdx)) return null;
+    return { week, routineExerciseId, setIdx };
+}
+
 export function parseMaxSets(s: string): number {
     const n = parseInt(s.split(/[–-]/).pop() ?? s, 10);
     return isNaN(n) ? 3 : n;
@@ -69,12 +98,9 @@ export function computePRMap(logs: Logs): Record<string, number> {
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
         // New format: "<week>-<uuid>-<setIdx>"
-        // Extract week (first segment) and routineExerciseId (middle UUID segment)
-        const firstDash = key.indexOf('-');
-        const lastDash = key.lastIndexOf('-');
-        if (firstDash === -1 || lastDash === firstDash) continue;
-        const routineExerciseId = key.slice(firstDash + 1, lastDash);
-        if (!UUID_RE.test(routineExerciseId)) continue;
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        const { routineExerciseId } = parsed;
         const e = calcE1RM(val.kg, val.reps);
         if (e > (map[routineExerciseId] ?? 0)) map[routineExerciseId] = e;
     }
@@ -117,20 +143,15 @@ export function buildHistory(logs: Logs): HistorySession[] {
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
         // New format: "<week>-<routineExerciseId>-<setIdx>"
-        const firstDash = key.indexOf('-');
-        const lastDash = key.lastIndexOf('-');
-        if (firstDash === -1 || lastDash === firstDash) continue;
-        const weekStr = key.slice(0, firstDash);
-        const routineExerciseId = key.slice(firstDash + 1, lastDash);
-        const setIdxStr = key.slice(lastDash + 1);
-        if (!UUID_RE.test(routineExerciseId)) continue;
-        const week = Number(weekStr);
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        const { week, routineExerciseId, setIdx } = parsed;
         // Group by week only — type is no longer encoded in the key
-        const sessionKey = weekStr;
+        const sessionKey = String(week);
         if (!sessions[sessionKey]) {
             sessions[sessionKey] = { week, sets: [] };
         }
-        sessions[sessionKey].sets.push({ routineExerciseId, setIdx: Number(setIdxStr), ...val });
+        sessions[sessionKey].sets.push({ routineExerciseId, setIdx, ...val });
     }
 
     return Object.values(sessions).sort((a, b) => b.week - a.week);
@@ -140,18 +161,13 @@ export function computeVolumeByTypeAndWeek(
     logs: Logs,
     routineExercises: RoutineExercise[],
 ): Record<number, Partial<Record<WorkoutType, number>>> {
-    const typeMap = new Map<string, WorkoutType>(
-        routineExercises.map((re) => [re.id, re.workout_type]),
-    );
+    const typeMap = new Map<string, WorkoutType>(routineExercises.map((re) => [re.id, re.workout_type]));
     const result: Record<number, Partial<Record<WorkoutType, number>>> = {};
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
-        const firstDash = key.indexOf('-');
-        const lastDash = key.lastIndexOf('-');
-        if (firstDash === -1 || lastDash === firstDash) continue;
-        const routineExerciseId = key.slice(firstDash + 1, lastDash);
-        if (!UUID_RE.test(routineExerciseId)) continue;
-        const week = Number(key.slice(0, firstDash));
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        const { week, routineExerciseId } = parsed;
         const wt = typeMap.get(routineExerciseId);
         if (!wt) continue;
         if (!result[week]) result[week] = {};
@@ -160,19 +176,14 @@ export function computeVolumeByTypeAndWeek(
     return result;
 }
 
-export function computeE1RMHistory(
-    logs: Logs,
-    routineExerciseId: string,
-): Array<{ week: number; e1rm: number }> {
+export function computeE1RMHistory(logs: Logs, routineExerciseId: string): Array<{ week: number; e1rm: number }> {
     const weekBest: Record<number, number> = {};
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
-        const firstDash = key.indexOf('-');
-        const lastDash = key.lastIndexOf('-');
-        if (firstDash === -1 || lastDash === firstDash) continue;
-        const id = key.slice(firstDash + 1, lastDash);
-        if (id !== routineExerciseId) continue;
-        const week = Number(key.slice(0, firstDash));
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        if (parsed.routineExerciseId !== routineExerciseId) continue;
+        const { week } = parsed;
         const e1rm = calcE1RM(val.kg, val.reps);
         if (e1rm > (weekBest[week] ?? 0)) weekBest[week] = e1rm;
     }
@@ -185,12 +196,9 @@ export function computeBestSets(logs: Logs): Record<string, BestSet> {
     const best: Record<string, BestSet> = {};
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
-        const firstDash = key.indexOf('-');
-        const lastDash = key.lastIndexOf('-');
-        if (firstDash === -1 || lastDash === firstDash) continue;
-        const routineExerciseId = key.slice(firstDash + 1, lastDash);
-        if (!UUID_RE.test(routineExerciseId)) continue;
-        const week = Number(key.slice(0, firstDash));
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        const { week, routineExerciseId } = parsed;
         const e1rm = calcE1RM(val.kg, val.reps);
         if (!best[routineExerciseId] || e1rm > best[routineExerciseId].e1rm) {
             best[routineExerciseId] = {
@@ -231,12 +239,10 @@ export function computeLastSession(
 
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
-        const firstDash = key.indexOf('-');
-        const lastDash = key.lastIndexOf('-');
-        if (firstDash === -1 || firstDash === lastDash) continue;
-        const week = parseInt(key.slice(0, firstDash), 10);
-        if (isNaN(week) || week >= currentWeek) continue;
-        const rid = key.slice(firstDash + 1, lastDash);
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        const { week, routineExerciseId: rid } = parsed;
+        if (week >= currentWeek) continue;
         if (rid !== routineExerciseId) continue;
         if (!byWeek.has(week)) byWeek.set(week, []);
         byWeek.get(week)!.push({ kg: val.kg, reps: val.reps });
@@ -278,13 +284,10 @@ export function computeShareStats(
 
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
-        const firstDash = key.indexOf('-');
-        const lastDash = key.lastIndexOf('-');
-        if (firstDash === -1 || lastDash === firstDash) continue;
-        const w = parseInt(key.slice(0, firstDash), 10);
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        const { week: w, routineExerciseId: rid } = parsed;
         if (w !== week) continue;
-        const rid = key.slice(firstDash + 1, lastDash);
-        if (!UUID_RE.test(rid)) continue;
         if (!exerciseIds.has(rid)) continue;
         totalSets++;
         const e1rm = calcE1RM(val.kg, val.reps);

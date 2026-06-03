@@ -1,0 +1,46 @@
+import { describe, it, expect } from 'vitest';
+import { buildCsp, generateNonce } from '../middleware';
+
+describe('generateNonce', () => {
+    it('returns a non-empty base64 string', () => {
+        const nonce = generateNonce();
+        expect(nonce.length).toBeGreaterThan(0);
+        // base64 alphabet only
+        expect(nonce).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+    });
+
+    it('returns a different value on each call', () => {
+        expect(generateNonce()).not.toBe(generateNonce());
+    });
+});
+
+describe('buildCsp', () => {
+    const host = 'example.supabase.co';
+
+    it('uses a nonce-based script-src with strict-dynamic', () => {
+        const csp = buildCsp('abc123', host);
+        expect(csp).toContain("script-src 'self' 'nonce-abc123' 'strict-dynamic'");
+    });
+
+    it('does not allow unsafe-inline in script-src', () => {
+        const csp = buildCsp('abc123', host);
+        const scriptSrc = csp.split('; ').find((d) => d.startsWith('script-src'));
+        expect(scriptSrc).toBeDefined();
+        expect(scriptSrc).not.toContain('unsafe-inline');
+    });
+
+    it('keeps unsafe-inline in style-src', () => {
+        const csp = buildCsp('abc123', host);
+        expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+    });
+
+    it('includes the supabase host in connect-src for https and wss', () => {
+        const csp = buildCsp('abc123', host);
+        expect(csp).toContain(`connect-src 'self' https://${host} wss://${host}`);
+    });
+
+    it('keeps frame-ancestors none', () => {
+        const csp = buildCsp('abc123', host);
+        expect(csp).toContain("frame-ancestors 'none'");
+    });
+});

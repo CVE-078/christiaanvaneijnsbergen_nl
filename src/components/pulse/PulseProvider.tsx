@@ -9,7 +9,32 @@ import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap } from '@/lib/pulse/utils';
-import type { Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises, RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View } from '@/lib/pulse/types';
+import { WORKOUT_TYPE_ORDER } from '@/lib/pulse/constants';
+import type {
+    Logs,
+    Notes,
+    Profile,
+    BodyweightEntry,
+    DbExercise,
+    RoutineWithExercises,
+    RoutineExercise,
+    WorkoutType,
+    TabKey,
+    ScheduleEntry,
+    View,
+} from '@/lib/pulse/types';
+
+// Mirror the tab ordering WorkoutTabs renders: base workout_type order, then A before B.
+function orderTabKeys(keys: TabKey[]): TabKey[] {
+    return [...keys].sort((a, b) => {
+        const baseA = a.includes(':') ? (a.split(':')[0] as WorkoutType) : (a as WorkoutType);
+        const baseB = b.includes(':') ? (b.split(':')[0] as WorkoutType) : (b as WorkoutType);
+        const orderA = WORKOUT_TYPE_ORDER.indexOf(baseA);
+        const orderB = WORKOUT_TYPE_ORDER.indexOf(baseB);
+        if (orderA !== orderB) return orderA - orderB;
+        return a < b ? -1 : 1;
+    });
+}
 
 interface Props {
     initialLogs: Logs;
@@ -42,12 +67,21 @@ export function PulseProvider({
         initialBodyweightLogs,
     );
     const {
-        exercises, routines, activeRoutine,
-        createRoutine, deleteRoutine, setActiveRoutine,
-        addExerciseToRoutine, removeExerciseFromRoutine,
-        updateRoutineExercise, reorderRoutineExercises,
-        cloneTemplate, completeOnboarding,
-        createExercise, updateExercise, deleteExercise,
+        exercises,
+        routines,
+        activeRoutine,
+        createRoutine,
+        deleteRoutine,
+        setActiveRoutine,
+        addExerciseToRoutine,
+        removeExerciseFromRoutine,
+        updateRoutineExercise,
+        reorderRoutineExercises,
+        cloneTemplate,
+        completeOnboarding,
+        createExercise,
+        updateExercise,
+        deleteExercise,
     } = useRoutines(initialExercises, initialRoutines, profile.active_routine_id);
     const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
     const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
@@ -83,9 +117,18 @@ export function PulseProvider({
         return result;
     }, [activeRoutine]);
 
+    // Clamp activeTab to a valid tab when the set of tabs changes (e.g. routine swap or
+    // exercises removed). Mirrors the ordering WorkoutTabs renders so the first tab matches.
+    useEffect(() => {
+        const tabs = orderTabKeys(Object.keys(routineExercisesByTabKey) as TabKey[]);
+        if (tabs.length > 0 && !tabs.includes(activeTab)) {
+            setActiveTab(tabs[0]);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [routineExercisesByTabKey]);
+
     const activeSchedule = useMemo(
-        (): ScheduleEntry[] =>
-            [...(activeRoutine?.schedule ?? [])].sort((a, b) => a.day_of_week - b.day_of_week),
+        (): ScheduleEntry[] => [...(activeRoutine?.schedule ?? [])].sort((a, b) => a.day_of_week - b.day_of_week),
         [activeRoutine],
     );
 
@@ -101,113 +144,116 @@ export function PulseProvider({
         });
         _setActiveDay(sorted[0].day_of_week);
         setActiveTab(sorted[0].workout_type);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeSchedule.map((e) => `${e.day_of_week}:${e.workout_type}`).join(',')]);
 
-    const setActiveDay = useCallback((day: number) => {
-        _setActiveDay(day);
-        const entry = activeSchedule.find((e) => e.day_of_week === day);
-        if (entry) setActiveTab(entry.workout_type);
-    }, [activeSchedule, setActiveTab]);
+    const setActiveDay = useCallback(
+        (day: number) => {
+            _setActiveDay(day);
+            const entry = activeSchedule.find((e) => e.day_of_week === day);
+            if (entry) setActiveTab(entry.workout_type);
+        },
+        [activeSchedule, setActiveTab],
+    );
+
+    // Build the context value by spreading the (stable) hook returns and the locally derived
+    // pieces, instead of hand-maintaining a duplicated literal + dependency array. Each source
+    // object keeps its own referential stability, so the merged value only changes when one of
+    // those sources changes.
+    const logsValue = useMemo(
+        () => ({ logs, updateLog, deleteLog, handleExport }),
+        [logs, updateLog, deleteLog, handleExport],
+    );
+    const profileValue = useMemo(
+        () => ({ profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight }),
+        [profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight],
+    );
+    const computedValue = useMemo(() => ({ streak, prMap, email }), [streak, prMap, email]);
+    const uiStateValue = useMemo(
+        () => ({
+            navigate,
+            activeWeek,
+            setActiveWeek,
+            activeTab,
+            setActiveTab,
+            activeDay,
+            setActiveDay,
+            activeSchedule,
+            showOnboarding,
+            triggerOnboarding,
+            dismissOnboarding,
+        }),
+        [
+            navigate,
+            activeWeek,
+            setActiveWeek,
+            activeTab,
+            setActiveTab,
+            activeDay,
+            setActiveDay,
+            activeSchedule,
+            showOnboarding,
+            triggerOnboarding,
+            dismissOnboarding,
+        ],
+    );
+    const timerValue = useMemo(
+        () => ({ timerTrigger, timerDuration, fireTrigger }),
+        [timerTrigger, timerDuration, fireTrigger],
+    );
+    const routinesValue = useMemo(
+        () => ({
+            exercises,
+            routines,
+            activeRoutine,
+            routineExercisesByType,
+            routineExercisesByTabKey,
+            createRoutine,
+            deleteRoutine,
+            setActiveRoutine,
+            addExerciseToRoutine,
+            removeExerciseFromRoutine,
+            updateRoutineExercise,
+            reorderRoutineExercises,
+            cloneTemplate,
+            completeOnboarding,
+            createExercise,
+            updateExercise,
+            deleteExercise,
+        }),
+        [
+            exercises,
+            routines,
+            activeRoutine,
+            routineExercisesByType,
+            routineExercisesByTabKey,
+            createRoutine,
+            deleteRoutine,
+            setActiveRoutine,
+            addExerciseToRoutine,
+            removeExerciseFromRoutine,
+            updateRoutineExercise,
+            reorderRoutineExercises,
+            cloneTemplate,
+            completeOnboarding,
+            createExercise,
+            updateExercise,
+            deleteExercise,
+        ],
+    );
+    const notesValue = useMemo(() => ({ notes, saveNote, deleteNote }), [notes, saveNote, deleteNote]);
 
     const contextValue = useMemo(
         () => ({
-            logs,
-            profile,
-            bodyweightLogs,
-            isLoading: false as const,
-            streak,
-            prMap,
-            email,
-            updateLog,
-            deleteLog,
-            handleExport,
-            updateProfile,
-            logBodyWeight,
-            deleteBodyWeight,
-            navigate,
-            activeWeek,
-            setActiveWeek,
-            activeTab,
-            setActiveTab,
-            activeDay,
-            setActiveDay,
-            activeSchedule,
-            timerTrigger,
-            timerDuration,
-            fireTrigger,
-            exercises,
-            routines,
-            activeRoutine,
-            routineExercisesByType,
-            routineExercisesByTabKey,
-            createRoutine,
-            deleteRoutine,
-            setActiveRoutine,
-            addExerciseToRoutine,
-            removeExerciseFromRoutine,
-            updateRoutineExercise,
-            reorderRoutineExercises,
-            cloneTemplate,
-            completeOnboarding,
-            createExercise,
-            updateExercise,
-            deleteExercise,
-            showOnboarding,
-            triggerOnboarding,
-            dismissOnboarding,
-            notes,
-            saveNote,
-            deleteNote,
+            ...logsValue,
+            ...profileValue,
+            ...computedValue,
+            ...uiStateValue,
+            ...timerValue,
+            ...routinesValue,
+            ...notesValue,
         }),
-        [
-            logs,
-            profile,
-            bodyweightLogs,
-            streak,
-            prMap,
-            email,
-            updateLog,
-            deleteLog,
-            handleExport,
-            updateProfile,
-            logBodyWeight,
-            deleteBodyWeight,
-            navigate,
-            activeWeek,
-            setActiveWeek,
-            activeTab,
-            setActiveTab,
-            activeDay,
-            setActiveDay,
-            activeSchedule,
-            timerTrigger,
-            timerDuration,
-            fireTrigger,
-            exercises,
-            routines,
-            activeRoutine,
-            routineExercisesByType,
-            routineExercisesByTabKey,
-            createRoutine,
-            deleteRoutine,
-            setActiveRoutine,
-            addExerciseToRoutine,
-            removeExerciseFromRoutine,
-            updateRoutineExercise,
-            reorderRoutineExercises,
-            cloneTemplate,
-            completeOnboarding,
-            createExercise,
-            updateExercise,
-            deleteExercise,
-            showOnboarding,
-            triggerOnboarding,
-            dismissOnboarding,
-            notes,
-            saveNote,
-            deleteNote,
-        ],
+        [logsValue, profileValue, computedValue, uiStateValue, timerValue, routinesValue, notesValue],
     );
 
     return <PulseContext.Provider value={contextValue}>{children}</PulseContext.Provider>;

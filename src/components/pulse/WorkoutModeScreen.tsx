@@ -62,7 +62,9 @@ export default function WorkoutModeScreen({
                 </button>
                 <div className="text-center">
                     <div className="font-pulse text-[0.6875rem] tracking-[0.08em] uppercase text-pulse-muted">
-                        <span>Exercise {exerciseIdx + 1} of {exercises.length}</span>
+                        <span>
+                            Exercise {exerciseIdx + 1} of {exercises.length}
+                        </span>
                         {variant ? <span> · Variant {variant}</span> : null}
                     </div>
                 </div>

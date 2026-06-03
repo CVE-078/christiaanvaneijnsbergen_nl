@@ -21,7 +21,26 @@ const defaultCtx = {
     activeWeek: 1,
     logs: {},
     routineExercisesByType: {
-        upper: [{ id: 'ex1', sets: '3', reps: '8-12', routine_id: 'r1', exercise_id: 'e1', workout_type: 'upper', order: 1, starting_weight_kg: null, exercise: { id: 'e1', name: 'Bench', category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null } }],
+        upper: [
+            {
+                id: 'ex1',
+                sets: '3',
+                reps: '8-12',
+                routine_id: 'r1',
+                exercise_id: 'e1',
+                workout_type: 'upper',
+                order: 1,
+                starting_weight_kg: null,
+                exercise: {
+                    id: 'e1',
+                    name: 'Bench',
+                    category: 'chest',
+                    default_sets: '3',
+                    default_reps: '8-12',
+                    user_id: null,
+                },
+            },
+        ],
         lower: [],
     },
 };

@@ -1,13 +1,13 @@
 import type { EquipmentKey } from './types';
 
 export const EXPERIENCE_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
-export type ExperienceLevel = typeof EXPERIENCE_LEVELS[number];
+export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
 
 export const DAYS_PER_WEEK_OPTIONS = ['2-3', '4', '5-6'] as const;
-export type DaysPerWeek = typeof DAYS_PER_WEEK_OPTIONS[number];
+export type DaysPerWeek = (typeof DAYS_PER_WEEK_OPTIONS)[number];
 
 export const GOALS = ['build_muscle', 'lose_fat', 'general_fitness'] as const;
-export type Goal = typeof GOALS[number];
+export type Goal = (typeof GOALS)[number];
 
 export interface OnboardingAnswers {
     equipment: Set<EquipmentKey>;

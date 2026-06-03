@@ -1,6 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { logKey, parseMaxSets, calcE1RM, toDisplay, computeLastSession, computeSuggestion, computeWarmupSets } from '@/lib/pulse/utils';
+import {
+    logKey,
+    parseMaxSets,
+    calcE1RM,
+    toDisplay,
+    computeLastSession,
+    computeSuggestion,
+    computeWarmupSets,
+} from '@/lib/pulse/utils';
 import SetLogger from './SetLogger';
 import type { Logs, LogEntry, Unit } from '@/lib/pulse/types';
 import type { RoutineExercise } from '@/lib/pulse/types';
@@ -19,7 +27,19 @@ interface Props {
     onDeleteNote: () => Promise<void>;
 }
 
-export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, prMap, unit, onSave, onDelete, note, onSaveNote, onDeleteNote }: Props) {
+export default function ExerciseCard({
+    routineExercise: re,
+    exIdx,
+    week,
+    logs,
+    prMap,
+    unit,
+    onSave,
+    onDelete,
+    note,
+    onSaveNote,
+    onDeleteNote,
+}: Props) {
     const [open, setOpen] = useState(false);
     const [noteEditing, setNoteEditing] = useState(false);
     const [noteDraft, setNoteDraft] = useState('');
@@ -33,9 +53,7 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
     const prevKey0 = logKey(week - 1, re.id, 0);
     const prevEntry0 = week > 1 ? logs[prevKey0] : undefined;
     const workingWeightKg =
-        computeSuggestion(prevEntry0?.saved ? prevEntry0 : undefined, week) ??
-        re.starting_weight_kg ??
-        null;
+        computeSuggestion(prevEntry0?.saved ? prevEntry0 : undefined, week) ?? re.starting_weight_kg ?? null;
     const warmupSets = workingWeightKg !== null ? computeWarmupSets(workingWeightKg, unit) : [];
 
     return (
@@ -56,18 +74,23 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                     {exIdx + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                    <div className={`font-pulse text-[0.9375rem] font-semibold truncate ${complete ? 'text-pulse-text' : 'text-white'}`}>
+                    <div
+                        className={`font-pulse text-[0.9375rem] font-semibold truncate ${complete ? 'text-pulse-text' : 'text-white'}`}>
                         {re.exercise.name}
                     </div>
                     <div className="font-pulse text-xs text-pulse-dim mt-0.5">
                         {re.sets} sets · {re.reps} reps
                         {re.starting_weight_kg !== null && (
-                            <> · {toDisplay(re.starting_weight_kg, unit)} {unit} start</>
+                            <>
+                                {' '}
+                                · {toDisplay(re.starting_weight_kg, unit)} {unit} start
+                            </>
                         )}
                     </div>
                     {lastSession && (
                         <div className="font-pulse text-xs text-pulse-dim mt-0.5">
-                            Last: {toDisplay(lastSession.kg, unit)} {unit} × {lastSession.reps} × {lastSession.setCount} sets
+                            Last: {toDisplay(lastSession.kg, unit)} {unit} × {lastSession.reps} × {lastSession.setCount}{' '}
+                            sets
                         </div>
                     )}
                 </div>
@@ -84,9 +107,7 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                                 className="block w-[5px] h-[5px] rounded-sm transition-colors duration-200"
                                 style={{
                                     background:
-                                        i < savedCount
-                                            ? 'var(--color-pulse-accent)'
-                                            : 'var(--color-pulse-muted)',
+                                        i < savedCount ? 'var(--color-pulse-accent)' : 'var(--color-pulse-muted)',
                                 }}
                             />
                         ))}
@@ -174,7 +195,10 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                                 <p className="font-pulse text-[0.8125rem] text-pulse-dim leading-relaxed">{note}</p>
                                 <div className="flex gap-3 mt-1 justify-end">
                                     <button
-                                        onClick={() => { setNoteDraft(note); setNoteEditing(true); }}
+                                        onClick={() => {
+                                            setNoteDraft(note);
+                                            setNoteEditing(true);
+                                        }}
                                         className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer">
                                         Edit
                                     </button>
@@ -187,7 +211,10 @@ export default function ExerciseCard({ routineExercise: re, exIdx, week, logs, p
                             </div>
                         ) : (
                             <button
-                                onClick={() => { setNoteDraft(''); setNoteEditing(true); }}
+                                onClick={() => {
+                                    setNoteDraft('');
+                                    setNoteEditing(true);
+                                }}
                                 className="w-full text-left font-pulse text-[0.8125rem] text-pulse-dim border border-dashed border-pulse-border rounded-lg px-3 py-2 cursor-pointer bg-transparent tracking-[0.02em]">
                                 + Add note
                             </button>

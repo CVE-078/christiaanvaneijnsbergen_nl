@@ -3,6 +3,7 @@ import {
     getPhase,
     getRIR,
     logKey,
+    parseLogKey,
     parseMaxSets,
     buildHistory,
     weekHasData,
@@ -68,6 +69,51 @@ describe('logKey', () => {
     });
 });
 
+describe('parseLogKey', () => {
+    const uuid = '550e8400-e29b-41d4-a716-446655440000';
+
+    it('parses a well-formed key into its parts', () => {
+        expect(parseLogKey(`1-${uuid}-0`)).toEqual({
+            week: 1,
+            routineExerciseId: uuid,
+            setIdx: 0,
+        });
+        expect(parseLogKey(`12-${uuid}-3`)).toEqual({
+            week: 12,
+            routineExerciseId: uuid,
+            setIdx: 3,
+        });
+    });
+
+    it('round-trips with logKey', () => {
+        expect(parseLogKey(logKey(7, uuid, 2))).toEqual({
+            week: 7,
+            routineExerciseId: uuid,
+            setIdx: 2,
+        });
+    });
+
+    it('returns null when there is no dash', () => {
+        expect(parseLogKey('nodash')).toBeNull();
+    });
+
+    it('returns null when there is only one dash', () => {
+        expect(parseLogKey(`1-${uuid}`)).toBeNull();
+    });
+
+    it('returns null when the middle segment is not a valid UUID', () => {
+        expect(parseLogKey('1-not-a-uuid-0')).toBeNull();
+    });
+
+    it('returns null when the week segment is not numeric', () => {
+        expect(parseLogKey(`x-${uuid}-0`)).toBeNull();
+    });
+
+    it('returns null when the setIdx segment is not numeric', () => {
+        expect(parseLogKey(`1-${uuid}-x`)).toBeNull();
+    });
+});
+
 describe('parseMaxSets', () => {
     it('takes the last number from a range', () => {
         expect(parseMaxSets('3–4')).toBe(4);
@@ -102,7 +148,7 @@ describe('buildHistory', () => {
     it('groups saved entries by week', () => {
         const logs: Logs = {
             [`1-${UUID_A}-0`]: { kg: 60, reps: 10, rir: 3, saved: true },
-            [`1-${UUID_A}-1`]: { kg: 62, reps: 8,  rir: 2, saved: true },
+            [`1-${UUID_A}-1`]: { kg: 62, reps: 8, rir: 2, saved: true },
             [`1-${UUID_B}-0`]: { kg: 50, reps: 12, rir: 3, saved: true },
         };
         const history = buildHistory(logs);
@@ -113,7 +159,7 @@ describe('buildHistory', () => {
 
     it('sorts sessions descending by week', () => {
         const logs: Logs = {
-            [`3-${UUID_A}-0`]: { kg: 70, reps: 8,  rir: 2, saved: true },
+            [`3-${UUID_A}-0`]: { kg: 70, reps: 8, rir: 2, saved: true },
             [`1-${UUID_A}-0`]: { kg: 60, reps: 10, rir: 3, saved: true },
         };
         const history = buildHistory(logs);
@@ -156,7 +202,7 @@ describe('computePRMap', () => {
     });
     it('keeps separate keys per exercise', () => {
         const logs: Logs = {
-            [`1-${UUID_A}-0`]: { kg: 60, reps: 8,  rir: 3, saved: true },
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: true },
             [`1-${UUID_B}-0`]: { kg: 40, reps: 12, rir: 3, saved: true },
         };
         const map = computePRMap(logs);
@@ -512,7 +558,14 @@ describe('computeShareStats', () => {
             sets: '3',
             reps: '8',
             starting_weight_kg: null,
-            exercise: { id: 'ex-1', name: 'Bench Press', category: 'chest', default_sets: '3', default_reps: '8', user_id: null },
+            exercise: {
+                id: 'ex-1',
+                name: 'Bench Press',
+                category: 'chest',
+                default_sets: '3',
+                default_reps: '8',
+                user_id: null,
+            },
         },
         {
             id: RE_ID_2,
@@ -524,7 +577,14 @@ describe('computeShareStats', () => {
             sets: '3',
             reps: '12',
             starting_weight_kg: null,
-            exercise: { id: 'ex-2', name: 'Overhead Press', category: 'shoulders', default_sets: '3', default_reps: '12', user_id: null },
+            exercise: {
+                id: 'ex-2',
+                name: 'Overhead Press',
+                category: 'shoulders',
+                default_sets: '3',
+                default_reps: '12',
+                user_id: null,
+            },
         },
     ];
 

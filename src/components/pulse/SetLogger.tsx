@@ -103,8 +103,13 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                                 min={displayMin}
                                 max={displayMax}
                                 step={displayStep}
-                                onChange={(e) => { setKg(e.target.value); setInputError(null); }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+                                onChange={(e) => {
+                                    setKg(e.target.value);
+                                    setInputError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSave();
+                                }}
                                 className={inputClass}
                             />
                             <span className="font-pulse text-pulse-muted text-sm">×</span>
@@ -115,8 +120,13 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                                 value={reps}
                                 min={1}
                                 max={100}
-                                onChange={(e) => { setReps(e.target.value); setInputError(null); }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+                                onChange={(e) => {
+                                    setReps(e.target.value);
+                                    setInputError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSave();
+                                }}
                                 className={inputClass}
                             />
                             <span className="font-pulse text-[0.8125rem] text-pulse-dim shrink-0">{targetRIR} RIR</span>
@@ -126,9 +136,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                                 → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
                             </span>
                         )}
-                        {inputError && (
-                            <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>
-                        )}
+                        {inputError && <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>}
                     </div>
                     <div className="flex gap-1.5 shrink-0">
                         {editing && (

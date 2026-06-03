@@ -16,19 +16,13 @@ export default function BestLifts({ allRoutineExercises, bestSets, unit }: BestL
         .sort((a, b) => b.best.e1rm - a.best.e1rm);
 
     if (entries.length === 0) {
-        return (
-            <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">
-                No sets logged yet.
-            </p>
-        );
+        return <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">No sets logged yet.</p>;
     }
 
-    const grouped = WORKOUT_TYPE_ORDER
-        .map((type) => ({
-            type,
-            items: entries.filter((e) => e.re.workout_type === type),
-        }))
-        .filter((g) => g.items.length > 0);
+    const grouped = WORKOUT_TYPE_ORDER.map((type) => ({
+        type,
+        items: entries.filter((e) => e.re.workout_type === type),
+    })).filter((g) => g.items.length > 0);
 
     return (
         <div className="flex flex-col gap-4">

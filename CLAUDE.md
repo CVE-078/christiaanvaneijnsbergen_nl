@@ -1,0 +1,68 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+Package manager is **bun** (`bun.lock` is the source of truth; a `package-lock.json` also exists). Scripts run the same under `npm run`.
+
+- `bun run dev` — start the Next.js dev server (http://localhost:3000)
+- `bun run build` — production build
+- `bun run lint` — ESLint (`next/core-web-vitals`)
+- `bun run typecheck` — `tsc --noEmit`
+- `bun run format` / `format:check` — Prettier over `src/**/*.{ts,tsx}`
+- `bun run test` — Vitest in watch mode
+- `bun run test:run` — Vitest single run (use this in CI / verification)
+- `bun run test:ui` — Vitest UI
+
+Run a single test file: `bun run test:run src/components/pulse/__tests__/SetLogger.test.tsx`
+Run tests matching a name: `bun run test:run -t "warmup"`
+
+## Tech Stack
+
+Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS v4 · Supabase (auth + Postgres) · SWR · Vitest + Testing Library (jsdom).
+
+Path alias: `@/*` → `src/*` (configured in both `tsconfig.json` and `vitest.config.mjs`).
+
+## Two apps in one repo
+
+1. **Marketing site** (`/`) — static personal portfolio. Entry `src/app/page.tsx` composing `src/components/*` (hero, about, experience, header, footer). Poppins font, light theme.
+2. **Pulse** (`/pulse`) — a workout-tracking PWA-style app, where nearly all the complexity lives. Outfit font, dark theme. Everything Pulse-related is namespaced under `pulse/` directories.
+
+## Pulse architecture
+
+The big picture (read `docs/superpowers/specs/2026-05-25-pulse-architecture-design.md` for the original design):
+
+**Server → Context → Hooks → Components**, with SWR keeping client data live.
+
+- **Auth & data load** — `src/middleware.ts` (matcher `/pulse/:path*`) calls `updateSession` in `src/lib/supabase/middleware.ts`, which refreshes the Supabase session and redirects unauthenticated users to `/pulse/login`. Routes live under the `(protected)` route group; `src/app/pulse/(protected)/layout.tsx` is a server component that runs one `Promise.all` of Supabase queries (logs, profile, bodyweight, exercises, routines, notes) and passes the results as `initial*` props.
+- **Three Supabase clients** — `src/lib/supabase/server.ts` (server components / actions, async, cookie-based), `browser.ts` (client), `middleware.ts` (edge session refresh). Use the right one for the context.
+- **PulseLayout → PulseProvider → AppShell** — `PulseLayout` maps the URL pathname to a `View` and supplies `navigate`. `PulseProvider` (`src/components/pulse/PulseProvider.tsx`) composes the hooks and exposes everything through `PulseContext`. Consume state anywhere with `usePulse()` from `src/context/PulseContext.ts` — that file's `PulseContextValue` interface is the canonical contract for what the app can do.
+- **Hooks** (`src/hooks/pulse/`) — one hook per data domain: `useWorkoutLogs`, `useProfile`, `useRoutines`, `useNotes`, `useWorkoutSession`, plus UI hooks `useUIState`, `useRestTimer`, `useMediaQuery`, `useLocalStorage`. Each data hook follows the same pattern: `useSWR` keyed on its `/api/pulse/*` endpoint with `fallbackData` from the server-loaded `initial*` prop (zero-flash mount), then **optimistic mutations** — call `mutate(newValue, false)` immediately, await the server action, then `mutate()` to revalidate.
+- **Server actions vs API routes** — Mutations go through `'use server'` actions in `src/app/pulse/actions.ts` (and `login/actions.ts`). Reads for SWR revalidation go through GET handlers in `src/app/api/pulse/*/route.ts`. When you add a data domain you typically touch: the action, the API route, the hook, the context interface, and the protected layout's initial load.
+- **Responsive split** — `AppShell` branches on `useMediaQuery('(min-width: 1024px)')`: `DesktopLayout` (sidebar) for desktop, `BottomNav` + topbar for mobile. The same view components render in both.
+- **Views** (`src/components/pulse/views/`) — `LogView` (train), `ProgramView` (plan), `HistoryView` + progress charts, `ProfileView`, `LibraryView` (+ `TemplatesTab`, explore). Routed via `src/app/pulse/(protected)/{train,plan,progress,profile,explore}`.
+
+## Domain model (Pulse)
+
+- **Types** — `src/lib/pulse/types.ts` is the single source for all Pulse types.
+- **Pure logic** — `src/lib/pulse/utils.ts` holds the testable pure functions: `computeStreak`, `computePRMap`, `computeLastSession`, `computeWarmupSets`, `computeShareStats`, `nextVariant`. Prefer adding pure functions here (easy to unit-test) over logic in components. `recommendation.ts` is the onboarding template-match engine; `sessions.ts`, `validation.ts`, `constants.ts`, `data.ts` (static program/phase/volume data) round it out.
+- **Log key format** — set logs are keyed `"week-routineExerciseId-setIdx"` where the middle segment is a UUID (contains dashes). Parse with `indexOf('-')` / `lastIndexOf('-')`, not `split` (see `actions.ts`). Notes are keyed `"week-routineExerciseId"`.
+- **12-week program** — phases, RIR targets, and volume curve are static in `data.ts`. Workout types: `push/pull/legs` are legacy; granular types (`chest/back/shoulders/arms`) fall back to their parent.
+- **A/B variants** — `routine_exercises` and `routine_schedule` carry a `variant` column; `WorkoutTabs` switches A/B; `routineExercisesByTabKey` is computed in the provider.
+
+## Styling
+
+Tailwind v4 with theme tokens defined inline via `@theme` in `src/app/globals.css` (no `tailwind.config`). Pulse uses custom tokens: colors `pulse-bg`, `pulse-surface`, `pulse-accent`, `pulse-text`, `pulse-dim`, etc., and `font-pulse` (Outfit). Use these tokens rather than hardcoded hex. `prettier-plugin-tailwindcss` sorts classes.
+
+## Security headers
+
+`next.config.mjs` sets global security headers and a strict CSP scoped to `/pulse/*` that whitelists the Supabase host for `connect-src`/`wss`. If you add an external origin (CDN, API, font host) the Pulse pages talk to, update the CSP there or requests will be blocked.
+
+## Database migrations
+
+SQL migrations are hand-written and tracked in `docs/migrations/*.sql` (dated). There is no automated migration runner in this repo — apply them against Supabase manually. `scripts/migrate-kv-to-supabase.ts` is a one-off data backfill.
+
+## Docs
+
+`docs/roadmap.md` tracks shipped Pulse features. `docs/superpowers/{plans,specs,designs}/` hold the design specs, implementation plans, and HTML design mockups that drove each feature — useful context before extending an area.

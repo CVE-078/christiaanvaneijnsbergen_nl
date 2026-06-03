@@ -8,12 +8,24 @@ import BottomNav from './BottomNav';
 import OnboardingModal from './OnboardingModal';
 import type { View } from '@/lib/pulse/types';
 
-export function AppShell({ view, navigate, children }: { view: View; navigate: (v: View) => void; children: React.ReactNode }) {
+export function AppShell({
+    view,
+    navigate,
+    children,
+}: {
+    view: View;
+    navigate: (v: View) => void;
+    children: React.ReactNode;
+}) {
     const { activeWeek, streak, handleExport, timerTrigger, timerDuration, showOnboarding } = usePulse();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
 
     if (isDesktop) {
-        return <DesktopLayout view={view} navigate={navigate}>{children}</DesktopLayout>;
+        return (
+            <DesktopLayout view={view} navigate={navigate}>
+                {children}
+            </DesktopLayout>
+        );
     }
 
     return (

@@ -8,11 +8,18 @@ export interface LogEntry {
 export type Logs = Record<string, LogEntry>;
 
 export const WORKOUT_TYPES = [
-    'push', 'pull', 'legs',
-    'chest', 'back', 'shoulders', 'arms',
-    'upper', 'lower', 'full_body',
+    'push',
+    'pull',
+    'legs',
+    'chest',
+    'back',
+    'shoulders',
+    'arms',
+    'upper',
+    'lower',
+    'full_body',
 ] as const;
-export type WorkoutType = typeof WORKOUT_TYPES[number];
+export type WorkoutType = (typeof WORKOUT_TYPES)[number];
 
 export type WorkoutVariant = 'A' | 'B';
 export type TabKey = WorkoutType | `${WorkoutType}:${WorkoutVariant}`;
@@ -87,7 +94,7 @@ export interface HistorySession {
 }
 
 export const VIEWS = ['train', 'plan', 'progress', 'profile', 'explore'] as const;
-export type View = typeof VIEWS[number];
+export type View = (typeof VIEWS)[number];
 
 export type PRMap = Record<string, number>;
 
@@ -111,12 +118,18 @@ export interface ShareStats {
 }
 
 export const EXERCISE_CATEGORIES = [
-    'chest', 'shoulders', 'triceps',
-    'back', 'biceps',
-    'legs', 'glutes', 'calves',
-    'abs', 'other',
+    'chest',
+    'shoulders',
+    'triceps',
+    'back',
+    'biceps',
+    'legs',
+    'glutes',
+    'calves',
+    'abs',
+    'other',
 ] as const;
-export type ExerciseCategory = typeof EXERCISE_CATEGORIES[number];
+export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
 
 export interface DbExercise {
     id: string;
@@ -164,7 +177,7 @@ export interface WorkoutSession {
 }
 
 export const EQUIPMENT_KEYS = ['dumbbells', 'barbell', 'bench', 'cables', 'machines'] as const;
-export type EquipmentKey = typeof EQUIPMENT_KEYS[number];
+export type EquipmentKey = (typeof EQUIPMENT_KEYS)[number];
 
 export interface RoutineTemplate {
     id: string;
@@ -181,10 +194,16 @@ export interface RoutineTemplate {
 
 export function defaultWorkoutType(cat: ExerciseCategory): WorkoutType | null {
     const map: Record<ExerciseCategory, WorkoutType | null> = {
-        chest: 'chest', shoulders: 'shoulders', triceps: 'arms',
-        back: 'back', biceps: 'arms',
-        legs: 'legs', glutes: 'legs', calves: 'legs',
-        abs: null, other: null,
+        chest: 'chest',
+        shoulders: 'shoulders',
+        triceps: 'arms',
+        back: 'back',
+        biceps: 'arms',
+        legs: 'legs',
+        glutes: 'legs',
+        calves: 'legs',
+        abs: null,
+        other: null,
     };
     return map[cat];
 }

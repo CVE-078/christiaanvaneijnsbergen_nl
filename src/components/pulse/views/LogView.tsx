@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { logKey, getPhase, getRIR, weekHasData, parseMaxSets } from '@/lib/pulse/utils';
+import { useState, useMemo } from 'react';
+import { logKey, getPhase, getRIR, parseLogKey, parseMaxSets } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
@@ -33,12 +33,32 @@ export default function LogView() {
 
     const { session, startSession, completeSession, clearSession } = useWorkoutSession();
     const [workoutModeOpen, setWorkoutModeOpen] = useState(false);
-    const [shareSession, setShareSession] = useState<{ session: WorkoutSession; completedAt: string; exercises: RoutineExercise[] } | null>(null);
+    const [shareSession, setShareSession] = useState<{
+        session: WorkoutSession;
+        completedAt: string;
+        exercises: RoutineExercise[];
+    } | null>(null);
 
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
     const unit = profile.unit;
     const routineExercises: RoutineExercise[] = routineExercisesByTabKey[activeTab] ?? [];
+
+    // Build the set of weeks that have saved data once per logs change, so the
+    // 12-week strip can do O(1) lookups instead of scanning all logs 12 times.
+    // Mirrors weekHasData: the week is the number before the first '-' and the
+    // entry must be saved.
+    const weeksWithData = useMemo(() => {
+        const set = new Set<number>();
+        for (const key of Object.keys(logs)) {
+            if (!logs[key]?.saved) continue;
+            const firstDash = key.indexOf('-');
+            if (firstDash === -1) continue;
+            const week = Number(key.slice(0, firstDash));
+            if (!isNaN(week)) set.add(week);
+        }
+        return set;
+    }, [logs]);
 
     const hasData = routineExercises.some((re) =>
         Array.from({ length: parseMaxSets(re.sets) }, (_, s) => logKey(activeWeek, re.id, s)).some(
@@ -56,9 +76,7 @@ export default function LogView() {
 
     function handleSave(key: string, entry: LogEntry) {
         updateLog(key, entry);
-        const firstDash = key.indexOf('-');
-        const lastDash = key.lastIndexOf('-');
-        const rid = key.slice(firstDash + 1, lastDash);
+        const rid = parseLogKey(key)?.routineExerciseId;
         const exercise = routineExercises.find((r) => r.id === rid);
         fireTrigger(exercise?.rest_seconds ?? undefined);
     }
@@ -147,7 +165,7 @@ export default function LogView() {
             <div className="flex px-4 gap-1 overflow-x-auto [scrollbar-width:none] pb-3">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => {
                     const active = w === activeWeek;
-                    const hasWeekData = weekHasData(w, logs);
+                    const hasWeekData = weeksWithData.has(w);
                     return (
                         <button
                             key={w}
@@ -171,7 +189,9 @@ export default function LogView() {
                     <span className="font-pulse text-xs font-semibold tracking-[0.08em] uppercase text-pulse-dim">
                         {phase.label}
                     </span>
-                    <span className="font-pulse text-xs font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-full px-2 py-0.5">{rir} RIR</span>
+                    <span className="font-pulse text-xs font-bold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-full px-2 py-0.5">
+                        {rir} RIR
+                    </span>
                 </div>
                 {routineExercises.length > 0 && (
                     <button

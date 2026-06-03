@@ -1,9 +1,10 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import {
     buildHistory,
     calcE1RM,
     toDisplay,
+    parseLogKey,
     computeVolumeByTypeAndWeek,
     computeE1RMHistory,
     computeBestSets,
@@ -13,23 +14,75 @@ import VolumeChart from '@/components/pulse/VolumeChart';
 import StreakCalendar from '@/components/pulse/StreakCalendar';
 import E1RMChart from '@/components/pulse/E1RMChart';
 import BestLifts from '@/components/pulse/BestLifts';
+import type { Unit } from '@/lib/pulse/types';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
     return (
-        <div className="font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-pulse-dim mb-2">
-            {children}
-        </div>
+        <div className="font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-pulse-dim mb-2">{children}</div>
     );
 }
+
+// A single set row with its precomputed PR flag and resolved exercise name.
+type SessionCardSet = {
+    setIdx: number;
+    reps: number;
+    rir: number;
+    kg: number;
+    name: string;
+    isPR: boolean;
+};
+
+type SessionCardData = {
+    week: number;
+    setCount: number;
+    sets: SessionCardSet[];
+};
+
+// Memoized so a session card only re-renders when its own data or unit changes,
+// rather than on every HistoryView render.
+const SessionCard = memo(function SessionCard({ session, unit }: { session: SessionCardData; unit: Unit }) {
+    return (
+        <div className="bg-pulse-surface border border-pulse-border rounded overflow-hidden">
+            <div className="py-3 px-4 border-b border-pulse-border flex items-center gap-3">
+                <span className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase font-bold text-pulse-accent">
+                    Week {session.week}
+                </span>
+                <span className="font-pulse text-[0.6875rem] text-pulse-dim ml-auto">{session.setCount} sets</span>
+            </div>
+            <div className="py-2 px-4 pb-3">
+                {session.sets.map((set, i) => (
+                    <div
+                        key={i}
+                        className={`flex items-center gap-3 py-1 ${
+                            i < session.sets.length - 1 ? 'border-b border-pulse-border' : ''
+                        }`}>
+                        <span className="font-pulse text-[0.6875rem] text-pulse-dim w-5 shrink-0">
+                            {String(set.setIdx + 1).padStart(2, '0')}
+                        </span>
+                        <span className="text-pulse-text text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                            {set.name}
+                        </span>
+                        <span className="font-pulse text-white font-semibold text-sm shrink-0">
+                            {toDisplay(set.kg, unit)} {unit} × {set.reps}
+                        </span>
+                        {set.isPR && (
+                            <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
+                                PR
+                            </span>
+                        )}
+                        <span className="font-pulse text-pulse-dim text-[0.75rem] shrink-0">{set.rir} RIR</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+});
 
 export default function HistoryView() {
     const { logs, profile, prMap, routines, streak } = usePulse();
     const unit = profile.unit;
 
-    const allRoutineExercises = useMemo(
-        () => routines.flatMap((r) => r.exercises),
-        [routines],
-    );
+    const allRoutineExercises = useMemo(() => routines.flatMap((r) => r.exercises), [routines]);
 
     const nameMap = useMemo(() => {
         const m = new Map<string, string>();
@@ -39,10 +92,7 @@ export default function HistoryView() {
 
     const sessions = useMemo(() => buildHistory(logs), [logs]);
 
-    const volByWeek = useMemo(
-        () => computeVolumeByTypeAndWeek(logs, allRoutineExercises),
-        [logs, allRoutineExercises],
-    );
+    const volByWeek = useMemo(() => computeVolumeByTypeAndWeek(logs, allRoutineExercises), [logs, allRoutineExercises]);
 
     const bestSets = useMemo(() => computeBestSets(logs), [logs]);
 
@@ -50,10 +100,9 @@ export default function HistoryView() {
         const counts: Record<string, number> = {};
         for (const [key, val] of Object.entries(logs)) {
             if (!val?.saved) continue;
-            const firstDash = key.indexOf('-');
-            const lastDash = key.lastIndexOf('-');
-            if (firstDash === -1 || lastDash === firstDash) continue;
-            const id = key.slice(firstDash + 1, lastDash);
+            const parsed = parseLogKey(key);
+            if (!parsed) continue;
+            const id = parsed.routineExerciseId;
             counts[id] = (counts[id] ?? 0) + 1;
         }
         return Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
@@ -62,9 +111,30 @@ export default function HistoryView() {
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     const exerciseId = selectedExerciseId ?? defaultExerciseId;
 
-    const e1rmHistory = useMemo(
-        () => (exerciseId ? computeE1RMHistory(logs, exerciseId) : []),
-        [logs, exerciseId],
+    const e1rmHistory = useMemo(() => (exerciseId ? computeE1RMHistory(logs, exerciseId) : []), [logs, exerciseId]);
+
+    // Precompute the per-set PR flag and resolved exercise name once per
+    // logs/prMap/nameMap change, so the render map does not call calcE1RM
+    // on every render.
+    const sessionCards = useMemo<SessionCardData[]>(
+        () =>
+            sessions.map((session) => ({
+                week: session.week,
+                setCount: session.sets.length,
+                sets: session.sets.map((set) => {
+                    const bestE1RM = prMap[set.routineExerciseId] ?? 0;
+                    const isPR = bestE1RM > 0 && calcE1RM(set.kg, set.reps) >= bestE1RM;
+                    return {
+                        setIdx: set.setIdx,
+                        reps: set.reps,
+                        rir: set.rir,
+                        kg: set.kg,
+                        name: nameMap.get(set.routineExerciseId) ?? '—',
+                        isPR,
+                    };
+                }),
+            })),
+        [sessions, prMap, nameMap],
     );
 
     const hasData = sessions.length > 0;
@@ -108,8 +178,7 @@ export default function HistoryView() {
                             aria-label="Exercise"
                             value={exerciseId ?? ''}
                             onChange={(e) => setSelectedExerciseId(e.target.value || null)}
-                            className="font-pulse text-[0.6875rem] bg-pulse-surface-2 border border-pulse-border rounded px-2 py-[3px] text-pulse-text ml-auto"
-                        >
+                            className="font-pulse text-[0.6875rem] bg-pulse-surface-2 border border-pulse-border rounded px-2 py-[3px] text-pulse-text ml-auto">
                             {allRoutineExercises.map((re) => (
                                 <option key={re.id} value={re.id}>
                                     {re.exercise.name}
@@ -124,11 +193,7 @@ export default function HistoryView() {
             {/* Best Lifts */}
             <div className="bg-pulse-surface border border-pulse-border rounded p-4">
                 <SectionHeader>Best Lifts</SectionHeader>
-                <BestLifts
-                    allRoutineExercises={allRoutineExercises}
-                    bestSets={bestSets}
-                    unit={unit}
-                />
+                <BestLifts allRoutineExercises={allRoutineExercises} bestSets={bestSets} unit={unit} />
             </div>
 
             {/* Session History */}
@@ -136,54 +201,8 @@ export default function HistoryView() {
                 <div>
                     <SectionHeader>Session History</SectionHeader>
                     <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2">
-                        {sessions.map((session) => (
-                            <div
-                                key={session.week}
-                                className="bg-pulse-surface border border-pulse-border rounded overflow-hidden">
-                                <div className="py-3 px-4 border-b border-pulse-border flex items-center gap-3">
-                                    <span className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase font-bold text-pulse-accent">
-                                        Week {session.week}
-                                    </span>
-                                    <span className="font-pulse text-[0.6875rem] text-pulse-dim ml-auto">
-                                        {session.sets.length} sets
-                                    </span>
-                                </div>
-                                <div className="py-2 px-4 pb-3">
-                                    {session.sets.map((set, i) => {
-                                        const bestE1RM = prMap[set.routineExerciseId] ?? 0;
-                                        const isPR =
-                                            bestE1RM > 0 &&
-                                            calcE1RM(set.kg, set.reps) >= bestE1RM;
-                                        return (
-                                            <div
-                                                key={i}
-                                                className={`flex items-center gap-3 py-1 ${
-                                                    i < session.sets.length - 1
-                                                        ? 'border-b border-pulse-border'
-                                                        : ''
-                                                }`}>
-                                                <span className="font-pulse text-[0.6875rem] text-pulse-dim w-5 shrink-0">
-                                                    {String(set.setIdx + 1).padStart(2, '0')}
-                                                </span>
-                                                <span className="text-pulse-text text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                                                    {nameMap.get(set.routineExerciseId) ?? '—'}
-                                                </span>
-                                                <span className="font-pulse text-white font-semibold text-sm shrink-0">
-                                                    {toDisplay(set.kg, unit)} {unit} × {set.reps}
-                                                </span>
-                                                {isPR && (
-                                                    <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/25 rounded-[2px] py-[0.1rem] px-[0.3rem] shrink-0">
-                                                        PR
-                                                    </span>
-                                                )}
-                                                <span className="font-pulse text-pulse-dim text-[0.75rem] shrink-0">
-                                                    {set.rir} RIR
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                        {sessionCards.map((session) => (
+                            <SessionCard key={session.week} session={session} unit={unit} />
                         ))}
                     </div>
                 </div>

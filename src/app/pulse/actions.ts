@@ -3,9 +3,41 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/pulse/validation';
-import type { Logs, Unit, BodyweightEntry, DbExercise, WorkoutType, WorkoutRoutine, RoutineExercise, ExerciseCategory } from '@/lib/pulse/types';
+import { parseLogKey, UUID_RE } from '@/lib/pulse/utils';
+import { getUserOrThrow } from '@/lib/pulse/auth';
+import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
+import type {
+    Logs,
+    Unit,
+    BodyweightEntry,
+    DbExercise,
+    WorkoutType,
+    WorkoutRoutine,
+    RoutineExercise,
+    ExerciseCategory,
+} from '@/lib/pulse/types';
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+// Verify the routine exercise exists and its routine is owned by the user.
+// Throws to mirror the existing action error contract.
+async function assertOwnsRoutineExercise(
+    supabase: SupabaseServerClient,
+    routineExerciseId: string,
+    userId: string,
+): Promise<void> {
+    const { data: re } = await supabase
+        .from('routine_exercises')
+        .select('id, routine_id, workout_routines!inner ( user_id )')
+        .eq('id', routineExerciseId)
+        .single();
+
+    if (!re) throw new Error('Not found');
+
+    const reData = re as unknown as { workout_routines: { user_id: string } };
+    const routineUserId = reData.workout_routines?.user_id;
+    if (routineUserId !== userId) throw new Error('Unauthorized');
+}
 
 export async function logout() {
     const supabase = await createClient();
@@ -17,30 +49,37 @@ export async function saveLogs(logs: unknown) {
     if (!validateLogs(logs)) throw new Error('Invalid data');
     if (Object.keys(logs).length > 2000) throw new Error('Data too large');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const validLogs = logs as Logs;
     const savedEntries = Object.entries(validLogs).filter(([, v]) => v.saved);
 
     // Upsert all current saved entries
     if (savedEntries.length > 0) {
-        const rows = savedEntries.map(([key, val]) => {
-            // Parse new key format: "week-routineExerciseId-setIdx"
-            // The middle segment is a UUID v4 (with internal dashes), setIdx is last segment
-            const lastDash = key.lastIndexOf('-');
-            const firstDash = key.indexOf('-');
-            const week = Number(key.slice(0, firstDash));
-            const routine_exercise_id = key.slice(firstDash + 1, lastDash);
-            const set_idx = Number(key.slice(lastDash + 1));
+        const parsedEntries = savedEntries.map(([key, val]) => {
+            const parsed = parseLogKey(key);
+            if (!parsed) throw new Error('Invalid data');
+            return { parsed, val };
+        });
+
+        // Defense-in-depth IDOR check: every referenced routine_exercise_id must
+        // belong to a routine owned by the current user.
+        const referencedIds = [...new Set(parsedEntries.map((e) => e.parsed.routineExerciseId))];
+        const { data: ownedRows } = await supabase
+            .from('routine_exercises')
+            .select('id, workout_routines!inner ( user_id )')
+            .in('id', referencedIds)
+            .eq('workout_routines.user_id', user.id);
+
+        const ownedIds = new Set((ownedRows ?? []).map((r: { id: string }) => r.id));
+        if (referencedIds.some((id) => !ownedIds.has(id))) throw new Error('Unauthorized');
+
+        const rows = parsedEntries.map(({ parsed, val }) => {
             return {
                 user_id: user.id,
-                week,
-                routine_exercise_id,
-                set_idx,
+                week: parsed.week,
+                routine_exercise_id: parsed.routineExerciseId,
+                set_idx: parsed.setIdx,
                 kg: val.kg,
                 reps: val.reps,
                 rir: val.rir,
@@ -94,21 +133,13 @@ export async function saveLogs(logs: unknown) {
     revalidatePath('/pulse');
 }
 
-export async function updateProfile(
-    displayName: string | null,
-    unit: Unit,
-    activeRoutineId?: string | null,
-) {
+export async function updateProfile(displayName: string | null, unit: Unit, activeRoutineId?: string | null) {
     if (displayName !== null && displayName.trim().length > 50)
         throw new Error('Display name must be 50 characters or fewer');
     if (activeRoutineId !== undefined && activeRoutineId !== null && !UUID_RE.test(activeRoutineId))
         throw new Error('Invalid routine id');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     if (activeRoutineId !== undefined && activeRoutineId !== null) {
         const { data: routine } = await supabase
@@ -120,18 +151,16 @@ export async function updateProfile(
         if (!routine) throw new Error('Routine not found');
     }
 
-    const { error } = await supabase
-        .from('profiles')
-        .upsert(
-            {
-                id: user.id,
-                display_name: displayName,
-                unit,
-                ...(activeRoutineId !== undefined ? { active_routine_id: activeRoutineId } : {}),
-                updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'id' },
-        );
+    const { error } = await supabase.from('profiles').upsert(
+        {
+            id: user.id,
+            display_name: displayName,
+            unit,
+            ...(activeRoutineId !== undefined ? { active_routine_id: activeRoutineId } : {}),
+            updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' },
+    );
     if (error) throw new Error('Failed to update profile');
 }
 
@@ -139,11 +168,7 @@ export async function logBodyWeight(weightKg: number, date?: string): Promise<Bo
     if (typeof weightKg !== 'number' || isNaN(weightKg) || weightKg < 0.5 || weightKg > 500)
         throw new Error('Invalid weight');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const logged_at = date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().slice(0, 10);
     const { data, error } = await supabase
@@ -157,9 +182,7 @@ export async function logBodyWeight(weightKg: number, date?: string): Promise<Bo
 }
 
 export async function updateGoalWeight(goalWeightKg: number | null): Promise<void> {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const { error } = await supabase.from('profiles').update({ goal_weight_kg: goalWeightKg }).eq('id', user.id);
     if (error) throw new Error('Failed to update goal weight');
@@ -173,9 +196,21 @@ export async function logBodyMeasurement(data: {
     chest_cm?: number;
     arms_cm?: number;
 }): Promise<void> {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    // Validate each provided measurement is a finite number in a sane range (cm).
+    const measurementFields = ['waist_cm', 'hips_cm', 'chest_cm', 'arms_cm'] as const;
+    for (const field of measurementFields) {
+        const value = data[field];
+        if (value === undefined || value === null) continue;
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 1 || value > 500)
+            throw new Error('Invalid measurement');
+    }
+
+    if (data.measured_at !== undefined) {
+        if (typeof data.measured_at !== 'string' || isNaN(new Date(data.measured_at).getTime()))
+            throw new Error('Invalid date');
+    }
+
+    const { supabase, user } = await getUserOrThrow();
 
     const { error } = await supabase.from('body_measurements').insert({
         user_id: user.id,
@@ -192,21 +227,13 @@ export async function logBodyMeasurement(data: {
 export async function deleteBodyWeight(id: string) {
     if (!UUID_RE.test(id)) throw new Error('Invalid id');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const { error } = await supabase.from('bodyweight_logs').delete().eq('id', id).eq('user_id', user.id);
     if (error) throw new Error('Failed to delete entry');
 }
 
 // ── Exercise actions ──────────────────────────────────────────────────────────
-
-const VALID_CATEGORIES: ExerciseCategory[] = [
-  'chest','shoulders','triceps','back','biceps','legs','glutes','calves','abs','other',
-];
 
 export async function createExercise(
     name: string,
@@ -216,16 +243,12 @@ export async function createExercise(
 ): Promise<DbExercise> {
     const trimmed = name.trim();
     if (!trimmed || trimmed.length > 100) throw new Error('Invalid exercise name');
-    if (!VALID_CATEGORIES.includes(category as ExerciseCategory)) throw new Error('Invalid category');
+    if (!EXERCISE_CATEGORIES.includes(category as ExerciseCategory)) throw new Error('Invalid category');
     const trimmedSets = defaultSets.trim();
     const trimmedReps = defaultReps.trim();
     if (!trimmedSets || !trimmedReps) throw new Error('Invalid default sets or reps');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const { data, error } = await supabase
         .from('exercises')
@@ -250,11 +273,7 @@ export async function updateExercise(
     const trimmedReps = defaultReps.trim();
     if (!trimmedSets || !trimmedReps) throw new Error('Invalid sets/reps');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const { error } = await supabase
         .from('exercises')
@@ -267,11 +286,7 @@ export async function updateExercise(
 export async function deleteExercise(id: string): Promise<void> {
     if (!UUID_RE.test(id)) throw new Error('Invalid id');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const { error } = await supabase.from('exercises').delete().eq('id', id).eq('user_id', user.id);
     if (error) throw new Error('Failed to delete exercise');
@@ -283,11 +298,7 @@ export async function createRoutine(name: string): Promise<WorkoutRoutine> {
     const trimmed = name.trim();
     if (!trimmed || trimmed.length > 100) throw new Error('Invalid routine name');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const { data, error } = await supabase
         .from('workout_routines')
@@ -302,21 +313,13 @@ export async function createRoutine(name: string): Promise<WorkoutRoutine> {
 export async function deleteRoutine(id: string): Promise<void> {
     if (!UUID_RE.test(id)) throw new Error('Invalid id');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const { error } = await supabase.from('workout_routines').delete().eq('id', id).eq('user_id', user.id);
     if (error) throw new Error('Failed to delete routine');
 
     // If the deleted routine was active, clear active_routine_id on the profile
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('active_routine_id')
-        .eq('id', user.id)
-        .single();
+    const { data: profile } = await supabase.from('profiles').select('active_routine_id').eq('id', user.id).single();
 
     if (profile?.active_routine_id === id) {
         // Find the most recently created remaining routine to activate
@@ -338,11 +341,7 @@ export async function deleteRoutine(id: string): Promise<void> {
 }
 
 export async function setActiveRoutine(routineId: string | null): Promise<void> {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     if (routineId !== null) {
         if (!UUID_RE.test(routineId)) throw new Error('Invalid routine id');
@@ -375,11 +374,7 @@ export async function addExerciseToRoutine(
     if (!UUID_RE.test(routineId)) throw new Error('Invalid routine id');
     if (!UUID_RE.test(exerciseId)) throw new Error('Invalid exercise id');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     // Verify the routine belongs to the user
     const { data: routine } = await supabase
@@ -389,6 +384,12 @@ export async function addExerciseToRoutine(
         .eq('user_id', user.id)
         .single();
     if (!routine) throw new Error('Routine not found');
+
+    // Verify the exercise is either a global exercise (user_id null) or owned by the user
+    const { data: exercise } = await supabase.from('exercises').select('id, user_id').eq('id', exerciseId).single();
+    if (!exercise) throw new Error('Invalid exercise id');
+    const exerciseUserId = (exercise as { user_id: string | null }).user_id;
+    if (exerciseUserId !== null && exerciseUserId !== user.id) throw new Error('Unauthorized');
 
     // Determine next order
     const { data: existing } = await supabase
@@ -412,7 +413,9 @@ export async function addExerciseToRoutine(
             reps,
             starting_weight_kg: startingWeightKg,
         })
-        .select('id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id )')
+        .select(
+            'id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, exercise:exercises ( id, name, category, default_sets, default_reps, user_id )',
+        )
         .single();
 
     if (error || !data) throw new Error('Failed to add exercise to routine');
@@ -422,29 +425,11 @@ export async function addExerciseToRoutine(
 export async function removeExerciseFromRoutine(routineExerciseId: string): Promise<void> {
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid id');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
-    // Verify ownership via the routine
-    const { data: re } = await supabase
-        .from('routine_exercises')
-        .select('id, routine_id, workout_routines!inner ( user_id )')
-        .eq('id', routineExerciseId)
-        .single();
+    await assertOwnsRoutineExercise(supabase, routineExerciseId, user.id);
 
-    if (!re) throw new Error('Not found');
-
-    const reData = re as unknown as { workout_routines: { user_id: string } };
-    const routineUserId = reData.workout_routines?.user_id;
-    if (routineUserId !== user.id) throw new Error('Unauthorized');
-
-    const { error } = await supabase
-        .from('routine_exercises')
-        .delete()
-        .eq('id', routineExerciseId);
+    const { error } = await supabase.from('routine_exercises').delete().eq('id', routineExerciseId);
     if (error) throw new Error('Failed to remove exercise from routine');
 }
 
@@ -458,24 +443,9 @@ export async function updateRoutineExercise(
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid id');
     if (!sets.trim() || !reps.trim()) throw new Error('Sets and reps must not be empty');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
-    // Verify ownership via the routine
-    const { data: re } = await supabase
-        .from('routine_exercises')
-        .select('id, routine_id, workout_routines!inner ( user_id )')
-        .eq('id', routineExerciseId)
-        .single();
-
-    if (!re) throw new Error('Not found');
-
-    const reData = re as unknown as { workout_routines: { user_id: string } };
-    const routineUserId = reData.workout_routines?.user_id;
-    if (routineUserId !== user.id) throw new Error('Unauthorized');
+    await assertOwnsRoutineExercise(supabase, routineExerciseId, user.id);
 
     const { error } = await supabase
         .from('routine_exercises')
@@ -484,17 +454,10 @@ export async function updateRoutineExercise(
     if (error) throw new Error('Failed to update routine exercise');
 }
 
-export async function reorderRoutineExercises(
-    routineId: string,
-    orderedIds: string[],
-): Promise<void> {
+export async function reorderRoutineExercises(routineId: string, orderedIds: string[]): Promise<void> {
     if (!UUID_RE.test(routineId)) throw new Error('Invalid routine id');
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     // Verify the routine belongs to the user
     const { data: routine } = await supabase
@@ -527,7 +490,14 @@ function adjustSets(sets: string, delta: number): string {
 }
 
 function applyVolume(
-    exercises: Array<{ exercise_id: string; workout_type: string; variant: string | null; order: number; sets: string; reps: string }>,
+    exercises: Array<{
+        exercise_id: string;
+        workout_type: string;
+        variant: string | null;
+        order: number;
+        sets: string;
+        reps: string;
+    }>,
     sessionTime: string,
 ): typeof exercises {
     if (sessionTime === '~30 min') {
@@ -547,16 +517,20 @@ function applyVolume(
     return exercises;
 }
 
-export async function cloneTemplate(slug: string, trainingDays?: number[], sessionTime?: string): Promise<WorkoutRoutine> {
+export async function cloneTemplate(
+    slug: string,
+    trainingDays?: number[],
+    sessionTime?: string,
+): Promise<WorkoutRoutine> {
     if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid slug');
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     const { data: template } = await supabase
         .from('routine_templates')
-        .select('id, name, schedule_pattern, default_days, template_exercises(exercise_id, workout_type, variant, order, sets, reps)')
+        .select(
+            'id, name, schedule_pattern, default_days, template_exercises(exercise_id, workout_type, variant, order, sets, reps)',
+        )
         .eq('slug', slug)
         .single();
     if (!template) throw new Error('Template not found');
@@ -569,7 +543,12 @@ export async function cloneTemplate(slug: string, trainingDays?: number[], sessi
     if (routineErr || !routine) throw new Error('Failed to create routine');
 
     const rawExercises = (template as any).template_exercises as Array<{
-        exercise_id: string; workout_type: string; variant: string | null; order: number; sets: string; reps: string;
+        exercise_id: string;
+        workout_type: string;
+        variant: string | null;
+        order: number;
+        sets: string;
+        reps: string;
     }>;
     const exercises = sessionTime ? applyVolume(rawExercises, sessionTime) : rawExercises;
 
@@ -616,9 +595,7 @@ export async function cloneTemplate(slug: string, trainingDays?: number[], sessi
 }
 
 export async function completeOnboarding(): Promise<void> {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
     await supabase.from('profiles').upsert({ id: user.id, onboarding_completed: true }, { onConflict: 'id' });
     revalidatePath('/pulse');
 }
@@ -631,14 +608,14 @@ export async function saveNote(week: number, routineExerciseId: string, note: st
     const trimmed = note.trim();
     if (!trimmed || trimmed.length > 500) throw new Error('Invalid note');
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
-    const { error } = await supabase.from('exercise_notes').upsert(
-        { user_id: user.id, week, routine_exercise_id: routineExerciseId, note: trimmed },
-        { onConflict: 'user_id,week,routine_exercise_id' },
-    );
+    const { error } = await supabase
+        .from('exercise_notes')
+        .upsert(
+            { user_id: user.id, week, routine_exercise_id: routineExerciseId, note: trimmed },
+            { onConflict: 'user_id,week,routine_exercise_id' },
+        );
     if (error) throw new Error('Failed to save note');
 }
 
@@ -646,9 +623,7 @@ export async function deleteNote(week: number, routineExerciseId: string): Promi
     if (!Number.isInteger(week) || week < 1 || week > 52) throw new Error('Invalid week');
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid routine exercise id');
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Unauthorized');
+    const { supabase, user } = await getUserOrThrow();
 
     await supabase
         .from('exercise_notes')

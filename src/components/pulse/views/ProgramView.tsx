@@ -84,7 +84,9 @@ export default function ProgramView() {
                             const label = isRest ? '—' : entry!.workout_type.charAt(0).toUpperCase();
                             return (
                                 <div key={dow} className="flex-1 text-center">
-                                    <div className="font-pulse text-pulse-muted text-[0.625rem] mb-1 uppercase">{DAY_SHORT[dow]}</div>
+                                    <div className="font-pulse text-pulse-muted text-[0.625rem] mb-1 uppercase">
+                                        {DAY_SHORT[dow]}
+                                    </div>
                                     <div
                                         className={`py-[0.375rem] rounded-[3px] font-pulse text-[0.75rem] font-bold ${isRest ? 'bg-pulse-bg text-pulse-muted border border-pulse-border' : 'bg-pulse-accent/10 text-pulse-accent border border-pulse-accent/20'}`}>
                                         {label}
@@ -94,30 +96,34 @@ export default function ProgramView() {
                         })}
                     </div>
                 ) : (
-                    <p className="font-pulse text-xs text-pulse-muted">No schedule set — add a routine with a weekly schedule.</p>
+                    <p className="font-pulse text-xs text-pulse-muted">
+                        No schedule set — add a routine with a weekly schedule.
+                    </p>
                 )}
             </div>
 
             {sections.map(({ type, exercises }) => (
-                    <div key={type} className="mb-6">
-                        <div className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase text-pulse-accent font-bold mb-3">
-                            {WORKOUT_TYPE_LABELS[type as WorkoutType] ?? type}
-                        </div>
-                        {exercises.map((re, i) => (
-                            <div key={re.id} className="py-2 border-b border-pulse-border flex gap-4 items-baseline">
-                                <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0 w-5">
-                                    {String(i + 1).padStart(2, '0')}
-                                </span>
-                                <div>
-                                    <div className="text-pulse-text text-[0.875rem] font-medium">{re.exercise?.name ?? ''}</div>
-                                    <div className="font-pulse text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-0.5">
-                                        {re.sets} sets · {re.reps} reps
-                                    </div>
+                <div key={type} className="mb-6">
+                    <div className="font-pulse text-[0.75rem] tracking-[0.1em] uppercase text-pulse-accent font-bold mb-3">
+                        {WORKOUT_TYPE_LABELS[type as WorkoutType] ?? type}
+                    </div>
+                    {exercises.map((re, i) => (
+                        <div key={re.id} className="py-2 border-b border-pulse-border flex gap-4 items-baseline">
+                            <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0 w-5">
+                                {String(i + 1).padStart(2, '0')}
+                            </span>
+                            <div>
+                                <div className="text-pulse-text text-[0.875rem] font-medium">
+                                    {re.exercise?.name ?? ''}
+                                </div>
+                                <div className="font-pulse text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-0.5">
+                                    {re.sets} sets · {re.reps} reps
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                ))}
+                        </div>
+                    ))}
+                </div>
+            ))}
         </div>
     );
 }

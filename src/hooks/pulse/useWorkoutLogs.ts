@@ -1,20 +1,16 @@
 import useSWR from 'swr';
 import { useCallback, useRef, useEffect } from 'react';
 import { saveLogs } from '@/app/pulse/actions';
+import { fetcher } from '@/lib/pulse/fetcher';
 import type { Logs, LogEntry } from '@/lib/pulse/types';
 
 const LOGS_KEY = '/api/pulse/logs';
 
-async function fetchLogs(url: string): Promise<Logs> {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch logs');
-    return res.json() as Promise<Logs>;
-}
-
 export function useWorkoutLogs(initialLogs: Logs, onError?: (msg: string) => void) {
-    const { data, mutate } = useSWR<Logs>(LOGS_KEY, fetchLogs, {
+    const { data, mutate } = useSWR<Logs>(LOGS_KEY, fetcher, {
         fallbackData: initialLogs,
         revalidateOnFocus: false,
+        revalidateIfStale: false,
     });
     const logs = data ?? initialLogs;
 
@@ -34,10 +30,7 @@ export function useWorkoutLogs(initialLogs: Logs, onError?: (msg: string) => voi
             saveLogs(newLogs).catch(() => {
                 onError?.('Failed to save. Retrying…');
                 retryRef.current = setTimeout(
-                    () =>
-                        saveLogs(newLogs).catch(() =>
-                            onError?.('Save failed. Check your connection.'),
-                        ),
+                    () => saveLogs(newLogs).catch(() => onError?.('Save failed. Check your connection.')),
                     3000,
                 );
             });

@@ -13,9 +13,7 @@ export default function PulseError({ error, reset }: Props) {
                 <div className="font-pulse text-[0.8125rem] tracking-[0.1em] uppercase text-[#f43f5e] mb-4">Error</div>
                 <p className="text-pulse-dim text-[0.875rem] mb-3 font-pulse">Failed to load. Please try again.</p>
                 {error.digest && (
-                    <p className="text-[#333] text-[0.75rem] font-pulse tracking-[0.04em] mb-8">
-                        Code: {error.digest}
-                    </p>
+                    <p className="text-[#333] text-[0.75rem] font-pulse tracking-[0.04em] mb-8">Code: {error.digest}</p>
                 )}
                 <div className="flex gap-3 justify-center flex-wrap">
                     <button

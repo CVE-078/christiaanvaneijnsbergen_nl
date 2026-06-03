@@ -31,9 +31,12 @@ export default function PulseLayout({ children, ...providerProps }: Props) {
     const pathname = usePathname();
     const view = (pathname ? PATH_TO_VIEW[pathname] : undefined) ?? 'train';
 
-    const navigate = useCallback((v: View) => {
-        router.push(`/pulse/${v}`);
-    }, [router]);
+    const navigate = useCallback(
+        (v: View) => {
+            router.push(`/pulse/${v}`);
+        },
+        [router],
+    );
 
     return (
         <ToastProvider>

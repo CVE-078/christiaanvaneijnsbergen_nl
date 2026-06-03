@@ -177,14 +177,28 @@ export const WORKOUTS: Record<WorkoutType, Workout> = {
         ],
     },
     // Granular types alias into their parent push/pull definitions
-    get chest() { return this.push; },
-    get shoulders() { return this.push; },
-    get back() { return this.pull; },
-    get arms() { return this.pull; },
+    get chest() {
+        return this.push;
+    },
+    get shoulders() {
+        return this.push;
+    },
+    get back() {
+        return this.pull;
+    },
+    get arms() {
+        return this.pull;
+    },
     // Upper/Lower/Full Body alias into push (placeholder until dedicated workouts are added)
-    get upper() { return this.push; },
-    get lower() { return this.legs; },
-    get full_body() { return this.push; },
+    get upper() {
+        return this.push;
+    },
+    get lower() {
+        return this.legs;
+    },
+    get full_body() {
+        return this.push;
+    },
 };
 
 export const WEEK_NOTES: Record<number, string> = {

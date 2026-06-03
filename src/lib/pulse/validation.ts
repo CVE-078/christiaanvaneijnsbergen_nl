@@ -2,7 +2,8 @@ import type { Logs } from './types';
 
 // Format: "<week>-<routineExerciseId (UUID v4)>-<setIdx>"
 // Weeks 1–52, set indices 0–9
-const LOG_KEY_RE = /^([1-9]|[1-4][0-9]|5[0-2])-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-[0-9]$/i;
+const LOG_KEY_RE =
+    /^([1-9]|[1-4][0-9]|5[0-2])-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-[0-9]$/i;
 
 export function validateLogs(value: unknown): value is Logs {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;

@@ -42,8 +42,7 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
                         {[`${stats.durationMin} min`, `${stats.totalSets} sets`, `Week ${week}`].map((label) => (
                             <span
                                 key={label}
-                                className="font-pulse text-[0.6875rem] font-semibold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/20 rounded-full px-2.5 py-1 tracking-[0.04em]"
-                            >
+                                className="font-pulse text-[0.6875rem] font-semibold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/20 rounded-full px-2.5 py-1 tracking-[0.04em]">
                                 {label}
                             </span>
                         ))}

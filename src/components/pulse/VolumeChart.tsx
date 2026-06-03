@@ -3,10 +3,16 @@ import { WORKOUT_TYPE_ORDER } from '@/lib/pulse/constants';
 import type { WorkoutType } from '@/lib/pulse/types';
 
 const TYPE_COLOR: Partial<Record<WorkoutType, string>> = {
-    push: '#3ecf8e', chest: '#3ecf8e', shoulders: '#3ecf8e', arms: '#3ecf8e',
-    pull: '#38bdf8', back: '#38bdf8',
-    legs: '#a78bfa', lower: '#a78bfa',
-    upper: '#fb923c', full_body: '#fb923c',
+    push: '#3ecf8e',
+    chest: '#3ecf8e',
+    shoulders: '#3ecf8e',
+    arms: '#3ecf8e',
+    pull: '#38bdf8',
+    back: '#38bdf8',
+    legs: '#a78bfa',
+    lower: '#a78bfa',
+    upper: '#fb923c',
+    full_body: '#fb923c',
 };
 const DEFAULT_COLOR = '#5e6a80';
 
@@ -15,10 +21,14 @@ interface VolumeChartProps {
 }
 
 export default function VolumeChart({ volByWeek }: VolumeChartProps) {
-    const PL = 28, PR = 6, PT = 8, PB = 20;
-    const VW = 300, VH = 68;
-    const W = VW - PL - PR;   // 266
-    const H = VH - PT - PB;   // 40
+    const PL = 28,
+        PR = 6,
+        PT = 8,
+        PB = 20;
+    const VW = 300,
+        VH = 68;
+    const W = VW - PL - PR; // 266
+    const H = VH - PT - PB; // 40
     const slotW = W / 12;
     const barW = 14;
 
@@ -43,12 +53,7 @@ export default function VolumeChart({ volByWeek }: VolumeChartProps) {
     return (
         <svg viewBox={`0 0 ${VW} ${VH}`} className="w-full" aria-hidden="true">
             {/* Baseline */}
-            <line
-                x1={PL} y1={PT + H}
-                x2={PL + W} y2={PT + H}
-                stroke="var(--color-pulse-border)"
-                strokeWidth={1}
-            />
+            <line x1={PL} y1={PT + H} x2={PL + W} y2={PT + H} stroke="var(--color-pulse-border)" strokeWidth={1} />
 
             {Array.from({ length: 12 }, (_, i) => {
                 const week = i + 1;
@@ -81,8 +86,7 @@ export default function VolumeChart({ volByWeek }: VolumeChartProps) {
                     textAnchor="middle"
                     fontSize="8"
                     fontFamily="var(--font-pulse)"
-                    fill="var(--color-pulse-dim)"
-                >
+                    fill="var(--color-pulse-dim)">
                     {w}
                 </text>
             ))}

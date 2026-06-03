@@ -16,12 +16,16 @@ const mockNavigate = vi.fn();
 
 const mockTemplates: RoutineTemplate[] = [
     {
-        id: '1', name: 'Full Body — Dumbbells', slug: 'full-body-db',
-        required_equipment: ['dumbbells'], days_per_week: '2-3',
-        experience_level: 'beginner', session_time: '30-45 min',
+        id: '1',
+        name: 'Full Body — Dumbbells',
+        slug: 'full-body-db',
+        required_equipment: ['dumbbells'],
+        days_per_week: '2-3',
+        experience_level: 'beginner',
+        session_time: '30-45 min',
         description: 'One session works everything.',
-        schedule_pattern: ['full_body','full_body','full_body'],
-        default_days: [1,3,5],
+        schedule_pattern: ['full_body', 'full_body', 'full_body'],
+        default_days: [1, 3, 5],
     },
 ];
 
@@ -37,22 +41,32 @@ beforeEach(() => {
     });
 });
 
-function selectEquipment() { fireEvent.click(screen.getByText('Dumbbells')); }
-function advanceToStep2() { selectEquipment(); fireEvent.click(screen.getByText('Next')); }
+function selectEquipment() {
+    fireEvent.click(screen.getByText('Dumbbells'));
+}
+function advanceToStep2() {
+    selectEquipment();
+    fireEvent.click(screen.getByText('Next'));
+}
 
 function advanceToResult() {
     // Step 1
-    selectEquipment(); fireEvent.click(screen.getByText('Next'));
+    selectEquipment();
+    fireEvent.click(screen.getByText('Next'));
     // Step 2
-    fireEvent.click(screen.getByText('Beginner')); fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Beginner'));
+    fireEvent.click(screen.getByText('Next'));
     // Step 3
-    fireEvent.click(screen.getByText('Build muscle')); fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Build muscle'));
+    fireEvent.click(screen.getByText('Next'));
     // Step 4
-    fireEvent.click(screen.getByText('5–6 days')); fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('5–6 days'));
+    fireEvent.click(screen.getByText('Next'));
     // Step 5 — days pre-selected, just click Next
     fireEvent.click(screen.getByText('Next'));
     // Step 6
-    fireEvent.click(screen.getByText('45–60 min')); fireEvent.click(screen.getByText('See my recommendation'));
+    fireEvent.click(screen.getByText('45–60 min'));
+    fireEvent.click(screen.getByText('See my recommendation'));
 }
 
 describe('OnboardingModal', () => {
@@ -86,10 +100,14 @@ describe('OnboardingModal', () => {
 
     it('shows day picker on step 5 with pre-selected days', () => {
         render(<OnboardingModal />);
-        selectEquipment(); fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Beginner')); fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Build muscle')); fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('4 days')); fireEvent.click(screen.getByText('Next'));
+        selectEquipment();
+        fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Beginner'));
+        fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Build muscle'));
+        fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('4 days'));
+        fireEvent.click(screen.getByText('Next'));
         expect(screen.getByText('Which days will you train?')).toBeInTheDocument();
         expect(screen.getByText('Next')).not.toBeDisabled();
     });
@@ -97,9 +115,7 @@ describe('OnboardingModal', () => {
     it('completes all steps and shows beginner recommendation', async () => {
         render(<OnboardingModal />);
         advanceToResult();
-        await waitFor(() =>
-            expect(screen.getByText(/Recommended for you/i)).toBeInTheDocument()
-        );
+        await waitFor(() => expect(screen.getByText(/Recommended for you/i)).toBeInTheDocument());
     });
 
     it('"Browse all templates" navigates to library and dismisses modal', async () => {

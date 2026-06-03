@@ -18,10 +18,14 @@ export default function E1RMChart({ history, unit }: E1RMChartProps) {
         );
     }
 
-    const PL = 34, PR = 8, PT = 10, PB = 16;
-    const VW = 300, VH = 80;
-    const W = VW - PL - PR;  // 258
-    const H = VH - PT - PB;  // 54
+    const PL = 34,
+        PR = 8,
+        PT = 10,
+        PB = 16;
+    const VW = 300,
+        VH = 80;
+    const W = VW - PL - PR; // 258
+    const H = VH - PT - PB; // 54
 
     const e1rms = history.map((p) => p.e1rm);
     const minE = Math.min(...e1rms);
@@ -60,8 +64,7 @@ export default function E1RMChart({ history, unit }: E1RMChartProps) {
                     textAnchor="end"
                     fontSize="8"
                     fontFamily="var(--font-pulse)"
-                    fill="var(--color-pulse-dim)"
-                >
+                    fill="var(--color-pulse-dim)">
                     {Math.round(toDisplay(v, unit))}
                 </text>
             ))}
@@ -84,13 +87,7 @@ export default function E1RMChart({ history, unit }: E1RMChartProps) {
 
             {/* Data dots */}
             {history.map((p) => (
-                <circle
-                    key={p.week}
-                    cx={px(p.week)}
-                    cy={py(p.e1rm)}
-                    r={2.5}
-                    fill="var(--color-pulse-accent)"
-                />
+                <circle key={p.week} cx={px(p.week)} cy={py(p.e1rm)} r={2.5} fill="var(--color-pulse-accent)" />
             ))}
 
             {/* PR ring */}

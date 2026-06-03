@@ -7,14 +7,17 @@ import type { RoutineTemplate, EquipmentKey } from '@/lib/pulse/types';
 
 type EquipmentFilter = 'all' | 'dumbbells' | 'home' | 'gym';
 
-const FILTER_EQUIPMENT: Record<Exclude<EquipmentFilter,'all'>, Set<EquipmentKey>> = {
+const FILTER_EQUIPMENT: Record<Exclude<EquipmentFilter, 'all'>, Set<EquipmentKey>> = {
     dumbbells: new Set(['dumbbells']),
-    home: new Set(['dumbbells','barbell','bench']),
-    gym: new Set(['barbell','bench','cables','machines']),
+    home: new Set(['dumbbells', 'barbell', 'bench']),
+    gym: new Set(['barbell', 'bench', 'cables', 'machines']),
 };
 
 const FILTER_LABELS: Record<EquipmentFilter, string> = {
-    all: 'All', dumbbells: 'Dumbbells', home: 'Home Gym', gym: 'Full Gym',
+    all: 'All',
+    dumbbells: 'Dumbbells',
+    home: 'Home Gym',
+    gym: 'Full Gym',
 };
 
 const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
@@ -25,22 +28,18 @@ const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
 
 export default function TemplatesTab() {
     const { cloneTemplate, navigate, routines } = usePulse();
-    const { data: templates = [] } = useSWR<RoutineTemplate[]>(
-        '/api/pulse/templates',
-        (url: string) => fetch(url).then((r) => r.json()),
+    const { data: templates = [] } = useSWR<RoutineTemplate[]>('/api/pulse/templates', (url: string) =>
+        fetch(url).then((r) => r.json()),
     );
     const [filter, setFilter] = useState<EquipmentFilter>('all');
     const [loading, setLoading] = useState<string | null>(null);
 
-    const visible = filter === 'all'
-        ? templates
-        : templates.filter((t) => templateMatchesEquipment(t, FILTER_EQUIPMENT[filter]));
+    const visible =
+        filter === 'all' ? templates : templates.filter((t) => templateMatchesEquipment(t, FILTER_EQUIPMENT[filter]));
 
     async function handleUse(t: RoutineTemplate) {
-        if (
-            routines.length > 0 &&
-            !window.confirm(`This will replace your active routine with "${t.name}". Continue?`)
-        ) return;
+        if (routines.length > 0 && !window.confirm(`This will replace your active routine with "${t.name}". Continue?`))
+            return;
         const sessionTime = window.prompt(
             'How long are your sessions?\nEnter: ~30 min | 45–60 min | 90+ min',
             '45–60 min',
@@ -54,7 +53,7 @@ export default function TemplatesTab() {
     return (
         <div className="flex flex-col gap-4">
             <div className="flex gap-2 flex-wrap">
-                {(['all','dumbbells','home','gym'] as EquipmentFilter[]).map((f) => (
+                {(['all', 'dumbbells', 'home', 'gym'] as EquipmentFilter[]).map((f) => (
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
@@ -68,7 +67,9 @@ export default function TemplatesTab() {
                 ))}
             </div>
             {visible.map((t) => (
-                <div key={t.slug} className="bg-pulse-surface border border-pulse-border rounded-xl p-4 flex flex-col gap-2">
+                <div
+                    key={t.slug}
+                    className="bg-pulse-surface border border-pulse-border rounded-xl p-4 flex flex-col gap-2">
                     <div className="flex items-start justify-between gap-3">
                         <span className="font-pulse text-sm font-semibold text-white">{t.name}</span>
                         <button
@@ -79,7 +80,8 @@ export default function TemplatesTab() {
                         </button>
                     </div>
                     <div className="flex gap-2 flex-wrap items-center">
-                        <span className={`font-pulse text-[0.625rem] tracking-[0.08em] uppercase ${LEVEL_CLASS[t.experience_level]}`}>
+                        <span
+                            className={`font-pulse text-[0.625rem] tracking-[0.08em] uppercase ${LEVEL_CLASS[t.experience_level]}`}>
                             {t.experience_level}
                         </span>
                         <span className="font-pulse text-[0.625rem] text-pulse-dim">

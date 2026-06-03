@@ -13,15 +13,9 @@ export async function login(formData: FormData) {
 
     // Create the profile row for brand-new users. Existing users' rows are untouched.
     if (data.user) {
-        const { data: existing } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('id', data.user.id)
-            .maybeSingle();
+        const { data: existing } = await supabase.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
         if (!existing) {
-            await supabase
-                .from('profiles')
-                .insert({ id: data.user.id, unit: 'kg', onboarding_completed: false });
+            await supabase.from('profiles').insert({ id: data.user.id, unit: 'kg', onboarding_completed: false });
         }
     }
 
