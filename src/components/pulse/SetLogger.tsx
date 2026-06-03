@@ -31,6 +31,9 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
 
     const [kg, setKg] = useState(initKg);
     const [reps, setReps] = useState(entry?.reps?.toString() ?? '');
+    const [drops, setDrops] = useState<Array<{ kg: string; reps: string }>>(
+        () => entry?.drops?.map((d) => ({ kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ?? [],
+    );
     const [editing, setEditing] = useState(false);
     const [inputError, setInputError] = useState<string | null>(null);
     const [platesOpen, setPlatesOpen] = useState(false);
@@ -43,6 +46,7 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
         if (!saved || editing) {
             const base = entry?.kg ?? (suggestion !== null ? suggestion : null);
             if (base !== null) setKg(String(toDisplay(base, unit)));
+            setDrops(entry?.drops?.map((d) => ({ kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ?? []);
         }
     }, [unit]);
 
@@ -67,20 +71,33 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
             return;
         }
         setInputError(null);
-        onSave({ kg: kgNum, reps: repsNum, rir: targetRIR, saved: true });
+        const savedDrops = drops
+            .map((d) => ({ kg: toKg(parseFloat(d.kg), unit), reps: parseInt(d.reps, 10) }))
+            .filter((d) => d.kg > 0 && d.reps > 0);
+        onSave({
+            kg: kgNum,
+            reps: repsNum,
+            rir: targetRIR,
+            saved: true,
+            ...(savedDrops.length > 0 ? { drops: savedDrops } : {}),
+        });
         setEditing(false);
     }
 
-    function handleEdit() {
+    function resetDrafts() {
         setKg(entry?.kg !== undefined ? String(toDisplay(entry.kg, unit)) : '');
         setReps(entry?.reps?.toString() ?? '');
+        setDrops(entry?.drops?.map((d) => ({ kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ?? []);
+    }
+
+    function handleEdit() {
+        resetDrafts();
         setEditing(true);
         setInputError(null);
     }
 
     function handleCancel() {
-        setKg(entry?.kg !== undefined ? String(toDisplay(entry.kg, unit)) : '');
-        setReps(entry?.reps?.toString() ?? '');
+        resetDrafts();
         setEditing(false);
         setInputError(null);
     }
@@ -174,6 +191,56 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                             {inputError && (
                                 <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>
                             )}
+                            {drops.map((d, di) => (
+                                <div key={di} className="flex items-center gap-2">
+                                    <span className="font-pulse text-pulse-dim text-sm shrink-0">↓</span>
+                                    <input
+                                        type="number"
+                                        aria-label={`Drop ${di + 1} weight in ${unit}`}
+                                        placeholder={unit}
+                                        value={d.kg}
+                                        min={displayMin}
+                                        max={displayMax}
+                                        step={displayStep}
+                                        onChange={(e) =>
+                                            setDrops((prev) =>
+                                                prev.map((p, pi) => (pi === di ? { ...p, kg: e.target.value } : p)),
+                                            )
+                                        }
+                                        className={inputClass}
+                                    />
+                                    <span className="font-pulse text-pulse-muted text-sm">×</span>
+                                    <input
+                                        type="number"
+                                        aria-label={`Drop ${di + 1} repetitions`}
+                                        placeholder="reps"
+                                        value={d.reps}
+                                        min={1}
+                                        max={100}
+                                        onChange={(e) =>
+                                            setDrops((prev) =>
+                                                prev.map((p, pi) => (pi === di ? { ...p, reps: e.target.value } : p)),
+                                            )
+                                        }
+                                        className={inputClass}
+                                    />
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove drop ${di + 1}`}
+                                        onClick={() => setDrops((prev) => prev.filter((_, pi) => pi !== di))}
+                                        className="font-pulse text-[0.75rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0 shrink-0">
+                                        ✕
+                                    </button>
+                                </div>
+                            ))}
+                            {drops.length < 6 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setDrops((prev) => [...prev, { kg: '', reps: '' }])}
+                                    className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer p-0 self-start">
+                                    + Add drop
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                             {showPlates && (
@@ -223,6 +290,13 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                             <span className="text-pulse-dim ml-1.5">@ RIR {entry!.rir}</span>
                         </span>
                         <div className="ml-auto flex items-center gap-3 shrink-0">
+                            {entry?.rir === 0 && (
+                                <span
+                                    className="font-pulse text-[0.625rem] uppercase tracking-[0.08em] text-pulse-accent"
+                                    title="Taken to failure">
+                                    Failure
+                                </span>
+                            )}
                             {isPR && (
                                 <span className="font-pulse text-[0.6875rem] font-semibold tracking-[0.1em] uppercase text-pulse-accent">
                                     PR
@@ -268,6 +342,17 @@ export default function SetLogger({ setIdx, week, entry, previousEntry, isPR, un
                     </>
                 )}
             </div>
+            {!showInputs && entry?.drops && entry.drops.length > 0 && (
+                <div className="font-pulse text-[0.75rem] text-pulse-dim pl-[2.375rem] mt-0.5">
+                    ↓{' '}
+                    {entry.drops.map((d, di) => (
+                        <span key={di}>
+                            {di > 0 && <span className="text-pulse-muted"> · </span>}
+                            {toDisplay(d.kg, unit)} × {d.reps}
+                        </span>
+                    ))}
+                </div>
+            )}
             {showPlates && platesOpen && <PlateCalculator targetKg={targetKg} unit={unit} />}
         </div>
     );
