@@ -39,7 +39,11 @@ New `'use server'` action `generateAndSaveRoutine` in `src/app/pulse/actions.ts`
 
 - **Onboarding** (first run): completing `RoutineSetupFlow` calls `generateAndSaveRoutine` (replaces the current `recommendTemplate` -> `cloneTemplate` default). For `general_fitness` (which `recommendTemplate` returned null for), generation now produces a full-body routine instead of nothing.
 - **Library → Templates "Use this"**: opens `RoutineSetupFlow` prefilled from the template's metadata (`required_equipment`, `experience_level`, `days_per_week`, `session_time`), then clones the template through the fixed volume model (section 6). No dialogs.
-- **Library → "Generate a routine"**: a new button that opens `RoutineSetupFlow` blank (or prefilled from the user's last answers) and calls `generateAndSaveRoutine`.
+- **"Generate a routine" — made prominent (the flow is currently too hidden):**
+  - A primary "Generate routine" button at the **top of the Library → Routines tab** (above the routine list), not buried below the editor.
+  - The same CTA in the **empty state** (no routines yet) on Train and Routines.
+  - A "Generate routine" action in the **Plan view** header so it is reachable from the main training context, not only the Library.
+  - All of these open `RoutineSetupFlow` (blank, or prefilled from the user's last answers) and call `generateAndSaveRoutine`. The goal is that creating or regenerating a routine is one obvious tap from the places users already are.
 
 ## 5. Routine-editor session grouping (`RoutinesTab`)
 
