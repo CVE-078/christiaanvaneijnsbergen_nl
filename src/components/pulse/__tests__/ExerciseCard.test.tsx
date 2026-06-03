@@ -1,8 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ExerciseCard from '../ExerciseCard';
 import type { RoutineExercise } from '@/lib/pulse/types';
+
+const showToast = vi.fn();
+vi.mock('@/lib/pulse/toast', () => ({
+    useToast: () => ({ show: showToast }),
+}));
+
+import ExerciseCard from '../ExerciseCard';
 
 const routineExercise: RoutineExercise = {
     id: 're-uuid-001',
@@ -42,6 +48,8 @@ const MAX_SETS = 4;
 const RE_ID = 're-uuid-001';
 
 describe('ExerciseCard', () => {
+    beforeEach(() => vi.clearAllMocks());
+
     it('does not show completed indicator when no sets are logged', () => {
         render(<ExerciseCard {...defaultProps} />);
         expect(screen.queryAllByLabelText(/all sets done/i)).toHaveLength(0);
@@ -117,5 +125,41 @@ describe('ExerciseCard', () => {
         render(<ExerciseCard {...defaultProps} week={2} logs={logs} />);
         await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
         expect(screen.queryByText(/warm-up/i)).not.toBeInTheDocument();
+    });
+
+    it('renders a coral PR tag on a saved set that beats the exercise best', async () => {
+        // calcE1RM(80,10) ~= 106.7 >= 100
+        const logs = { [`1-${RE_ID}-0`]: { kg: 80, reps: 10, rir: 2, saved: true } };
+        render(<ExerciseCard {...defaultProps} logs={logs} prMap={{ [RE_ID]: 100 }} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        expect(screen.getByText('PR')).toBeInTheDocument();
+    });
+
+    it('does not render a PR tag when the set is below the best', async () => {
+        const logs = { [`1-${RE_ID}-0`]: { kg: 50, reps: 5, rir: 2, saved: true } };
+        render(<ExerciseCard {...defaultProps} logs={logs} prMap={{ [RE_ID]: 200 }} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        expect(screen.queryByText('PR')).not.toBeInTheDocument();
+    });
+
+    it('fires a success toast when a save newly qualifies as a PR', async () => {
+        render(<ExerciseCard {...defaultProps} prMap={{ [RE_ID]: 100 }} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        const kgInputs = screen.getAllByRole('spinbutton', { name: /weight in kg/i });
+        const repsInputs = screen.getAllByRole('spinbutton', { name: /repetitions/i });
+        await userEvent.type(kgInputs[0], '80');
+        await userEvent.type(repsInputs[0], '10');
+        await userEvent.click(screen.getAllByRole('button', { name: /save/i })[0]);
+        expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/new pr on dumbbell bench press/i), 'success');
+    });
+
+    it('does not fire a PR toast when re-saving an already-saved PR', async () => {
+        const logs = { [`1-${RE_ID}-0`]: { kg: 80, reps: 10, rir: 2, saved: true } };
+        render(<ExerciseCard {...defaultProps} logs={logs} prMap={{ [RE_ID]: 100 }} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        // Edit the first (already-PR) set and save again without lowering it.
+        await userEvent.click(screen.getAllByRole('button', { name: /edit/i })[0]);
+        await userEvent.click(screen.getAllByRole('button', { name: /update/i })[0]);
+        expect(showToast).not.toHaveBeenCalled();
     });
 });

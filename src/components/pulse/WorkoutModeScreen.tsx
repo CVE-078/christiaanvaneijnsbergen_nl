@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { logKey, parseMaxSets, computeLastSession } from '@/lib/pulse/utils';
+import { logKey, parseMaxSets, computeLastSession, isSetPR } from '@/lib/pulse/utils';
+import { usePulse } from '@/context/PulseContext';
+import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
 import type { RoutineExercise, Logs, LogEntry, Unit, WorkoutVariant } from '@/lib/pulse/types';
 
@@ -29,10 +31,24 @@ export default function WorkoutModeScreen({
     onComplete,
     onClose,
 }: Props) {
+    const { prMap } = usePulse();
+    const { show: showToast } = useToast();
     const [exerciseIdx, setExerciseIdx] = useState(0);
     const [completing, setCompleting] = useState(false);
 
     const re = exercises[exerciseIdx];
+
+    // Fire a quiet success toast only on the save transition into a PR, not for
+    // already-saved PRs (re-saving or editing an existing PR stays silent).
+    function handleSetSave(key: string, entry: LogEntry) {
+        const prev = logs[key];
+        const wasPR = !!(prev?.saved && isSetPR(prev.kg, prev.reps, re.id, prMap));
+        const isNowPR = isSetPR(entry.kg, entry.reps, re.id, prMap);
+        if (isNowPR && !wasPR) {
+            showToast(`New PR on ${re.exercise.name}`, 'success');
+        }
+        onSave(key, entry);
+    }
     const isFirst = exerciseIdx === 0;
     const isLast = exerciseIdx === exercises.length - 1;
     const maxSets = parseMaxSets(re.sets);
@@ -89,16 +105,19 @@ export default function WorkoutModeScreen({
                         const key = logKey(week, re.id, s);
                         const prevKey = logKey(week - 1, re.id, s);
                         const prevEntry = week > 1 ? logs[prevKey] : undefined;
+                        const entry = logs[key];
+                        const isPR = !!(entry?.saved && isSetPR(entry.kg, entry.reps, re.id, prMap));
                         return (
                             <SetLogger
                                 key={key}
                                 setIdx={s}
                                 week={week}
                                 type={re.workout_type}
-                                entry={logs[key]}
+                                entry={entry}
                                 previousEntry={prevEntry?.saved ? prevEntry : undefined}
+                                isPR={isPR}
                                 unit={unit}
-                                onSave={(entry) => onSave(key, entry)}
+                                onSave={(entry) => handleSetSave(key, entry)}
                                 onDelete={() => onDelete(key)}
                             />
                         );
