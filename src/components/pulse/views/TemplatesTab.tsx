@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { usePulse } from '@/context/PulseContext';
 import { templateMatchesEquipment } from '@/lib/pulse/types';
 import type { RoutineTemplate, EquipmentKey } from '@/lib/pulse/types';
+import RoutineSetupFlow from '@/components/pulse/RoutineSetupFlow';
 
 type EquipmentFilter = 'all' | 'dumbbells' | 'home' | 'gym';
 
@@ -29,28 +30,15 @@ const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
 };
 
 export default function TemplatesTab() {
-    const { cloneTemplate, navigate, routines } = usePulse();
+    const { cloneTemplate, navigate } = usePulse();
     const { data: templates = [] } = useSWR<RoutineTemplate[]>('/api/pulse/templates', (url: string) =>
         fetch(url).then((r) => r.json()),
     );
     const [filter, setFilter] = useState<EquipmentFilter>('all');
-    const [loading, setLoading] = useState<string | null>(null);
+    const [setupTemplate, setSetupTemplate] = useState<RoutineTemplate | null>(null);
 
     const visible =
         filter === 'all' ? templates : templates.filter((t) => templateMatchesEquipment(t, FILTER_EQUIPMENT[filter]));
-
-    async function handleUse(t: RoutineTemplate) {
-        if (routines.length > 0 && !window.confirm(`This will replace your active routine with "${t.name}". Continue?`))
-            return;
-        const sessionTime = window.prompt(
-            'How long are your sessions?\nEnter: ~30 min | 45–60 min | 90+ min',
-            '45–60 min',
-        );
-        setLoading(t.slug);
-        await cloneTemplate(t.slug, undefined, sessionTime ?? undefined);
-        navigate('train');
-        setLoading(null);
-    }
 
     return (
         <div className="flex flex-col gap-4">
@@ -75,10 +63,9 @@ export default function TemplatesTab() {
                     <div className="flex items-start justify-between gap-3">
                         <span className="font-pulse text-sm font-semibold text-pulse-text">{t.name}</span>
                         <button
-                            onClick={() => handleUse(t)}
-                            disabled={loading === t.slug}
-                            className="font-pulse text-xs font-semibold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/20 rounded-lg px-3 py-1.5 shrink-0 cursor-pointer disabled:opacity-50">
-                            {loading === t.slug ? '…' : 'Use this'}
+                            onClick={() => setSetupTemplate(t)}
+                            className="font-pulse text-xs font-semibold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/20 rounded-lg px-3 py-1.5 shrink-0 cursor-pointer">
+                            Use this
                         </button>
                     </div>
                     <div className="flex gap-2 flex-wrap items-center">
@@ -93,6 +80,21 @@ export default function TemplatesTab() {
                     <p className="font-pulse text-xs text-pulse-muted">{t.description}</p>
                 </div>
             ))}
+
+            {setupTemplate && (
+                <RoutineSetupFlow
+                    initial={{
+                        equipment: setupTemplate.required_equipment,
+                        experience: setupTemplate.experience_level,
+                    }}
+                    completeLabel="Use this routine"
+                    onComplete={async ({ answers, trainingDays, sessionTime }) => {
+                        await cloneTemplate(setupTemplate.slug, trainingDays, sessionTime, answers.experience);
+                        navigate('train');
+                    }}
+                    onClose={() => setSetupTemplate(null)}
+                />
+            )}
         </div>
     );
 }

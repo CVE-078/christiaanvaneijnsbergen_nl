@@ -67,25 +67,15 @@ describe('TemplatesTab', () => {
         expect(screen.queryByText('PPL — Gym')).not.toBeInTheDocument();
     });
 
-    it('clones template and navigates when no active routine', async () => {
-        vi.spyOn(window, 'prompt').mockReturnValue('45–60 min');
-        render(<TemplatesTab />);
-        const buttons = screen.getAllByText('Use this');
-        fireEvent.click(buttons[0]);
-        await waitFor(() => expect(mockCloneTemplate).toHaveBeenCalledWith('full-body-db', undefined, '45–60 min'));
-        expect(mockNavigate).toHaveBeenCalledWith('train');
-    });
-
-    it('shows confirm dialog when user already has a routine', async () => {
-        (usePulse as any).mockReturnValue({
-            cloneTemplate: mockCloneTemplate,
-            navigate: mockNavigate,
-            routines: [{ id: 'r1', name: 'My Routine' }],
-        });
-        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    it('opens the setup flow on Use this, with no native prompt or confirm dialog', () => {
+        const promptSpy = vi.spyOn(window, 'prompt');
+        const confirmSpy = vi.spyOn(window, 'confirm');
         render(<TemplatesTab />);
         fireEvent.click(screen.getAllByText('Use this')[0]);
-        expect(confirmSpy).toHaveBeenCalled();
+        // The shared RoutineSetupFlow opens at its first step instead of a dialog.
+        expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
+        expect(promptSpy).not.toHaveBeenCalled();
+        expect(confirmSpy).not.toHaveBeenCalled();
         expect(mockCloneTemplate).not.toHaveBeenCalled();
     });
 });
