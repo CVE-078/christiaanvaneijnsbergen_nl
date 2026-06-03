@@ -77,12 +77,26 @@ const defaultProps = {
 describe('DesktopLayout', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        localStorage.clear(); // keep the persisted sidebar state from leaking across tests
         vi.mocked(usePulse).mockReturnValue({ ...mockContext });
     });
 
     it('renders the brand mark in the icon rail', () => {
         render(<DesktopLayout {...defaultProps} />);
         expect(screen.getByText('P')).toBeInTheDocument();
+    });
+
+    it('expands the sidebar, revealing nav labels and swapping P for the Pulse wordmark', async () => {
+        render(<DesktopLayout {...defaultProps} />);
+        // Collapsed by default: "P" badge, nav labels are aria-only (no visible text node).
+        expect(screen.getByText('P')).toBeInTheDocument();
+        expect(screen.queryByText('Train')).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /expand sidebar/i }));
+        // Expanded: visible labels appear and the "P" badge is replaced by the wordmark.
+        expect(screen.getByText('Train')).toBeInTheDocument();
+        expect(screen.queryByText('P')).not.toBeInTheDocument();
+        // Toggle flips to a collapse control.
+        expect(screen.getByRole('button', { name: /collapse sidebar/i })).toBeInTheDocument();
     });
 
     it('renders all five nav items', () => {

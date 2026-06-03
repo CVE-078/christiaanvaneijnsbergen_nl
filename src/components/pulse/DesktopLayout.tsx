@@ -3,6 +3,7 @@ import { logout } from '@/app/pulse/actions';
 import { usePulse } from '@/context/PulseContext';
 import { getPhase, getRIR, logKey, parseLogKey, parseMaxSets } from '@/lib/pulse/utils';
 import { tabKeyLabel } from '@/lib/pulse/constants';
+import { useLocalStorage } from '@/hooks/pulse/useLocalStorage';
 import OnboardingModal from './OnboardingModal';
 import RestTimer from './RestTimer';
 import type { RoutineExercise, View } from '@/lib/pulse/types';
@@ -103,6 +104,8 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
         showOnboarding,
     } = usePulse();
 
+    const [expanded, setExpanded] = useLocalStorage('pulse:sidebar-expanded', false);
+
     const phase = getPhase(activeWeek);
     const rir = getRIR(activeWeek);
     const routineExercises: RoutineExercise[] = routineExercisesByTabKey[activeTab] ?? [];
@@ -111,14 +114,42 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
 
     return (
         <div className="flex h-screen bg-pulse-bg text-pulse-text overflow-hidden">
-            {/* Slim left icon rail */}
-            <aside className="w-[74px] shrink-0 border-r border-pulse-border flex flex-col items-center gap-9 py-7">
-                {/* Brand mark */}
-                <div className="w-[34px] h-[34px] rounded-[10px] bg-pulse-accent grid place-items-center font-pulse font-semibold text-[1.1875rem] text-pulse-bg">
-                    P
+            {/* Left nav rail — collapsible. Collapsed shows the "P" mark + icons;
+                expanded shows the full "Pulse" wordmark + labels. Choice persists. */}
+            <aside
+                className={`shrink-0 border-r border-pulse-border flex flex-col py-7 transition-[width] duration-200 ${
+                    expanded ? 'w-[208px] items-stretch px-4 gap-8' : 'w-[74px] items-center gap-9'
+                }`}>
+                {/* Brand + collapse toggle */}
+                <div className={`flex items-center ${expanded ? 'justify-between px-1' : 'flex-col gap-3'}`}>
+                    {expanded ? (
+                        <span className="font-pulse font-bold text-lg tracking-[0.04em] uppercase text-pulse-text">
+                            Pulse<span className="text-pulse-accent">.</span>
+                        </span>
+                    ) : (
+                        <div className="w-[34px] h-[34px] rounded-[10px] bg-pulse-accent grid place-items-center font-pulse font-semibold text-[1.1875rem] text-pulse-bg">
+                            P
+                        </div>
+                    )}
+                    <button
+                        onClick={() => setExpanded(!expanded)}
+                        aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+                        aria-expanded={expanded}
+                        title={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+                        className="grid place-items-center bg-transparent border-none cursor-pointer text-pulse-muted hover:text-pulse-text transition-colors [&_svg]:w-[18px] [&_svg]:h-[18px]">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+                            <path
+                                d={expanded ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </button>
                 </div>
 
-                <nav aria-label="Main navigation" className="flex flex-col items-center gap-7">
+                <nav
+                    aria-label="Main navigation"
+                    className={`flex flex-col ${expanded ? 'gap-1' : 'items-center gap-7'}`}>
                     {NAV.map(({ id, label, icon }) => {
                         const active = view === id;
                         return (
@@ -128,26 +159,36 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                                 aria-current={active ? 'page' : undefined}
                                 aria-label={label}
                                 title={label}
-                                className={`grid place-items-center bg-transparent border-none cursor-pointer transition-colors duration-150 [&_svg]:w-[22px] [&_svg]:h-[22px] ${
-                                    active ? 'text-pulse-accent' : 'text-pulse-muted hover:text-pulse-text'
+                                className={`bg-transparent border-none cursor-pointer transition-colors duration-150 [&_svg]:w-[22px] [&_svg]:h-[22px] [&_svg]:shrink-0 ${
+                                    expanded
+                                        ? 'flex items-center gap-3 w-full px-2 py-2 rounded-lg font-pulse text-sm'
+                                        : 'grid place-items-center'
+                                } ${
+                                    active
+                                        ? `text-pulse-accent${expanded ? ' bg-pulse-accent/10' : ''}`
+                                        : 'text-pulse-muted hover:text-pulse-text'
                                 }`}>
                                 {icon}
+                                {expanded && <span>{label}</span>}
                             </button>
                         );
                     })}
                 </nav>
 
-                <div className="mt-auto">
+                <div className={expanded ? 'mt-auto px-1' : 'mt-auto'}>
                     <form action={logout}>
                         <button
                             type="submit"
                             aria-label="Sign out of Pulse"
                             title="Sign out"
-                            className="grid place-items-center bg-transparent border-none cursor-pointer text-pulse-muted hover:text-pulse-text transition-colors [&_svg]:w-[22px] [&_svg]:h-[22px]">
+                            className={`bg-transparent border-none cursor-pointer text-pulse-muted hover:text-pulse-text transition-colors [&_svg]:w-[22px] [&_svg]:h-[22px] [&_svg]:shrink-0 ${
+                                expanded ? 'flex items-center gap-3 font-pulse text-sm' : 'grid place-items-center'
+                            }`}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                                 <path d="M16 17l5-5-5-5M21 12H9" />
                             </svg>
+                            {expanded && <span>Sign out</span>}
                         </button>
                     </form>
                 </div>
