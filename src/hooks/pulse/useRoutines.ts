@@ -12,6 +12,7 @@ import {
     updateExercise as serverUpdateExercise,
     deleteExercise as serverDeleteExercise,
     cloneTemplate as serverCloneTemplate,
+    generateAndSaveRoutine as serverGenerateRoutine,
     completeOnboarding as serverCompleteOnboarding,
 } from '@/app/pulse/actions';
 import type {
@@ -22,6 +23,8 @@ import type {
     RoutineExercise,
     ExerciseCategory,
 } from '@/lib/pulse/types';
+import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
+import type { SessionTime } from '@/lib/pulse/types';
 import { fetcher } from '@/lib/pulse/fetcher';
 
 const EXERCISES_KEY = '/api/pulse/exercises';
@@ -132,8 +135,28 @@ export function useRoutines(
     );
 
     const cloneTemplate = useCallback(
-        async (slug: string, trainingDays?: number[], sessionTime?: string): Promise<WorkoutRoutine> => {
-            const routine = await serverCloneTemplate(slug, trainingDays, sessionTime);
+        async (
+            slug: string,
+            trainingDays?: number[],
+            sessionTime?: string,
+            experience?: ExperienceLevel,
+        ): Promise<WorkoutRoutine> => {
+            const routine = await serverCloneTemplate(slug, trainingDays, sessionTime, experience);
+            await mutateRoutines();
+            await globalMutate(PROFILE_KEY);
+            return routine;
+        },
+        [mutateRoutines, globalMutate],
+    );
+
+    const generateRoutine = useCallback(
+        async (
+            answers: OnboardingAnswers,
+            trainingDays: number[],
+            sessionTime: SessionTime,
+            name?: string,
+        ): Promise<WorkoutRoutine> => {
+            const routine = await serverGenerateRoutine(answers, trainingDays, sessionTime, name);
             await mutateRoutines();
             await globalMutate(PROFILE_KEY);
             return routine;
@@ -188,6 +211,7 @@ export function useRoutines(
         updateRoutineExercise,
         reorderRoutineExercises,
         cloneTemplate,
+        generateRoutine,
         completeOnboarding,
         createExercise,
         updateExercise,

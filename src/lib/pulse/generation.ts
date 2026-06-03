@@ -190,3 +190,26 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
 
     return { schedule, exercises };
 }
+
+// Trim a template's exercise list to the session-length volume target, grouping
+// by (workout_type, variant) so each session keeps up to `exercises` lifts (never
+// below the floor, never inventing exercises the template lacks). Replaces the old
+// applyVolume slice-to-4 / minus-a-set logic that could gut a routine to one lift.
+export function applyTemplateVolume<
+    T extends { workout_type: string; variant: string | null; order: number; sets: string },
+>(exercises: T[], sessionTime: SessionTime, experience: ExperienceLevel): T[] {
+    const { exercises: perSession, sets } = volumeFor(sessionTime, experience);
+    const groups = new Map<string, T[]>();
+    for (const ex of exercises) {
+        const key = `${ex.workout_type}:${ex.variant ?? ''}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(ex);
+    }
+    const out: T[] = [];
+    for (const group of groups.values()) {
+        const sorted = [...group].sort((a, b) => a.order - b.order);
+        const keep = Math.min(sorted.length, Math.max(perSession, 3));
+        for (const ex of sorted.slice(0, keep)) out.push({ ...ex, sets: String(sets) });
+    }
+    return out;
+}

@@ -6,6 +6,9 @@ import { validateLogs } from '@/lib/pulse/validation';
 import { parseLogKey, UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
+import { applyTemplateVolume, generateRoutine } from '@/lib/pulse/generation';
+import type { ExerciseMeta } from '@/lib/pulse/generation';
+import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 import type {
     Logs,
     Unit,
@@ -15,6 +18,7 @@ import type {
     WorkoutRoutine,
     RoutineExercise,
     ExerciseCategory,
+    SessionTime,
 } from '@/lib/pulse/types';
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -482,46 +486,15 @@ export async function reorderRoutineExercises(routineId: string, orderedIds: str
     if (failed?.error) throw new Error('Failed to reorder exercises');
 }
 
-function adjustSets(sets: string, delta: number): string {
-    const parts = sets.split('-').map(Number);
-    if (parts.length === 1) {
-        return String(Math.min(5, Math.max(2, parts[0] + delta)));
-    }
-    return `${Math.min(5, Math.max(2, parts[0] + delta))}-${Math.min(5, Math.max(2, parts[1] + delta))}`;
-}
-
-function applyVolume(
-    exercises: Array<{
-        exercise_id: string;
-        workout_type: string;
-        variant: string | null;
-        order: number;
-        sets: string;
-        reps: string;
-    }>,
-    sessionTime: string,
-): typeof exercises {
-    if (sessionTime === '~30 min') {
-        const groups: Record<string, typeof exercises> = {};
-        for (const ex of exercises) {
-            const key = ex.variant ? `${ex.workout_type}:${ex.variant}` : ex.workout_type;
-            groups[key] = groups[key] ?? [];
-            groups[key].push(ex);
-        }
-        return Object.values(groups)
-            .flatMap((group) => group.slice(0, 4))
-            .map((ex) => ({ ...ex, sets: adjustSets(ex.sets, -1) }));
-    }
-    if (sessionTime === '90+ min') {
-        return exercises.map((ex) => ({ ...ex, sets: adjustSets(ex.sets, 1) }));
-    }
-    return exercises;
-}
+// Volume sizing now lives in src/lib/pulse/generation.ts (applyTemplateVolume),
+// keyed by session length and experience with a floor that prevents the old
+// 30-minute bug of trimming a routine down to a single exercise.
 
 export async function cloneTemplate(
     slug: string,
     trainingDays?: number[],
     sessionTime?: string,
+    experience?: ExperienceLevel,
 ): Promise<WorkoutRoutine> {
     if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid slug');
 
@@ -551,7 +524,10 @@ export async function cloneTemplate(
         sets: string;
         reps: string;
     }>;
-    const exercises = sessionTime ? applyVolume(rawExercises, sessionTime) : rawExercises;
+    const exercises =
+        sessionTime && experience
+            ? applyTemplateVolume(rawExercises, sessionTime as SessionTime, experience)
+            : rawExercises;
 
     if (exercises.length > 0) {
         const { error: exErr } = await supabase.from('routine_exercises').insert(
@@ -586,6 +562,72 @@ export async function cloneTemplate(
     }
 
     // Set as active routine
+    const { error: profileErr } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, active_routine_id: routine.id }, { onConflict: 'id' });
+    if (profileErr) throw new Error('Failed to set active routine');
+
+    revalidatePath('/pulse');
+    return routine as WorkoutRoutine;
+}
+
+export async function generateAndSaveRoutine(
+    answers: OnboardingAnswers,
+    trainingDays: number[],
+    sessionTime: SessionTime,
+    name?: string,
+): Promise<WorkoutRoutine> {
+    const { supabase, user } = await getUserOrThrow();
+    if (!trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error('Invalid training days');
+
+    const { data: pool } = await supabase
+        .from('exercises')
+        .select('id, category, equipment, movement_pattern, is_compound')
+        .is('user_id', null);
+
+    const blueprint = generateRoutine({
+        answers,
+        sessionTime,
+        trainingDays,
+        pool: (pool ?? []) as unknown as ExerciseMeta[],
+    });
+
+    const { data: routine, error: routineErr } = await supabase
+        .from('workout_routines')
+        .insert({ user_id: user.id, name: name ?? 'Generated routine' })
+        .select('id, user_id, name, created_at')
+        .single();
+    if (routineErr || !routine) throw new Error('Failed to create routine');
+
+    if (blueprint.exercises.length > 0) {
+        const { error: exErr } = await supabase.from('routine_exercises').insert(
+            blueprint.exercises.map((e) => ({
+                routine_id: routine.id,
+                exercise_id: e.exercise_id,
+                workout_type: e.workout_type,
+                variant: e.variant,
+                order: e.order,
+                sets: e.sets,
+                reps: e.reps,
+                starting_weight_kg: null,
+            })),
+        );
+        if (exErr) throw new Error('Failed to save generated exercises');
+    }
+
+    // Schedule maps day -> workout_type. There is no variant column on
+    // routine_schedule; A/B lives on routine_exercises and is surfaced via the
+    // train-screen tabs.
+    const scheduleRows = blueprint.schedule.map((s) => ({
+        routine_id: routine.id,
+        day_of_week: s.day_of_week,
+        workout_type: s.workout_type,
+    }));
+    if (scheduleRows.length > 0) {
+        const { error: schedErr } = await supabase.from('routine_schedule').insert(scheduleRows);
+        if (schedErr) throw new Error('Failed to create schedule');
+    }
+
     const { error: profileErr } = await supabase
         .from('profiles')
         .upsert({ id: user.id, active_routine_id: routine.id }, { onConflict: 'id' });

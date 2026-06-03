@@ -9,6 +9,7 @@ import SupersetCard from '../SupersetCard';
 import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
 import WorkoutModeScreen from '../WorkoutModeScreen';
 import ShareCard from '../ShareCard';
+import GenerateRoutineButton from '../GenerateRoutineButton';
 import type { LogEntry, RoutineExercise, WorkoutSession } from '@/lib/pulse/types';
 
 export default function LogView() {
@@ -143,10 +144,14 @@ export default function LogView() {
                 <div className="font-pulse text-sm text-pulse-dim max-w-[260px]">
                     Create a routine in the Library to start logging your workouts.
                 </div>
+                <GenerateRoutineButton
+                    label="Generate a routine"
+                    className="font-pulse text-sm font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-5 py-2.5 cursor-pointer border-none"
+                />
                 <button
                     onClick={() => navigate('explore')}
-                    className="font-pulse text-sm font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-5 py-2.5 cursor-pointer border-none">
-                    Go to Library
+                    className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer">
+                    Browse the Library
                 </button>
             </div>
         );
@@ -259,7 +264,7 @@ export default function LogView() {
                             onSaveNote={(n) => saveNote(activeWeek, item.id, n)}
                             onDeleteNote={() => deleteNote(activeWeek, item.id)}
                         />
-                    )
+                    ),
                 )}
                 {!hasData && (
                     <div className="pt-6 text-center">

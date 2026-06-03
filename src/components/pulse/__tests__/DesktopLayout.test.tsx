@@ -44,6 +44,7 @@ const mockContext = {
     updateRoutineExercise: vi.fn(),
     reorderRoutineExercises: vi.fn(),
     cloneTemplate: vi.fn(),
+    generateRoutine: vi.fn(),
     completeOnboarding: vi.fn(),
     createExercise: vi.fn(),
     updateExercise: vi.fn(),

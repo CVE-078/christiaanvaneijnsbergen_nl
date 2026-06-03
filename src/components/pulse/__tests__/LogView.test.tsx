@@ -85,7 +85,8 @@ describe('LogView', () => {
         const { default: userEvent } = await import('@testing-library/user-event');
         render(<LogView />);
         expect(screen.getByText(/no routine active/i)).toBeInTheDocument();
-        await userEvent.click(screen.getByRole('button', { name: /go to library/i }));
+        expect(screen.getByRole('button', { name: /generate a routine/i })).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /browse the library/i }));
         expect(navigate).toHaveBeenCalledWith('explore');
     });
 
@@ -145,14 +146,28 @@ describe('LogView', () => {
             id: 're-a',
             order: 0,
             superset_group_id: 'grp-1',
-            exercise: { id: 'ex-a', name: 'Bench Press', category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null },
+            exercise: {
+                id: 'ex-a',
+                name: 'Bench Press',
+                category: 'chest',
+                default_sets: '3',
+                default_reps: '8-12',
+                user_id: null,
+            },
         };
         const reB: RoutineExercise = {
             ...mockRE,
             id: 're-b',
             order: 1,
             superset_group_id: 'grp-1',
-            exercise: { id: 'ex-b', name: 'Cable Fly', category: 'chest', default_sets: '3', default_reps: '12-15', user_id: null },
+            exercise: {
+                id: 'ex-b',
+                name: 'Cable Fly',
+                category: 'chest',
+                default_sets: '3',
+                default_reps: '12-15',
+                user_id: null,
+            },
         };
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,

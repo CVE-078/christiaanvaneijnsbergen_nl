@@ -17,7 +17,9 @@ import type {
     RoutineTemplate,
     ExerciseCategory,
     ScheduleEntry,
+    SessionTime,
 } from '@/lib/pulse/types';
+import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 
 export interface PulseContextValue {
     // Data
@@ -94,7 +96,18 @@ export interface PulseContextValue {
         restSeconds: number | null,
     ) => Promise<void>;
     reorderRoutineExercises: (routineId: string, orderedIds: string[]) => Promise<void>;
-    cloneTemplate: (slug: string, trainingDays?: number[], sessionTime?: string) => Promise<WorkoutRoutine>;
+    cloneTemplate: (
+        slug: string,
+        trainingDays?: number[],
+        sessionTime?: string,
+        experience?: ExperienceLevel,
+    ) => Promise<WorkoutRoutine>;
+    generateRoutine: (
+        answers: OnboardingAnswers,
+        trainingDays: number[],
+        sessionTime: SessionTime,
+        name?: string,
+    ) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
 
     // Exercise library mutations

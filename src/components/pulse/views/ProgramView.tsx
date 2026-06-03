@@ -7,6 +7,7 @@ import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import type { WorkoutType, RoutineExercise } from '@/lib/pulse/types';
 import WeekSelector from '../WeekSelector';
 import SectionLabel from '../SectionLabel';
+import GenerateRoutineButton from '../GenerateRoutineButton';
 
 type Section = { type: WorkoutType; exercises: RoutineExercise[] };
 
@@ -44,6 +45,12 @@ export default function ProgramView() {
 
     return (
         <div className="p-4 max-w-[600px] mx-auto">
+            <div className="flex justify-end mb-3">
+                <GenerateRoutineButton
+                    label="Generate routine"
+                    className="font-pulse text-xs font-semibold text-pulse-accent bg-pulse-accent/10 rounded-lg px-3 py-1.5 cursor-pointer border-none"
+                />
+            </div>
             <WeekSelector activeWeek={activeWeek} onSelect={handleSelectWeek} logs={logs} />
 
             <div className="my-5 py-[0.875rem] px-4 bg-pulse-surface rounded-xl border-l-[3px] border-pulse-accent">

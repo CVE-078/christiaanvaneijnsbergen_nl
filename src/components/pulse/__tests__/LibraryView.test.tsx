@@ -347,12 +347,52 @@ describe('LibraryView', () => {
         const routine: RoutineWithExercises = {
             ...activeRoutine,
             exercises: [
-                { id: 's', routine_id: 'r1', exercise_id: 'g1', workout_type: 'chest' as const, variant: null, order: 0, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: null, exercise: globalExercise },
-                { id: 'a', routine_id: 'r1', exercise_id: 'g2', workout_type: 'back' as const, variant: null, order: 1, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: 'sg1', exercise: pullExercise },
-                { id: 'b', routine_id: 'r1', exercise_id: 'u1', workout_type: 'back' as const, variant: null, order: 2, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: 'sg1', exercise: userExercise },
+                {
+                    id: 's',
+                    routine_id: 'r1',
+                    exercise_id: 'g1',
+                    workout_type: 'chest' as const,
+                    variant: null,
+                    order: 0,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: null,
+                    superset_group_id: null,
+                    exercise: globalExercise,
+                },
+                {
+                    id: 'a',
+                    routine_id: 'r1',
+                    exercise_id: 'g2',
+                    workout_type: 'back' as const,
+                    variant: null,
+                    order: 1,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: null,
+                    superset_group_id: 'sg1',
+                    exercise: pullExercise,
+                },
+                {
+                    id: 'b',
+                    routine_id: 'r1',
+                    exercise_id: 'u1',
+                    workout_type: 'back' as const,
+                    variant: null,
+                    order: 2,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: null,
+                    superset_group_id: 'sg1',
+                    exercise: userExercise,
+                },
             ],
         };
-        vi.mocked(usePulse).mockReturnValue({ ...defaultContext, activeRoutine: routine, routines: [routine, inactiveRoutine] } as unknown as ReturnType<typeof usePulse>);
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: routine,
+            routines: [routine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
         await userEvent.click(screen.getByRole('button', { name: `Move ${globalExercise.name} down` }));
@@ -365,17 +405,48 @@ describe('LibraryView', () => {
         const routine: RoutineWithExercises = {
             ...activeRoutine,
             exercises: [
-                { id: 're1', routine_id: 'r1', exercise_id: 'g1', workout_type: 'chest' as const, variant: null, order: 0, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: null, exercise: globalExercise },
-                { id: 're2', routine_id: 'r1', exercise_id: 'g2', workout_type: 'back' as const, variant: null, order: 1, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: null, exercise: pullExercise },
+                {
+                    id: 're1',
+                    routine_id: 'r1',
+                    exercise_id: 'g1',
+                    workout_type: 'chest' as const,
+                    variant: null,
+                    order: 0,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: null,
+                    superset_group_id: null,
+                    exercise: globalExercise,
+                },
+                {
+                    id: 're2',
+                    routine_id: 'r1',
+                    exercise_id: 'g2',
+                    workout_type: 'back' as const,
+                    variant: null,
+                    order: 1,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: null,
+                    superset_group_id: null,
+                    exercise: pullExercise,
+                },
             ],
         };
-        vi.mocked(usePulse).mockReturnValue({ ...defaultContext, activeRoutine: routine, routines: [routine, inactiveRoutine] } as unknown as ReturnType<typeof usePulse>);
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: routine,
+            routines: [routine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
         await userEvent.click(screen.getByText('Pair ↓'));
         expect(global.fetch).toHaveBeenCalledWith(
             '/api/pulse/supersets',
-            expect.objectContaining({ method: 'POST', body: JSON.stringify({ exerciseAId: 're1', exerciseBId: 're2' }) }),
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({ exerciseAId: 're1', exerciseBId: 're2' }),
+            }),
         );
     });
 
@@ -385,14 +456,109 @@ describe('LibraryView', () => {
         const routine: RoutineWithExercises = {
             ...activeRoutine,
             exercises: [
-                { id: 're1', routine_id: 'r1', exercise_id: 'g1', workout_type: 'chest' as const, variant: null, order: 0, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: 'sg1', exercise: globalExercise },
-                { id: 're2', routine_id: 'r1', exercise_id: 'g2', workout_type: 'back' as const, variant: null, order: 1, sets: '3', reps: '8-12', starting_weight_kg: null, superset_group_id: 'sg1', exercise: pullExercise },
+                {
+                    id: 're1',
+                    routine_id: 'r1',
+                    exercise_id: 'g1',
+                    workout_type: 'chest' as const,
+                    variant: null,
+                    order: 0,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: null,
+                    superset_group_id: 'sg1',
+                    exercise: globalExercise,
+                },
+                {
+                    id: 're2',
+                    routine_id: 'r1',
+                    exercise_id: 'g2',
+                    workout_type: 'back' as const,
+                    variant: null,
+                    order: 1,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: null,
+                    superset_group_id: 'sg1',
+                    exercise: pullExercise,
+                },
             ],
         };
-        vi.mocked(usePulse).mockReturnValue({ ...defaultContext, activeRoutine: routine, routines: [routine, inactiveRoutine] } as unknown as ReturnType<typeof usePulse>);
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: routine,
+            routines: [routine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
         await userEvent.click(screen.getByText('Unpair'));
         expect(global.fetch).toHaveBeenCalledWith('/api/pulse/supersets/sg1', { method: 'DELETE' });
+    });
+
+    it('groups the routine editor into sessions by workout type and variant', async () => {
+        const re = (id: string, type: string, variant: string | null, order: number) => ({
+            id,
+            routine_id: 'r1',
+            exercise_id: 'g1',
+            workout_type: type,
+            variant,
+            order,
+            sets: '3',
+            reps: '8-12',
+            starting_weight_kg: null,
+            superset_group_id: null,
+            exercise: globalExercise,
+        });
+        const routine = {
+            ...activeRoutine,
+            exercises: [
+                re('a', 'upper', 'A', 0),
+                re('b', 'lower', 'A', 1),
+                re('c', 'upper', 'B', 2),
+                re('d', 'lower', 'B', 3),
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: routine,
+            routines: [routine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        expect(screen.getByText('Upper · A')).toBeInTheDocument();
+        expect(screen.getByText('Lower · A')).toBeInTheDocument();
+        expect(screen.getByText('Upper · B')).toBeInTheDocument();
+        expect(screen.getByText('Lower · B')).toBeInTheDocument();
+    });
+
+    it('renders a flat list with no session header for a single-session routine', async () => {
+        const routine = {
+            ...activeRoutine,
+            exercises: [
+                {
+                    id: 're1',
+                    routine_id: 'r1',
+                    exercise_id: 'g1',
+                    workout_type: 'full_body' as const,
+                    variant: null,
+                    order: 0,
+                    sets: '3',
+                    reps: '8-12',
+                    starting_weight_kg: null,
+                    superset_group_id: null,
+                    exercise: globalExercise,
+                },
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: routine,
+            routines: [routine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        // The exercise row renders, but there is no `Type · Variant` session header.
+        expect(screen.getAllByText('Bench Press').length).toBeGreaterThan(0);
+        expect(screen.queryByText(/·/)).not.toBeInTheDocument();
     });
 });
