@@ -8,6 +8,7 @@ import {
     resolveStyle,
     generateRoutine,
     applyTemplateVolume,
+    buildRationale,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle } from '@/lib/pulse/types';
@@ -345,5 +346,20 @@ describe('applyTemplateVolume', () => {
     });
     it('does not invent exercises beyond what the template has', () => {
         expect(applyTemplateVolume(full.slice(0, 2), '90+ min', 'advanced').length).toBe(2);
+    });
+});
+
+describe('buildRationale', () => {
+    const style = { key: 'ul-aesthetic-4', name: 'Aesthetic Upper / Lower', bestFor: 'Upper-body priority with extra isolation and a leaner lower.', sessions: [] } as unknown as import('../types').ProgramStyle;
+    it('builds a rationale from answers, session time and style', () => {
+        const answers = { equipment: new Set(), experience: 'intermediate', goal: 'build_muscle', days: '4' } as unknown as import('../recommendation').OnboardingAnswers;
+        expect(buildRationale(answers, '45–60 min', style)).toBe(
+            'Aesthetic Upper / Lower for intermediate lifters · 4 days/week · build muscle · 45–60 min sessions. Upper-body priority with extra isolation and a leaner lower.',
+        );
+    });
+    it('maps goals to friendly labels', () => {
+        const a = (g: string) => ({ equipment: new Set(), experience: 'beginner', goal: g, days: '2-3' }) as unknown as import('../recommendation').OnboardingAnswers;
+        expect(buildRationale(a('lose_fat'), '~30 min', style)).toContain('lose fat');
+        expect(buildRationale(a('general_fitness'), '~30 min', style)).toContain('general fitness');
     });
 });
