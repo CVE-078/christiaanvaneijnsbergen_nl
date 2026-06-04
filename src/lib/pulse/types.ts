@@ -8,6 +8,9 @@ export interface LogEntry {
 
 export type Logs = Record<string, LogEntry>;
 
+// Summary of the most recent prior session for an exercise (shown on cards).
+export type LastSession = { kg: number; reps: number; setCount: number };
+
 export const WORKOUT_TYPES = [
     'push',
     'pull',

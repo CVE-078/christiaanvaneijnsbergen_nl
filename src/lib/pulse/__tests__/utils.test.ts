@@ -16,6 +16,7 @@ import {
     computeE1RMHistory,
     computeBestSets,
     computeLastSession,
+    computeLastSessionMap,
     computeWarmupSets,
     computeShareStats,
     isSetPR,
@@ -563,6 +564,32 @@ describe('computeLastSession', () => {
             [`1-${UUID_A}-1`]: { kg: 80, reps: 8, rir: 2, saved: false },
         };
         expect(computeLastSession(logs, UUID_A, 2)).toBeNull();
+    });
+});
+
+describe('computeLastSessionMap', () => {
+    const UUID_A = 'aaaaaaaa-0000-4000-8000-000000000001';
+    const UUID_B = 'bbbbbbbb-0000-4000-8000-000000000002';
+
+    it('builds the same per-exercise result as computeLastSession in one pass', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 10, rir: 3, saved: true },
+            [`3-${UUID_A}-0`]: { kg: 80, reps: 8, rir: 2, saved: true },
+            [`3-${UUID_A}-1`]: { kg: 80, reps: 7, rir: 1, saved: true },
+            [`2-${UUID_B}-0`]: { kg: 40, reps: 12, rir: 3, saved: true },
+        };
+        const map = computeLastSessionMap(logs, 4);
+        expect(map.get(UUID_A)).toEqual(computeLastSession(logs, UUID_A, 4));
+        expect(map.get(UUID_A)).toEqual({ kg: 80, reps: 8, setCount: 2 });
+        expect(map.get(UUID_B)).toEqual({ kg: 40, reps: 12, setCount: 1 });
+    });
+
+    it('excludes the current and later weeks and unsaved sets', () => {
+        const logs: Logs = {
+            [`2-${UUID_A}-0`]: { kg: 80, reps: 8, rir: 2, saved: true }, // current week, excluded
+            [`1-${UUID_A}-0`]: { kg: 70, reps: 9, rir: 2, saved: false }, // unsaved, excluded
+        };
+        expect(computeLastSessionMap(logs, 2).has(UUID_A)).toBe(false);
     });
 });
 

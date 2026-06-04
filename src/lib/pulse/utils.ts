@@ -14,6 +14,7 @@ import type {
     ShareStats,
     ExerciseCategory,
     ExerciseItem,
+    LastSession,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -328,6 +329,35 @@ export function computeLastSession(
     const latestWeek = Math.max(...byWeek.keys());
     const sets = byWeek.get(latestWeek)!;
     return { kg: sets[0].kg, reps: sets[0].reps, setCount: sets.length };
+}
+
+// Last-session lookup for every exercise in a single pass, so a screen with N
+// exercise cards builds them all in O(logs) instead of each card scanning the
+// whole log set (O(logs) per card). Mirrors computeLastSession per exercise.
+export function computeLastSessionMap(logs: Logs, currentWeek: number): Map<string, LastSession> {
+    const byRidWeek = new Map<string, Map<number, Array<{ kg: number; reps: number }>>>();
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        const { week, routineExerciseId: rid } = parsed;
+        if (week >= currentWeek) continue;
+        let weeks = byRidWeek.get(rid);
+        if (!weeks) {
+            weeks = new Map();
+            byRidWeek.set(rid, weeks);
+        }
+        if (!weeks.has(week)) weeks.set(week, []);
+        weeks.get(week)!.push({ kg: val.kg, reps: val.reps });
+    }
+
+    const result = new Map<string, LastSession>();
+    for (const [rid, weeks] of byRidWeek) {
+        const latestWeek = Math.max(...weeks.keys());
+        const sets = weeks.get(latestWeek)!;
+        result.set(rid, { kg: sets[0].kg, reps: sets[0].reps, setCount: sets.length });
+    }
+    return result;
 }
 
 export function computeShareStats(

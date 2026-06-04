@@ -5,7 +5,7 @@ import {
     logBodyWeight as serverLogBodyWeight,
     deleteBodyWeight as serverDeleteBodyWeight,
 } from '@/app/pulse/actions';
-import { fetcher } from '@/lib/pulse/fetcher';
+import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import type { Profile, BodyweightEntry, Unit } from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
@@ -31,9 +31,7 @@ export function useProfile(initialProfile?: Profile, initialBodyweightLogs?: Bod
         error: profileError,
     } = useSWR<Profile>(PROFILE_KEY, fetcher, {
         fallbackData: initialProfile,
-        revalidateOnFocus: false,
-        revalidateIfStale: true,
-        dedupingInterval: 5000,
+        ...SWR_READ_OPTS,
     });
     const profile = profileData ?? DEFAULT_PROFILE;
 
@@ -44,9 +42,7 @@ export function useProfile(initialProfile?: Profile, initialBodyweightLogs?: Bod
         error: bodyweightError,
     } = useSWR<BodyweightEntry[]>(BODYWEIGHT_KEY, fetcher, {
         fallbackData: initialBodyweightLogs,
-        revalidateOnFocus: false,
-        revalidateIfStale: true,
-        dedupingInterval: 5000,
+        ...SWR_READ_OPTS,
     });
     const bodyweightLogs = bwData ?? EMPTY_BW;
 

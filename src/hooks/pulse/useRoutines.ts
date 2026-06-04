@@ -26,7 +26,7 @@ import type {
 } from '@/lib/pulse/types';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 import type { SessionTime } from '@/lib/pulse/types';
-import { fetcher } from '@/lib/pulse/fetcher';
+import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 
 const EXERCISES_KEY = '/api/pulse/exercises';
 const ROUTINES_KEY = '/api/pulse/routines';
@@ -51,9 +51,7 @@ export function useRoutines(
         error: exercisesError,
     } = useSWR<DbExercise[]>(EXERCISES_KEY, fetcher, {
         fallbackData: initialExercises,
-        revalidateOnFocus: false,
-        revalidateIfStale: true,
-        dedupingInterval: 5000,
+        ...SWR_READ_OPTS,
     });
 
     const {
@@ -63,9 +61,7 @@ export function useRoutines(
         error: routinesError,
     } = useSWR<RoutineWithExercises[]>(ROUTINES_KEY, fetcher, {
         fallbackData: initialRoutines,
-        revalidateOnFocus: false,
-        revalidateIfStale: true,
-        dedupingInterval: 5000,
+        ...SWR_READ_OPTS,
     });
 
     const activeRoutine = (routines ?? EMPTY_ROUTINES).find((r) => r.id === activeRoutineId) ?? null;

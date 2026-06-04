@@ -3,11 +3,12 @@ import { renderHook, act } from '@testing-library/react';
 
 vi.mock('swr', () => ({ default: vi.fn() }));
 vi.mock('@/app/pulse/actions', () => ({
-    saveLogs: vi.fn().mockResolvedValue(undefined),
+    upsertLog: vi.fn().mockResolvedValue(undefined),
+    deleteLogRow: vi.fn().mockResolvedValue(undefined),
 }));
 
 import useSWR from 'swr';
-import { saveLogs } from '@/app/pulse/actions';
+import { upsertLog, deleteLogRow } from '@/app/pulse/actions';
 import { useWorkoutLogs } from '../useWorkoutLogs';
 import type { Logs, LogEntry } from '@/lib/pulse/types';
 
@@ -16,7 +17,8 @@ const mockMutate = vi.fn();
 beforeEach(() => {
     vi.mocked(useSWR).mockReturnValue({ data: {}, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
     mockMutate.mockClear();
-    vi.mocked(saveLogs).mockClear();
+    vi.mocked(upsertLog).mockClear();
+    vi.mocked(deleteLogRow).mockClear();
 });
 
 describe('useWorkoutLogs', () => {
@@ -38,7 +40,7 @@ describe('useWorkoutLogs', () => {
         expect(result.current.logs).toEqual({});
     });
 
-    it('updateLog calls mutate optimistically then calls saveLogs', async () => {
+    it('updateLog calls mutate optimistically then upserts the single row', async () => {
         const { result } = renderHook(() => useWorkoutLogs({}));
         const entry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
 
@@ -47,10 +49,10 @@ describe('useWorkoutLogs', () => {
         });
 
         expect(mockMutate).toHaveBeenCalledWith({ '1-push-0-0': entry }, false);
-        expect(saveLogs).toHaveBeenCalledWith({ '1-push-0-0': entry });
+        expect(upsertLog).toHaveBeenCalledWith('1-push-0-0', entry);
     });
 
-    it('deleteLog removes the key, calls mutate optimistically then saveLogs', async () => {
+    it('deleteLog removes the key, calls mutate optimistically then deletes the single row', async () => {
         const logs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
         const { result } = renderHook(() => useWorkoutLogs(logs));
@@ -60,11 +62,11 @@ describe('useWorkoutLogs', () => {
         });
 
         expect(mockMutate).toHaveBeenCalledWith({}, false);
-        expect(saveLogs).toHaveBeenCalledWith({});
+        expect(deleteLogRow).toHaveBeenCalledWith('1-push-0-0');
     });
 
-    it('calls onError with retry message when saveLogs throws', async () => {
-        vi.mocked(saveLogs).mockRejectedValueOnce(new Error('Network error'));
+    it('calls onError with retry message when the upsert throws', async () => {
+        vi.mocked(upsertLog).mockRejectedValueOnce(new Error('Network error'));
         const onError = vi.fn();
         const { result } = renderHook(() => useWorkoutLogs({}, onError));
 
@@ -75,8 +77,8 @@ describe('useWorkoutLogs', () => {
         expect(onError).toHaveBeenCalledWith('Failed to save. Retrying…');
     });
 
-    it('does not throw when no onError callback is provided and saveLogs fails', async () => {
-        vi.mocked(saveLogs).mockRejectedValueOnce(new Error('Network error'));
+    it('does not throw when no onError callback is provided and the upsert fails', async () => {
+        vi.mocked(upsertLog).mockRejectedValueOnce(new Error('Network error'));
         const { result } = renderHook(() => useWorkoutLogs({}));
 
         await expect(
