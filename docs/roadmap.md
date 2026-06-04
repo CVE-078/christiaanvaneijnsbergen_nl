@@ -60,6 +60,10 @@
 - Weekly per-muscle volume targets — goal-agnostic `VOLUME_TARGETS` set-range table + pure `computeVolumeProgress`; the Progress per-muscle bars show progress toward each target with "N sets to go" nudges and a lagging-muscle summary
 - Recomp dashboard — a Progress headline card combining strength (summed best E1RM/week), bodyweight, and waist trends into a plain-language verdict ("You're recomping…", "Gaining…", "Keep logging…") with per-signal deltas; also adds the body-measurements read path (previously write-only)
 - Offline-first logging (phase 2 of offline-first) — IndexedDB offline write queue for set logs + notes: writes enqueue when offline or on network failure (optimistic SWR mutate keeps the UI live), flushed FIFO on reconnect / focus / mount with last-write-wins; pending-sync indicator on the train screen; installable PWA web manifest scoped to `/pulse`; `/pulse`-scoped service worker (navigation network-first with cached-shell fallback, static assets cache-first, skips `/api`, cleans old caches on activate); CSP gains `worker-src` + `manifest-src 'self'`
+- Gender in profile — nullable `sex` column on `profiles` (male/female); Sex toggle in Profile + an optional onboarding step; `recommendStyle(count, sex)` lightly biases the default program style for female users (4-day → Aesthetic Upper/Lower, 3-day → Full Body Emphasis Days); also feeds the Strength Score. Deeper gender-specific volume/emphasis tuning is deferred to the Muscle priority item
+- Strength Score — 0-100 relative-strength composite (`computeStrengthScore` in `strength.ts`): each main lift's best E1RM ÷ latest bodyweight is scored against sex-specific bodyweight-multiple standards (bench / squat / deadlift / OHP) via piecewise-linear interpolation across Beginner→Elite, averaged to one headline number with a level label and per-lift breakdown; `StrengthScoreCard` headline on Progress, with a CTA when sex / bodyweight / a main lift is missing
+- Recovery-aware volume nudges — `computeRecoveryFlags` pairs each muscle's weekly working-set count with its average RIR to classify under (below floor), high fatigue (in range, avg RIR ≤ 0.5), over target (above ceiling), or on track; rendered as per-muscle status chips on the Progress volume-by-muscle bars (no change when no targets/recovery passed)
+- Rest timer auto-advance — guided mode (`WorkoutModeScreen`) now shows a visible rest timer and, with the Profile "Auto-advance rest timer" toggle on, jumps to the next exercise when rest ends and the current exercise is fully logged; the global pinned timer is suppressed while guided mode is open so only one timer runs (`RestTimer` gains an `onComplete` callback, `workoutModeOpen` + `autoAdvance` on context)
 
 ---
 
@@ -91,16 +95,11 @@ Differentiation opportunities:
 
 ## Near-term
 
-Freshly re-prioritized across all unshipped items (2026-06-04), ordered by value-per-effort at current scale (developer + spouse, web PWA): cheap, web-native wins that serve the two users and need no accumulated data or user mass come first. Health-platform and wearable sync moved to Later — they require leaving the web for native platforms, for low ROI at two users.
+All four near-term items shipped 2026-06-04 (gender in profile, strength score, recovery-aware volume nudges, rest-timer auto-advance — see Shipped). Near-term is clear.
 
-| # | Feature | Notes |
-|---|---|---|
-| 1 | Rest timer auto-advance | Auto-advance to the next exercise when the rest timer completes; global toggle or per-exercise. Tiny in-gym UX win, no new data — smallest next step. |
-| 2 | Strength Score | Single 0-100 composite from your main-lift E1RM PRs. Legible, motivating headline number; computes entirely from data Pulse already has. (also in: Caliber, Boostcamp) |
-| 3 | Recovery-aware volume nudges | Extend the shipped weekly per-muscle volume targets with RIR-based over/under flags (under- vs over-trained muscles) across the 12-week plan. Uses RIR already logged; analytical differentiator. (inspired by: Fitbod, Boostcamp) |
-| 4 | Gender in profile | Add a gender field and bias onboarding recommendations (e.g. lower-body emphasis). Small, and directly serves one of the two current users. |
+Next candidates come from the top of **Later** (Progress photos, CSV export, Muscle priority). Pull items up here when you pick the next sprint; this section is intentionally left empty rather than auto-reordered.
 
-_Shipped 2026-06-04: mid-workout exercise swap, generation explainability, weekly per-muscle volume targets, recomp dashboard, offline-first logging (see Shipped)._
+_Shipped 2026-06-04: gender in profile, strength score, recovery-aware volume nudges, rest-timer auto-advance, mid-workout exercise swap, generation explainability, weekly per-muscle volume targets, recomp dashboard, offline-first logging (see Shipped)._
 _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions, rule-based routine generation, routine editor session grouping, routine rename, collapsible sidebar, scroll-rail muscle filter, streak hero, login + skeleton reskin (see Shipped)._
 
 ---
