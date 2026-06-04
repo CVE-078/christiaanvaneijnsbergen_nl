@@ -54,16 +54,22 @@
 - Instant loading (phase 1 of offline-first) — shell-first render; data fetched client-side via SWR with per-view Slate skeletons; user-scoped localStorage SWR cache (cleared on logout) makes warm visits instant via stale-while-revalidate
 - Routine generation redesign — emphasis-based generation so repeated focuses differ by design; program-style picker (Full Body / Emphasis Days / PPL / Upper-Lower / PPL+FB / Heavy-Med-Pump / ULPPL etc., keyed by day count); cross-session avoid-set variation; rep ranges by bias + lift type (incl. pump); auto-supersets for 30-min sessions; equipment correctness (every global exercise tagged + `pull_up_bar` key); A/B variants generalized to A-D with a per-day `routine_schedule.variant` pin
 - Audit cleanup — input validation, perf (targeted log writes, ExerciseCard precompute, HistoryView single pass, swrCache throttle), and DRY/maintainability (label-map collapse, TabKey comparator + `baseWorkoutType` helpers, `ui.ts` consolidation, `actions.ts`/`RoutinesTab.tsx` splits); `explore` route renamed to `library`
+- Exercise preferences (hide / never-show) — `user_exercise_preferences` table (RLS); `setExercisePreference` action + `/api/pulse/preferences` GET + `usePreferences` hook; `hiddenExerciseIds` on context; hide/unhide + "Show hidden" in the Library; generation filters hidden exercises out of the pool; non-destructive "Hidden" marker in the routine editor
 - Mid-workout exercise swap — week-scoped `exercise_swaps` (per routine_exercise + week); same-movement-pattern candidate picker (`swapCandidates`) excluding hidden + in-session; `resolveExercise` overrides the displayed exercise for that week only (logs/PRs/volume stay slot-keyed); weight carries over via the existing slot suggestion; available from ExerciseCard, guided mode, and reflected in history
+- Routine generation explainability — generated routines persist a human-readable `rationale` (built from the onboarding inputs + the style's `bestFor`); shown as a "Why this plan" line on the Plan screen and previewed live in the setup flow's final step
+- Weekly per-muscle volume targets — goal-agnostic `VOLUME_TARGETS` set-range table + pure `computeVolumeProgress`; the Progress per-muscle bars show progress toward each target with "N sets to go" nudges and a lagging-muscle summary
+- Recomp dashboard — a Progress headline card combining strength (summed best E1RM/week), bodyweight, and waist trends into a plain-language verdict ("You're recomping…", "Gaining…", "Keep logging…") with per-signal deltas; also adds the body-measurements read path (previously write-only)
 - Offline-first logging (phase 2 of offline-first) — IndexedDB offline write queue for set logs + notes: writes enqueue when offline or on network failure (optimistic SWR mutate keeps the UI live), flushed FIFO on reconnect / focus / mount with last-write-wins; pending-sync indicator on the train screen; installable PWA web manifest scoped to `/pulse`; `/pulse`-scoped service worker (navigation network-first with cached-shell fallback, static assets cache-first, skips `/api`, cleans old caches on activate); CSP gains `worker-src` + `manifest-src 'self'`
-
----
+- Gender in profile — nullable `sex` column on `profiles` (male/female); Sex toggle in Profile + an optional onboarding step; `recommendStyle(count, sex)` lightly biases the default program style for female users (4-day → Aesthetic Upper/Lower, 3-day → Full Body Emphasis Days); also feeds the Strength Score. Deeper gender-specific volume/emphasis tuning is deferred to the Muscle priority item
+- Strength Score — 0-100 relative-strength composite (`computeStrengthScore` in `strength.ts`): each main lift's best E1RM ÷ latest bodyweight is scored against sex-specific bodyweight-multiple standards (bench / squat / deadlift / OHP) via piecewise-linear interpolation across Beginner→Elite, averaged to one headline number with a level label and per-lift breakdown; `StrengthScoreCard` headline on Progress, with a CTA when sex / bodyweight / a main lift is missing
+- Recovery-aware volume nudges — `computeRecoveryFlags` pairs each muscle's weekly working-set count with its average RIR to classify under (below floor), high fatigue (in range, avg RIR ≤ 0.5), over target (above ceiling), or on track; rendered as per-muscle status chips on the Progress volume-by-muscle bars (no change when no targets/recovery passed)
+- Rest timer auto-advance — guided mode (`WorkoutModeScreen`) now shows a visible rest timer and, with the Profile "Auto-advance rest timer" toggle on, jumps to the next exercise when rest ends and the current exercise is fully logged; the global pinned timer is suppressed while guided mode is open so only one timer runs (`RestTimer` gains an `onComplete` callback, `workoutModeOpen` + `autoAdvance` on context)
 
 ---
 
 ## In Progress
 
-- Exercise preferences (hide / never-show) — `user_exercise_preferences` table (RLS-scoped); `setExercisePreference` action + `/api/pulse/preferences` GET + `usePreferences` hook; `hiddenExerciseIds` on context; hide/unhide toggle + "Show hidden" in the Library exercises tab; generation filters the hidden set out of the pool; subtle "Hidden" marker in the routine editor (non-destructive). Pending PR + migration `2026-06-04-exercise-preferences.sql`. v1 is hide-only; favorite/weighting deferred.
+_Nothing currently in progress._
 
 ---
 
@@ -89,44 +95,36 @@ Differentiation opportunities:
 
 ## Near-term
 
-Prioritized for actual adherence (current users: the developer + spouse). "Adherence beats optimization" — personalization through preferences, a swap, and a clear "why" matters more than algorithmic coaching, which needs scale and months of logged data.
-
-_Exercise preferences (hide / never-show) — shipped (see In Progress / Shipped)._
+Promoted from Later 2026-06-04 after clearing the previous four. Same value-per-effort ordering: cheapest web-native win first, then the item that extends what we just shipped, then the higher-effort visual feature. All three serve the two current users and need no user mass or accumulated data.
 
 | # | Feature | Notes |
-|---|---|---|
-| 1 | Generation explainability | "Upper/Lower because: intermediate · 4 days · recomp · 60 min." Nearly free — every input plus the style `bestFor` is already known. Builds trust in the new generator. (inspired by: gap most competitors leave open) |
-| 3 | Goal-based weekly volume targets | Add recomp/hypertrophy set targets per muscle on top of the existing `MuscleVolumeBars`; show target vs actual + "under on shoulders" nudges. Subsumes weak-point detection + recovery-aware nudges. |
-| 4 | Recomp dashboard | Combine the bodyweight, strength (E1RM), and measurement data already stored into one "weight down + strength up + waist down = recomping" readout. Directly serves the current users' goal. |
-| 7 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
+|---|---------|-------|
+| 1 | CSV data export | Export full workout history (logs + sessions + PRs) as CSV for backup or external analysis. Small, pure-compute, ownership value; no schema or storage changes. (also in: Strong, Alpha, Caliber) |
+| 2 | Muscle priority selection | User prioritizes a muscle; the generator shifts weekly volume toward it. Builds directly on the shipped per-muscle volume targets and folds in the deferred gender/emphasis weighting (the light female style bias becomes an explicit, user-driven priority). Moderate effort, high value for both users. |
+| 3 | Progress photos | Date-stamped progress photos alongside the existing body measurements; visual progress comparison that pairs with the recomp dashboard. Biggest of the three — needs file upload + a Supabase storage bucket (RLS) and a CSP `img-src`/`connect-src` update for the storage host. (also in: Hevy, Strong, Jefit, Fitbod) |
 
-_Offline-first logging — shipped (see Shipped)._
-
+_Shipped 2026-06-04: gender in profile, strength score, recovery-aware volume nudges, rest-timer auto-advance, mid-workout exercise swap, generation explainability, weekly per-muscle volume targets, recomp dashboard, offline-first logging (see Shipped)._
 _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions, rule-based routine generation, routine editor session grouping, routine rename, collapsible sidebar, scroll-rail muscle filter, streak hero, login + skeleton reskin (see Shipped)._
 
 ---
 
 ## Later
 
+Same value-per-effort ordering as Near-term, continued: web-native moderate-value items first, then bigger or data-gated work, then native-platform and scale-gated items last. (Progress photos, CSV export, and Muscle priority were promoted to Near-term 2026-06-04.)
+
 | Feature | Notes |
 |---|---|
-| AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. Needs months of logged data to not feel random — premature at current scale. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
-| Adaptive missed-workout regeneration | "You missed Lower B, here's an adjusted week" instead of restart. High adherence value, but lower urgency at current scale. (inspired by: Fitbod) |
+| Adaptive missed-workout regeneration | "You missed Lower B, here's an adjusted week" instead of restart. High adherence value; sessions infra exists. Lower urgency at current scale. (inspired by: Fitbod) |
+| Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). Bigger lift. |
 | Plateau detection + smart deload | Detect a stalled lift over N weeks and recommend volume change / exercise swap / deload. Static week-12 deload exists; this is the data-driven version. Needs accumulated logs. (also in: Alpha, Boostcamp) |
-| Muscle priority selection | User prioritizes a muscle; generator shifts weekly volume toward it. Overlaps with the deferred gender/emphasis weighting and goal-based volume targets — fold in together. |
-| Strength Score | Single 0-100 composite metric from your main-lift E1RM PRs. Legible headline number for non-experts. Computes from data Pulse already has. (also in: Caliber, Boostcamp) |
-| Progress photos | Date-stamped progress photos alongside the existing body measurements. Visual progress comparison. (also in: Hevy, Strong, Jefit, Fitbod) |
-| Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. (also in: Hevy, Jefit, Boostcamp) |
-| CSV data export | Export full workout history for users who want their own analysis or a backup. (also in: Strong, Alpha, Caliber) |
-| Recovery-aware volume nudges | Combine per-muscle volume with RIR to flag under- and over-trained muscles within the 12-week plan. Differentiator. Now folded into Near-term #4 (goal-based volume targets). (inspired by: Fitbod, Boostcamp) |
-| Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data, badges only land well at milestones users actually reach. (also in: Jefit, Boostcamp) |
-| Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support ships. |
-| Social / sharing | Friends feed, likes, follow. Requires critical user mass. Not before traction. |
-| Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. |
-| Rest timer auto-advance | Option to automatically navigate to next exercise when rest timer completes. Global toggle or per-exercise setting. |
-| Gender in profile | Add gender field; bias onboarding recommendations toward lower-body templates for female users. |
-| Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). |
+| Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support (shipped). Niche. |
+| Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data — badges only land well at milestones users actually reach. (also in: Jefit, Boostcamp) |
+| Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. Needs a year of data to be meaningful. (also in: Hevy, Jefit, Boostcamp) |
+| AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. Needs months of logged data to not feel random — premature at current scale. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
 | ExerciseCard memo effectiveness | `ExerciseCard` is wrapped in `React.memo`, but the save path still passes the whole `logs`/`prMap` objects (new refs on every save) so all cards re-render anyway. Slice per-card data upstream in `LogView` (own set entries + savedCount + per-exercise PR) so unchanged cards keep stable props and a save touches one card. Refactor of the hottest screen — defer until it actually hurts at scale. |
+| Apple Health / Google Fit sync | Import bodyweight / activity from wearables and calorie trackers; export workouts. Native-gated — HealthKit is iOS-native (no web API) and Google has been moving Fit to Android-native Health Connect, so this means going off the web (Capacitor/native). Low ROI at two users. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
+| Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. Native-platform integration — same off-the-web cost as Health/Fit sync; far off. |
+| Social / sharing | Friends feed, likes, follow. Requires critical user mass. Not before traction. |
 
 ---
 
@@ -134,11 +132,13 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 
 From a ChatGPT feature audit. Real ideas, but low value at current scale or trust-risky — revisit only if the rationale changes.
 
+Ordered by revisit-likelihood: small/standalone ideas first, then those gated on a future v2 adaptive engine, then the trust-risky or heavy-modeling ones last.
+
 | Feature | Why not |
 |---|---|
+| Recovery warnings (e.g. legs Mon+Tue) | Schedule is user-chosen and small; low value. Smallest standalone rule if ever revisited. |
 | Program coherence score (X/100) | Decorative for a deterministic generator that's already correct by construction (slot-based, equipment-filtered, volume floors). It can't emit an incoherent program. Only earns its keep guarding a fuzzy v2 adaptive engine. |
+| Dynamic volume management | Needs the v2 adaptive engine + logged data. Bundle with v2 if pursued. |
+| Exercise recommendation AI | Vague; rule-based selection + the shipped preferences/swap already cover the real need. |
 | Goal forecasting ("86 kg in 12 weeks") | Easy to get wrong; a missed prediction erodes trust more than it motivates. |
 | Muscle recovery / fatigue modeling | Fitbod's signature, but heavy modeling for marginal payoff at two users and risks feeling pseudo-scientific. |
-| Dynamic volume management | Needs the v2 adaptive engine + logged data. Bundle with v2 if pursued. |
-| Exercise recommendation AI | Vague; rule-based selection + the planned preferences/swap cover the real need. |
-| Recovery warnings (e.g. legs Mon+Tue) | Schedule is user-chosen and small; low value. |

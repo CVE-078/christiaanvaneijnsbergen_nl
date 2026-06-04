@@ -19,6 +19,7 @@ const mockContext = {
         active_routine_id: null,
         onboarding_completed: false,
         goal_weight_kg: null,
+        sex: null,
     },
     prMap: {},
     updateLog: vi.fn(),
@@ -31,6 +32,7 @@ const mockContext = {
     refreshMeasurements: vi.fn(),
     email: 'test@example.com',
     updateProfile: vi.fn(),
+    updateSex: vi.fn(),
     logBodyWeight: vi.fn(),
     deleteBodyWeight: vi.fn(),
     isLoading: false,
@@ -55,6 +57,10 @@ const mockContext = {
     showOnboarding: false,
     triggerOnboarding: vi.fn(),
     dismissOnboarding: vi.fn(),
+    autoAdvance: false,
+    setAutoAdvance: vi.fn(),
+    workoutModeOpen: false,
+    setWorkoutModeOpen: vi.fn(),
     notes: {},
     saveNote: vi.fn().mockResolvedValue(undefined),
     deleteNote: vi.fn().mockResolvedValue(undefined),
@@ -177,5 +183,18 @@ describe('DesktopLayout', () => {
     it('renders a sign out button', () => {
         render(<DesktopLayout {...defaultProps} />);
         expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
+    });
+
+    it('renders the pinned rest timer when a rest is running and guided mode is closed', () => {
+        vi.mocked(usePulse).mockReturnValue({ ...mockContext, timerTrigger: 1, workoutModeOpen: false });
+        render(<DesktopLayout {...defaultProps} />);
+        expect(screen.getByText(/rest before next set/i)).toBeInTheDocument();
+    });
+
+    it('does not render the pinned rest timer while guided mode is open', () => {
+        vi.mocked(usePulse).mockReturnValue({ ...mockContext, timerTrigger: 1, workoutModeOpen: true });
+        render(<DesktopLayout {...defaultProps} />);
+        expect(screen.queryByText(/rest before next set/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /skip rest timer/i })).not.toBeInTheDocument();
     });
 });

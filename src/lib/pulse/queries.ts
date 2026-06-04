@@ -19,7 +19,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 // Canonical select strings. These are authoritative: the layout and the API
 // routes should both call the loaders below rather than duplicating queries.
 const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops';
-const PROFILE_SELECT = 'display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg';
+const PROFILE_SELECT = 'display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg, sex';
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
 const MEASUREMENTS_SELECT = 'id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm';
 const EXERCISES_SELECT =
@@ -60,6 +60,7 @@ export async function loadProfile(supabase: SupabaseServerClient, userId: string
         active_routine_id: data?.active_routine_id ?? null,
         onboarding_completed: data?.onboarding_completed ?? false,
         goal_weight_kg: data?.goal_weight_kg ? Number(data.goal_weight_kg) : null,
+        sex: data?.sex === 'male' || data?.sex === 'female' ? data.sex : null,
     };
 }
 

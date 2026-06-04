@@ -11,6 +11,7 @@ import type {
     TabKey,
     Unit,
     LogEntry,
+    Sex,
     View,
     PRMap,
     DbExercise,
@@ -45,6 +46,7 @@ export interface PulseContextValue {
 
     // Profile mutations
     updateProfile: (displayName: string | null, unit: Unit) => Promise<void>;
+    updateSex: (sex: Sex | null) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;
@@ -73,6 +75,12 @@ export interface PulseContextValue {
     showOnboarding: boolean;
     triggerOnboarding: () => void;
     dismissOnboarding: () => void;
+
+    // Guided mode (workout mode overlay) + rest-timer auto-advance
+    autoAdvance: boolean;
+    setAutoAdvance: (v: boolean) => void;
+    workoutModeOpen: boolean;
+    setWorkoutModeOpen: (v: boolean) => void;
 
     // Rest timer
     timerTrigger: number;

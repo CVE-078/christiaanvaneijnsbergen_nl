@@ -13,6 +13,7 @@ export async function GET() {
         active_routine_id: null,
         onboarding_completed: false,
         goal_weight_kg: null,
+        sex: null,
     };
     try {
         profile = await loadProfile(supabase, user.id);

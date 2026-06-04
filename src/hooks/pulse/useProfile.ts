@@ -2,11 +2,12 @@ import useSWR from 'swr';
 import { useCallback } from 'react';
 import {
     updateProfile as serverUpdateProfile,
+    updateSex as serverUpdateSex,
     logBodyWeight as serverLogBodyWeight,
     deleteBodyWeight as serverDeleteBodyWeight,
 } from '@/app/pulse/actions';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
-import type { Profile, BodyweightEntry, BodyMeasurement, Unit } from '@/lib/pulse/types';
+import type { Profile, BodyweightEntry, BodyMeasurement, Unit, Sex } from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
 const BODYWEIGHT_KEY = '/api/pulse/bodyweight';
@@ -23,6 +24,7 @@ const DEFAULT_PROFILE: Profile = {
     active_routine_id: null,
     onboarding_completed: false,
     goal_weight_kg: null,
+    sex: null,
 };
 
 export function useProfile() {
@@ -65,6 +67,18 @@ export function useProfile() {
         [mutateProfile, profile],
     );
 
+    const updateSex = useCallback(
+        async (sex: Sex | null): Promise<void> => {
+            mutateProfile({ ...profile, sex }, false);
+            try {
+                await serverUpdateSex(sex);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
     const logBodyWeight = useCallback(
         async (weightKg: number): Promise<BodyweightEntry> => {
             const entry = await serverLogBodyWeight(weightKg);
@@ -95,6 +109,7 @@ export function useProfile() {
         bodyMeasurements,
         refreshMeasurements,
         updateProfile,
+        updateSex,
         logBodyWeight,
         deleteBodyWeight,
         loadingProfile,

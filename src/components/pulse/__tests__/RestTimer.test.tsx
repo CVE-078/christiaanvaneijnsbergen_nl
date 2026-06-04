@@ -1,5 +1,5 @@
-﻿import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+﻿import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RestTimer from '../RestTimer';
 
@@ -27,5 +27,22 @@ describe('RestTimer', () => {
     it('starts at the provided duration when duration prop is given', () => {
         render(<RestTimer trigger={1} duration={120} />);
         expect(screen.getByText('2:00')).toBeInTheDocument();
+    });
+
+    it('calls onComplete once when the countdown reaches 0', () => {
+        vi.useFakeTimers();
+        const onComplete = vi.fn();
+        render(<RestTimer trigger={1} duration={2} onComplete={onComplete} />);
+        expect(onComplete).not.toHaveBeenCalled();
+        // Advance one second at a time so React re-renders and the effect schedules
+        // the next tick between each. 2s reaches 0 and fires the done branch.
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        expect(onComplete).toHaveBeenCalledTimes(1);
+        vi.useRealTimers();
     });
 });

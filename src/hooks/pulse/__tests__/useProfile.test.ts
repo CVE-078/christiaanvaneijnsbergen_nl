@@ -19,6 +19,7 @@ const defaultProfile: Profile = {
     active_routine_id: null,
     onboarding_completed: false,
     goal_weight_kg: null,
+    sex: null,
 };
 const defaultBWLogs: BodyweightEntry[] = [];
 
@@ -68,6 +69,7 @@ describe('useProfile', () => {
                 active_routine_id: null,
                 onboarding_completed: false,
                 goal_weight_kg: null,
+                sex: null,
             },
             false,
         );

@@ -22,6 +22,7 @@ import {
     isSetPR,
     computePerMuscleVolume,
     computeVolumeProgress,
+    computeRecoveryFlags,
     computePlates,
     sessionTypeFor,
     computeWeeksWithData,
@@ -829,7 +830,9 @@ describe('computePerMuscleVolume', () => {
 });
 
 describe('computeVolumeProgress', () => {
-    const targets = { chest: [12, 18], back: [12, 18], biceps: [8, 14] } as Partial<Record<import('../types').ExerciseCategory, [number, number]>>;
+    const targets = { chest: [12, 18], back: [12, 18], biceps: [8, 14] } as Partial<
+        Record<import('../types').ExerciseCategory, [number, number]>
+    >;
     it('returns a row per targeted muscle with actual, range, and to-go, lagging first', () => {
         const rows = computeVolumeProgress({ chest: 14, biceps: 2 }, targets);
         expect(rows.map((r) => r.category)).toEqual(['back', 'biceps', 'chest']); // toGo 12, 6, 0
@@ -840,6 +843,61 @@ describe('computeVolumeProgress', () => {
     it('clamps to-go at zero when the floor is met or exceeded', () => {
         const rows = computeVolumeProgress({ chest: 20 }, { chest: [12, 18] } as typeof targets);
         expect(rows[0].toGo).toBe(0);
+    });
+});
+
+describe('computeRecoveryFlags', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+    const UUID_B = '550e8400-e29b-41d4-a716-446655440001';
+    const res = [
+        { id: UUID_A, exercise: { category: 'chest' } },
+        { id: UUID_B, exercise: { category: 'back' } },
+    ] as unknown as RoutineExercise[];
+    const targets = { chest: [4, 8], back: [4, 8] } as Partial<
+        Record<import('../types').ExerciseCategory, [number, number]>
+    >;
+
+    it('flags under when sets are below min (including 0 sets)', () => {
+        // 2 chest sets (below min 4), 0 back sets
+        const logs: Logs = {
+            [logKey(3, UUID_A, 0)]: { kg: 20, reps: 10, rir: 2, saved: true },
+            [logKey(3, UUID_A, 1)]: { kg: 20, reps: 10, rir: 2, saved: true },
+        };
+        const out = computeRecoveryFlags(logs, res, 3, targets);
+        expect(out.chest).toBe('under');
+        expect(out.back).toBe('under');
+    });
+
+    it('flags overreaching when sets exceed max', () => {
+        const logs: Logs = {};
+        for (let i = 0; i < 9; i++) logs[logKey(3, UUID_A, i)] = { kg: 20, reps: 10, rir: 2, saved: true };
+        const out = computeRecoveryFlags(logs, res, 3, targets);
+        expect(out.chest).toBe('overreaching');
+    });
+
+    it('flags high_fatigue when in range with avgRir <= 0.5', () => {
+        const logs: Logs = {};
+        for (let i = 0; i < 5; i++) logs[logKey(3, UUID_A, i)] = { kg: 20, reps: 10, rir: 0, saved: true };
+        const out = computeRecoveryFlags(logs, res, 3, targets);
+        expect(out.chest).toBe('high_fatigue');
+    });
+
+    it('flags optimal when in range with avgRir > 0.5', () => {
+        const logs: Logs = {};
+        for (let i = 0; i < 5; i++) logs[logKey(3, UUID_A, i)] = { kg: 20, reps: 10, rir: 2, saved: true };
+        const out = computeRecoveryFlags(logs, res, 3, targets);
+        expect(out.chest).toBe('optimal');
+    });
+
+    it('ignores other weeks and unsaved sets', () => {
+        const logs: Logs = {
+            [logKey(3, UUID_A, 0)]: { kg: 20, reps: 10, rir: 2, saved: true },
+            [logKey(2, UUID_A, 1)]: { kg: 20, reps: 10, rir: 2, saved: true },
+            [logKey(3, UUID_A, 2)]: { kg: 20, reps: 10, rir: 2, saved: false },
+        };
+        const out = computeRecoveryFlags(logs, res, 3, targets);
+        // only 1 saved set this week -> below min -> under
+        expect(out.chest).toBe('under');
     });
 });
 
@@ -1112,10 +1170,27 @@ describe('swapKey', () => {
 });
 
 describe('resolveExercise', () => {
-    const original = { id: 'e1', name: 'Leg Press', category: 'legs', default_sets: '3', default_reps: '10', user_id: null };
-    const sub = { id: 'e2', name: 'Hack Squat', category: 'legs', default_sets: '3', default_reps: '10', user_id: null };
+    const original = {
+        id: 'e1',
+        name: 'Leg Press',
+        category: 'legs',
+        default_sets: '3',
+        default_reps: '10',
+        user_id: null,
+    };
+    const sub = {
+        id: 'e2',
+        name: 'Hack Squat',
+        category: 'legs',
+        default_sets: '3',
+        default_reps: '10',
+        user_id: null,
+    };
     const re = { id: 'slot1', exercise: original } as unknown as import('../types').RoutineExercise;
-    const byId = new Map([[original.id, original], [sub.id, sub]]) as Map<string, import('../types').DbExercise>;
+    const byId = new Map([
+        [original.id, original],
+        [sub.id, sub],
+    ]) as Map<string, import('../types').DbExercise>;
 
     it('returns the substitute when a swap exists for the week/slot', () => {
         const swaps = { '4-slot1': 'e2' };
@@ -1132,8 +1207,16 @@ describe('resolveExercise', () => {
 
 describe('swapCandidates', () => {
     const mk = (id: string, name: string, mp: string | null, eq: string[]) =>
-        ({ id, name, category: 'chest', default_sets: '3', default_reps: '8', user_id: null,
-           movement_pattern: mp, equipment: eq } as unknown as import('../types').DbExercise);
+        ({
+            id,
+            name,
+            category: 'chest',
+            default_sets: '3',
+            default_reps: '8',
+            user_id: null,
+            movement_pattern: mp,
+            equipment: eq,
+        }) as unknown as import('../types').DbExercise;
 
     const original = mk('o', 'Barbell Bench', 'horizontal_push', ['barbell', 'bench']);
     const dbBench = mk('a', 'Dumbbell Bench', 'horizontal_push', ['dumbbell', 'bench']);

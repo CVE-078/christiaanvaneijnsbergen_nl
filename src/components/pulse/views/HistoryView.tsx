@@ -7,6 +7,7 @@ import {
     swapKey,
     computeStrengthByWeek,
     computeRecompSignal,
+    computeRecoveryFlags,
 } from '@/lib/pulse/utils';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
 import { usePulse } from '@/context/PulseContext';
@@ -16,6 +17,8 @@ import E1RMChart from '@/components/pulse/E1RMChart';
 import BestLifts from '@/components/pulse/BestLifts';
 import MuscleVolumeBars from '@/components/pulse/MuscleVolumeBars';
 import RecompCard from '@/components/pulse/RecompCard';
+import StrengthScoreCard from '@/components/pulse/StrengthScoreCard';
+import { computeStrengthScore } from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
 import type { Unit } from '@/lib/pulse/types';
@@ -144,12 +147,29 @@ export default function HistoryView() {
 
     const activeRoutineExercises = useMemo(() => activeRoutine?.exercises ?? [], [activeRoutine]);
 
+    const strength = useMemo(
+        () =>
+            computeStrengthScore({
+                sex: profile.sex,
+                bodyweightKg: bodyweightLogs[0]?.weight_kg ?? null,
+                lifts: Object.entries(prMap).map(([rid, e1rm]) => ({ name: nameMap.get(rid) ?? '', e1rm })),
+            }),
+        [prMap, nameMap, bodyweightLogs, profile.sex],
+    );
+
     // One pass over logs replacing the former five independent scans
     // (buildHistory, computeVolumeByTypeAndWeek, computeBestSets,
     // computePerMuscleVolume, default-exercise scan).
     const { sessions, volByWeek, bestSets, muscleVolume, defaultExerciseId } = useMemo(
         () => computeHistoryBundle(logs, allRoutineExercises, activeRoutineExercises, activeWeek),
         [logs, allRoutineExercises, activeRoutineExercises, activeWeek],
+    );
+
+    // Same routine-exercise list and week that produce muscleVolume above, so
+    // recovery flags align 1:1 with the volume rows.
+    const recovery = useMemo(
+        () => computeRecoveryFlags(logs, activeRoutineExercises, activeWeek, VOLUME_TARGETS),
+        [logs, activeRoutineExercises, activeWeek],
     );
 
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -203,6 +223,11 @@ export default function HistoryView() {
                 </span>
             </div>
 
+            {/* Strength Score headline */}
+            <div className="mb-4">
+                <StrengthScoreCard strength={strength} />
+            </div>
+
             {/* Recomp readout */}
             <div className="mb-12">
                 <RecompCard readout={recomp} unit={unit} />
@@ -242,7 +267,7 @@ export default function HistoryView() {
                 {/* Per-muscle volume this week */}
                 <div>
                     <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
-                    <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} />
+                    <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} recovery={recovery} />
                 </div>
 
                 {/* e1RM Progression */}

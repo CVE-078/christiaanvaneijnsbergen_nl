@@ -20,7 +20,8 @@ export function AppShell({
     navigate: (v: View) => void;
     children: React.ReactNode;
 }) {
-    const { activeWeek, streak, handleExport, timerTrigger, timerDuration, showOnboarding } = usePulse();
+    const { activeWeek, streak, handleExport, timerTrigger, timerDuration, showOnboarding, workoutModeOpen } =
+        usePulse();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -85,10 +86,14 @@ export function AppShell({
             {/* Page content comes from routing */}
             <div className="pb-16">{children}</div>
 
-            {/* Rest timer fixed above bottom nav — avoids layout shift in LogView */}
-            <div className="fixed bottom-16 left-0 right-0 z-20">
-                <RestTimer trigger={timerTrigger} duration={timerDuration ?? undefined} />
-            </div>
+            {/* Rest timer fixed above bottom nav — avoids layout shift in LogView.
+                Suppressed while guided mode is open; WorkoutModeScreen runs its own
+                timer so only one counts down (no double beep). */}
+            {!workoutModeOpen && (
+                <div className="fixed bottom-16 left-0 right-0 z-20">
+                    <RestTimer trigger={timerTrigger} duration={timerDuration ?? undefined} />
+                </div>
+            )}
 
             {showOnboarding && <OnboardingModal />}
             <BottomNav view={view} onNavigate={navigate} />

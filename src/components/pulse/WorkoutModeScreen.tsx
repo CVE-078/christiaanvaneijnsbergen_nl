@@ -4,6 +4,7 @@ import { logKey, parseMaxSets, computeLastSession, isSetPR, groupExercises } fro
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
+import RestTimer from './RestTimer';
 import { BTN_PRIMARY_BLOCK } from './ui';
 import type {
     RoutineExercise,
@@ -29,6 +30,12 @@ interface Props {
     onClose: () => void;
     resolveDisplay?: (re: RoutineExercise) => DbExercise;
     onSwapExercise?: (re: RoutineExercise) => void;
+}
+
+// Pure decision for guided-mode auto-advance: only jump to the next step when the
+// setting is on, there is a next step, and the current step is fully logged.
+export function shouldAutoAdvance(autoAdvance: boolean, isLast: boolean, stepComplete: boolean): boolean {
+    return autoAdvance && !isLast && stepComplete;
 }
 
 function SingleStep({
@@ -202,7 +209,7 @@ export default function WorkoutModeScreen({
     resolveDisplay,
     onSwapExercise,
 }: Props) {
-    const { prMap } = usePulse();
+    const { prMap, autoAdvance, timerTrigger, timerDuration } = usePulse();
     const { show: showToast } = useToast();
     const steps = useMemo(() => groupExercises(exercises), [exercises]);
     const [stepIdx, setStepIdx] = useState(0);
@@ -258,6 +265,27 @@ export default function WorkoutModeScreen({
               return Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).some((k) => logs[k]?.saved);
           });
 
+    // Step is fully logged: single -> all sets saved; pair -> both exercises fully saved.
+    const stepComplete = isPair
+        ? (step as [RoutineExercise, RoutineExercise]).every((re) => {
+              const max = parseMaxSets(re.sets);
+              return Array.from({ length: max }, (_, i) => logKey(week, re.id, i)).every((k) => logs[k]?.saved);
+          })
+        : (() => {
+              const re = step as RoutineExercise;
+              const max = parseMaxSets(re.sets);
+              return savedCount === max;
+          })();
+
+    // When the rest timer hits 0 in guided mode, advance to the next step if the
+    // setting is on and the current step is fully logged. Otherwise the timer just
+    // resets as today.
+    function handleRestComplete() {
+        if (shouldAutoAdvance(autoAdvance, isLast, stepComplete)) {
+            setStepIdx((i) => i + 1);
+        }
+    }
+
     async function handleFinish() {
         if (!sessionId) return;
         setCompleting(true);
@@ -312,7 +340,9 @@ export default function WorkoutModeScreen({
                         logs={logs}
                         unit={unit}
                         prMap={prMap}
-                        displayName={(resolveDisplay?.(step as RoutineExercise) ?? (step as RoutineExercise).exercise).name}
+                        displayName={
+                            (resolveDisplay?.(step as RoutineExercise) ?? (step as RoutineExercise).exercise).name
+                        }
                         onSwap={onSwapExercise ? () => onSwapExercise(step as RoutineExercise) : undefined}
                         onSave={handleSetSave}
                         onDelete={onDelete}
@@ -323,6 +353,11 @@ export default function WorkoutModeScreen({
 
             {/* Footer */}
             <div className="px-4 pb-6 pt-3 border-t border-pulse-border flex flex-col gap-2">
+                <RestTimer
+                    trigger={timerTrigger}
+                    duration={timerDuration ?? undefined}
+                    onComplete={handleRestComplete}
+                />
                 {!isLast ? (
                     <button
                         aria-label="next exercise"

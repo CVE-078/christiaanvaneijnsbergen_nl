@@ -3,12 +3,13 @@ import { useState } from 'react';
 import { DAY_NAMES, SUGGESTED_DAYS } from '@/lib/pulse/constants';
 import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { BTN_PRIMARY_BLOCK } from './ui';
-import type { EquipmentKey, SessionTime } from '@/lib/pulse/types';
+import type { EquipmentKey, SessionTime, Sex } from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
-// Steps: 1 equipment · 2 experience · 3 goal · 4 days/week · 5 which days ·
+// Steps: 'sex' (only when collectSex, optional/skippable) · 1 equipment ·
+// 2 experience · 3 goal · 4 days/week · 5 which days ·
 // 6 program style (only when >1 style exists for the count) · 7 session time.
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Step = 'sex' | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
 const CARD = 'bg-pulse-surface rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
@@ -88,6 +89,8 @@ export interface RoutineSetupResult {
     /** Chosen program-style key. Set by the style-picker step (Part C4);
      *  undefined falls back to the recommended style for the session count. */
     styleKey?: string;
+    /** Selected biological sex, or null if skipped / not collected. */
+    sex: Sex | null;
 }
 
 interface Props {
@@ -102,10 +105,20 @@ interface Props {
     onComplete: (result: RoutineSetupResult) => Promise<void>;
     onClose: () => void;
     completeLabel?: string;
+    /** When true, show an optional/skippable "Sex" step before equipment.
+     *  Used by first-run onboarding so the style pick can be lightly biased. */
+    collectSex?: boolean;
 }
 
-export default function RoutineSetupFlow({ initial, onComplete, onClose, completeLabel = 'Create routine' }: Props) {
-    const [step, setStep] = useState<Step>(1);
+export default function RoutineSetupFlow({
+    initial,
+    onComplete,
+    onClose,
+    completeLabel = 'Create routine',
+    collectSex = false,
+}: Props) {
+    const [step, setStep] = useState<Step>(collectSex ? 'sex' : 1);
+    const [sex, setSex] = useState<Sex | null>(null);
     const [equipment, setEquipment] = useState<Set<EquipmentKey>>(new Set(initial?.equipment ?? []));
     const [experience, setExperience] = useState<ExperienceLevel | null>(initial?.experience ?? null);
     const [goal, setGoal] = useState<Goal | null>(initial?.goal ?? null);
@@ -119,7 +132,10 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
     // only shown when there is more than one to pick from.
     const styleOptions = STYLES[trainingDays.length] ?? [];
     const showStyleStep = styleOptions.length > 1;
-    const total = showStyleStep ? 7 : 6;
+    // The optional sex step adds one to the count and shifts the numbered steps
+    // one position later in the progress display.
+    const sexOffset = collectSex ? 1 : 0;
+    const total = (showStyleStep ? 7 : 6) + sexOffset;
 
     function toggleEquipment(key: EquipmentKey) {
         setEquipment((prev) => {
@@ -136,10 +152,11 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         void (async () => {
             try {
                 await onComplete({
-                    answers: { equipment, experience, goal, days },
+                    answers: { equipment, experience, goal, days, sex },
                     trainingDays,
                     sessionTime,
-                    styleKey: styleKey ?? recommendStyle(trainingDays.length),
+                    styleKey: styleKey ?? recommendStyle(trainingDays.length, sex),
+                    sex,
                 });
             } finally {
                 setLoading(false);
@@ -148,11 +165,45 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         })();
     }
 
-    if (step === 1)
+    if (step === 'sex')
         return (
             <div className={WRAP}>
                 <div className={CARD}>
                     <Header stepNum={1} total={total} />
+                    <p className={Q}>What&apos;s your sex?</p>
+                    <p className="font-pulse text-xs text-pulse-dim -mt-3">
+                        Used for strength standards and a light program nudge. Optional.
+                    </p>
+                    <div className="flex flex-col gap-2">
+                        <OptionRow label="Male" active={sex === 'male'} onClick={() => setSex('male')} />
+                        <OptionRow label="Female" active={sex === 'female'} onClick={() => setSex('female')} />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <button onClick={() => setStep(1)} disabled={!sex} className={BTN_PRIMARY_BLOCK}>
+                            Next
+                        </button>
+                        <button
+                            onClick={() => {
+                                setSex(null);
+                                setStep(1);
+                            }}
+                            className="font-pulse text-xs text-pulse-dim text-center bg-transparent border-none cursor-pointer">
+                            Skip
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+    if (step === 1)
+        return (
+            <div className={WRAP}>
+                <div className={CARD}>
+                    <Header
+                        stepNum={1 + sexOffset}
+                        total={total}
+                        onBack={collectSex ? () => setStep('sex') : undefined}
+                    />
                     <p className={Q}>What equipment do you have access to?</p>
                     <div className="flex flex-col gap-2">
                         {EQUIPMENT_OPTIONS.map(({ key, label }) => (
@@ -180,7 +231,10 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                         ))}
                     </div>
                     <div className="flex flex-col gap-2">
-                        <button onClick={() => setStep(2)} disabled={equipment.size === 0} className={BTN_PRIMARY_BLOCK}>
+                        <button
+                            onClick={() => setStep(2)}
+                            disabled={equipment.size === 0}
+                            className={BTN_PRIMARY_BLOCK}>
                             Next
                         </button>
                         <button
@@ -197,7 +251,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={2} total={total} onBack={() => setStep(1)} />
+                    <Header stepNum={2 + sexOffset} total={total} onBack={() => setStep(1)} />
                     <p className={Q}>What&apos;s your training experience?</p>
                     <div className="flex flex-col gap-2">
                         <OptionRow
@@ -230,7 +284,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={3} total={total} onBack={() => setStep(2)} />
+                    <Header stepNum={3 + sexOffset} total={total} onBack={() => setStep(2)} />
                     <p className={Q}>What&apos;s your primary goal?</p>
                     <div className="flex flex-col gap-2">
                         <OptionRow
@@ -263,7 +317,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={4} total={total} onBack={() => setStep(3)} />
+                    <Header stepNum={4 + sexOffset} total={total} onBack={() => setStep(3)} />
                     <p className={Q}>How many days per week can you train?</p>
                     <div className="flex flex-col gap-2">
                         <OptionRow label="2–3 days" active={days === '2-3'} onClick={() => setDays('2-3')} />
@@ -287,7 +341,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={5} total={total} onBack={() => setStep(4)} />
+                    <Header stepNum={5 + sexOffset} total={total} onBack={() => setStep(4)} />
                     <p className={Q}>Which days will you train?</p>
                     <div className="flex gap-2 flex-wrap">
                         {[1, 2, 3, 4, 5, 6, 0].map((d) => (
@@ -326,7 +380,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={6} total={total} onBack={() => setStep(5)} />
+                    <Header stepNum={6 + sexOffset} total={total} onBack={() => setStep(5)} />
                     <p className={Q}>Which program style?</p>
                     <div className="flex flex-col gap-2">
                         {styleOptions.map((s) => (

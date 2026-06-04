@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { RoutineExercise, Logs, PRMap } from '@/lib/pulse/types';
 
 let prMap: PRMap = {};
+let autoAdvance = false;
+let timerTrigger = 0;
+let timerDuration: number | null = null;
 const showToast = vi.fn();
 
 vi.mock('@/context/PulseContext', () => ({
-    usePulse: () => ({ prMap }),
+    usePulse: () => ({ prMap, autoAdvance, timerTrigger, timerDuration }),
 }));
 
 vi.mock('@/lib/pulse/toast', () => ({
@@ -15,7 +18,7 @@ vi.mock('@/lib/pulse/toast', () => ({
 }));
 
 // Import after the mocks so the component picks them up.
-import WorkoutModeScreen from '../WorkoutModeScreen';
+import WorkoutModeScreen, { shouldAutoAdvance } from '../WorkoutModeScreen';
 
 const mockExercise = (id: string, name: string): RoutineExercise => ({
     id,
@@ -49,6 +52,9 @@ describe('WorkoutModeScreen', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         prMap = {};
+        autoAdvance = false;
+        timerTrigger = 0;
+        timerDuration = null;
     });
 
     it('shows first exercise and progress', () => {
@@ -136,8 +142,20 @@ describe('WorkoutModeScreen', () => {
 
     it('shows "Superset" in the header when the current step is a pair', () => {
         const mockRE = mockExercise('re1', 'Bench Press');
-        const reA = { ...mockRE, id: 'a', order: 1, superset_group_id: 'g1', exercise: { ...mockRE.exercise, name: 'Bench Press' } };
-        const reB = { ...mockRE, id: 'b', order: 2, superset_group_id: 'g1', exercise: { ...mockRE.exercise, name: 'Cable Fly' } };
+        const reA = {
+            ...mockRE,
+            id: 'a',
+            order: 1,
+            superset_group_id: 'g1',
+            exercise: { ...mockRE.exercise, name: 'Bench Press' },
+        };
+        const reB = {
+            ...mockRE,
+            id: 'b',
+            order: 2,
+            superset_group_id: 'g1',
+            exercise: { ...mockRE.exercise, name: 'Cable Fly' },
+        };
         render(
             <WorkoutModeScreen
                 exercises={[reA, reB]}
@@ -159,9 +177,27 @@ describe('WorkoutModeScreen', () => {
 
     it('treats a superset pair as a single step in the count and labels', () => {
         const base = mockExercise('x', 'X');
-        const s = { ...base, id: 's', order: 1, superset_group_id: null, exercise: { ...base.exercise, name: 'Single Lift' } };
-        const a = { ...base, id: 'a', order: 2, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'A Lift' } };
-        const b = { ...base, id: 'b', order: 3, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'B Lift' } };
+        const s = {
+            ...base,
+            id: 's',
+            order: 1,
+            superset_group_id: null,
+            exercise: { ...base.exercise, name: 'Single Lift' },
+        };
+        const a = {
+            ...base,
+            id: 'a',
+            order: 2,
+            superset_group_id: 'g1',
+            exercise: { ...base.exercise, name: 'A Lift' },
+        };
+        const b = {
+            ...base,
+            id: 'b',
+            order: 3,
+            superset_group_id: 'g1',
+            exercise: { ...base.exercise, name: 'B Lift' },
+        };
         render(<WorkoutModeScreen {...defaultProps} variant={null} exercises={[s, a, b]} />);
         // [single, pair] => 2 steps; single is first
         expect(screen.getByText(/exercise 1 of 2/i)).toBeInTheDocument();
@@ -176,13 +212,7 @@ describe('WorkoutModeScreen', () => {
     it('shows the resolved display name from resolveDisplay instead of the underlying exercise name', () => {
         const re = mockExercise('re1', 'Bench Press');
         const altExercise = { ...re.exercise, id: 'alt1', name: 'Incline Dumbbell Press' };
-        render(
-            <WorkoutModeScreen
-                {...defaultProps}
-                exercises={[re]}
-                resolveDisplay={() => altExercise}
-            />,
-        );
+        render(<WorkoutModeScreen {...defaultProps} exercises={[re]} resolveDisplay={() => altExercise} />);
         expect(screen.getByText('Incline Dumbbell Press')).toBeInTheDocument();
         expect(screen.queryByText('Bench Press')).not.toBeInTheDocument();
     });
@@ -190,28 +220,154 @@ describe('WorkoutModeScreen', () => {
     it('calls onSwapExercise with the current routine exercise when the Swap button is clicked', () => {
         const onSwapExercise = vi.fn();
         const re = mockExercise('re1', 'Bench Press');
-        render(
-            <WorkoutModeScreen
-                {...defaultProps}
-                exercises={[re]}
-                onSwapExercise={onSwapExercise}
-            />,
-        );
+        render(<WorkoutModeScreen {...defaultProps} exercises={[re]} onSwapExercise={onSwapExercise} />);
         fireEvent.click(screen.getByRole('button', { name: /swap/i }));
         expect(onSwapExercise).toHaveBeenCalledTimes(1);
         expect(onSwapExercise).toHaveBeenCalledWith(re);
     });
 
+    it('renders a rest timer in the guided-mode footer when a rest is running', () => {
+        timerTrigger = 1;
+        render(<WorkoutModeScreen {...defaultProps} />);
+        expect(screen.getByText(/rest before next set/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /skip rest timer/i })).toBeInTheDocument();
+    });
+
+    describe('shouldAutoAdvance helper', () => {
+        it('advances only when on, not last, and step complete', () => {
+            expect(shouldAutoAdvance(true, false, true)).toBe(true);
+        });
+        it('does not advance when off', () => {
+            expect(shouldAutoAdvance(false, false, true)).toBe(false);
+        });
+        it('does not advance on the last step', () => {
+            expect(shouldAutoAdvance(true, true, true)).toBe(false);
+        });
+        it('does not advance when the step is incomplete', () => {
+            expect(shouldAutoAdvance(true, false, false)).toBe(false);
+        });
+    });
+
+    // Drive the real RestTimer countdown to 0 with fake timers and assert the
+    // auto-advance behavior end to end.
+    function fullyLoggedLogs(reId: string, sets: number): Logs {
+        const logs: Logs = {};
+        for (let i = 0; i < sets; i++) logs[`1-${reId}-${i}`] = { kg: 50, reps: 8, rir: 2, saved: true };
+        return logs;
+    }
+
+    it('auto-advances a fully-logged non-last step when autoAdvance is on and rest completes', () => {
+        vi.useFakeTimers();
+        autoAdvance = true;
+        timerTrigger = 1;
+        timerDuration = 2; // short countdown
+        const logs = fullyLoggedLogs('re1', 3);
+        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        expect(screen.getByText('Bench Press')).toBeInTheDocument();
+        // Advance a second at a time so React flushes between ticks; 2s reaches 0.
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        expect(screen.getByText('OHP')).toBeInTheDocument();
+        vi.useRealTimers();
+    });
+
+    it('does not auto-advance when autoAdvance is off even if the step is complete', () => {
+        vi.useFakeTimers();
+        autoAdvance = false;
+        timerTrigger = 1;
+        timerDuration = 2;
+        const logs = fullyLoggedLogs('re1', 3);
+        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        expect(screen.getByText('Bench Press')).toBeInTheDocument();
+        expect(screen.queryByText('OHP')).not.toBeInTheDocument();
+        vi.useRealTimers();
+    });
+
+    it('does not auto-advance when the step is not fully logged', () => {
+        vi.useFakeTimers();
+        autoAdvance = true;
+        timerTrigger = 1;
+        timerDuration = 2;
+        const logs: Logs = { '1-re1-0': { kg: 50, reps: 8, rir: 2, saved: true } }; // only 1 of 3 sets
+        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        expect(screen.getByText('Bench Press')).toBeInTheDocument();
+        vi.useRealTimers();
+    });
+
+    it('does not auto-advance on the last step', () => {
+        vi.useFakeTimers();
+        autoAdvance = true;
+        timerTrigger = 1;
+        timerDuration = 2;
+        const logs = fullyLoggedLogs('re1', 3);
+        render(<WorkoutModeScreen {...defaultProps} exercises={[mockExercise('re1', 'Bench Press')]} logs={logs} />);
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+        // Single, last step -> stays put.
+        expect(screen.getByText('Bench Press')).toBeInTheDocument();
+        vi.useRealTimers();
+    });
+
     it('gates Next on a superset step until both exercises have a logged set', () => {
         const base = mockExercise('x', 'X');
-        const a = { ...base, id: 'a', order: 1, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'A Lift' } };
-        const b = { ...base, id: 'b', order: 2, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'B Lift' } };
-        const c = { ...base, id: 'c', order: 3, superset_group_id: null, exercise: { ...base.exercise, name: 'C Lift' } };
+        const a = {
+            ...base,
+            id: 'a',
+            order: 1,
+            superset_group_id: 'g1',
+            exercise: { ...base.exercise, name: 'A Lift' },
+        };
+        const b = {
+            ...base,
+            id: 'b',
+            order: 2,
+            superset_group_id: 'g1',
+            exercise: { ...base.exercise, name: 'B Lift' },
+        };
+        const c = {
+            ...base,
+            id: 'c',
+            order: 3,
+            superset_group_id: null,
+            exercise: { ...base.exercise, name: 'C Lift' },
+        };
         // [pair, single] => the pair is the first (non-last) step
-        const both = { '1-a-0': { kg: 50, reps: 8, rir: 2, saved: true }, '1-b-0': { kg: 40, reps: 8, rir: 2, saved: true } };
-        const { rerender } = render(<WorkoutModeScreen {...defaultProps} variant={null} exercises={[a, b, c]} logs={{}} />);
+        const both = {
+            '1-a-0': { kg: 50, reps: 8, rir: 2, saved: true },
+            '1-b-0': { kg: 40, reps: 8, rir: 2, saved: true },
+        };
+        const { rerender } = render(
+            <WorkoutModeScreen {...defaultProps} variant={null} exercises={[a, b, c]} logs={{}} />,
+        );
         expect(screen.getByRole('button', { name: /next exercise/i })).toBeDisabled();
-        rerender(<WorkoutModeScreen {...defaultProps} variant={null} exercises={[a, b, c]} logs={{ '1-a-0': { kg: 50, reps: 8, rir: 2, saved: true } } as Logs} />);
+        rerender(
+            <WorkoutModeScreen
+                {...defaultProps}
+                variant={null}
+                exercises={[a, b, c]}
+                logs={{ '1-a-0': { kg: 50, reps: 8, rir: 2, saved: true } } as Logs}
+            />,
+        );
         expect(screen.getByRole('button', { name: /next exercise/i })).toBeDisabled();
         rerender(<WorkoutModeScreen {...defaultProps} variant={null} exercises={[a, b, c]} logs={both as Logs} />);
         expect(screen.getByRole('button', { name: /next exercise/i })).not.toBeDisabled();

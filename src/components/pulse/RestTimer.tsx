@@ -7,6 +7,7 @@ const DEFAULT_IDX = 1;
 interface Props {
     trigger: number;
     duration?: number;
+    onComplete?: () => void;
 }
 
 function fmt(s: number) {
@@ -30,7 +31,7 @@ function beep() {
     }
 }
 
-export default function RestTimer({ trigger, duration }: Props) {
+export default function RestTimer({ trigger, duration, onComplete }: Props) {
     const [durationIdx, setDurationIdx] = useState(() => {
         if (typeof window === 'undefined') return DEFAULT_IDX;
         const raw = localStorage.getItem('pulse_timer_idx') ?? localStorage.getItem('wt_timer_idx');
@@ -55,6 +56,7 @@ export default function RestTimer({ trigger, duration }: Props) {
         if (remaining === null || remaining <= 0) {
             if (remaining === 0) {
                 beep();
+                onComplete?.();
                 const t = setTimeout(() => setRemaining(null), 2000);
                 return () => clearTimeout(t);
             }
@@ -62,6 +64,9 @@ export default function RestTimer({ trigger, duration }: Props) {
         }
         const id = setTimeout(() => setRemaining((r) => (r ?? 1) - 1), 1000);
         return () => clearTimeout(id);
+        // onComplete is read at the moment remaining hits 0; the remaining change
+        // re-runs this effect with fresh props, so it stays excluded from deps.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [remaining]);
 
     function skip() {
