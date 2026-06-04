@@ -31,8 +31,10 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const onClose = vi.fn();
         render(<RoutineSetupFlow initial={initial} onComplete={onComplete} onClose={onClose} />);
-        // Each value is prefilled, so Next is enabled on every step.
-        for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'));
+        // Each value is prefilled, so Next is enabled on every step. With 3 training
+        // days there are multiple styles, so a style step appears (6 Next clicks:
+        // equipment, experience, goal, days/week, which days, style → session time).
+        for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         const arg = onComplete.mock.calls[0][0];
@@ -42,5 +44,31 @@ describe('RoutineSetupFlow', () => {
         expect(arg.answers.goal).toBe('build_muscle');
         expect(arg.answers.days).toBe('2-3');
         expect([...arg.answers.equipment]).toEqual(['dumbbells']);
+        // The style step pre-selects the recommendation for the count (3 → fb-3).
+        expect(arg.styleKey).toBe('fb-3');
+    });
+
+    it('shows the program-style step and lets you pick a non-default style', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        render(<RoutineSetupFlow initial={initial} onComplete={onComplete} onClose={vi.fn()} />);
+        for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'));
+        expect(screen.getByText(/which program style/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Push / Pull / Legs'));
+        fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].styleKey).toBe('ppl-3');
+    });
+
+    it('hides the style step when only one style exists for the count', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        const single = { ...initial, trainingDays: [1, 4] }; // 2 days → one style (fb-2)
+        render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
+        for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'));
+        // No style step: 5 Next clicks land straight on the session-time step.
+        expect(screen.queryByText(/which program style/i)).not.toBeInTheDocument();
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].styleKey).toBe('fb-2');
     });
 });

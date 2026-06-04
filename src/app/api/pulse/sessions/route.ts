@@ -3,14 +3,21 @@ import { getUserOrUnauthorized } from '@/lib/pulse/auth';
 import { nextVariant } from '@/lib/pulse/sessions';
 import { UUID_RE } from '@/lib/pulse/utils';
 import { WORKOUT_TYPES } from '@/lib/pulse/types';
-import type { WorkoutType } from '@/lib/pulse/types';
+import type { WorkoutType, WorkoutVariant } from '@/lib/pulse/types';
 
 export async function POST(req: NextRequest) {
     const { supabase, user, response } = await getUserOrUnauthorized();
     if (!user) return response;
 
-    const body = (await req.json()) as { routineId: string; workoutType: string };
+    const body = (await req.json()) as { routineId: string; workoutType: string; variant?: string | null };
     const { routineId, workoutType } = body;
+    // The active day pins its variant (routine_schedule.variant), surfaced to the
+    // client as the active tab. When provided we record that exact session; only
+    // legacy routines without a pin fall back to the A/B toggle below.
+    const pinnedVariant: WorkoutVariant | null =
+        body.variant === 'A' || body.variant === 'B' || body.variant === 'C' || body.variant === 'D'
+            ? body.variant
+            : null;
 
     if (!routineId || !workoutType) {
         return NextResponse.json({ error: 'Missing routineId or workoutType' }, { status: 400 });
@@ -34,45 +41,49 @@ export async function POST(req: NextRequest) {
 
     if (!routine) return NextResponse.json({ error: 'Routine not found' }, { status: 404 });
 
-    // Return in-progress session if one exists
-    const { data: existing } = await supabase
+    // Return in-progress session if one exists. Match the variant too when one is
+    // pinned, so starting Full Body B does not resume an in-progress Full Body A.
+    let existingQuery = supabase
         .from('workout_sessions')
         .select('*')
         .eq('user_id', user.id)
         .eq('routine_id', routineId)
         .eq('workout_type', workoutType)
-        .is('completed_at', null)
+        .is('completed_at', null);
+    if (pinnedVariant !== null) existingQuery = existingQuery.eq('variant', pinnedVariant);
+    const { data: existing } = await existingQuery
         .order('started_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
     if (existing) return NextResponse.json(existing);
 
-    // Check whether this workout type has A/B exercises
-    const { data: variantRows } = await supabase
-        .from('routine_exercises')
-        .select('variant')
-        .eq('routine_id', routineId)
-        .eq('workout_type', workoutType)
-        .not('variant', 'is', null)
-        .limit(1);
-
-    const hasVariants = (variantRows?.length ?? 0) > 0;
-
-    let sessionVariant: 'A' | 'B' | null = null;
-    if (hasVariants) {
-        const { data: lastSession } = await supabase
-            .from('workout_sessions')
+    let sessionVariant: WorkoutVariant | null = pinnedVariant;
+    if (pinnedVariant === null) {
+        // Legacy routines without a per-day variant pin: keep the A/B toggle keyed
+        // on the last completed session of this workout type.
+        const { data: variantRows } = await supabase
+            .from('routine_exercises')
             .select('variant')
-            .eq('user_id', user.id)
             .eq('routine_id', routineId)
             .eq('workout_type', workoutType)
-            .not('completed_at', 'is', null)
-            .order('completed_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .not('variant', 'is', null)
+            .limit(1);
 
-        sessionVariant = nextVariant(lastSession?.variant ?? null);
+        if ((variantRows?.length ?? 0) > 0) {
+            const { data: lastSession } = await supabase
+                .from('workout_sessions')
+                .select('variant')
+                .eq('user_id', user.id)
+                .eq('routine_id', routineId)
+                .eq('workout_type', workoutType)
+                .not('completed_at', 'is', null)
+                .order('completed_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            sessionVariant = nextVariant(lastSession?.variant ?? null);
+        }
     }
 
     const { data: session, error } = await supabase

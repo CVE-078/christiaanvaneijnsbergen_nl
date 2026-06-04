@@ -22,12 +22,13 @@ export const WORKOUT_TYPES = [
 ] as const;
 export type WorkoutType = (typeof WORKOUT_TYPES)[number];
 
-export type WorkoutVariant = 'A' | 'B';
+export type WorkoutVariant = 'A' | 'B' | 'C' | 'D';
 export type TabKey = WorkoutType | `${WorkoutType}:${WorkoutVariant}`;
 
 export interface ScheduleEntry {
     day_of_week: number; // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
     workout_type: WorkoutType;
+    variant?: WorkoutVariant | null;
 }
 
 export type Unit = 'kg' | 'lbs';
@@ -190,7 +191,7 @@ export interface WorkoutSession {
     completed_at: string | null;
 }
 
-export const EQUIPMENT_KEYS = ['dumbbells', 'barbell', 'bench', 'cables', 'machines'] as const;
+export const EQUIPMENT_KEYS = ['dumbbells', 'barbell', 'bench', 'cables', 'machines', 'pull_up_bar'] as const;
 export type EquipmentKey = (typeof EQUIPMENT_KEYS)[number];
 // Bodyweight exercises are represented by an empty `equipment` array (always
 // available), so it is intentionally NOT an EquipmentKey.
@@ -213,6 +214,59 @@ export const MOVEMENT_PATTERNS = [
     'glute_iso',
 ] as const;
 export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
+
+// ── Generation: bias, emphasis & program styles ─────────────────────────────
+
+/** Training bias for a session, driving rep ranges. */
+export type Bias = 'strength' | 'hypertrophy' | 'balanced' | 'pump';
+
+/** Which session focus a scheduled day trains. */
+export type Focus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs';
+
+export interface Emphasis {
+    bias: Bias;
+    /** Ordered preferred movement patterns; compounds first. The slot filler
+     *  walks this list and backfills from it to reach the target count. */
+    slots: MovementPattern[];
+}
+
+export type EmphasisKey =
+    // upper (4-day classic + aesthetic)
+    | 'upper_chest_back'
+    | 'upper_delts_arms'
+    | 'upper_aesthetic_a'
+    | 'upper_aesthetic_b'
+    // lower (4-day)
+    | 'lower_quad'
+    | 'lower_post'
+    | 'lower_lean'
+    // full body
+    | 'fb_strength'
+    | 'fb_hyper'
+    | 'fb_balanced'
+    | 'fb_pump'
+    | 'fb_chest_back'
+    | 'fb_legs'
+    | 'fb_delts_arms'
+    // ppl
+    | 'push'
+    | 'pull'
+    | 'legs'
+    // generic upper/lower (3-day U/L/FB, 5-day hybrids)
+    | 'upper_general'
+    | 'lower_general';
+
+export interface ProgramStyle {
+    key: string;
+    name: string;
+    /** One-line description for the picker. */
+    bestFor: string;
+    sessions: Array<{
+        focus: Focus;
+        emphasis: EmphasisKey;
+        variant: WorkoutVariant | null;
+    }>;
+}
 
 export type SessionTime = '~30 min' | '45–60 min' | '90+ min';
 

@@ -1,15 +1,16 @@
 'use client';
 import { useState, useCallback } from 'react';
-import type { WorkoutSession } from '@/lib/pulse/types';
+import type { WorkoutSession, WorkoutVariant } from '@/lib/pulse/types';
 
 export function useWorkoutSession() {
     const [session, setSession] = useState<WorkoutSession | null>(null);
 
-    const startSession = useCallback(async (routineId: string, workoutType: string): Promise<WorkoutSession> => {
+    const startSession = useCallback(
+        async (routineId: string, workoutType: string, variant?: WorkoutVariant | null): Promise<WorkoutSession> => {
         const res = await fetch('/api/pulse/sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ routineId, workoutType }),
+            body: JSON.stringify({ routineId, workoutType, variant: variant ?? null }),
         });
         if (!res.ok) throw new Error('Failed to start session');
         const data = (await res.json()) as WorkoutSession;

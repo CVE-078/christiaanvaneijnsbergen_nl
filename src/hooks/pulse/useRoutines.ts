@@ -19,6 +19,7 @@ import {
 import type {
     DbExercise,
     WorkoutType,
+    WorkoutVariant,
     WorkoutRoutine,
     RoutineWithExercises,
     RoutineExercise,
@@ -118,7 +119,7 @@ export function useRoutines(
             reps: string,
             startingWeightKg: number | null,
             workoutType: WorkoutType,
-            variant?: 'A' | 'B' | null,
+            variant?: WorkoutVariant | null,
         ): Promise<RoutineExercise> => {
             const re = await serverAddExerciseToRoutine(
                 routineId,
@@ -185,9 +186,10 @@ export function useRoutines(
             answers: OnboardingAnswers,
             trainingDays: number[],
             sessionTime: SessionTime,
+            styleKey: string,
             name?: string,
         ): Promise<WorkoutRoutine> => {
-            const routine = await serverGenerateRoutine(answers, trainingDays, sessionTime, name);
+            const routine = await serverGenerateRoutine(answers, trainingDays, sessionTime, styleKey, name);
             await mutateRoutines();
             await globalMutate(PROFILE_KEY);
             return routine;

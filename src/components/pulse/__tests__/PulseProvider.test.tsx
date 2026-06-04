@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type { RoutineExercise, RoutineWithExercises, TabKey, WorkoutType } from '@/lib/pulse/types';
+import type {
+    RoutineExercise,
+    RoutineWithExercises,
+    ScheduleEntry,
+    TabKey,
+    WorkoutType,
+    WorkoutVariant,
+} from '@/lib/pulse/types';
 
 // State shared between the test and the mocked useUIState/useRoutines so we can drive
 // activeRoutine and observe activeTab changes the provider makes.
@@ -74,12 +81,16 @@ vi.mock('@/lib/pulse/toast', () => ({
 import { PulseProvider } from '../PulseProvider';
 import { usePulse } from '@/context/PulseContext';
 
-const mockExercise = (id: string, workoutType: WorkoutType): RoutineExercise => ({
+const mockExercise = (
+    id: string,
+    workoutType: WorkoutType,
+    variant: WorkoutVariant | null = null,
+): RoutineExercise => ({
     id,
     routine_id: 'r1',
     exercise_id: id,
     workout_type: workoutType,
-    variant: null,
+    variant,
     order: 0,
     sets: '3',
     reps: '8-12',
@@ -88,13 +99,13 @@ const mockExercise = (id: string, workoutType: WorkoutType): RoutineExercise => 
     exercise: { id, name: `Exercise ${id}`, category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null },
 });
 
-const mockRoutine = (exercises: RoutineExercise[]): RoutineWithExercises => ({
+const mockRoutine = (exercises: RoutineExercise[], schedule: ScheduleEntry[] = []): RoutineWithExercises => ({
     id: 'r1',
     user_id: 'u1',
     name: 'PPL',
     created_at: '2026-01-01',
     exercises,
-    schedule: [],
+    schedule,
 });
 
 function Consumer() {
@@ -173,5 +184,20 @@ describe('PulseProvider', () => {
             </PulseProvider>,
         );
         expect(setActiveTabSpy).not.toHaveBeenCalled();
+    });
+
+    it('pins the active tab to today’s scheduled variant (Upper B → upper:B)', () => {
+        const today = new Date().getDay();
+        // Two upper sessions A/B; today is pinned to B.
+        activeRoutine = mockRoutine(
+            [mockExercise('e1', 'upper', 'A'), mockExercise('e2', 'upper', 'B')],
+            [{ day_of_week: today, workout_type: 'upper', variant: 'B' }],
+        );
+        render(
+            <PulseProvider {...baseProps}>
+                <Consumer />
+            </PulseProvider>,
+        );
+        expect(setActiveTabSpy).toHaveBeenCalledWith('upper:B');
     });
 });
