@@ -188,4 +188,23 @@ describe('PulseProvider', () => {
         );
         expect(setActiveTabSpy).toHaveBeenCalledWith('upper:B');
     });
+
+    it('falls back to a populated tab when the scheduled variant has no exercises', () => {
+        const today = new Date().getDay();
+        // Schedule pins full_body with NO variant, but the exercises are keyed
+        // full_body:A/B/C (legacy/mismatched data). The day must resolve to a tab
+        // that actually has exercises rather than the empty `full_body` key.
+        activeRoutine = mockRoutine(
+            [mockExercise('e1', 'full_body', 'A'), mockExercise('e2', 'full_body', 'B')],
+            [{ day_of_week: today, workout_type: 'full_body', variant: null }],
+        );
+        render(
+            <PulseProvider {...baseProps}>
+                <Consumer />
+            </PulseProvider>,
+        );
+        // Never the empty `full_body` key; resolves to the first same-type tab.
+        expect(setActiveTabSpy).toHaveBeenCalledWith('full_body:A');
+        expect(setActiveTabSpy).not.toHaveBeenCalledWith('full_body');
+    });
 });

@@ -9,7 +9,7 @@ import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
 import { useToast } from '@/lib/pulse/toast';
-import { computeStreak, computePRMap, orderTabKeys } from '@/lib/pulse/utils';
+import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType } from '@/lib/pulse/utils';
 import type {
     RoutineExercise,
     WorkoutType,
@@ -151,6 +151,23 @@ export function PulseProvider({ email, navigate, children }: Props) {
 
     const [activeDay, _setActiveDay] = useState<number | null>(null);
 
+    // Resolve a schedule entry to the best AVAILABLE tab key. The pinned
+    // `type:variant` key is preferred, but if the routine has no exercises under
+    // that exact key (e.g. a legacy routine whose schedule variant was not pinned,
+    // or a variant/exercise mismatch) we fall back to the first tab of the same
+    // workout type, then to the first tab overall — never an empty key, which is
+    // what made /train render blank while Plan/Library still showed exercises.
+    const resolveTabForEntry = useCallback(
+        (entry: ScheduleEntry): TabKey => {
+            const keys = orderTabKeys(Object.keys(routineExercisesByTabKey) as TabKey[]);
+            const exact = (entry.variant ? `${entry.workout_type}:${entry.variant}` : entry.workout_type) as TabKey;
+            if (keys.includes(exact)) return exact;
+            const sameType = keys.find((k) => baseWorkoutType(k) === entry.workout_type);
+            return sameType ?? keys[0] ?? exact;
+        },
+        [routineExercisesByTabKey],
+    );
+
     useEffect(() => {
         if (activeSchedule.length === 0) return;
         const today = new Date().getDay();
@@ -161,7 +178,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
         });
         const e0 = sorted[0];
         _setActiveDay(e0.day_of_week);
-        setActiveTab(e0.variant ? `${e0.workout_type}:${e0.variant}` : e0.workout_type);
+        setActiveTab(resolveTabForEntry(e0));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeSchedule.map((e) => `${e.day_of_week}:${e.workout_type}:${e.variant ?? ''}`).join(',')]);
 
@@ -169,9 +186,9 @@ export function PulseProvider({ email, navigate, children }: Props) {
         (day: number) => {
             _setActiveDay(day);
             const entry = activeSchedule.find((e) => e.day_of_week === day);
-            if (entry) setActiveTab(entry.variant ? `${entry.workout_type}:${entry.variant}` : entry.workout_type);
+            if (entry) setActiveTab(resolveTabForEntry(entry));
         },
-        [activeSchedule, setActiveTab],
+        [activeSchedule, setActiveTab, resolveTabForEntry],
     );
 
     // Build the context value by spreading the (stable) hook returns and the locally derived
