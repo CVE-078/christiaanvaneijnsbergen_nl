@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { DAY_NAMES, SUGGESTED_DAYS } from '@/lib/pulse/constants';
-import { STYLES, recommendStyle } from '@/lib/pulse/generation';
+import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { BTN_PRIMARY_BLOCK } from './ui';
 import type { EquipmentKey, SessionTime } from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
@@ -350,6 +350,14 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
             </div>
         );
 
+    // Final step: live rationale preview built from the chosen inputs, mirroring
+    // what buildRationale persists on the routine after generation.
+    const previewStyle = resolveStyle(styleKey ?? recommendStyle(trainingDays.length), trainingDays.length);
+    const rationalePreview =
+        experience && goal && days && sessionTime && trainingDays.length > 0
+            ? buildRationale({ equipment, experience, goal, days }, sessionTime, previewStyle)
+            : null;
+
     return (
         <div className={WRAP}>
             <div className={CARD}>
@@ -375,6 +383,14 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                         onClick={() => setSessionTime('90+ min')}
                     />
                 </div>
+                {rationalePreview && (
+                    <div className="rounded-xl bg-pulse-surface px-4 py-3">
+                        <div className="font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-pulse-muted mb-1">
+                            Why this plan
+                        </div>
+                        <p className="font-pulse text-sm text-pulse-dim leading-[1.55]">{rationalePreview}</p>
+                    </div>
+                )}
                 <button onClick={handleComplete} disabled={!sessionTime || loading} className={BTN_PRIMARY_BLOCK}>
                     {loading ? 'Building your routine…' : completeLabel}
                 </button>

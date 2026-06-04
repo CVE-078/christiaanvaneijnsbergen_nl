@@ -73,6 +73,15 @@ export default function ProgramView() {
                 )}
             </div>
 
+            {activeRoutine?.rationale && (
+                <div className="mb-6">
+                    <SectionLabel className="mb-2">Why this plan</SectionLabel>
+                    <p className="font-pulse text-[0.9375rem] text-pulse-dim leading-[1.6]">
+                        {activeRoutine.rationale}
+                    </p>
+                </div>
+            )}
+
             <div className="mb-6">
                 <SectionLabel className="mb-2">Weekly Volume</SectionLabel>
                 <div className="flex items-end gap-[3px] h-[54px]">
