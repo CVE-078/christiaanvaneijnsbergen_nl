@@ -1,31 +1,21 @@
 ﻿'use client';
 import { useMemo } from 'react';
 import { VOLUME, WEEK_NOTES } from '@/lib/pulse/data';
-import { getPhase } from '@/lib/pulse/utils';
+import { getPhase, sessionTypeFor } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
-import type { WorkoutType, RoutineExercise } from '@/lib/pulse/types';
+import type { WorkoutType, WorkoutVariant, RoutineExercise } from '@/lib/pulse/types';
 import WeekSelector from '../WeekSelector';
 import SectionLabel from '../SectionLabel';
 import GenerateRoutineButton from '../GenerateRoutineButton';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 
-type Section = { type: WorkoutType; exercises: RoutineExercise[] };
+type Section = { type: WorkoutType; variant: WorkoutVariant | null; exercises: RoutineExercise[] };
 
 const BAR_MAX_HEIGHT_PX = 44;
 
 export default function ProgramView() {
-    const {
-        activeWeek,
-        setActiveWeek,
-        logs,
-        activeSchedule,
-        activeRoutine,
-        routineExercisesByType,
-        loading,
-        errors,
-        retry,
-    } = usePulse();
+    const { activeWeek, setActiveWeek, logs, activeSchedule, activeRoutine, loading, errors, retry } = usePulse();
     const phase = getPhase(activeWeek);
     const maxSets = Math.max(...VOLUME.map((v) => v.sets));
 
@@ -33,26 +23,31 @@ export default function ProgramView() {
         setActiveWeek(w);
     }
 
+    // Group into the sessions the user actually trains: one section per distinct
+    // (session type, variant). This mirrors the /train tabs and the routine editor,
+    // so a split with two same-type days (e.g. Upper A + Upper B) shows as two
+    // sections rather than one merged list. A full-body routine tags its exercises
+    // push/pull/legs but schedules a single full_body session, so those roll up via
+    // sessionTypeFor; with no schedule the exercise's own type is used.
     const sections = useMemo((): Section[] => {
-        if (activeSchedule.length === 0) {
-            return Object.keys(routineExercisesByType)
-                .filter((t) => (routineExercisesByType[t as WorkoutType] ?? []).length > 0)
-                .map((t) => ({ type: t as WorkoutType, exercises: routineExercisesByType[t as WorkoutType]! }));
+        if (!activeRoutine) return [];
+        const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
+        const scheduleTypes = [...new Set(activeRoutine.schedule.map((s) => s.workout_type))];
+        const groups: Section[] = [];
+        const byKey = new Map<string, number>();
+        for (const re of sorted) {
+            const type = sessionTypeFor(re.workout_type, scheduleTypes);
+            const key = `${type}:${re.variant ?? ''}`;
+            let gi = byKey.get(key);
+            if (gi === undefined) {
+                gi = groups.length;
+                byKey.set(key, gi);
+                groups.push({ type, variant: re.variant ?? null, exercises: [] });
+            }
+            groups[gi].exercises.push(re);
         }
-
-        const uniqueTypes = [...new Set(activeSchedule.map((e) => e.workout_type))];
-
-        if (uniqueTypes.length === 1) {
-            const allExercises = activeRoutine
-                ? [...activeRoutine.exercises].sort((a, b) => a.order - b.order)
-                : (Object.values(routineExercisesByType).flat() as RoutineExercise[]);
-            return [{ type: uniqueTypes[0], exercises: allExercises }];
-        }
-
-        return uniqueTypes
-            .map((type) => ({ type, exercises: (routineExercisesByType[type] ?? []) as RoutineExercise[] }))
-            .filter((s) => s.exercises.length > 0);
-    }, [activeSchedule, activeRoutine, routineExercisesByType]);
+        return groups;
+    }, [activeRoutine]);
 
     if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
     if (loading?.routines || loading?.logs) return <PageSkeleton />;
@@ -123,10 +118,11 @@ export default function ProgramView() {
                 )}
             </div>
 
-            {sections.map(({ type, exercises }) => (
-                <div key={type} className="mb-6">
+            {sections.map(({ type, variant, exercises }) => (
+                <div key={`${type}:${variant ?? ''}`} className="mb-6">
                     <div className="font-pulse text-[0.75rem] tracking-[0.16em] uppercase text-pulse-muted font-medium mb-3">
                         {WORKOUT_TYPE_LABELS[type as WorkoutType] ?? type}
+                        {variant ? ` · ${variant}` : ''}
                     </div>
                     {exercises.map((re, i) => (
                         <div

@@ -53,7 +53,6 @@ const defaultContext = {
     profile: { display_name: null, unit: 'kg' as const, active_routine_id: 'r1' },
     prMap: {},
     activeRoutine: { id: 'r1', user_id: 'u1', name: 'Push Day', created_at: '', exercises: [mockRE] },
-    routineExercisesByType: { push: [], pull: [], legs: [], chest: [mockRE], back: [], shoulders: [], arms: [] },
     routineExercisesByTabKey: { chest: [mockRE] },
     navigate,
     updateLog: vi.fn(),

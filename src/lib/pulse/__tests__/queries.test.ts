@@ -145,6 +145,17 @@ describe('loadRoutines', () => {
         expect(calls.select).toContain('rest_seconds');
     });
 
+    it('selects variant on both exercises and schedule so A/B sessions stay separate', async () => {
+        // Without the per-exercise variant, A/B sessions collapse into one tab
+        // (a 4-day Upper/Lower routine shows 12 exercises per day instead of 6).
+        const { client, calls } = makeClient({ data: [], error: null });
+        await loadRoutines(client, UID);
+        const select = calls.select ?? '';
+        const exercisesSelect = select.slice(0, select.indexOf('schedule:routine_schedule'));
+        expect(exercisesSelect).toContain('variant');
+        expect(select).toContain('schedule:routine_schedule ( day_of_week, workout_type, variant )');
+    });
+
     it('sorts exercises by order and schedule by day_of_week', async () => {
         const { client } = makeClient({
             data: [

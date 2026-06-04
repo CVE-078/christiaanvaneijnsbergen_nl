@@ -10,6 +10,7 @@ const mockContext = {
     activeDay: null as number | null,
     setActiveDay: vi.fn(),
     activeSchedule: [],
+    resolveTabForEntry: vi.fn(),
     setActiveWeek: vi.fn(),
     logs: {},
     profile: {
@@ -34,7 +35,6 @@ const mockContext = {
     exercises: [],
     routines: [],
     activeRoutine: null,
-    routineExercisesByType: { push: [], pull: [], legs: [], chest: [], back: [], shoulders: [], arms: [] },
     routineExercisesByTabKey: {},
     createRoutine: vi.fn(),
     renameRoutine: vi.fn(),
