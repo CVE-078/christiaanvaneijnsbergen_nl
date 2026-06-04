@@ -173,6 +173,35 @@ describe('WorkoutModeScreen', () => {
         expect(screen.getByRole('button', { name: /finish workout/i })).toBeInTheDocument();
     });
 
+    it('shows the resolved display name from resolveDisplay instead of the underlying exercise name', () => {
+        const re = mockExercise('re1', 'Bench Press');
+        const altExercise = { ...re.exercise, id: 'alt1', name: 'Incline Dumbbell Press' };
+        render(
+            <WorkoutModeScreen
+                {...defaultProps}
+                exercises={[re]}
+                resolveDisplay={() => altExercise}
+            />,
+        );
+        expect(screen.getByText('Incline Dumbbell Press')).toBeInTheDocument();
+        expect(screen.queryByText('Bench Press')).not.toBeInTheDocument();
+    });
+
+    it('calls onSwapExercise with the current routine exercise when the Swap button is clicked', () => {
+        const onSwapExercise = vi.fn();
+        const re = mockExercise('re1', 'Bench Press');
+        render(
+            <WorkoutModeScreen
+                {...defaultProps}
+                exercises={[re]}
+                onSwapExercise={onSwapExercise}
+            />,
+        );
+        fireEvent.click(screen.getByRole('button', { name: /swap/i }));
+        expect(onSwapExercise).toHaveBeenCalledTimes(1);
+        expect(onSwapExercise).toHaveBeenCalledWith(re);
+    });
+
     it('gates Next on a superset step until both exercises have a logged set', () => {
         const base = mockExercise('x', 'X');
         const a = { ...base, id: 'a', order: 1, superset_group_id: 'g1', exercise: { ...base.exercise, name: 'A Lift' } };
