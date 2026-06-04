@@ -83,6 +83,7 @@ const mocks = {
     removeExerciseFromRoutine: vi.fn().mockResolvedValue(undefined),
     updateRoutineExercise: vi.fn().mockResolvedValue(undefined),
     reorderRoutineExercises: vi.fn().mockResolvedValue(undefined),
+    toggleHideExercise: vi.fn().mockResolvedValue(undefined),
 };
 
 const defaultContext = {
@@ -94,6 +95,7 @@ const defaultContext = {
     notes: {},
     saveNote: vi.fn().mockResolvedValue(undefined),
     deleteNote: vi.fn().mockResolvedValue(undefined),
+    hiddenExerciseIds: new Set<string>(),
     timerDuration: null,
 };
 
@@ -137,6 +139,26 @@ describe('LibraryView', () => {
         expect(screen.getByRole('button', { name: /delete cable fly/i })).toBeInTheDocument();
         // Bench Press is global → no delete button
         expect(screen.queryByRole('button', { name: /delete bench press/i })).not.toBeInTheDocument();
+    });
+
+    it('hides an exercise via the hide toggle', async () => {
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('button', { name: /hide bench press/i }));
+        expect(mocks.toggleHideExercise).toHaveBeenCalledWith('g1', true);
+    });
+
+    it('hides hidden exercises from the list until Show hidden is toggled', async () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            hiddenExerciseIds: new Set(['g1']),
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        // Bench Press (g1) is hidden → not listed by default
+        expect(screen.queryByText('Bench Press')).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /show hidden/i }));
+        expect(screen.getByText('Bench Press')).toBeInTheDocument();
+        // Now its toggle offers Unhide
+        expect(screen.getByRole('button', { name: /unhide bench press/i })).toBeInTheDocument();
     });
 
     it('submits the add exercise form correctly', async () => {

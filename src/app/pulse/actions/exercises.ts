@@ -2,7 +2,35 @@
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
 import { assertUuid } from './_shared';
-import type { DbExercise, ExerciseCategory } from '@/lib/pulse/types';
+import type { DbExercise, ExerciseCategory, ExercisePreference } from '@/lib/pulse/types';
+
+// Set or clear a user's preference for an exercise. v1: preference is 'hidden'
+// (never-show) or null to clear. The row is keyed to auth.uid() and RLS-scoped,
+// so a user can only ever affect their own preferences.
+export async function setExercisePreference(
+    exerciseId: string,
+    preference: ExercisePreference | null,
+): Promise<void> {
+    assertUuid(exerciseId);
+    if (preference !== null && preference !== 'hidden') throw new Error('Invalid preference');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    if (preference === null) {
+        const { error } = await supabase
+            .from('user_exercise_preferences')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('exercise_id', exerciseId);
+        if (error) throw new Error('Failed to update preference');
+        return;
+    }
+
+    const { error } = await supabase
+        .from('user_exercise_preferences')
+        .upsert({ user_id: user.id, exercise_id: exerciseId, preference }, { onConflict: 'user_id,exercise_id' });
+    if (error) throw new Error('Failed to update preference');
+}
 
 export async function createExercise(
     name: string,

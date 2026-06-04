@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { toDisplay, toKg } from '@/lib/pulse/utils';
+import { usePulse } from '@/context/PulseContext';
 import type { RoutineExercise, Unit } from '@/lib/pulse/types';
 import { INPUT, BTN_PRIMARY } from '@/components/pulse/ui';
 
@@ -37,6 +38,8 @@ export default function RoutineExerciseRow({
     onPair?: () => void;
     onUnpair?: () => void;
 }) {
+    const { hiddenExerciseIds } = usePulse();
+    const isHidden = hiddenExerciseIds.has(re.exercise_id);
     const [editing, setEditing] = useState(false);
     const [sets, setSets] = useState(re.sets);
     const [reps, setReps] = useState(re.reps);
@@ -67,7 +70,14 @@ export default function RoutineExerciseRow({
         <div className="flex flex-col gap-2 bg-pulse-surface rounded-lg px-3 py-2.5">
             <div className="flex items-center gap-3">
                 <span className="font-pulse text-xs text-pulse-muted w-5 shrink-0">{index + 1}</span>
-                <span className="font-pulse text-sm text-pulse-text flex-1 min-w-0 truncate">{re.exercise.name}</span>
+                <span className="font-pulse text-sm text-pulse-text flex-1 min-w-0 truncate">
+                    {re.exercise.name}
+                    {isHidden && (
+                        <span className="ml-2 font-pulse text-[0.5625rem] tracking-[0.08em] uppercase text-pulse-muted">
+                            Hidden
+                        </span>
+                    )}
+                </span>
                 {!editing && (
                     <span className="font-pulse text-xs text-pulse-dim shrink-0">
                         {re.sets} × {re.reps}

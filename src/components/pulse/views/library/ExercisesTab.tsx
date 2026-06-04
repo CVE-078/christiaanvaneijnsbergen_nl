@@ -10,10 +10,12 @@ import ExerciseInstructionModal from '@/components/pulse/ExerciseInstructionModa
 const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
 
 export default function ExercisesTab() {
-    const { exercises, createExercise, updateExercise, deleteExercise } = usePulse();
+    const { exercises, createExercise, updateExercise, deleteExercise, hiddenExerciseIds, toggleHideExercise } =
+        usePulse();
     const [, startTransition] = useTransition();
 
     const [filter, setFilter] = useState<'all' | ExerciseCategory>('all');
+    const [showHidden, setShowHidden] = useState(false);
     const [adding, setAdding] = useState(false);
     const [newName, setNewName] = useState('');
     const [newCategory, setNewCategory] = useState<ExerciseCategory>('chest');
@@ -26,7 +28,11 @@ export default function ExercisesTab() {
     const [editDefaultSets, setEditDefaultSets] = useState('');
     const [editDefaultReps, setEditDefaultReps] = useState('');
 
-    const filtered = exercises.filter((ex) => filter === 'all' || ex.category === filter);
+    const hiddenCount = exercises.filter((ex) => hiddenExerciseIds.has(ex.id)).length;
+    const filtered = exercises.filter(
+        (ex) =>
+            (filter === 'all' || ex.category === filter) && (showHidden || !hiddenExerciseIds.has(ex.id)),
+    );
 
     // Per-category counts so each filter chip can show how many exercises it holds.
     const categoryCounts = useMemo(() => {
@@ -107,6 +113,16 @@ export default function ExercisesTab() {
                 <div className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-l from-pulse-bg to-transparent" />
             </div>
 
+            {/* Show-hidden toggle — only when the user has hidden something. */}
+            {hiddenCount > 0 && (
+                <button
+                    onClick={() => setShowHidden((v) => !v)}
+                    aria-pressed={showHidden}
+                    className="self-start font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer">
+                    {showHidden ? `Hide hidden (${hiddenCount})` : `Show hidden (${hiddenCount})`}
+                </button>
+            )}
+
             {/* Add form */}
             {adding ? (
                 <div className={`${CARD} flex flex-col gap-3`}>
@@ -179,10 +195,13 @@ export default function ExercisesTab() {
                     filtered.map((ex) => {
                         const isUser = ex.user_id !== null;
                         const isEditing = editingId === ex.id;
+                        const isHidden = hiddenExerciseIds.has(ex.id);
                         return (
                             <div
                                 key={ex.id}
-                                className="flex items-center gap-3 bg-pulse-surface rounded-lg px-3 py-2.5">
+                                className={`flex items-center gap-3 bg-pulse-surface rounded-lg px-3 py-2.5 ${
+                                    isHidden ? 'opacity-50' : ''
+                                }`}>
                                 {isEditing ? (
                                     <div className="flex-1 flex flex-col gap-2">
                                         <input
@@ -239,6 +258,13 @@ export default function ExercisesTab() {
                                             {ex.name}
                                         </span>
                                         <CategoryBadge category={ex.category} />
+                                        <button
+                                            onClick={() => toggleHideExercise(ex.id, !isHidden)}
+                                            aria-label={isHidden ? `Unhide ${ex.name}` : `Hide ${ex.name}`}
+                                            aria-pressed={isHidden}
+                                            className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
+                                            {isHidden ? 'Unhide' : 'Hide'}
+                                        </button>
                                         {!isUser && (
                                             <button
                                                 onClick={() => setInstructionsFor(ex)}
