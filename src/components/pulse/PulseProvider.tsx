@@ -69,7 +69,16 @@ export function PulseProvider({ email, navigate, children }: Props) {
         updateExercise,
         deleteExercise,
     } = useRoutines(profile.active_routine_id);
-    const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
+    const {
+        activeWeek,
+        setActiveWeek,
+        activeTab,
+        setActiveTab,
+        autoAdvance,
+        setAutoAdvance,
+        workoutModeOpen,
+        setWorkoutModeOpen,
+    } = useUIState();
     const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
     const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes();
     const { swaps, setSwap, clearSwap } = useSwaps();
@@ -230,6 +239,10 @@ export function PulseProvider({ email, navigate, children }: Props) {
             showOnboarding,
             triggerOnboarding,
             dismissOnboarding,
+            autoAdvance,
+            setAutoAdvance,
+            workoutModeOpen,
+            setWorkoutModeOpen,
         }),
         [
             navigate,
@@ -244,6 +257,10 @@ export function PulseProvider({ email, navigate, children }: Props) {
             showOnboarding,
             triggerOnboarding,
             dismissOnboarding,
+            autoAdvance,
+            setAutoAdvance,
+            workoutModeOpen,
+            setWorkoutModeOpen,
         ],
     );
     const timerValue = useMemo(

@@ -10,8 +10,19 @@ export function useUIState() {
     const [rawWeek, setRawWeek] = useLocalStorage<number>('pulse_week', 1);
     const activeWeek = clampWeek(rawWeek);
     const [activeTab, setActiveTab] = useState<TabKey>('push');
+    const [autoAdvance, setAutoAdvance] = useLocalStorage<boolean>('pulse_autoadvance', false);
+    const [workoutModeOpen, setWorkoutModeOpen] = useState<boolean>(false);
 
     const setActiveWeek = useCallback((week: number) => setRawWeek(week), [setRawWeek]);
 
-    return { activeWeek, setActiveWeek, activeTab, setActiveTab };
+    return {
+        activeWeek,
+        setActiveWeek,
+        activeTab,
+        setActiveTab,
+        autoAdvance,
+        setAutoAdvance,
+        workoutModeOpen,
+        setWorkoutModeOpen,
+    };
 }

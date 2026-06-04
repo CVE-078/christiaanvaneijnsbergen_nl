@@ -96,6 +96,8 @@ export default function ProfileView() {
         bodyweightLogs,
         updateProfile,
         updateSex,
+        autoAdvance,
+        setAutoAdvance,
         logBodyWeight,
         deleteBodyWeight,
         refreshMeasurements,
@@ -275,6 +277,26 @@ export default function ProfileView() {
                                 {s === 'male' ? 'Male' : 'Female'}
                             </button>
                         ))}
+                    </div>
+                </div>
+
+                {/* Auto-advance rest timer */}
+                <div>
+                    <SectionLabel className="mb-2">Auto-advance rest timer</SectionLabel>
+                    <div className="flex items-center gap-3">
+                        <button
+                            role="switch"
+                            aria-checked={autoAdvance}
+                            aria-label="Auto-advance rest timer"
+                            onClick={() => setAutoAdvance(!autoAdvance)}
+                            className={`relative w-11 h-6 rounded-full shrink-0 cursor-pointer border-none transition-colors ${autoAdvance ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}>
+                            <span
+                                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-pulse-bg transition-transform ${autoAdvance ? 'translate-x-5' : 'translate-x-0'}`}
+                            />
+                        </button>
+                        <span className="font-pulse text-[0.8125rem] text-pulse-dim">
+                            In guided mode, jump to the next exercise when rest ends.
+                        </span>
                     </div>
                 </div>
 

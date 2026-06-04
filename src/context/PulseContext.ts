@@ -76,6 +76,12 @@ export interface PulseContextValue {
     triggerOnboarding: () => void;
     dismissOnboarding: () => void;
 
+    // Guided mode (workout mode overlay) + rest-timer auto-advance
+    autoAdvance: boolean;
+    setAutoAdvance: (v: boolean) => void;
+    workoutModeOpen: boolean;
+    setWorkoutModeOpen: (v: boolean) => void;
+
     // Rest timer
     timerTrigger: number;
     timerDuration: number | null;

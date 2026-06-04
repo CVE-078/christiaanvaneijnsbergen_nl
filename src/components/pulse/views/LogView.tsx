@@ -52,13 +52,14 @@ export default function LogView() {
         setSwap,
         clearSwap,
         hiddenExerciseIds,
+        workoutModeOpen,
+        setWorkoutModeOpen,
         loading,
         errors,
         retry,
     } = usePulse();
 
     const { session, startSession, completeSession, clearSession } = useWorkoutSession();
-    const [workoutModeOpen, setWorkoutModeOpen] = useState(false);
     const [shareSession, setShareSession] = useState<{
         session: WorkoutSession;
         completedAt: string;

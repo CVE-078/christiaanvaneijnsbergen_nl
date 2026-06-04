@@ -103,6 +103,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
         timerTrigger,
         timerDuration,
         showOnboarding,
+        workoutModeOpen,
     } = usePulse();
 
     const [expanded, setExpanded] = useLocalStorage('pulse:sidebar-expanded', false);
@@ -234,10 +235,13 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                     </div>
                 </div>
 
-                {/* Pinned rest timer */}
-                <div className="mt-9">
-                    <RestTimer trigger={timerTrigger} duration={timerDuration ?? undefined} />
-                </div>
+                {/* Pinned rest timer. Suppressed while guided mode is open so only the
+                    WorkoutModeScreen timer counts down (no double beep). */}
+                {!workoutModeOpen && (
+                    <div className="mt-9">
+                        <RestTimer trigger={timerTrigger} duration={timerDuration ?? undefined} />
+                    </div>
+                )}
 
                 {/* Phase context */}
                 <div className="mt-9 text-xs text-pulse-muted tracking-[0.02em]">

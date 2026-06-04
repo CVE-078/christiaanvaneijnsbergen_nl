@@ -23,6 +23,10 @@ vi.mock('@/hooks/pulse/useUIState', () => ({
         setActiveWeek: vi.fn(),
         activeTab,
         setActiveTab: setActiveTabSpy,
+        autoAdvance: false,
+        setAutoAdvance: vi.fn(),
+        workoutModeOpen: false,
+        setWorkoutModeOpen: vi.fn(),
     }),
 }));
 

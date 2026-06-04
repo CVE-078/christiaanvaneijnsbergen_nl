@@ -68,6 +68,8 @@ const defaultContext = {
     setSwap: vi.fn().mockResolvedValue(undefined),
     clearSwap: vi.fn().mockResolvedValue(undefined),
     hiddenExerciseIds: new Set<string>(),
+    workoutModeOpen: false,
+    setWorkoutModeOpen: vi.fn(),
 };
 
 beforeEach(() => {
@@ -131,8 +133,13 @@ describe('LogView', () => {
         expect(week3?.querySelector('.bg-pulse-accent')).toBeFalsy();
     });
 
-    it('shows WorkoutModeScreen immediately when Start workout is clicked, before session resolves', async () => {
+    it('opens guided mode by setting workoutModeOpen when Start workout is clicked', async () => {
         const { default: userEvent } = await import('@testing-library/user-event');
+        const setWorkoutModeOpen = vi.fn();
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            setWorkoutModeOpen,
+        } as unknown as ReturnType<typeof usePulse>);
         vi.mocked(useWorkoutSession).mockReturnValue({
             session: null,
             startSession: vi.fn(() => new Promise(() => {})), // never resolves
@@ -141,6 +148,15 @@ describe('LogView', () => {
         } as unknown as ReturnType<typeof useWorkoutSession>);
         renderWithToast(<LogView />);
         await userEvent.click(screen.getByRole('button', { name: /start workout/i }));
+        expect(setWorkoutModeOpen).toHaveBeenCalledWith(true);
+    });
+
+    it('renders WorkoutModeScreen when workoutModeOpen is true', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            workoutModeOpen: true,
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<LogView />);
         expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
     });
 

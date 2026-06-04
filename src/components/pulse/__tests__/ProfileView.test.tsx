@@ -39,6 +39,8 @@ const defaultContext = {
     refreshMeasurements: vi.fn(),
     updateProfile: mockUpdateProfile,
     updateSex: mockUpdateSex,
+    autoAdvance: false,
+    setAutoAdvance: vi.fn(),
     logBodyWeight: mockLogBodyWeight,
     deleteBodyWeight: mockDeleteBodyWeight,
     streak: 0,
@@ -147,6 +149,28 @@ describe('ProfileView', () => {
         await userEvent.click(screen.getByRole('button', { name: /^female$/i }));
         expect(mockUpdateSex).toHaveBeenCalledWith('female');
         await waitFor(() => expect(screen.getByText(/sex updated/i)).toBeInTheDocument());
+    });
+
+    it('renders the auto-advance toggle reflecting the stored value', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            autoAdvance: true,
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<ProfileView />);
+        const toggle = screen.getByRole('switch', { name: /auto-advance rest timer/i });
+        expect(toggle).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('calls setAutoAdvance when the toggle is clicked', async () => {
+        const setAutoAdvance = vi.fn();
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            autoAdvance: false,
+            setAutoAdvance,
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<ProfileView />);
+        await userEvent.click(screen.getByRole('switch', { name: /auto-advance rest timer/i }));
+        expect(setAutoAdvance).toHaveBeenCalledWith(true);
     });
 
     it('shows body weight entries in user unit', () => {
