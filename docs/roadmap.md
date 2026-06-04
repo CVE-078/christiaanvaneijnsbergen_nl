@@ -95,9 +95,13 @@ Differentiation opportunities:
 
 ## Near-term
 
-All four near-term items shipped 2026-06-04 (gender in profile, strength score, recovery-aware volume nudges, rest-timer auto-advance — see Shipped). Near-term is clear.
+Promoted from Later 2026-06-04 after clearing the previous four. Same value-per-effort ordering: cheapest web-native win first, then the item that extends what we just shipped, then the higher-effort visual feature. All three serve the two current users and need no user mass or accumulated data.
 
-Next candidates come from the top of **Later** (Progress photos, CSV export, Muscle priority). Pull items up here when you pick the next sprint; this section is intentionally left empty rather than auto-reordered.
+| # | Feature | Notes |
+|---|---------|-------|
+| 1 | CSV data export | Export full workout history (logs + sessions + PRs) as CSV for backup or external analysis. Small, pure-compute, ownership value; no schema or storage changes. (also in: Strong, Alpha, Caliber) |
+| 2 | Muscle priority selection | User prioritizes a muscle; the generator shifts weekly volume toward it. Builds directly on the shipped per-muscle volume targets and folds in the deferred gender/emphasis weighting (the light female style bias becomes an explicit, user-driven priority). Moderate effort, high value for both users. |
+| 3 | Progress photos | Date-stamped progress photos alongside the existing body measurements; visual progress comparison that pairs with the recomp dashboard. Biggest of the three — needs file upload + a Supabase storage bucket (RLS) and a CSP `img-src`/`connect-src` update for the storage host. (also in: Hevy, Strong, Jefit, Fitbod) |
 
 _Shipped 2026-06-04: gender in profile, strength score, recovery-aware volume nudges, rest-timer auto-advance, mid-workout exercise swap, generation explainability, weekly per-muscle volume targets, recomp dashboard, offline-first logging (see Shipped)._
 _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions, rule-based routine generation, routine editor session grouping, routine rename, collapsible sidebar, scroll-rail muscle filter, streak hero, login + skeleton reskin (see Shipped)._
@@ -106,13 +110,10 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 
 ## Later
 
-Same value-per-effort ordering as Near-term, continued: web-native moderate-value items first, then bigger or data-gated work, then native-platform and scale-gated items last.
+Same value-per-effort ordering as Near-term, continued: web-native moderate-value items first, then bigger or data-gated work, then native-platform and scale-gated items last. (Progress photos, CSV export, and Muscle priority were promoted to Near-term 2026-06-04.)
 
 | Feature | Notes |
 |---|---|
-| Progress photos | Date-stamped progress photos alongside the existing body measurements. Visual progress comparison; pairs with the recomp tracking. Needs file upload + Supabase storage. (also in: Hevy, Strong, Jefit, Fitbod) |
-| CSV data export | Export full workout history for users who want their own analysis or a backup. Small, pure-compute, ownership/backup value. (also in: Strong, Alpha, Caliber) |
-| Muscle priority selection | User prioritizes a muscle; generator shifts weekly volume toward it. Builds on the shipped volume targets; overlaps with the deferred gender/emphasis weighting — fold in together. |
 | Adaptive missed-workout regeneration | "You missed Lower B, here's an adjusted week" instead of restart. High adherence value; sessions infra exists. Lower urgency at current scale. (inspired by: Fitbod) |
 | Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). Bigger lift. |
 | Plateau detection + smart deload | Detect a stalled lift over N weeks and recommend volume change / exercise swap / deload. Static week-12 deload exists; this is the data-driven version. Needs accumulated logs. (also in: Alpha, Boostcamp) |
