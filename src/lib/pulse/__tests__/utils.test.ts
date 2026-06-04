@@ -24,6 +24,9 @@ import {
     computePlates,
     sessionTypeFor,
     computeWeeksWithData,
+    swapKey,
+    resolveExercise,
+    swapCandidates,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession } from '../types';
 
@@ -992,5 +995,56 @@ describe('sessionTypeFor', () => {
     it('falls back to the exercise type when the routine has no schedule', () => {
         expect(sessionTypeFor('chest', [])).toBe('chest');
         expect(sessionTypeFor('full_body', [])).toBe('full_body');
+    });
+});
+
+describe('swapKey', () => {
+    it('joins week and routine exercise id with a dash', () => {
+        expect(swapKey(3, 'abc-123')).toBe('3-abc-123');
+    });
+});
+
+describe('resolveExercise', () => {
+    const original = { id: 'e1', name: 'Leg Press', category: 'legs', default_sets: '3', default_reps: '10', user_id: null };
+    const sub = { id: 'e2', name: 'Hack Squat', category: 'legs', default_sets: '3', default_reps: '10', user_id: null };
+    const re = { id: 'slot1', exercise: original } as unknown as import('../types').RoutineExercise;
+    const byId = new Map([[original.id, original], [sub.id, sub]]) as Map<string, import('../types').DbExercise>;
+
+    it('returns the substitute when a swap exists for the week/slot', () => {
+        const swaps = { '4-slot1': 'e2' };
+        expect(resolveExercise(re, 4, swaps, byId).name).toBe('Hack Squat');
+    });
+    it('returns the original when no swap exists', () => {
+        expect(resolveExercise(re, 4, {}, byId).name).toBe('Leg Press');
+    });
+    it('falls back to the original when the substitute is missing from the lookup', () => {
+        const swaps = { '4-slot1': 'gone' };
+        expect(resolveExercise(re, 4, swaps, byId).name).toBe('Leg Press');
+    });
+});
+
+describe('swapCandidates', () => {
+    const mk = (id: string, name: string, mp: string | null, eq: string[]) =>
+        ({ id, name, category: 'chest', default_sets: '3', default_reps: '8', user_id: null,
+           movement_pattern: mp, equipment: eq } as unknown as import('../types').DbExercise);
+
+    const original = mk('o', 'Barbell Bench', 'horizontal_push', ['barbell', 'bench']);
+    const dbBench = mk('a', 'Dumbbell Bench', 'horizontal_push', ['dumbbell', 'bench']);
+    const machine = mk('b', 'Machine Press', 'horizontal_push', ['machine']);
+    const pushup = mk('c', 'Push-Up', 'horizontal_push', []);
+    const row = mk('d', 'Row', 'horizontal_pull', ['dumbbell']);
+
+    it('returns same-movement-pattern exercises, excluding the original', () => {
+        const out = swapCandidates(original, [original, dbBench, machine, row], { excludeIds: new Set() });
+        expect(out.map((e) => e.id)).toEqual(['a', 'b']);
+    });
+    it('excludes ids in excludeIds (hidden / already in session)', () => {
+        const out = swapCandidates(original, [dbBench, machine], { excludeIds: new Set(['a']) });
+        expect(out.map((e) => e.id)).toEqual(['b']);
+    });
+    it('drops exercises with no movement pattern', () => {
+        const noMp = mk('x', 'Mystery', null, []);
+        const out = swapCandidates(original, [pushup, noMp], { excludeIds: new Set() });
+        expect(out.map((e) => e.id)).toEqual(['c']);
     });
 });

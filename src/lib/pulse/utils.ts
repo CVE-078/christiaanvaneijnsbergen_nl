@@ -109,6 +109,11 @@ export function logKey(week: number, routineExerciseId: string, setIdx: number):
     return `${week}-${routineExerciseId}-${setIdx}`;
 }
 
+// Key for the per-(week, slot) exercise swap map. Mirrors the Notes keying.
+export function swapKey(week: number, routineExerciseId: string): string {
+    return `${week}-${routineExerciseId}`;
+}
+
 // Parse a log key of the form "<week>-<routineExerciseId>-<setIdx>".
 // week is the number before the first '-', routineExerciseId is the slice
 // between the first and last '-', setIdx is the number after the last '-'.
