@@ -16,6 +16,8 @@ import E1RMChart from '@/components/pulse/E1RMChart';
 import BestLifts from '@/components/pulse/BestLifts';
 import MuscleVolumeBars from '@/components/pulse/MuscleVolumeBars';
 import RecompCard from '@/components/pulse/RecompCard';
+import StrengthScoreCard from '@/components/pulse/StrengthScoreCard';
+import { computeStrengthScore } from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
 import type { Unit } from '@/lib/pulse/types';
@@ -144,6 +146,16 @@ export default function HistoryView() {
 
     const activeRoutineExercises = useMemo(() => activeRoutine?.exercises ?? [], [activeRoutine]);
 
+    const strength = useMemo(
+        () =>
+            computeStrengthScore({
+                sex: profile.sex,
+                bodyweightKg: bodyweightLogs[0]?.weight_kg ?? null,
+                lifts: Object.entries(prMap).map(([rid, e1rm]) => ({ name: nameMap.get(rid) ?? '', e1rm })),
+            }),
+        [prMap, nameMap, bodyweightLogs, profile.sex],
+    );
+
     // One pass over logs replacing the former five independent scans
     // (buildHistory, computeVolumeByTypeAndWeek, computeBestSets,
     // computePerMuscleVolume, default-exercise scan).
@@ -201,6 +213,11 @@ export default function HistoryView() {
                 <span className="font-pulse-body text-[0.8125rem] text-pulse-muted tracking-[0.03em]">
                     {streak === 0 ? 'No streak yet' : `${streak}-week streak`}
                 </span>
+            </div>
+
+            {/* Strength Score headline */}
+            <div className="mb-4">
+                <StrengthScoreCard strength={strength} />
             </div>
 
             {/* Recomp readout */}
