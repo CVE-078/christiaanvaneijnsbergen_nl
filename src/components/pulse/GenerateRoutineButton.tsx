@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { usePulse } from '@/context/PulseContext';
 import { BTN_PRIMARY } from '@/components/pulse/ui';
+import { recommendStyle } from '@/lib/pulse/generation';
 import RoutineSetupFlow from './RoutineSetupFlow';
 
 // Reusable entry point: a button that opens the shared RoutineSetupFlow and
@@ -23,8 +24,13 @@ export default function GenerateRoutineButton({
             </button>
             {open && (
                 <RoutineSetupFlow
-                    onComplete={async ({ answers, trainingDays, sessionTime }) => {
-                        await generateRoutine(answers, trainingDays, sessionTime);
+                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey }) => {
+                        await generateRoutine(
+                            answers,
+                            trainingDays,
+                            sessionTime,
+                            styleKey ?? recommendStyle(trainingDays.length),
+                        );
                         navigate('train');
                     }}
                     onClose={() => setOpen(false)}

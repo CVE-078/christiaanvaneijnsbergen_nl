@@ -194,16 +194,17 @@ export function PulseProvider({
             const dB = (b.day_of_week - today + 7) % 7;
             return dA - dB;
         });
-        _setActiveDay(sorted[0].day_of_week);
-        setActiveTab(sorted[0].workout_type);
+        const e0 = sorted[0];
+        _setActiveDay(e0.day_of_week);
+        setActiveTab(e0.variant ? `${e0.workout_type}:${e0.variant}` : e0.workout_type);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeSchedule.map((e) => `${e.day_of_week}:${e.workout_type}`).join(',')]);
+    }, [activeSchedule.map((e) => `${e.day_of_week}:${e.workout_type}:${e.variant ?? ''}`).join(',')]);
 
     const setActiveDay = useCallback(
         (day: number) => {
             _setActiveDay(day);
             const entry = activeSchedule.find((e) => e.day_of_week === day);
-            if (entry) setActiveTab(entry.workout_type);
+            if (entry) setActiveTab(entry.variant ? `${entry.workout_type}:${entry.variant}` : entry.workout_type);
         },
         [activeSchedule, setActiveTab],
     );

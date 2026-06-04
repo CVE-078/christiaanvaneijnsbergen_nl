@@ -1,10 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { DAY_NAMES, SUGGESTED_DAYS } from '@/lib/pulse/constants';
+import { STYLES, recommendStyle } from '@/lib/pulse/generation';
 import type { EquipmentKey, SessionTime } from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6;
+// Steps: 1 equipment · 2 experience · 3 goal · 4 days/week · 5 which days ·
+// 6 program style (only when >1 style exists for the count) · 7 session time.
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
 const CARD = 'bg-pulse-surface rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
@@ -12,18 +15,18 @@ const Q = 'font-pulse text-lg font-medium text-pulse-text tracking-[-0.01em]';
 const BTN_PRIMARY =
     'font-pulse text-sm font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-5 py-2.5 cursor-pointer border-none disabled:opacity-50 w-full';
 
-function ProgressBar({ current }: { current: number }) {
+function ProgressBar({ current, total }: { current: number; total: number }) {
     return (
         <div className="h-1 bg-pulse-border rounded-full overflow-hidden">
             <div
                 className="h-full bg-pulse-accent rounded-full transition-all"
-                style={{ width: `${Math.round(current * (100 / 6))}%` }}
+                style={{ width: `${Math.round(current * (100 / total))}%` }}
             />
         </div>
     );
 }
 
-function Header({ stepNum, onBack }: { stepNum: number; onBack?: () => void }) {
+function Header({ stepNum, total, onBack }: { stepNum: number; total: number; onBack?: () => void }) {
     return (
         <div className="flex items-center gap-3">
             {onBack ? (
@@ -36,9 +39,11 @@ function Header({ stepNum, onBack }: { stepNum: number; onBack?: () => void }) {
                 <div className="w-5" />
             )}
             <div className="flex-1">
-                <ProgressBar current={stepNum} />
+                <ProgressBar current={stepNum} total={total} />
             </div>
-            <span className="font-pulse text-xs text-pulse-muted shrink-0">{stepNum}/6</span>
+            <span className="font-pulse text-xs text-pulse-muted shrink-0">
+                {stepNum}/{total}
+            </span>
         </div>
     );
 }
@@ -74,12 +79,16 @@ const EQUIPMENT_OPTIONS: { key: EquipmentKey; label: string }[] = [
     { key: 'bench', label: 'Weight bench' },
     { key: 'cables', label: 'Cable machine' },
     { key: 'machines', label: 'Gym machines (leg press, lat pulldown, etc.)' },
+    { key: 'pull_up_bar', label: 'Pull-up bar' },
 ];
 
 export interface RoutineSetupResult {
     answers: OnboardingAnswers;
     trainingDays: number[];
     sessionTime: SessionTime;
+    /** Chosen program-style key. Set by the style-picker step (Part C4);
+     *  undefined falls back to the recommended style for the session count. */
+    styleKey?: string;
 }
 
 interface Props {
@@ -104,7 +113,14 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
     const [days, setDays] = useState<DaysPerWeek | null>(initial?.days ?? null);
     const [sessionTime, setSessionTime] = useState<SessionTime | null>(initial?.sessionTime ?? null);
     const [trainingDays, setTrainingDays] = useState<number[]>(initial?.trainingDays ?? []);
+    const [styleKey, setStyleKey] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+
+    // Program styles for the chosen number of training days. The style step is
+    // only shown when there is more than one to pick from.
+    const styleOptions = STYLES[trainingDays.length] ?? [];
+    const showStyleStep = styleOptions.length > 1;
+    const total = showStyleStep ? 7 : 6;
 
     function toggleEquipment(key: EquipmentKey) {
         setEquipment((prev) => {
@@ -120,7 +136,12 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         setLoading(true);
         void (async () => {
             try {
-                await onComplete({ answers: { equipment, experience, goal, days }, trainingDays, sessionTime });
+                await onComplete({
+                    answers: { equipment, experience, goal, days },
+                    trainingDays,
+                    sessionTime,
+                    styleKey: styleKey ?? recommendStyle(trainingDays.length),
+                });
             } finally {
                 setLoading(false);
                 onClose();
@@ -132,7 +153,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={1} />
+                    <Header stepNum={1} total={total} />
                     <p className={Q}>What equipment do you have access to?</p>
                     <div className="flex flex-col gap-2">
                         {EQUIPMENT_OPTIONS.map(({ key, label }) => (
@@ -177,7 +198,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={2} onBack={() => setStep(1)} />
+                    <Header stepNum={2} total={total} onBack={() => setStep(1)} />
                     <p className={Q}>What&apos;s your training experience?</p>
                     <div className="flex flex-col gap-2">
                         <OptionRow
@@ -210,7 +231,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={3} onBack={() => setStep(2)} />
+                    <Header stepNum={3} total={total} onBack={() => setStep(2)} />
                     <p className={Q}>What&apos;s your primary goal?</p>
                     <div className="flex flex-col gap-2">
                         <OptionRow
@@ -243,7 +264,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={4} onBack={() => setStep(3)} />
+                    <Header stepNum={4} total={total} onBack={() => setStep(3)} />
                     <p className={Q}>How many days per week can you train?</p>
                     <div className="flex flex-col gap-2">
                         <OptionRow label="2–3 days" active={days === '2-3'} onClick={() => setDays('2-3')} />
@@ -267,7 +288,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={5} onBack={() => setStep(4)} />
+                    <Header stepNum={5} total={total} onBack={() => setStep(4)} />
                     <p className={Q}>Which days will you train?</p>
                     <div className="flex gap-2 flex-wrap">
                         {[1, 2, 3, 4, 5, 6, 0].map((d) => (
@@ -287,7 +308,43 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                             </button>
                         ))}
                     </div>
-                    <button onClick={() => setStep(6)} disabled={trainingDays.length === 0} className={BTN_PRIMARY}>
+                    <button
+                        onClick={() => {
+                            // Pre-select the recommended style for this count so the
+                            // style step opens with a sensible default already chosen.
+                            if (showStyleStep && !styleKey) setStyleKey(recommendStyle(trainingDays.length));
+                            setStep(showStyleStep ? 6 : 7);
+                        }}
+                        disabled={trainingDays.length === 0}
+                        className={BTN_PRIMARY}>
+                        Next
+                    </button>
+                </div>
+            </div>
+        );
+
+    if (step === 6 && showStyleStep)
+        return (
+            <div className={WRAP}>
+                <div className={CARD}>
+                    <Header stepNum={6} total={total} onBack={() => setStep(5)} />
+                    <p className={Q}>Which program style?</p>
+                    <div className="flex flex-col gap-2">
+                        {styleOptions.map((s) => (
+                            <button
+                                key={s.key}
+                                onClick={() => setStyleKey(s.key)}
+                                className={`flex flex-col gap-1 p-3 text-left rounded-xl cursor-pointer transition-colors w-full ${
+                                    styleKey === s.key
+                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                        : 'bg-pulse-surface-2 ring-0 hover:bg-pulse-surface-2/70'
+                                }`}>
+                                <span className="font-pulse text-sm font-medium text-pulse-text">{s.name}</span>
+                                <span className="font-pulse text-xs text-pulse-dim">{s.bestFor}</span>
+                            </button>
+                        ))}
+                    </div>
+                    <button onClick={() => setStep(7)} disabled={!styleKey} className={BTN_PRIMARY}>
                         Next
                     </button>
                 </div>
@@ -297,7 +354,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
     return (
         <div className={WRAP}>
             <div className={CARD}>
-                <Header stepNum={6} onBack={() => setStep(5)} />
+                <Header stepNum={total} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
                 <p className={Q}>How long are your sessions?</p>
                 <div className="flex flex-col gap-2">
                     <OptionRow

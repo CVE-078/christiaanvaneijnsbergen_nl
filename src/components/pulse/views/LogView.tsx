@@ -20,7 +20,7 @@ import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
 import WorkoutModeScreen from '../WorkoutModeScreen';
 import ShareCard from '../ShareCard';
 import GenerateRoutineButton from '../GenerateRoutineButton';
-import type { LogEntry, RoutineExercise, WorkoutSession } from '@/lib/pulse/types';
+import type { LogEntry, RoutineExercise, WorkoutSession, WorkoutVariant } from '@/lib/pulse/types';
 
 export default function LogView() {
     const {
@@ -111,10 +111,12 @@ export default function LogView() {
 
     async function handleStartWorkout() {
         if (!activeRoutine) return;
-        const baseType = (activeTab as string).includes(':') ? (activeTab as string).split(':')[0] : activeTab;
+        const tab = activeTab as string;
+        const baseType = tab.includes(':') ? tab.split(':')[0] : tab;
+        const variant = tab.includes(':') ? (tab.split(':')[1] as WorkoutVariant) : null;
         setWorkoutModeOpen(true);
         try {
-            await startSession(activeRoutine.id, baseType);
+            await startSession(activeRoutine.id, baseType, variant);
         } catch {
             // session creation failed — close the screen
             setWorkoutModeOpen(false);

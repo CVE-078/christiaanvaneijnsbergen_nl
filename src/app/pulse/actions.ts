@@ -6,7 +6,7 @@ import { validateLogEntry } from '@/lib/pulse/validation';
 import { parseLogKey, UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
-import { applyTemplateVolume, generateRoutine } from '@/lib/pulse/generation';
+import { applyTemplateVolume, generateRoutine, resolveStyle } from '@/lib/pulse/generation';
 import type { ExerciseMeta } from '@/lib/pulse/generation';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 import type {
@@ -15,6 +15,7 @@ import type {
     BodyweightEntry,
     DbExercise,
     WorkoutType,
+    WorkoutVariant,
     WorkoutRoutine,
     RoutineExercise,
     ExerciseCategory,
@@ -354,7 +355,7 @@ export async function addExerciseToRoutine(
     reps: string,
     startingWeightKg: number | null,
     workoutType: WorkoutType,
-    variant?: 'A' | 'B' | null,
+    variant?: WorkoutVariant | null,
 ): Promise<RoutineExercise> {
     if (!UUID_RE.test(routineId)) throw new Error('Invalid routine id');
     if (!UUID_RE.test(exerciseId)) throw new Error('Invalid exercise id');
@@ -557,6 +558,7 @@ export async function generateAndSaveRoutine(
     answers: OnboardingAnswers,
     trainingDays: number[],
     sessionTime: SessionTime,
+    styleKey: string,
     name?: string,
 ): Promise<WorkoutRoutine> {
     const { supabase, user } = await getUserOrThrow();
@@ -567,11 +569,15 @@ export async function generateAndSaveRoutine(
         .select('id, category, equipment, movement_pattern, is_compound')
         .is('user_id', null);
 
+    const style = resolveStyle(styleKey, trainingDays.length);
+
     const blueprint = generateRoutine({
+        style,
         answers,
         sessionTime,
         trainingDays,
         pool: (pool ?? []) as unknown as ExerciseMeta[],
+        makeGroupId: () => crypto.randomUUID(),
     });
 
     const { data: routine, error: routineErr } = await supabase
@@ -592,18 +598,19 @@ export async function generateAndSaveRoutine(
                 sets: e.sets,
                 reps: e.reps,
                 starting_weight_kg: null,
+                superset_group_id: e.superset_group_id,
             })),
         );
         if (exErr) throw new Error('Failed to save generated exercises');
     }
 
-    // Schedule maps day -> workout_type. There is no variant column on
-    // routine_schedule; A/B lives on routine_exercises and is surfaced via the
-    // train-screen tabs.
+    // Schedule maps day -> workout_type and pins the per-day variant (A–D) so
+    // the train screen jumps straight to that session's tab.
     const scheduleRows = blueprint.schedule.map((s) => ({
         routine_id: routine.id,
         day_of_week: s.day_of_week,
         workout_type: s.workout_type,
+        variant: s.variant,
     }));
     if (scheduleRows.length > 0) {
         const { error: schedErr } = await supabase.from('routine_schedule').insert(scheduleRows);

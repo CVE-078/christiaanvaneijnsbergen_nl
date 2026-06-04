@@ -107,6 +107,29 @@ describe('WorkoutTabs', () => {
         expect(screen.getByText('0/3')).toBeInTheDocument();
     });
 
+    it('renders A–D variant tabs in order with their letter labels', () => {
+        const re = (id: string, variant: 'A' | 'B' | 'C' | 'D'): RoutineExercise => ({
+            ...mockRE(id, 'full_body'),
+            variant,
+        });
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeTab: 'full_body:A' as TabKey,
+            // Intentionally out of order to prove the tabs sort A→D.
+            routineExercisesByTabKey: {
+                'full_body:C': [re('c1', 'C')],
+                'full_body:A': [re('a1', 'A')],
+                'full_body:D': [re('d1', 'D')],
+                'full_body:B': [re('b1', 'B')],
+            } as Partial<Record<TabKey, RoutineExercise[]>>,
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<WorkoutTabs />);
+        // Labels are "Full Body A".."Full Body D"; grab the trailing variant letter.
+        const tabs = screen.getAllByRole('tab').map((t) => t.textContent ?? '');
+        const letters = tabs.map((t) => t.match(/Body ([A-D])/)?.[1]);
+        expect(letters).toEqual(['A', 'B', 'C', 'D']);
+    });
+
     it('does not show a badge when the tab has no exercises', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,

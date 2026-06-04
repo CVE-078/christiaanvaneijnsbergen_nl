@@ -5,6 +5,7 @@ import type {
     Profile,
     BodyweightEntry,
     WorkoutType,
+    WorkoutVariant,
     TabKey,
     Unit,
     LogEntry,
@@ -105,7 +106,7 @@ export interface PulseContextValue {
         reps: string,
         startingWeightKg: number | null,
         workoutType: WorkoutType,
-        variant?: 'A' | 'B' | null,
+        variant?: WorkoutVariant | null,
     ) => Promise<RoutineExercise>;
     removeExerciseFromRoutine: (routineExerciseId: string) => Promise<void>;
     updateRoutineExercise: (
@@ -126,6 +127,7 @@ export interface PulseContextValue {
         answers: OnboardingAnswers,
         trainingDays: number[],
         sessionTime: SessionTime,
+        styleKey: string,
         name?: string,
     ) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
