@@ -29,7 +29,7 @@ const PATH_TO_VIEW: Record<string, View> = {
     '/pulse/plan': 'plan',
     '/pulse/progress': 'progress',
     '/pulse/profile': 'profile',
-    '/pulse/explore': 'explore',
+    '/pulse/library': 'library',
 };
 
 interface Props {

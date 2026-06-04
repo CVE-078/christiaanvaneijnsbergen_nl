@@ -22,7 +22,7 @@
 - `workout_type` on `routine_exercises` + `routine_schedule` table (dynamic per-day workout tabs)
 - Weekly schedule in onboarding (day picker, auto-fills schedule from template pattern)
 - DayTabs — Mon–Sun training day selector with workout-type subtitle, today dot, logged-set badge
-- Next.js App Router pages (`/pulse/train`, `/pulse/plan`, `/pulse/progress`, `/pulse/profile`, `/pulse/explore`)
+- Next.js App Router pages (`/pulse/train`, `/pulse/plan`, `/pulse/progress`, `/pulse/profile`, `/pulse/library`)
 - Desktop layout via `DesktopLayout` component (≥ 1024 px)
 - Route group `(protected)` — login page excluded from auth layout, no more redirect loop
 - Progress & analytics page — StreakCalendar (12-dot weekly filled), VolumeChart (sets/week by type), E1RMChart (progression line with exercise picker + PR marker), BestLifts summary, session history with name resolution and PR badges

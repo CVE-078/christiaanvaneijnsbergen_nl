@@ -71,8 +71,8 @@ const ITEMS: { id: View; label: string; icon: React.ReactNode }[] = [
         ),
     },
     {
-        id: 'explore',
-        label: 'Explore',
+        id: 'library',
+        label: 'Library',
         icon: (
             <svg
                 viewBox="0 0 24 24"

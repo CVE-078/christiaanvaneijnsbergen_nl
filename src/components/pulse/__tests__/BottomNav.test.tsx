@@ -10,7 +10,7 @@ describe('BottomNav', () => {
         expect(screen.getByText('Plan')).toBeInTheDocument();
         expect(screen.getByText('Progress')).toBeInTheDocument();
         expect(screen.getByText('Profile')).toBeInTheDocument();
-        expect(screen.getByText('Explore')).toBeInTheDocument();
+        expect(screen.getByText('Library')).toBeInTheDocument();
     });
 
     it('calls onNavigate with the correct view when a tab is clicked', async () => {

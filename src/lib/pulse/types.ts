@@ -98,7 +98,7 @@ export interface HistorySession {
     sets: Array<LogEntry & { routineExerciseId: string; setIdx: number }>;
 }
 
-export const VIEWS = ['train', 'plan', 'progress', 'profile', 'explore'] as const;
+export const VIEWS = ['train', 'plan', 'progress', 'profile', 'library'] as const;
 export type View = (typeof VIEWS)[number];
 
 export type PRMap = Record<string, number>;
