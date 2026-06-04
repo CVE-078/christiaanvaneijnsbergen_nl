@@ -830,7 +830,9 @@ describe('computePerMuscleVolume', () => {
 });
 
 describe('computeVolumeProgress', () => {
-    const targets = { chest: [12, 18], back: [12, 18], biceps: [8, 14] } as Partial<Record<import('../types').ExerciseCategory, [number, number]>>;
+    const targets = { chest: [12, 18], back: [12, 18], biceps: [8, 14] } as Partial<
+        Record<import('../types').ExerciseCategory, [number, number]>
+    >;
     it('returns a row per targeted muscle with actual, range, and to-go, lagging first', () => {
         const rows = computeVolumeProgress({ chest: 14, biceps: 2 }, targets);
         expect(rows.map((r) => r.category)).toEqual(['back', 'biceps', 'chest']); // toGo 12, 6, 0
@@ -1168,10 +1170,27 @@ describe('swapKey', () => {
 });
 
 describe('resolveExercise', () => {
-    const original = { id: 'e1', name: 'Leg Press', category: 'legs', default_sets: '3', default_reps: '10', user_id: null };
-    const sub = { id: 'e2', name: 'Hack Squat', category: 'legs', default_sets: '3', default_reps: '10', user_id: null };
+    const original = {
+        id: 'e1',
+        name: 'Leg Press',
+        category: 'legs',
+        default_sets: '3',
+        default_reps: '10',
+        user_id: null,
+    };
+    const sub = {
+        id: 'e2',
+        name: 'Hack Squat',
+        category: 'legs',
+        default_sets: '3',
+        default_reps: '10',
+        user_id: null,
+    };
     const re = { id: 'slot1', exercise: original } as unknown as import('../types').RoutineExercise;
-    const byId = new Map([[original.id, original], [sub.id, sub]]) as Map<string, import('../types').DbExercise>;
+    const byId = new Map([
+        [original.id, original],
+        [sub.id, sub],
+    ]) as Map<string, import('../types').DbExercise>;
 
     it('returns the substitute when a swap exists for the week/slot', () => {
         const swaps = { '4-slot1': 'e2' };
@@ -1188,8 +1207,16 @@ describe('resolveExercise', () => {
 
 describe('swapCandidates', () => {
     const mk = (id: string, name: string, mp: string | null, eq: string[]) =>
-        ({ id, name, category: 'chest', default_sets: '3', default_reps: '8', user_id: null,
-           movement_pattern: mp, equipment: eq } as unknown as import('../types').DbExercise);
+        ({
+            id,
+            name,
+            category: 'chest',
+            default_sets: '3',
+            default_reps: '8',
+            user_id: null,
+            movement_pattern: mp,
+            equipment: eq,
+        }) as unknown as import('../types').DbExercise;
 
     const original = mk('o', 'Barbell Bench', 'horizontal_push', ['barbell', 'bench']);
     const dbBench = mk('a', 'Dumbbell Bench', 'horizontal_push', ['dumbbell', 'bench']);

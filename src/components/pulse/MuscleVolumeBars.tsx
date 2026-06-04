@@ -79,7 +79,9 @@ function TargetMode({
         lagging.length === 0
             ? 'On target across the board.'
             : lagging
-                  .map((row, i) => (i === 0 ? `${row.toGo} to go on ${row.category}` : `${row.toGo} on ${row.category}`))
+                  .map((row, i) =>
+                      i === 0 ? `${row.toGo} to go on ${row.category}` : `${row.toGo} on ${row.category}`,
+                  )
                   .join(' · ');
 
     return (

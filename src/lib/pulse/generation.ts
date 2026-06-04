@@ -416,12 +416,7 @@ interface Selected {
  * genuinely exhausted across the week. Never picks an exercise already chosen
  * in this session.
  */
-function selectForSession(
-    emphasis: Emphasis,
-    count: number,
-    usable: ExerciseMeta[],
-    used: Set<string>,
-): Selected[] {
+function selectForSession(emphasis: Emphasis, count: number, usable: ExerciseMeta[], used: Set<string>): Selected[] {
     const byPattern = (p: MovementPattern) =>
         usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => a.id.localeCompare(b.id));
 
@@ -495,7 +490,10 @@ function antagonist(a: MovementPattern, b: MovementPattern): boolean {
  * by the caller (it consumes this order). Each pair shares one fresh group id;
  * leftovers stay solo.
  */
-function buildSupersets(selected: Selected[], makeGroupId: () => string): Array<{ item: Selected; groupId: string | null }> {
+function buildSupersets(
+    selected: Selected[],
+    makeGroupId: () => string,
+): Array<{ item: Selected; groupId: string | null }> {
     const out: Array<{ item: Selected; groupId: string | null }> = [];
     const consumed = new Array<boolean>(selected.length).fill(false);
 

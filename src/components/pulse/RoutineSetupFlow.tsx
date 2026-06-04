@@ -199,7 +199,11 @@ export default function RoutineSetupFlow({
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={1 + sexOffset} total={total} onBack={collectSex ? () => setStep('sex') : undefined} />
+                    <Header
+                        stepNum={1 + sexOffset}
+                        total={total}
+                        onBack={collectSex ? () => setStep('sex') : undefined}
+                    />
                     <p className={Q}>What equipment do you have access to?</p>
                     <div className="flex flex-col gap-2">
                         {EQUIPMENT_OPTIONS.map(({ key, label }) => (
@@ -227,7 +231,10 @@ export default function RoutineSetupFlow({
                         ))}
                     </div>
                     <div className="flex flex-col gap-2">
-                        <button onClick={() => setStep(2)} disabled={equipment.size === 0} className={BTN_PRIMARY_BLOCK}>
+                        <button
+                            onClick={() => setStep(2)}
+                            disabled={equipment.size === 0}
+                            className={BTN_PRIMARY_BLOCK}>
                             Next
                         </button>
                         <button

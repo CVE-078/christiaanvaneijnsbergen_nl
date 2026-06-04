@@ -54,7 +54,10 @@ describe('MuscleVolumeBars', () => {
 
         it('names a lagging muscle in the summary line', () => {
             render(
-                <MuscleVolumeBars volume={{ shoulders: 0, back: 8 }} targets={{ shoulders: [8, 12], back: [12, 16] }} />,
+                <MuscleVolumeBars
+                    volume={{ shoulders: 0, back: 8 }}
+                    targets={{ shoulders: [8, 12], back: [12, 16] }}
+                />,
             );
             expect(screen.getByText(/8 to go on shoulders/)).toBeInTheDocument();
             expect(screen.getByText(/4 on back/)).toBeInTheDocument();

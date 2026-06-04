@@ -295,9 +295,7 @@ describe('styles', () => {
         expect(new Set(upperVariants)).toEqual(new Set(['A', 'B']));
         expect(new Set(lowerVariants)).toEqual(new Set(['A', 'B']));
         // fb-hmhp-4 uses four distinct letters A-D.
-        const fb = generateRoutine(
-            input({ style: STYLES[4].find((s) => s.key === 'fb-hmhp-4') as ProgramStyle }),
-        );
+        const fb = generateRoutine(input({ style: STYLES[4].find((s) => s.key === 'fb-hmhp-4') as ProgramStyle }));
         expect(new Set(fb.schedule.map((s) => s.variant))).toEqual(new Set(['A', 'B', 'C', 'D']));
     });
 
@@ -323,9 +321,7 @@ describe('schedule variant pin', () => {
         });
         // And the exercises emitted for that day carry the same variant.
         for (const row of bp.schedule) {
-            const ids = bp.exercises.filter(
-                (e) => e.workout_type === row.workout_type && e.variant === row.variant,
-            );
+            const ids = bp.exercises.filter((e) => e.workout_type === row.workout_type && e.variant === row.variant);
             expect(ids.length).toBeGreaterThan(0);
         }
     });
@@ -361,15 +357,31 @@ describe('applyTemplateVolume', () => {
 });
 
 describe('buildRationale', () => {
-    const style = { key: 'ul-aesthetic-4', name: 'Aesthetic Upper / Lower', bestFor: 'Upper-body priority with extra isolation and a leaner lower.', sessions: [] } as unknown as import('../types').ProgramStyle;
+    const style = {
+        key: 'ul-aesthetic-4',
+        name: 'Aesthetic Upper / Lower',
+        bestFor: 'Upper-body priority with extra isolation and a leaner lower.',
+        sessions: [],
+    } as unknown as import('../types').ProgramStyle;
     it('builds a rationale from answers, session time and style', () => {
-        const answers = { equipment: new Set(), experience: 'intermediate', goal: 'build_muscle', days: '4' } as unknown as import('../recommendation').OnboardingAnswers;
+        const answers = {
+            equipment: new Set(),
+            experience: 'intermediate',
+            goal: 'build_muscle',
+            days: '4',
+        } as unknown as import('../recommendation').OnboardingAnswers;
         expect(buildRationale(answers, '45–60 min', style)).toBe(
             'Aesthetic Upper / Lower for intermediate lifters · 4 days/week · build muscle · 45–60 min sessions. Upper-body priority with extra isolation and a leaner lower.',
         );
     });
     it('maps goals to friendly labels', () => {
-        const a = (g: string) => ({ equipment: new Set(), experience: 'beginner', goal: g, days: '2-3' }) as unknown as import('../recommendation').OnboardingAnswers;
+        const a = (g: string) =>
+            ({
+                equipment: new Set(),
+                experience: 'beginner',
+                goal: g,
+                days: '2-3',
+            }) as unknown as import('../recommendation').OnboardingAnswers;
         expect(buildRationale(a('lose_fat'), '~30 min', style)).toContain('lose fat');
         expect(buildRationale(a('general_fitness'), '~30 min', style)).toContain('general fitness');
     });

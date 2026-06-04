@@ -136,12 +136,7 @@ export function swapCandidates(
     const origEquip = new Set(original.equipment ?? []);
     const overlap = (e: DbExercise) => (e.equipment ?? []).filter((x) => origEquip.has(x)).length;
     return exercises
-        .filter(
-            (e) =>
-                e.id !== original.id &&
-                !opts.excludeIds.has(e.id) &&
-                e.movement_pattern === pattern,
-        )
+        .filter((e) => e.id !== original.id && !opts.excludeIds.has(e.id) && e.movement_pattern === pattern)
         .sort((a, b) => {
             const d = overlap(b) - overlap(a);
             return d !== 0 ? d : a.name.localeCompare(b.name);
