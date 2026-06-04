@@ -1047,4 +1047,9 @@ describe('swapCandidates', () => {
         const out = swapCandidates(original, [pushup, noMp], { excludeIds: new Set() });
         expect(out.map((e) => e.id)).toEqual(['c']);
     });
+    it('ranks higher equipment overlap first regardless of input order', () => {
+        // machine (0 overlap) passed before dbBench (1 overlap: shares "bench")
+        const out = swapCandidates(original, [machine, dbBench], { excludeIds: new Set() });
+        expect(out.map((e) => e.id)).toEqual(['a', 'b']); // dbBench first by overlap
+    });
 });
