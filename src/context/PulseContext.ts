@@ -59,6 +59,8 @@ export interface PulseContextValue {
     activeDay: number | null;
     setActiveDay: (day: number) => void;
     activeSchedule: ScheduleEntry[];
+    /** Resolve a schedule entry to the variant-aware tab key whose exercises it shows. */
+    resolveTabForEntry: (entry: ScheduleEntry) => TabKey;
     showOnboarding: boolean;
     triggerOnboarding: () => void;
     dismissOnboarding: () => void;
@@ -72,7 +74,6 @@ export interface PulseContextValue {
     exercises: DbExercise[];
     routines: RoutineWithExercises[];
     activeRoutine: RoutineWithExercises | null;
-    routineExercisesByType: Partial<Record<WorkoutType, RoutineExercise[]>>;
     routineExercisesByTabKey: Partial<Record<TabKey, RoutineExercise[]>>;
 
     // Per-domain client-fetch state (phase-1 instant loading)

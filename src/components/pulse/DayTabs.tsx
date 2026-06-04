@@ -2,26 +2,28 @@
 import { usePulse } from '@/context/PulseContext';
 import { logKey, parseMaxSets } from '@/lib/pulse/utils';
 import { DAY_NAMES, WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
-import type { WorkoutType } from '@/lib/pulse/types';
 
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
 
 export default function DayTabs() {
-    const { activeDay, setActiveDay, activeSchedule, activeWeek, logs, routineExercisesByType } = usePulse();
+    const { activeDay, setActiveDay, activeSchedule, activeWeek, logs, routineExercisesByTabKey, resolveTabForEntry } =
+        usePulse();
     const today = new Date().getDay();
-    const scheduleMap = Object.fromEntries(activeSchedule.map((e) => [e.day_of_week, e.workout_type])) as Partial<
-        Record<number, WorkoutType>
-    >;
+    const scheduleByDay = Object.fromEntries(activeSchedule.map((e) => [e.day_of_week, e]));
 
     return (
         <div role="tablist" className="flex items-stretch gap-1.5 p-4 pb-3 overflow-x-auto [scrollbar-width:none]">
             {WEEK_ORDER.map((dow) => {
-                const workoutType = scheduleMap[dow];
-                const isTraining = workoutType !== undefined;
+                const entry = scheduleByDay[dow];
+                const isTraining = entry !== undefined;
+                const workoutType = entry?.workout_type;
                 const active = activeDay === dow && isTraining;
                 const isToday = dow === today;
 
-                const exercises = isTraining ? (routineExercisesByType[workoutType!] ?? []) : [];
+                // Count against the variant-aware session the panel actually shows
+                // for this day, so an A/B split counts each day's session (e.g. 6)
+                // rather than the merged workout-type total (e.g. 12).
+                const exercises = isTraining ? (routineExercisesByTabKey[resolveTabForEntry(entry)] ?? []) : [];
                 const done = exercises.filter((re) => {
                     const maxSets = parseMaxSets(re.sets);
                     return Array.from({ length: maxSets }, (_, s) => logKey(activeWeek, re.id, s)).every(

@@ -114,17 +114,6 @@ export function PulseProvider({ email, navigate, children }: Props) {
     const triggerOnboarding = useCallback(() => setOnboardingOverride(true), []);
     const dismissOnboarding = useCallback(() => setOnboardingOverride(false), []);
 
-    const routineExercisesByType = useMemo((): Partial<Record<WorkoutType, RoutineExercise[]>> => {
-        if (!activeRoutine) return {};
-        const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
-        const result: Partial<Record<WorkoutType, RoutineExercise[]>> = {};
-        for (const re of sorted) {
-            const type = re.workout_type;
-            (result[type] ??= []).push(re);
-        }
-        return result;
-    }, [activeRoutine]);
-
     const routineExercisesByTabKey = useMemo((): Partial<Record<TabKey, RoutineExercise[]>> => {
         if (!activeRoutine) return {};
         const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
@@ -216,6 +205,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             activeDay,
             setActiveDay,
             activeSchedule,
+            resolveTabForEntry,
             showOnboarding,
             triggerOnboarding,
             dismissOnboarding,
@@ -229,6 +219,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             activeDay,
             setActiveDay,
             activeSchedule,
+            resolveTabForEntry,
             showOnboarding,
             triggerOnboarding,
             dismissOnboarding,
@@ -243,7 +234,6 @@ export function PulseProvider({ email, navigate, children }: Props) {
             exercises,
             routines,
             activeRoutine,
-            routineExercisesByType,
             routineExercisesByTabKey,
             createRoutine,
             renameRoutine,
@@ -264,7 +254,6 @@ export function PulseProvider({ email, navigate, children }: Props) {
             exercises,
             routines,
             activeRoutine,
-            routineExercisesByType,
             routineExercisesByTabKey,
             createRoutine,
             renameRoutine,

@@ -20,7 +20,7 @@ const defaultCtx = {
     activeSchedule: schedule,
     activeWeek: 1,
     logs: {},
-    routineExercisesByType: {
+    routineExercisesByTabKey: {
         upper: [
             {
                 id: 'ex1',
@@ -29,6 +29,7 @@ const defaultCtx = {
                 routine_id: 'r1',
                 exercise_id: 'e1',
                 workout_type: 'upper',
+                variant: null,
                 order: 1,
                 starting_weight_kg: null,
                 superset_group_id: null,
@@ -44,6 +45,8 @@ const defaultCtx = {
         ],
         lower: [],
     },
+    resolveTabForEntry: (entry: ScheduleEntry) =>
+        entry.variant ? `${entry.workout_type}:${entry.variant}` : entry.workout_type,
 };
 
 beforeEach(() => {
