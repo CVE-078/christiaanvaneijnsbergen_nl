@@ -10,6 +10,7 @@ import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
 import { useSwaps } from '@/hooks/pulse/useSwaps';
 import { usePreferences } from '@/hooks/pulse/usePreferences';
+import { useOfflineSync } from '@/hooks/pulse/useOfflineSync';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType } from '@/lib/pulse/utils';
 import type { RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View } from '@/lib/pulse/types';
@@ -72,6 +73,9 @@ export function PulseProvider({ email, navigate, children }: Props) {
     const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes();
     const { swaps, setSwap, clearSwap } = useSwaps();
     const { hiddenExerciseIds, toggleHideExercise } = usePreferences();
+
+    // Replay any offline-queued log/note writes on mount, reconnect, and focus.
+    useOfflineSync();
 
     const { mutate: globalMutate } = useSWRConfig();
     const retry = useCallback(() => {

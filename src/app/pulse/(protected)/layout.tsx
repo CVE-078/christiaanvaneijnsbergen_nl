@@ -5,6 +5,8 @@ import PulseLayout from '@/components/pulse/PulseLayout';
 
 export const revalidate = 0;
 
+export const metadata = { manifest: '/manifest.webmanifest' };
+
 export default async function ProtectedLayout({ children }: { children: ReactNode }) {
     const supabase = await createClient();
     const {

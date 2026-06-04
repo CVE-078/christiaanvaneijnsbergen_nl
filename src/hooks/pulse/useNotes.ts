@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { useCallback } from 'react';
-import { saveNote as serverSaveNote, deleteNote as serverDeleteNote } from '@/app/pulse/actions';
+import { runMutation } from '@/lib/pulse/offlineSync';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import type { Notes } from '@/lib/pulse/types';
 
@@ -18,7 +18,7 @@ export function useNotes() {
         async (week: number, routineExerciseId: string, note: string): Promise<void> => {
             const key = `${week}-${routineExerciseId}`;
             mutate({ ...notes, [key]: note }, false);
-            await serverSaveNote(week, routineExerciseId, note);
+            await runMutation('saveNote', [week, routineExerciseId, note]);
         },
         [notes, mutate],
     );
@@ -29,7 +29,7 @@ export function useNotes() {
             const updated = { ...notes };
             delete updated[key];
             mutate(updated, false);
-            await serverDeleteNote(week, routineExerciseId);
+            await runMutation('deleteNote', [week, routineExerciseId]);
         },
         [notes, mutate],
     );

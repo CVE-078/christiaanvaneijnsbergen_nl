@@ -1,0 +1,18 @@
+{
+    "name": "Pulse",
+    "short_name": "Pulse",
+    "description": "Workout tracker",
+    "start_url": "/pulse/train",
+    "scope": "/pulse",
+    "display": "standalone",
+    "background_color": "#0e1113",
+    "theme_color": "#0e1113",
+    "icons": [
+        {
+            "src": "/icons/pulse.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

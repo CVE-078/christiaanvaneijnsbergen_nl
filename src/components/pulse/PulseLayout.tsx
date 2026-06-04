@@ -5,6 +5,7 @@ import { Hanken_Grotesk, Sora } from 'next/font/google';
 import { SWRConfig } from 'swr';
 import { PulseProvider } from './PulseProvider';
 import { AppShell } from './AppShell';
+import ServiceWorkerRegister from './ServiceWorkerRegister';
 import { ToastProvider } from '@/lib/pulse/toast';
 import ToastContainer from './ToastContainer';
 import { makeSWRCacheProvider } from '@/lib/pulse/swrCache';
@@ -55,6 +56,7 @@ export default function PulseLayout({ userId, email, children }: Props) {
 
     return (
         <div className={`${hanken.variable} ${sora.variable}`}>
+            <ServiceWorkerRegister />
             <SWRConfig value={{ provider: cacheProvider }}>
                 <ToastProvider>
                     <PulseProvider email={email} navigate={navigate}>
