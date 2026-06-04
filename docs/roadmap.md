@@ -121,6 +121,7 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 | Rest timer auto-advance | Option to automatically navigate to next exercise when rest timer completes. Global toggle or per-exercise setting. |
 | Gender in profile | Add gender field; bias onboarding recommendations toward lower-body templates for female users. |
 | Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). |
+| ExerciseCard memo effectiveness | `ExerciseCard` is wrapped in `React.memo`, but the save path still passes the whole `logs`/`prMap` objects (new refs on every save) so all cards re-render anyway. Slice per-card data upstream in `LogView` (own set entries + savedCount + per-exercise PR) so unchanged cards keep stable props and a save touches one card. Refactor of the hottest screen — defer until it actually hurts at scale. |
 
 ---
 

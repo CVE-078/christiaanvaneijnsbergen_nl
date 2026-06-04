@@ -9,6 +9,7 @@ import {
     groupExercises,
     computeWeeksWithData,
     computeLastSessionMap,
+    baseWorkoutType,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
@@ -76,7 +77,7 @@ export default function LogView() {
     // Exercises for workout mode: filter by session variant if present
     const workoutExercises: RoutineExercise[] = (() => {
         if (!session?.variant) return routineExercises;
-        const baseType = (activeTab as string).includes(':') ? (activeTab as string).split(':')[0] : activeTab;
+        const baseType = baseWorkoutType(activeTab);
         const variantKey = `${baseType}:${session.variant}`;
         return routineExercisesByTabKey[variantKey as typeof activeTab] ?? routineExercises;
     })();
@@ -112,7 +113,7 @@ export default function LogView() {
     async function handleStartWorkout() {
         if (!activeRoutine) return;
         const tab = activeTab as string;
-        const baseType = tab.includes(':') ? tab.split(':')[0] : tab;
+        const baseType = baseWorkoutType(activeTab);
         const variant = tab.includes(':') ? (tab.split(':')[1] as WorkoutVariant) : null;
         setWorkoutModeOpen(true);
         try {

@@ -21,6 +21,15 @@ interface Props {
 const inputClass =
     'w-[3.75rem] h-10 px-2 bg-pulse-surface-2 border border-pulse-border rounded-lg text-pulse-text font-pulse text-base font-semibold text-center outline-none focus:border-pulse-accent/50 transition-colors';
 
+// Render-only stable id for drop-set rows so React keys survive removing a
+// middle row (index keys would shift stateful inputs into the wrong row).
+// Not persisted: the `drops` jsonb stays an array of { kg, reps } values.
+type DropDraft = { id: string; kg: string; reps: string };
+let dropIdSeq = 0;
+function newDropId() {
+    return `drop-${dropIdSeq++}`;
+}
+
 export default function SetLogger({
     setIdx,
     week,
@@ -48,8 +57,10 @@ export default function SetLogger({
 
     const [kg, setKg] = useState(initKg);
     const [reps, setReps] = useState(initReps);
-    const [drops, setDrops] = useState<Array<{ kg: string; reps: string }>>(
-        () => entry?.drops?.map((d) => ({ kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ?? [],
+    const [drops, setDrops] = useState<DropDraft[]>(
+        () =>
+            entry?.drops?.map((d) => ({ id: newDropId(), kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ??
+            [],
     );
     const [editing, setEditing] = useState(false);
     const [inputError, setInputError] = useState<string | null>(null);
@@ -65,7 +76,13 @@ export default function SetLogger({
             if (baseKg !== null) setKg(String(toDisplay(baseKg, unit)));
             const baseReps = entry?.reps ?? progression?.reps ?? null;
             if (baseReps !== null) setReps(String(baseReps));
-            setDrops(entry?.drops?.map((d) => ({ kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ?? []);
+            setDrops(
+                entry?.drops?.map((d) => ({
+                    id: newDropId(),
+                    kg: String(toDisplay(d.kg, unit)),
+                    reps: String(d.reps),
+                })) ?? [],
+            );
         }
     }, [unit]);
 
@@ -106,7 +123,10 @@ export default function SetLogger({
     function resetDrafts() {
         setKg(entry?.kg !== undefined ? String(toDisplay(entry.kg, unit)) : '');
         setReps(entry?.reps?.toString() ?? '');
-        setDrops(entry?.drops?.map((d) => ({ kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ?? []);
+        setDrops(
+            entry?.drops?.map((d) => ({ id: newDropId(), kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ??
+                [],
+        );
     }
 
     function handleEdit() {
@@ -218,7 +238,7 @@ export default function SetLogger({
                                 <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>
                             )}
                             {drops.map((d, di) => (
-                                <div key={di} className="flex items-center gap-2">
+                                <div key={d.id} className="flex items-center gap-2">
                                     <span className="font-pulse text-pulse-dim text-sm shrink-0">↓</span>
                                     <input
                                         type="number"
@@ -230,7 +250,7 @@ export default function SetLogger({
                                         step={displayStep}
                                         onChange={(e) =>
                                             setDrops((prev) =>
-                                                prev.map((p, pi) => (pi === di ? { ...p, kg: e.target.value } : p)),
+                                                prev.map((p) => (p.id === d.id ? { ...p, kg: e.target.value } : p)),
                                             )
                                         }
                                         className={inputClass}
@@ -245,7 +265,7 @@ export default function SetLogger({
                                         max={100}
                                         onChange={(e) =>
                                             setDrops((prev) =>
-                                                prev.map((p, pi) => (pi === di ? { ...p, reps: e.target.value } : p)),
+                                                prev.map((p) => (p.id === d.id ? { ...p, reps: e.target.value } : p)),
                                             )
                                         }
                                         className={inputClass}
@@ -253,7 +273,7 @@ export default function SetLogger({
                                     <button
                                         type="button"
                                         aria-label={`Remove drop ${di + 1}`}
-                                        onClick={() => setDrops((prev) => prev.filter((_, pi) => pi !== di))}
+                                        onClick={() => setDrops((prev) => prev.filter((p) => p.id !== d.id))}
                                         className="font-pulse text-[0.75rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0 shrink-0">
                                         ✕
                                     </button>
@@ -262,7 +282,7 @@ export default function SetLogger({
                             {drops.length < 6 && (
                                 <button
                                     type="button"
-                                    onClick={() => setDrops((prev) => [...prev, { kg: '', reps: '' }])}
+                                    onClick={() => setDrops((prev) => [...prev, { id: newDropId(), kg: '', reps: '' }])}
                                     className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer p-0 self-start">
                                     + Add drop
                                 </button>

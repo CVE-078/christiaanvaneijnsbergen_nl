@@ -1,3 +1,5 @@
+import { BTN_PRIMARY } from './ui';
+
 // Slate shimmer skeleton reused by every view while its data slice loads.
 // `rows` controls how many card placeholders render.
 const shimmer: React.CSSProperties = {
@@ -34,9 +36,7 @@ export function ErrorState({ onRetry }: { onRetry: () => void }) {
     return (
         <div className="px-4 py-16 flex flex-col items-center gap-3 text-center" role="alert">
             <div className="font-pulse text-sm text-pulse-dim">Couldn’t load your data.</div>
-            <button
-                onClick={onRetry}
-                className="font-pulse text-sm font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-4 py-2 cursor-pointer border-none">
+            <button onClick={onRetry} className={BTN_PRIMARY}>
                 Retry
             </button>
         </div>

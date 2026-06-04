@@ -119,18 +119,6 @@ function Consumer() {
 }
 
 const baseProps = {
-    initialLogs: {},
-    initialProfile: {
-        unit: 'kg' as const,
-        display_name: null,
-        active_routine_id: null,
-        onboarding_completed: true,
-        goal_weight_kg: null,
-    },
-    initialBodyweightLogs: [],
-    initialExercises: [],
-    initialRoutines: [],
-    initialNotes: {},
     email: 'test@example.com',
     navigate: vi.fn(),
 };
