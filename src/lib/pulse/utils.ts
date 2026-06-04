@@ -116,6 +116,32 @@ export function swapKey(week: number, routineExerciseId: string): string {
     return `${week}-${routineExerciseId}`;
 }
 
+// Candidate replacements for a swap: same movement pattern, excluding the
+// original and any excluded ids (hidden + already in this session). Sorted by
+// equipment overlap with the original (desc), then name. Exercises with no
+// movement pattern are dropped.
+export function swapCandidates(
+    original: DbExercise,
+    exercises: DbExercise[],
+    opts: { excludeIds: Set<string> },
+): DbExercise[] {
+    const pattern = original.movement_pattern;
+    if (!pattern) return [];
+    const origEquip = new Set(original.equipment ?? []);
+    const overlap = (e: DbExercise) => (e.equipment ?? []).filter((x) => origEquip.has(x)).length;
+    return exercises
+        .filter(
+            (e) =>
+                e.id !== original.id &&
+                !opts.excludeIds.has(e.id) &&
+                e.movement_pattern === pattern,
+        )
+        .sort((a, b) => {
+            const d = overlap(b) - overlap(a);
+            return d !== 0 ? d : a.name.localeCompare(b.name);
+        });
+}
+
 // Resolve the exercise a slot displays for a given week. A week-scoped swap
 // overrides the slot's default exercise; falls back to the original if no swap
 // exists or the substitute is gone (deleted/hidden).
