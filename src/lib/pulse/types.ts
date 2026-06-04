@@ -159,6 +159,7 @@ export interface WorkoutRoutine {
     user_id: string;
     name: string;
     created_at: string;
+    rationale?: string | null;
 }
 
 export interface RoutineExercise {
