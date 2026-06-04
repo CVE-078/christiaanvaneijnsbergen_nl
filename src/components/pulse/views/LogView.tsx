@@ -10,6 +10,9 @@ import {
     computeWeeksWithData,
     computeLastSessionMap,
     baseWorkoutType,
+    resolveExercise,
+    swapCandidates,
+    swapKey,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
@@ -17,6 +20,7 @@ import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
 import SupersetCard from '../SupersetCard';
+import ExerciseSwapPicker from '../ExerciseSwapPicker';
 import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
 import WorkoutModeScreen from '../WorkoutModeScreen';
 import ShareCard from '../ShareCard';
@@ -42,6 +46,11 @@ export default function LogView() {
         notes,
         saveNote,
         deleteNote,
+        exercises,
+        swaps,
+        setSwap,
+        clearSwap,
+        hiddenExerciseIds,
         loading,
         errors,
         retry,
@@ -58,7 +67,17 @@ export default function LogView() {
     const rir = getRIR(activeWeek);
     const phase = getPhase(activeWeek);
     const unit = profile.unit;
-    const routineExercises: RoutineExercise[] = routineExercisesByTabKey[activeTab] ?? [];
+    const routineExercises: RoutineExercise[] = useMemo(
+        () => routineExercisesByTabKey[activeTab] ?? [],
+        [routineExercisesByTabKey, activeTab],
+    );
+
+    const exercisesById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
+    const inSessionIds = useMemo(
+        () => new Set(routineExercises.map((re) => resolveExercise(re, activeWeek, swaps, exercisesById).id)),
+        [routineExercises, activeWeek, swaps, exercisesById],
+    );
+    const [swapTarget, setSwapTarget] = useState<RoutineExercise | null>(null);
 
     // Set of weeks with saved data, computed once per logs change so the 12-week
     // strip can do O(1) lookups instead of scanning all logs 12 times.
@@ -182,6 +201,8 @@ export default function LogView() {
                     onDelete={deleteLog}
                     onComplete={handleCompleteWorkout}
                     onClose={handleCloseWorkoutMode}
+                    resolveDisplay={(re) => resolveExercise(re, activeWeek, swaps, exercisesById)}
+                    onSwapExercise={(re) => setSwapTarget(re)}
                 />
             )}
 
@@ -197,6 +218,32 @@ export default function LogView() {
                     onDismiss={() => setShareSession(null)}
                 />
             )}
+
+            {swapTarget &&
+                (() => {
+                    const original = exercisesById.get(swapTarget.exercise_id) ?? swapTarget.exercise;
+                    const candidates = swapCandidates(original, exercises, {
+                        excludeIds: new Set([...hiddenExerciseIds, ...inSessionIds]),
+                    });
+                    const swapped = !!swaps[swapKey(activeWeek, swapTarget.id)];
+                    return (
+                        <ExerciseSwapPicker
+                            originalName={original.name}
+                            week={activeWeek}
+                            candidates={candidates}
+                            isSwapped={swapped}
+                            onSelect={(exId) => {
+                                setSwap(activeWeek, swapTarget.id, exId);
+                                setSwapTarget(null);
+                            }}
+                            onRevert={() => {
+                                clearSwap(activeWeek, swapTarget.id);
+                                setSwapTarget(null);
+                            }}
+                            onClose={() => setSwapTarget(null)}
+                        />
+                    );
+                })()}
 
             <div className="px-4 pt-6 pb-1">
                 <div className="font-pulse text-[0.78125rem] text-pulse-muted tracking-[0.02em]">
@@ -275,6 +322,11 @@ export default function LogView() {
                             onSaveNote={(n) => saveNote(activeWeek, item.id, n)}
                             onDeleteNote={() => deleteNote(activeWeek, item.id)}
                             lastSession={lastSessionMap.get(item.id) ?? null}
+                            displayExercise={resolveExercise(item, activeWeek, swaps, exercisesById)}
+                            isSwapped={!!swaps[swapKey(activeWeek, item.id)]}
+                            originalName={(exercisesById.get(item.exercise_id) ?? item.exercise).name}
+                            onSwap={() => setSwapTarget(item)}
+                            onRevert={() => clearSwap(activeWeek, item.id)}
                         />
                     ),
                 )}

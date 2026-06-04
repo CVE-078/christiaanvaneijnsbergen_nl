@@ -8,6 +8,7 @@ import { useRoutines } from '@/hooks/pulse/useRoutines';
 import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
+import { useSwaps } from '@/hooks/pulse/useSwaps';
 import { usePreferences } from '@/hooks/pulse/usePreferences';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType } from '@/lib/pulse/utils';
@@ -73,6 +74,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
     const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
     const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
     const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes();
+    const { swaps, setSwap, clearSwap } = useSwaps();
     const { hiddenExerciseIds, toggleHideExercise } = usePreferences();
 
     const { mutate: globalMutate } = useSWRConfig();
@@ -272,6 +274,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
         ],
     );
     const notesValue = useMemo(() => ({ notes, saveNote, deleteNote }), [notes, saveNote, deleteNote]);
+    const swapsValue = useMemo(() => ({ swaps, setSwap, clearSwap }), [swaps, setSwap, clearSwap]);
     const preferencesValue = useMemo(
         () => ({ hiddenExerciseIds, toggleHideExercise }),
         [hiddenExerciseIds, toggleHideExercise],
@@ -287,6 +290,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             ...timerValue,
             ...routinesValue,
             ...notesValue,
+            ...swapsValue,
             ...preferencesValue,
             ...loadingValue,
         }),
@@ -298,6 +302,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             timerValue,
             routinesValue,
             notesValue,
+            swapsValue,
             preferencesValue,
             loadingValue,
         ],

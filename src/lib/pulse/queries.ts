@@ -1,7 +1,7 @@
 import type { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/pulse/validation';
 import { logKey } from '@/lib/pulse/utils';
-import type { Logs, Notes, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
+import type { Logs, Notes, Swaps, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
 
 // Canonical Supabase server client type. Both the layout and the GET route
 // handlers pass the same client returned by createClient.
@@ -12,8 +12,9 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops';
 const PROFILE_SELECT = 'display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg';
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
-const EXERCISES_SELECT = 'id, name, category, default_sets, default_reps, user_id';
+const EXERCISES_SELECT = 'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound';
 const NOTES_SELECT = 'week, routine_exercise_id, note';
+const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at,
@@ -112,6 +113,17 @@ export async function loadNotes(supabase: SupabaseServerClient, userId: string):
         notes[`${row.week}-${row.routine_exercise_id}`] = row.note;
     }
     return notes;
+}
+
+export async function loadSwaps(supabase: SupabaseServerClient, userId: string): Promise<Swaps> {
+    const { data, error } = await supabase.from('exercise_swaps').select(SWAPS_SELECT).eq('user_id', userId);
+    if (error) throw error;
+
+    const swaps: Swaps = {};
+    for (const row of data ?? []) {
+        swaps[`${row.week}-${row.routine_exercise_id}`] = row.exercise_id;
+    }
+    return swaps;
 }
 
 export async function loadHiddenExerciseIds(supabase: SupabaseServerClient, userId: string): Promise<string[]> {

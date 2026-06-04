@@ -12,7 +12,7 @@ import {
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
 import ExerciseInstructionModal from './ExerciseInstructionModal';
-import type { Logs, LogEntry, Unit, LastSession } from '@/lib/pulse/types';
+import type { Logs, LogEntry, Unit, LastSession, DbExercise } from '@/lib/pulse/types';
 import type { RoutineExercise } from '@/lib/pulse/types';
 
 interface Props {
@@ -31,6 +31,14 @@ interface Props {
     // computed from `logs` here. Callers rendering many cards pass it to avoid
     // each card scanning the whole log set.
     lastSession?: LastSession | null;
+    // Display exercise for the active week (may differ from re.exercise when a
+    // swap is active). Defaults to re.exercise. Swap controls render only when
+    // onSwap is provided.
+    displayExercise?: DbExercise;
+    isSwapped?: boolean;
+    originalName?: string;
+    onSwap?: () => void;
+    onRevert?: () => void;
 }
 
 function ExerciseCard({
@@ -45,8 +53,14 @@ function ExerciseCard({
     onSaveNote,
     onDeleteNote,
     lastSession: lastSessionProp,
+    displayExercise,
+    isSwapped = false,
+    originalName,
+    onSwap,
+    onRevert,
 }: Props) {
     const { show: showToast } = useToast();
+    const display = displayExercise ?? re.exercise;
     const [open, setOpen] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
     const [noteEditing, setNoteEditing] = useState(false);
@@ -61,7 +75,7 @@ function ExerciseCard({
         const wasPR = !!(prev?.saved && isSetPR(prev.kg, prev.reps, re.id, prMap));
         const isNowPR = isSetPR(entry.kg, entry.reps, re.id, prMap);
         if (isNowPR && !wasPR) {
-            showToast(`New PR on ${re.exercise.name}`, 'success');
+            showToast(`New PR on ${display.name}`, 'success');
         }
         onSave(key, entry);
     }
@@ -82,11 +96,11 @@ function ExerciseCard({
                 <button
                     onClick={() => setOpen((o) => !o)}
                     aria-expanded={open}
-                    aria-label={`${open ? 'Collapse' : 'Expand'} ${re.exercise.name}${complete ? ' — all sets done' : ''}`}
+                    aria-label={`${open ? 'Collapse' : 'Expand'} ${display.name}${complete ? ' — all sets done' : ''}`}
                     className="w-full py-4 px-[1.125rem] bg-transparent border-none cursor-pointer flex items-center gap-3.5 text-left">
                     <div className="flex-1 min-w-0">
                         <div className="font-pulse text-[1.1875rem] font-medium tracking-[-0.01em] truncate text-pulse-text">
-                            {re.exercise.name}
+                            {display.name}
                         </div>
                         <div className="font-pulse text-[0.78125rem] tracking-[0.03em] text-pulse-muted mt-1">
                             {re.sets} × {re.reps} reps
@@ -145,10 +159,10 @@ function ExerciseCard({
 
                 {open && (
                     <div className="px-[1.125rem] pt-1 pb-4 flex flex-col gap-2.5">
-                        {re.exercise.user_id === null && (
+                        {display.user_id === null && (
                             <button
                                 onClick={() => setShowInstructions(true)}
-                                aria-label={`How to perform ${re.exercise.name}`}
+                                aria-label={`How to perform ${display.name}`}
                                 className="self-start flex items-center gap-1.5 font-pulse text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer hover:text-pulse-accent">
                                 <svg
                                     className="w-3.5 h-3.5"
@@ -163,6 +177,27 @@ function ExerciseCard({
                                 </svg>
                                 How to perform
                             </button>
+                        )}
+                        {onSwap && (
+                            <div className="self-start flex items-center gap-3">
+                                <button
+                                    onClick={onSwap}
+                                    className="flex items-center gap-1.5 font-pulse text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer hover:text-pulse-accent">
+                                    ⇄ Swap exercise
+                                </button>
+                                {isSwapped && (
+                                    <span className="font-pulse text-[0.75rem] text-pulse-muted">
+                                        Swapped from {originalName}
+                                        {onRevert && (
+                                            <button
+                                                onClick={onRevert}
+                                                className="ml-1.5 text-pulse-accent bg-transparent border-none cursor-pointer">
+                                                Revert
+                                            </button>
+                                        )}
+                                    </span>
+                                )}
+                            </div>
                         )}
                         {warmupSets.length > 0 && (
                             <div className="pb-3 border-b border-pulse-border mb-1">
@@ -257,8 +292,8 @@ function ExerciseCard({
             </div>
             {showInstructions && (
                 <ExerciseInstructionModal
-                    exerciseId={re.exercise.id}
-                    exerciseName={re.exercise.name}
+                    exerciseId={display.id}
+                    exerciseName={display.name}
                     onClose={() => setShowInstructions(false)}
                 />
             )}

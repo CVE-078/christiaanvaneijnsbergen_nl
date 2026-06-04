@@ -163,4 +163,29 @@ describe('ExerciseCard', () => {
         await userEvent.click(screen.getAllByRole('button', { name: /update/i })[0]);
         expect(showToast).not.toHaveBeenCalled();
     });
+
+    it('renders the displayExercise name and a swapped-from line when swapped', async () => {
+        const displayExercise = {
+            id: 'sub',
+            name: 'Hack Squat',
+            category: 'legs' as const,
+            default_sets: '3',
+            default_reps: '10',
+            user_id: null,
+        };
+        render(
+            <ExerciseCard
+                {...defaultProps}
+                displayExercise={displayExercise}
+                isSwapped={true}
+                originalName="Leg Press"
+                onSwap={vi.fn()}
+                onRevert={vi.fn()}
+            />,
+        );
+        expect(screen.getByText('Hack Squat')).toBeInTheDocument();
+        // Expand the card to reveal swap controls
+        await userEvent.click(screen.getByRole('button', { name: /expand hack squat/i }));
+        expect(screen.getByText(/swapped from leg press/i)).toBeInTheDocument();
+    });
 });

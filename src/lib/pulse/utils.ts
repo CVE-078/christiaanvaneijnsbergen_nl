@@ -16,6 +16,8 @@ import type {
     ExerciseCategory,
     ExerciseItem,
     LastSession,
+    DbExercise,
+    Swaps,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -107,6 +109,51 @@ export function getRIR(week: number): number {
 
 export function logKey(week: number, routineExerciseId: string, setIdx: number): string {
     return `${week}-${routineExerciseId}-${setIdx}`;
+}
+
+// Key for the per-(week, slot) exercise swap map. Mirrors the Notes keying.
+export function swapKey(week: number, routineExerciseId: string): string {
+    return `${week}-${routineExerciseId}`;
+}
+
+// Candidate replacements for a swap: same movement pattern, excluding the
+// original and any excluded ids (hidden + already in this session). Sorted by
+// equipment overlap with the original (desc), then name. Exercises with no
+// movement pattern are dropped.
+export function swapCandidates(
+    original: DbExercise,
+    exercises: DbExercise[],
+    opts: { excludeIds: Set<string> },
+): DbExercise[] {
+    const pattern = original.movement_pattern;
+    if (!pattern) return [];
+    const origEquip = new Set(original.equipment ?? []);
+    const overlap = (e: DbExercise) => (e.equipment ?? []).filter((x) => origEquip.has(x)).length;
+    return exercises
+        .filter(
+            (e) =>
+                e.id !== original.id &&
+                !opts.excludeIds.has(e.id) &&
+                e.movement_pattern === pattern,
+        )
+        .sort((a, b) => {
+            const d = overlap(b) - overlap(a);
+            return d !== 0 ? d : a.name.localeCompare(b.name);
+        });
+}
+
+// Resolve the exercise a slot displays for a given week. A week-scoped swap
+// overrides the slot's default exercise; falls back to the original if no swap
+// exists or the substitute is gone (deleted/hidden).
+export function resolveExercise(
+    re: RoutineExercise,
+    week: number,
+    swaps: Swaps,
+    exercisesById: Map<string, DbExercise>,
+): DbExercise {
+    const subId = swaps[swapKey(week, re.id)];
+    if (!subId) return re.exercise;
+    return exercisesById.get(subId) ?? re.exercise;
 }
 
 // Parse a log key of the form "<week>-<routineExerciseId>-<setIdx>".

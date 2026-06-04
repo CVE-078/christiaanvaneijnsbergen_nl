@@ -109,6 +109,8 @@ export type PRMap = Record<string, number>;
 
 export type Notes = Record<string, string>; // key: `${week}-${routineExerciseId}`
 
+export type Swaps = Record<string, string>; // key: `${week}-${routineExerciseId}` -> substitute exercise_id
+
 export interface BestSet {
     routineExerciseId: string;
     week: number;
