@@ -74,6 +74,10 @@ vi.mock('@/hooks/pulse/useNotes', () => ({
     useNotes: () => ({ notes: {}, saveNote: vi.fn(), deleteNote: vi.fn() }),
 }));
 
+vi.mock('@/hooks/pulse/useSwaps', () => ({
+    useSwaps: () => ({ swaps: {}, setSwap: vi.fn(), clearSwap: vi.fn() }),
+}));
+
 vi.mock('@/lib/pulse/toast', () => ({
     useToast: () => ({ show: vi.fn() }),
 }));
