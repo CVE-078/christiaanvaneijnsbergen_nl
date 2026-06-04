@@ -64,5 +64,24 @@ describe('MuscleVolumeBars', () => {
             render(<MuscleVolumeBars volume={{ chest: 10 }} targets={{ chest: [8, 12] }} />);
             expect(screen.getByText(/on target across the board/i)).toBeInTheDocument();
         });
+
+        it('renders a recovery chip per row when recovery is provided', () => {
+            render(
+                <MuscleVolumeBars
+                    volume={{ chest: 10, back: 4 }}
+                    targets={{ chest: [8, 12], back: [12, 16] }}
+                    recovery={{ chest: 'high_fatigue', back: 'under' }}
+                />,
+            );
+            const chestRow = screen.getByText('chest').closest('li')!;
+            expect(within(chestRow).getByTestId('recovery-chip')).toHaveTextContent('high fatigue');
+            const backRow = screen.getByText('back').closest('li')!;
+            expect(within(backRow).getByTestId('recovery-chip')).toHaveTextContent('add volume');
+        });
+
+        it('renders no recovery chip when recovery is absent', () => {
+            render(<MuscleVolumeBars volume={{ chest: 10 }} targets={{ chest: [8, 12] }} />);
+            expect(screen.queryByTestId('recovery-chip')).not.toBeInTheDocument();
+        });
     });
 });

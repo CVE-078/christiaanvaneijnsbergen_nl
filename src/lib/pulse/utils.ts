@@ -15,6 +15,7 @@ import type {
     ShareStats,
     ExerciseCategory,
     VolumeTargetRow,
+    RecoveryStatus,
     ExerciseItem,
     LastSession,
     DbExercise,
@@ -530,6 +531,49 @@ export function computeVolumeProgress(
     }
     rows.sort((a, b) => b.toGo - a.toGo || a.category.localeCompare(b.category));
     return rows;
+}
+
+// Pairs weekly per-muscle volume with RIR to flag recovery status per targeted
+// muscle. Resolves each set's category exactly like computePerMuscleVolume
+// (re.exercise.category keyed by re.id), in one pass over the week's saved sets.
+// Returns a status for every category present in `targets`, so it aligns 1:1
+// with the rows computeVolumeProgress renders. Pure and deterministic.
+export function computeRecoveryFlags(
+    logs: Logs,
+    routineExercises: RoutineExercise[],
+    week: number,
+    targets: Partial<Record<ExerciseCategory, [number, number]>>,
+): Partial<Record<ExerciseCategory, RecoveryStatus>> {
+    const catById = new Map<string, ExerciseCategory>();
+    for (const re of routineExercises) {
+        if (re.exercise?.category) catById.set(re.id, re.exercise.category);
+    }
+    const sets: Partial<Record<ExerciseCategory, number>> = {};
+    const rirSum: Partial<Record<ExerciseCategory, number>> = {};
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val.saved) continue;
+        const parsed = parseLogKey(key);
+        if (!parsed || parsed.week !== week) continue;
+        const cat = catById.get(parsed.routineExerciseId);
+        if (!cat) continue;
+        sets[cat] = (sets[cat] ?? 0) + 1;
+        rirSum[cat] = (rirSum[cat] ?? 0) + val.rir;
+    }
+
+    const out: Partial<Record<ExerciseCategory, RecoveryStatus>> = {};
+    for (const [category, range] of Object.entries(targets) as Array<[ExerciseCategory, [number, number]]>) {
+        const [min, max] = range;
+        const count = sets[category] ?? 0;
+        if (count < min) {
+            out[category] = 'under';
+        } else if (count > max) {
+            out[category] = 'overreaching';
+        } else {
+            const avgRir = (rirSum[category] ?? 0) / count;
+            out[category] = avgRir <= 0.5 ? 'high_fatigue' : 'optimal';
+        }
+    }
+    return out;
 }
 
 export type PlateEquipment = 'barbell' | 'dumbbell';

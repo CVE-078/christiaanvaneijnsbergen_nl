@@ -178,6 +178,8 @@ export interface VolumeTargetRow {
     toGo: number;
 }
 
+export type RecoveryStatus = 'under' | 'optimal' | 'high_fatigue' | 'overreaching';
+
 export interface DbExercise {
     id: string;
     name: string;

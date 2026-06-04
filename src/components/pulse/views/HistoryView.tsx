@@ -7,6 +7,7 @@ import {
     swapKey,
     computeStrengthByWeek,
     computeRecompSignal,
+    computeRecoveryFlags,
 } from '@/lib/pulse/utils';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
 import { usePulse } from '@/context/PulseContext';
@@ -164,6 +165,13 @@ export default function HistoryView() {
         [logs, allRoutineExercises, activeRoutineExercises, activeWeek],
     );
 
+    // Same routine-exercise list and week that produce muscleVolume above, so
+    // recovery flags align 1:1 with the volume rows.
+    const recovery = useMemo(
+        () => computeRecoveryFlags(logs, activeRoutineExercises, activeWeek, VOLUME_TARGETS),
+        [logs, activeRoutineExercises, activeWeek],
+    );
+
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     const exerciseId = selectedExerciseId ?? defaultExerciseId;
 
@@ -259,7 +267,7 @@ export default function HistoryView() {
                 {/* Per-muscle volume this week */}
                 <div>
                     <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
-                    <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} />
+                    <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} recovery={recovery} />
                 </div>
 
                 {/* e1RM Progression */}
