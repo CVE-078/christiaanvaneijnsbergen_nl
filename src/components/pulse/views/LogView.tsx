@@ -25,6 +25,7 @@ import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
 import WorkoutModeScreen from '../WorkoutModeScreen';
 import ShareCard from '../ShareCard';
 import GenerateRoutineButton from '../GenerateRoutineButton';
+import PendingSyncBadge from '../PendingSyncBadge';
 import type { LogEntry, RoutineExercise, WorkoutSession, WorkoutVariant } from '@/lib/pulse/types';
 
 export default function LogView() {
@@ -245,11 +246,12 @@ export default function LogView() {
                     );
                 })()}
 
-            <div className="px-4 pt-6 pb-1">
+            <div className="px-4 pt-6 pb-1 flex items-center justify-between gap-3">
                 <div className="font-pulse text-[0.78125rem] text-pulse-muted tracking-[0.02em]">
                     <span className="text-pulse-dim font-medium">Week {String(activeWeek).padStart(2, '0')}</span> / 12
                     · {phase.label} · target <span className="text-pulse-dim font-medium">RIR {rir}</span>
                 </div>
+                <PendingSyncBadge />
             </div>
 
             {activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}
