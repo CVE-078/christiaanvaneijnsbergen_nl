@@ -24,12 +24,12 @@ export default function GenerateRoutineButton({
             </button>
             {open && (
                 <RoutineSetupFlow
-                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey }) => {
+                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey, sex }) => {
                         await generateRoutine(
                             answers,
                             trainingDays,
                             sessionTime,
-                            styleKey ?? recommendStyle(trainingDays.length),
+                            styleKey ?? recommendStyle(trainingDays.length, sex),
                         );
                         navigate('train');
                     }}

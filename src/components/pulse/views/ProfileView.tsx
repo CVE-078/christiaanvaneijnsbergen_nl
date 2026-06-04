@@ -3,7 +3,7 @@ import { useTransition, useState } from 'react';
 import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
-import type { BodyweightEntry } from '@/lib/pulse/types';
+import type { BodyweightEntry, Sex } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import { INPUT, BTN_PRIMARY } from '../ui';
@@ -95,6 +95,7 @@ export default function ProfileView() {
         profile,
         bodyweightLogs,
         updateProfile,
+        updateSex,
         logBodyWeight,
         deleteBodyWeight,
         refreshMeasurements,
@@ -108,7 +109,7 @@ export default function ProfileView() {
     } = usePulse();
     const toast = useToast();
 
-    const { display_name: displayName, unit } = profile;
+    const { display_name: displayName, unit, sex } = profile;
 
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
@@ -141,6 +142,14 @@ export default function ProfileView() {
         startTransition(async () => {
             await updateProfile(displayName, newUnit);
             toast.show('Unit updated', 'success');
+        });
+    }
+
+    function handleSexChange(newSex: Sex) {
+        if (newSex === sex || isPending) return;
+        startTransition(async () => {
+            await updateSex(newSex);
+            toast.show('Sex updated', 'success');
         });
     }
 
@@ -249,6 +258,21 @@ export default function ProfileView() {
                                 onClick={() => handleUnitChange(u)}
                                 className={`font-pulse text-sm font-semibold tracking-[0.06em] uppercase py-2 px-4 rounded-lg cursor-pointer border-none ${unit === u ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
                                 {u}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Sex toggle */}
+                <div>
+                    <SectionLabel className="mb-2">Sex</SectionLabel>
+                    <div className="flex gap-2">
+                        {(['male', 'female'] as const).map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => handleSexChange(s)}
+                                className={`font-pulse text-sm font-semibold tracking-[0.06em] uppercase py-2 px-4 rounded-lg cursor-pointer border-none ${sex === s ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
+                                {s === 'male' ? 'Male' : 'Female'}
                             </button>
                         ))}
                     </div>

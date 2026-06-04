@@ -20,6 +20,7 @@ import { usePulse } from '@/context/PulseContext';
 import { updateGoalWeight } from '@/app/pulse/actions';
 
 const mockUpdateProfile = vi.fn().mockResolvedValue(undefined);
+const mockUpdateSex = vi.fn().mockResolvedValue(undefined);
 const mockLogBodyWeight = vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 });
 const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
 
@@ -31,11 +32,13 @@ const defaultContext = {
         active_routine_id: null,
         onboarding_completed: false,
         goal_weight_kg: null,
+        sex: null,
     },
     bodyweightLogs: [],
     bodyMeasurements: [],
     refreshMeasurements: vi.fn(),
     updateProfile: mockUpdateProfile,
+    updateSex: mockUpdateSex,
     logBodyWeight: mockLogBodyWeight,
     deleteBodyWeight: mockDeleteBodyWeight,
     streak: 0,
@@ -57,6 +60,7 @@ const renderWithToast = (component: React.ReactElement) => {
 beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
     mockUpdateProfile.mockClear();
+    mockUpdateSex.mockClear();
     mockLogBodyWeight.mockClear();
     mockDeleteBodyWeight.mockClear();
     vi.mocked(updateGoalWeight).mockClear();
@@ -116,6 +120,33 @@ describe('ProfileView', () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('button', { name: /^lbs$/i }));
         expect(mockUpdateProfile).toHaveBeenCalledWith('Test User', 'lbs');
+    });
+
+    it('renders both sex options with neither active when sex is null', () => {
+        renderWithToast(<ProfileView />);
+        const male = screen.getByRole('button', { name: /^male$/i });
+        const female = screen.getByRole('button', { name: /^female$/i });
+        expect(male).toBeInTheDocument();
+        expect(female).toBeInTheDocument();
+        expect(male.className).not.toContain('bg-pulse-accent');
+        expect(female.className).not.toContain('bg-pulse-accent');
+    });
+
+    it('marks the stored sex as active', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            profile: { ...defaultContext.profile, sex: 'female' as const },
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<ProfileView />);
+        expect(screen.getByRole('button', { name: /^female$/i }).className).toContain('bg-pulse-accent');
+        expect(screen.getByRole('button', { name: /^male$/i }).className).not.toContain('bg-pulse-accent');
+    });
+
+    it('calls updateSex with the chosen value and shows a toast', async () => {
+        renderWithToast(<ProfileView />);
+        await userEvent.click(screen.getByRole('button', { name: /^female$/i }));
+        expect(mockUpdateSex).toHaveBeenCalledWith('female');
+        await waitFor(() => expect(screen.getByText(/sex updated/i)).toBeInTheDocument());
     });
 
     it('shows body weight entries in user unit', () => {
