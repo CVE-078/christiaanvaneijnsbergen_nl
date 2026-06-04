@@ -620,3 +620,16 @@ export function applyTemplateVolume<
     }
     return out;
 }
+
+const GOAL_LABELS: Record<Goal, string> = {
+    build_muscle: 'build muscle',
+    lose_fat: 'lose fat',
+    general_fitness: 'general fitness',
+};
+
+// Human-readable reason a routine was generated, from the onboarding inputs and
+// the chosen program style. Shown on the Plan screen and in the setup flow.
+export function buildRationale(answers: OnboardingAnswers, sessionTime: SessionTime, style: ProgramStyle): string {
+    const goal = GOAL_LABELS[answers.goal] ?? answers.goal;
+    return `${style.name} for ${answers.experience} lifters · ${answers.days} days/week · ${goal} · ${sessionTime} sessions. ${style.bestFor}`;
+}

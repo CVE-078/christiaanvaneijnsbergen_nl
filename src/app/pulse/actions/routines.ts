@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { UUID_RE } from '@/lib/pulse/utils';
-import { applyTemplateVolume, generateRoutine, resolveStyle } from '@/lib/pulse/generation';
+import { applyTemplateVolume, buildRationale, generateRoutine, resolveStyle } from '@/lib/pulse/generation';
 import type { ExerciseMeta } from '@/lib/pulse/generation';
 import {
     EXPERIENCE_LEVELS,
@@ -356,6 +356,8 @@ export async function generateAndSaveRoutine(
         if (trimmed) routineName = trimmed;
     }
 
+    const rationale = buildRationale(answers, sessionTime, style);
+
     const { supabase, user } = await getUserOrThrow();
 
     const { data: poolData } = await supabase
@@ -389,7 +391,7 @@ export async function generateAndSaveRoutine(
 
     const { data: routine, error: routineErr } = await supabase
         .from('workout_routines')
-        .insert({ user_id: user.id, name: routineName })
+        .insert({ user_id: user.id, name: routineName, rationale })
         .select('id, user_id, name, created_at')
         .single();
     if (routineErr || !routine) throw new Error('Failed to create routine');
