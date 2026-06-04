@@ -24,13 +24,16 @@ const defaultBWLogs: BodyweightEntry[] = [];
 
 const profileMutate = vi.fn();
 const bwMutate = vi.fn();
+const measurementsMutate = vi.fn();
 
 beforeEach(() => {
     vi.mocked(useSWR)
         .mockReturnValueOnce({ data: defaultProfile, mutate: profileMutate } as unknown as ReturnType<typeof useSWR>)
-        .mockReturnValueOnce({ data: defaultBWLogs, mutate: bwMutate } as unknown as ReturnType<typeof useSWR>);
+        .mockReturnValueOnce({ data: defaultBWLogs, mutate: bwMutate } as unknown as ReturnType<typeof useSWR>)
+        .mockReturnValueOnce({ data: [], mutate: measurementsMutate } as unknown as ReturnType<typeof useSWR>);
     profileMutate.mockClear();
     bwMutate.mockClear();
+    measurementsMutate.mockClear();
     vi.mocked(updateProfile).mockClear();
     vi.mocked(logBodyWeight).mockClear();
     vi.mocked(deleteBodyWeight).mockClear();
@@ -45,7 +48,8 @@ describe('useProfile', () => {
     it('falls back to initialProfile when SWR data is undefined', () => {
         vi.mocked(useSWR)
             .mockReturnValueOnce({ data: undefined, mutate: profileMutate } as unknown as ReturnType<typeof useSWR>)
-            .mockReturnValueOnce({ data: [], mutate: bwMutate } as unknown as ReturnType<typeof useSWR>);
+            .mockReturnValueOnce({ data: [], mutate: bwMutate } as unknown as ReturnType<typeof useSWR>)
+            .mockReturnValueOnce({ data: [], mutate: measurementsMutate } as unknown as ReturnType<typeof useSWR>);
         const { result } = renderHook(() => useProfile());
         expect(result.current.profile).toEqual(defaultProfile);
     });
@@ -76,7 +80,8 @@ describe('useProfile', () => {
             .mockReturnValueOnce({ data: defaultProfile, mutate: profileMutate } as unknown as ReturnType<
                 typeof useSWR
             >)
-            .mockReturnValueOnce({ data: bwLogs, mutate: bwMutate } as unknown as ReturnType<typeof useSWR>);
+            .mockReturnValueOnce({ data: bwLogs, mutate: bwMutate } as unknown as ReturnType<typeof useSWR>)
+            .mockReturnValueOnce({ data: [], mutate: measurementsMutate } as unknown as ReturnType<typeof useSWR>);
 
         const { result } = renderHook(() => useProfile());
 

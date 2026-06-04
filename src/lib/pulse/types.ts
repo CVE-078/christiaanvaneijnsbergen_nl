@@ -59,6 +59,18 @@ export interface BodyweightEntry {
     weight_kg: number;
 }
 
+export type Trend = 'up' | 'down' | 'flat' | 'none';
+export interface RecompReadout {
+    weight: Trend;
+    strength: Trend;
+    waist: Trend;
+    isRecomping: boolean;
+    verdict: string;
+    weightDeltaKg: number | null;
+    strengthDeltaPct: number | null;
+    waistDeltaCm: number | null;
+}
+
 export interface Phase {
     weeks: number[];
     label: string;

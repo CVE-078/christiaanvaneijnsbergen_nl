@@ -6,14 +6,16 @@ import {
     deleteBodyWeight as serverDeleteBodyWeight,
 } from '@/app/pulse/actions';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
-import type { Profile, BodyweightEntry, Unit } from '@/lib/pulse/types';
+import type { Profile, BodyweightEntry, BodyMeasurement, Unit } from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
 const BODYWEIGHT_KEY = '/api/pulse/bodyweight';
+const MEASUREMENTS_KEY = '/api/pulse/measurements';
 
 // Stable empty default so `bwData ?? EMPTY_BW` keeps a constant identity across
 // renders (otherwise the provider's profileValue memo churns every render).
 const EMPTY_BW: BodyweightEntry[] = [];
+const EMPTY_MEASUREMENTS: BodyMeasurement[] = [];
 
 const DEFAULT_PROFILE: Profile = {
     display_name: null,
@@ -39,6 +41,17 @@ export function useProfile() {
         error: bodyweightError,
     } = useSWR<BodyweightEntry[]>(BODYWEIGHT_KEY, fetcher, SWR_READ_OPTS);
     const bodyweightLogs = bwData ?? EMPTY_BW;
+
+    const { data: measurementsData, mutate: mutateMeasurements } = useSWR<BodyMeasurement[]>(
+        MEASUREMENTS_KEY,
+        fetcher,
+        SWR_READ_OPTS,
+    );
+    const bodyMeasurements = measurementsData ?? EMPTY_MEASUREMENTS;
+
+    const refreshMeasurements = useCallback((): void => {
+        mutateMeasurements();
+    }, [mutateMeasurements]);
 
     const updateProfile = useCallback(
         async (displayName: string | null, unit: Unit): Promise<void> => {
@@ -79,6 +92,8 @@ export function useProfile() {
     return {
         profile,
         bodyweightLogs,
+        bodyMeasurements,
+        refreshMeasurements,
         updateProfile,
         logBodyWeight,
         deleteBodyWeight,

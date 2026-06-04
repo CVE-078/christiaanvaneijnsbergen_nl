@@ -1,6 +1,13 @@
 'use client';
 import { memo, useMemo, useState } from 'react';
-import { calcE1RM, toDisplay, computeE1RMHistory, swapKey } from '@/lib/pulse/utils';
+import {
+    calcE1RM,
+    toDisplay,
+    computeE1RMHistory,
+    swapKey,
+    computeStrengthByWeek,
+    computeRecompSignal,
+} from '@/lib/pulse/utils';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
 import { usePulse } from '@/context/PulseContext';
 import VolumeChart from '@/components/pulse/VolumeChart';
@@ -8,6 +15,7 @@ import StreakCalendar from '@/components/pulse/StreakCalendar';
 import E1RMChart from '@/components/pulse/E1RMChart';
 import BestLifts from '@/components/pulse/BestLifts';
 import MuscleVolumeBars from '@/components/pulse/MuscleVolumeBars';
+import RecompCard from '@/components/pulse/RecompCard';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
 import type { Unit } from '@/lib/pulse/types';
@@ -92,8 +100,33 @@ const SessionCard = memo(function SessionCard({ session, unit }: { session: Sess
 });
 
 export default function HistoryView() {
-    const { logs, profile, prMap, routines, streak, activeWeek, activeRoutine, loading, errors, retry, swaps, exercises } = usePulse();
+    const {
+        logs,
+        profile,
+        prMap,
+        routines,
+        streak,
+        activeWeek,
+        activeRoutine,
+        loading,
+        errors,
+        retry,
+        swaps,
+        exercises,
+        bodyweightLogs,
+        bodyMeasurements,
+    } = usePulse();
     const unit = profile.unit;
+
+    const recomp = useMemo(
+        () =>
+            computeRecompSignal({
+                bodyweight: bodyweightLogs,
+                measurements: bodyMeasurements,
+                strengthByWeek: computeStrengthByWeek(logs),
+            }),
+        [bodyweightLogs, bodyMeasurements, logs],
+    );
 
     const allRoutineExercises = useMemo(() => routines.flatMap((r) => r.exercises), [routines]);
 
@@ -168,6 +201,11 @@ export default function HistoryView() {
                 <span className="font-pulse-body text-[0.8125rem] text-pulse-muted tracking-[0.03em]">
                     {streak === 0 ? 'No streak yet' : `${streak}-week streak`}
                 </span>
+            </div>
+
+            {/* Recomp readout */}
+            <div className="mb-12">
+                <RecompCard readout={recomp} unit={unit} />
             </div>
 
             {/* Four data blocks - separated by tone and whitespace, two columns on wide screens */}

@@ -5,6 +5,7 @@ import type {
     Swaps,
     Profile,
     BodyweightEntry,
+    BodyMeasurement,
     WorkoutType,
     WorkoutVariant,
     TabKey,
@@ -28,6 +29,7 @@ export interface PulseContextValue {
     logs: Logs;
     profile: Profile;
     bodyweightLogs: BodyweightEntry[];
+    bodyMeasurements: BodyMeasurement[];
 
     // Computed (memoized in PulseProvider)
     streak: number;
@@ -45,6 +47,7 @@ export interface PulseContextValue {
     updateProfile: (displayName: string | null, unit: Unit) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
+    refreshMeasurements: () => void;
 
     // Notes
     notes: Notes;

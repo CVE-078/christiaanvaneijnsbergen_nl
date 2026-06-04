@@ -1,7 +1,16 @@
 import type { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/pulse/validation';
 import { logKey } from '@/lib/pulse/utils';
-import type { Logs, Notes, Swaps, Profile, BodyweightEntry, DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
+import type {
+    Logs,
+    Notes,
+    Swaps,
+    Profile,
+    BodyweightEntry,
+    BodyMeasurement,
+    DbExercise,
+    RoutineWithExercises,
+} from '@/lib/pulse/types';
 
 // Canonical Supabase server client type. Both the layout and the GET route
 // handlers pass the same client returned by createClient.
@@ -12,7 +21,9 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops';
 const PROFILE_SELECT = 'display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg';
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
-const EXERCISES_SELECT = 'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound';
+const MEASUREMENTS_SELECT = 'id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm';
+const EXERCISES_SELECT =
+    'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound';
 const NOTES_SELECT = 'week, routine_exercise_id, note';
 const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
@@ -65,6 +76,36 @@ export async function loadBodyweight(supabase: SupabaseServerClient, userId: str
         id: r.id,
         logged_at: r.logged_at,
         weight_kg: Number(r.weight_kg),
+    }));
+}
+
+export async function loadBodyMeasurements(supabase: SupabaseServerClient, userId: string): Promise<BodyMeasurement[]> {
+    const { data, error } = await supabase
+        .from('body_measurements')
+        .select(MEASUREMENTS_SELECT)
+        .eq('user_id', userId)
+        .order('measured_at', { ascending: false })
+        .limit(90);
+    if (error) throw error;
+
+    // numeric(5,1) columns come back as strings from the client; coerce like
+    // loadBodyweight so the declared `number | null` type holds at runtime.
+    const num = (v: unknown): number | null => (v == null ? null : Number(v));
+    const rows = (data ?? []) as Array<{
+        id: string;
+        measured_at: string;
+        waist_cm: unknown;
+        hips_cm: unknown;
+        chest_cm: unknown;
+        arms_cm: unknown;
+    }>;
+    return rows.map((r) => ({
+        id: r.id,
+        measured_at: r.measured_at,
+        waist_cm: num(r.waist_cm),
+        hips_cm: num(r.hips_cm),
+        chest_cm: num(r.chest_cm),
+        arms_cm: num(r.arms_cm),
     }));
 }
 
