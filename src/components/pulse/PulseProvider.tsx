@@ -12,13 +12,7 @@ import { useSwaps } from '@/hooks/pulse/useSwaps';
 import { usePreferences } from '@/hooks/pulse/usePreferences';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType } from '@/lib/pulse/utils';
-import type {
-    RoutineExercise,
-    WorkoutType,
-    TabKey,
-    ScheduleEntry,
-    View,
-} from '@/lib/pulse/types';
+import type { RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View } from '@/lib/pulse/types';
 
 interface Props {
     email: string;
@@ -40,6 +34,8 @@ export function PulseProvider({ email, navigate, children }: Props) {
     const {
         profile,
         bodyweightLogs,
+        bodyMeasurements,
+        refreshMeasurements,
         updateProfile,
         logBodyWeight,
         deleteBodyWeight,
@@ -193,8 +189,24 @@ export function PulseProvider({ email, navigate, children }: Props) {
         [logs, updateLog, deleteLog, handleExport],
     );
     const profileValue = useMemo(
-        () => ({ profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight }),
-        [profile, bodyweightLogs, updateProfile, logBodyWeight, deleteBodyWeight],
+        () => ({
+            profile,
+            bodyweightLogs,
+            bodyMeasurements,
+            updateProfile,
+            logBodyWeight,
+            deleteBodyWeight,
+            refreshMeasurements,
+        }),
+        [
+            profile,
+            bodyweightLogs,
+            bodyMeasurements,
+            updateProfile,
+            logBodyWeight,
+            deleteBodyWeight,
+            refreshMeasurements,
+        ],
     );
     const computedValue = useMemo(() => ({ streak, prMap, email }), [streak, prMap, email]);
     const uiStateValue = useMemo(

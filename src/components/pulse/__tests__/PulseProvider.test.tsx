@@ -60,6 +60,8 @@ vi.mock('@/hooks/pulse/useProfile', () => ({
             goal_weight_kg: null,
         },
         bodyweightLogs: [],
+        bodyMeasurements: [],
+        refreshMeasurements: vi.fn(),
         updateProfile: vi.fn(),
         logBodyWeight: vi.fn(),
         deleteBodyWeight: vi.fn(),

@@ -27,6 +27,8 @@ const mockContext = {
     timerDuration: null,
     fireTrigger: vi.fn(),
     bodyweightLogs: [],
+    bodyMeasurements: [],
+    refreshMeasurements: vi.fn(),
     email: 'test@example.com',
     updateProfile: vi.fn(),
     logBodyWeight: vi.fn(),

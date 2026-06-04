@@ -97,6 +97,7 @@ export default function ProfileView() {
         updateProfile,
         logBodyWeight,
         deleteBodyWeight,
+        refreshMeasurements,
         triggerOnboarding,
         streak,
         prMap,
@@ -473,6 +474,7 @@ export default function ProfileView() {
                                         chest_cm: measurements.chest ? Number(measurements.chest) : undefined,
                                         arms_cm: measurements.arms ? Number(measurements.arms) : undefined,
                                     });
+                                    refreshMeasurements();
                                     setShowMeasurements(false);
                                     setMeasurements({ waist: '', hips: '', chest: '', arms: '' });
                                     setMeasureDate(today);

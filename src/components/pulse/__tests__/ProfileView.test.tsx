@@ -33,6 +33,8 @@ const defaultContext = {
         goal_weight_kg: null,
     },
     bodyweightLogs: [],
+    bodyMeasurements: [],
+    refreshMeasurements: vi.fn(),
     updateProfile: mockUpdateProfile,
     logBodyWeight: mockLogBodyWeight,
     deleteBodyWeight: mockDeleteBodyWeight,
