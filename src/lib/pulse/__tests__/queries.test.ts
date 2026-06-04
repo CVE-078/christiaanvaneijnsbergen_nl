@@ -80,18 +80,20 @@ describe('loadProfile', () => {
                 active_routine_id: 'r1',
                 onboarding_completed: true,
                 goal_weight_kg: '80',
+                sex: 'female',
             },
             error: null,
         });
         const profile = await loadProfile(client, UID);
         expect(calls.table).toBe('profiles');
-        expect(calls.select).toBe('display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg');
+        expect(calls.select).toBe('display_name, unit, active_routine_id, onboarding_completed, goal_weight_kg, sex');
         expect(profile).toEqual({
             display_name: 'Sam',
             unit: 'lbs',
             active_routine_id: 'r1',
             onboarding_completed: true,
             goal_weight_kg: 80,
+            sex: 'female',
         });
     });
 
@@ -103,7 +105,20 @@ describe('loadProfile', () => {
             active_routine_id: null,
             onboarding_completed: false,
             goal_weight_kg: null,
+            sex: null,
         });
+    });
+
+    it('maps a valid sex value through', async () => {
+        const { client } = makeClient({ data: { sex: 'male' }, error: null });
+        expect((await loadProfile(client, UID)).sex).toBe('male');
+    });
+
+    it('maps an invalid or missing sex value to null', async () => {
+        const invalid = makeClient({ data: { sex: 'other' }, error: null });
+        expect((await loadProfile(invalid.client, UID)).sex).toBeNull();
+        const missing = makeClient({ data: { display_name: 'Sam' }, error: null });
+        expect((await loadProfile(missing.client, UID)).sex).toBeNull();
     });
 });
 

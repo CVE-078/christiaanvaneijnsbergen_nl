@@ -55,6 +55,17 @@ describe('recommendStyle / resolveStyle', () => {
         expect(resolveStyle('ppl-3', 3).key).toBe('ppl-3');
         expect(resolveStyle('does-not-exist', 3).key).toBe('fb-3');
     });
+    it('biases female toward a lower/glute-focused style where one exists', () => {
+        expect(recommendStyle(4, 'female')).toBe('ul-aesthetic-4');
+        expect(recommendStyle(4, undefined)).toBe('ul-classic-4');
+        expect(recommendStyle(3, 'female')).toBe('fb-emphasis-3');
+        expect(recommendStyle(3, undefined)).toBe('fb-3');
+    });
+    it('keeps the default for male and for counts without a bias option', () => {
+        expect(recommendStyle(4, 'male')).toBe('ul-classic-4');
+        expect(recommendStyle(5, 'female')).toBe('ulppl-5');
+        expect(recommendStyle(2, 'female')).toBe('fb-2');
+    });
 });
 
 // ── Test pool builder ────────────────────────────────────────────────────────

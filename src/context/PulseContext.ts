@@ -11,6 +11,7 @@ import type {
     TabKey,
     Unit,
     LogEntry,
+    Sex,
     View,
     PRMap,
     DbExercise,
@@ -45,6 +46,7 @@ export interface PulseContextValue {
 
     // Profile mutations
     updateProfile: (displayName: string | null, unit: Unit) => Promise<void>;
+    updateSex: (sex: Sex | null) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;
