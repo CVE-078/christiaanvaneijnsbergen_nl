@@ -91,7 +91,7 @@ const SessionCard = memo(function SessionCard({ session, unit }: { session: Sess
 });
 
 export default function HistoryView() {
-    const { logs, profile, prMap, routines, streak, activeWeek, activeRoutine, loading, errors, retry } = usePulse();
+    const { logs, profile, prMap, routines, streak, activeWeek, activeRoutine, loading, errors, retry, swaps, exercises } = usePulse();
     const unit = profile.unit;
 
     const allRoutineExercises = useMemo(() => routines.flatMap((r) => r.exercises), [routines]);
@@ -101,6 +101,12 @@ export default function HistoryView() {
         for (const re of allRoutineExercises) m.set(re.id, re.exercise.name);
         return m;
     }, [allRoutineExercises]);
+
+    const exerciseNameById = useMemo(() => {
+        const m = new Map<string, string>();
+        for (const e of exercises) m.set(e.id, e.name);
+        return m;
+    }, [exercises]);
 
     const activeRoutineExercises = useMemo(() => activeRoutine?.exercises ?? [], [activeRoutine]);
 
@@ -133,13 +139,17 @@ export default function HistoryView() {
                         reps: set.reps,
                         rir: set.rir,
                         kg: set.kg,
-                        name: nameMap.get(set.routineExerciseId) ?? '—',
+                        name: (() => {
+                            const subId = swaps[`${session.week}-${set.routineExerciseId}`];
+                            if (subId) return exerciseNameById.get(subId) ?? nameMap.get(set.routineExerciseId) ?? '—';
+                            return nameMap.get(set.routineExerciseId) ?? '—';
+                        })(),
                         isPR,
                         ...(set.drops && set.drops.length > 0 ? { drops: set.drops } : {}),
                     };
                 }),
             })),
-        [sessions, prMap, nameMap],
+        [sessions, prMap, nameMap, swaps, exerciseNameById],
     );
 
     const hasData = sessions.length > 0;
