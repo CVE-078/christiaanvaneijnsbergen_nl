@@ -36,4 +36,33 @@ describe('MuscleVolumeBars', () => {
         expect(screen.queryAllByRole('listitem')).toHaveLength(0);
         expect(screen.getByText(/no sets/i)).toBeInTheDocument();
     });
+
+    describe('target mode', () => {
+        it('renders a targeted muscle with 0 sets and shows its "to go"', () => {
+            render(<MuscleVolumeBars volume={{}} targets={{ shoulders: [8, 12] }} />);
+            const row = screen.getByText('shoulders').closest('li')!;
+            expect(within(row).getByText('0')).toBeInTheDocument();
+            expect(within(row).getByText('8 to go')).toBeInTheDocument();
+            expect(within(row).getByTestId('muscle-bar').style.width).toBe('0%');
+        });
+
+        it('shows no "to go" for a muscle meeting its floor', () => {
+            render(<MuscleVolumeBars volume={{ chest: 10 }} targets={{ chest: [8, 12] }} />);
+            const row = screen.getByText('chest').closest('li')!;
+            expect(within(row).queryByText(/to go/)).not.toBeInTheDocument();
+        });
+
+        it('names a lagging muscle in the summary line', () => {
+            render(
+                <MuscleVolumeBars volume={{ shoulders: 0, back: 8 }} targets={{ shoulders: [8, 12], back: [12, 16] }} />,
+            );
+            expect(screen.getByText(/8 to go on shoulders/)).toBeInTheDocument();
+            expect(screen.getByText(/4 on back/)).toBeInTheDocument();
+        });
+
+        it('shows the on-target summary when nothing is lagging', () => {
+            render(<MuscleVolumeBars volume={{ chest: 10 }} targets={{ chest: [8, 12] }} />);
+            expect(screen.getByText(/on target across the board/i)).toBeInTheDocument();
+        });
+    });
 });
