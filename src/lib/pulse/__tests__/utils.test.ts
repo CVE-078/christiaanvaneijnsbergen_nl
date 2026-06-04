@@ -28,8 +28,10 @@ import {
     swapKey,
     resolveExercise,
     swapCandidates,
+    computeStrengthByWeek,
+    computeRecompSignal,
 } from '../utils';
-import type { Logs, RoutineExercise, WorkoutType, WorkoutSession } from '../types';
+import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
 
 describe('getPhase', () => {
     it('returns Phase 1 for weeks 1–3', () => {
@@ -957,6 +959,95 @@ describe('groupExercises', () => {
 
     it('returns an empty array for empty input', () => {
         expect(groupExercises([])).toEqual([]);
+    });
+});
+
+describe('computeStrengthByWeek', () => {
+    const UUID_A = '550e8400-e29b-41d4-a716-446655440000';
+    const UUID_B = '550e8400-e29b-41d4-a716-446655440001';
+
+    it('returns empty array for empty logs', () => {
+        expect(computeStrengthByWeek({})).toEqual([]);
+    });
+
+    it('ignores unsaved entries', () => {
+        const logs: Logs = {
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 8, rir: 3, saved: false },
+        };
+        expect(computeStrengthByWeek(logs)).toEqual([]);
+    });
+
+    it('sums best E1RM across slots per week, ascending, with week 2 higher than week 1', () => {
+        const logs: Logs = {
+            // week 1: A best = calcE1RM(60,0)=60, B best = calcE1RM(30,0)=30 → 90
+            [`1-${UUID_A}-0`]: { kg: 60, reps: 0, rir: 3, saved: true },
+            [`1-${UUID_A}-1`]: { kg: 50, reps: 0, rir: 3, saved: true }, // not best for A
+            [`1-${UUID_B}-0`]: { kg: 30, reps: 0, rir: 3, saved: true },
+            // week 2: A best = 70, B best = 40 → 110
+            [`2-${UUID_A}-0`]: { kg: 70, reps: 0, rir: 2, saved: true },
+            [`2-${UUID_B}-0`]: { kg: 40, reps: 0, rir: 2, saved: true },
+        };
+        const result = computeStrengthByWeek(logs);
+        expect(result).toHaveLength(2);
+        expect(result[0].week).toBe(1);
+        expect(result[1].week).toBe(2);
+        expect(result[0].total).toBeCloseTo(90);
+        expect(result[1].total).toBeCloseTo(110);
+        expect(result[1].total).toBeGreaterThan(result[0].total);
+    });
+});
+
+describe('computeRecompSignal', () => {
+    function bw(logged_at: string, weight_kg: number): BodyweightEntry {
+        return { id: logged_at, logged_at, weight_kg };
+    }
+    function meas(measured_at: string, waist_cm: number | null): BodyMeasurement {
+        return { id: measured_at, measured_at, waist_cm, hips_cm: null, chest_cm: null, arms_cm: null };
+    }
+
+    it('flags a strong recomp: strength up, weight steady, waist down', () => {
+        const out = computeRecompSignal({
+            bodyweight: [bw('2026-01-01', 80), bw('2026-02-01', 80)],
+            measurements: [meas('2026-01-01', 85), meas('2026-02-01', 82)],
+            strengthByWeek: [
+                { week: 1, total: 100 },
+                { week: 4, total: 110 },
+            ],
+        });
+        expect(out.strength).toBe('up');
+        expect(out.weight).toBe('flat');
+        expect(out.waist).toBe('down');
+        expect(out.isRecomping).toBe(true);
+        expect(out.verdict.startsWith("You're recomping")).toBe(true);
+        expect(out.waistDeltaCm).toBeCloseTo(-3);
+        expect(out.strengthDeltaPct).toBeCloseTo(10);
+    });
+
+    it('returns all none and a prompt verdict for empty inputs', () => {
+        const out = computeRecompSignal({ bodyweight: [], measurements: [], strengthByWeek: [] });
+        expect(out.weight).toBe('none');
+        expect(out.strength).toBe('none');
+        expect(out.waist).toBe('none');
+        expect(out.isRecomping).toBe(false);
+        expect(out.verdict).toBe('Keep logging to see your recomp trend.');
+        expect(out.weightDeltaKg).toBeNull();
+        expect(out.strengthDeltaPct).toBeNull();
+        expect(out.waistDeltaCm).toBeNull();
+    });
+
+    it('reports gaining when strength up and weight up', () => {
+        const out = computeRecompSignal({
+            bodyweight: [bw('2026-01-01', 80), bw('2026-02-01', 84)],
+            measurements: [],
+            strengthByWeek: [
+                { week: 1, total: 100 },
+                { week: 4, total: 110 },
+            ],
+        });
+        expect(out.strength).toBe('up');
+        expect(out.weight).toBe('up');
+        expect(out.isRecomping).toBe(false);
+        expect(out.verdict.startsWith('Gaining')).toBe(true);
     });
 });
 

@@ -19,6 +19,10 @@ import type {
     LastSession,
     DbExercise,
     Swaps,
+    Trend,
+    RecompReadout,
+    BodyweightEntry,
+    BodyMeasurement,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -551,6 +555,88 @@ export function computePlates(targetKg: number, equipment: PlateEquipment): Plat
     }
     const remainderKg = Math.round(perSideKg * 100) / 100;
     return { perSide, achievable: remainderKg === 0, remainderKg };
+}
+
+// Overall strength proxy per week = sum of best E1RM across all slots that week.
+export function computeStrengthByWeek(logs: Logs): Array<{ week: number; total: number }> {
+    const bestPerSlotPerWeek = new Map<string, number>(); // `${week}|${reId}` -> best e1rm
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        const k = `${parsed.week}|${parsed.routineExerciseId}`;
+        const e = calcE1RM(val.kg, val.reps);
+        if (e > (bestPerSlotPerWeek.get(k) ?? 0)) bestPerSlotPerWeek.set(k, e);
+    }
+    const totals = new Map<number, number>();
+    for (const [k, e] of bestPerSlotPerWeek) {
+        const week = Number(k.split('|')[0]);
+        totals.set(week, (totals.get(week) ?? 0) + e);
+    }
+    return [...totals.entries()].map(([week, total]) => ({ week, total })).sort((a, b) => a.week - b.week);
+}
+
+function trendOf(delta: number, band: number): Trend {
+    if (delta < -band) return 'down';
+    if (delta > band) return 'up';
+    return 'flat';
+}
+
+// Combine bodyweight, waist, and overall-strength trends into a recomp readout.
+// Compares the latest value to the earliest in each series (chronological).
+export function computeRecompSignal(args: {
+    bodyweight: BodyweightEntry[];
+    measurements: BodyMeasurement[];
+    strengthByWeek: Array<{ week: number; total: number }>;
+}): RecompReadout {
+    const bw = [...args.bodyweight].sort((a, b) => a.logged_at.localeCompare(b.logged_at));
+    const waistPts = args.measurements
+        .filter((m) => m.waist_cm != null)
+        .sort((a, b) => a.measured_at.localeCompare(b.measured_at));
+    const str = [...args.strengthByWeek].filter((s) => s.total > 0).sort((a, b) => a.week - b.week);
+
+    let weight: Trend = 'none',
+        weightDeltaKg: number | null = null;
+    if (bw.length >= 2) {
+        weightDeltaKg = bw[bw.length - 1].weight_kg - bw[0].weight_kg;
+        weight = trendOf(weightDeltaKg, 0.5);
+    }
+
+    let waist: Trend = 'none',
+        waistDeltaCm: number | null = null;
+    if (waistPts.length >= 2) {
+        waistDeltaCm = (waistPts[waistPts.length - 1].waist_cm as number) - (waistPts[0].waist_cm as number);
+        waist = trendOf(waistDeltaCm, 0.5);
+    }
+
+    let strength: Trend = 'none',
+        strengthDeltaPct: number | null = null;
+    if (str.length >= 2 && str[0].total > 0) {
+        strengthDeltaPct = ((str[str.length - 1].total - str[0].total) / str[0].total) * 100;
+        strength = trendOf(strengthDeltaPct, 2);
+    }
+
+    const weightOk = weight === 'flat' || weight === 'down';
+    const isRecomping = strength === 'up' && weightOk && waist === 'down';
+
+    let verdict: string;
+    if (weight === 'none' && strength === 'none' && waist === 'none') {
+        verdict = 'Keep logging to see your recomp trend.';
+    } else if (isRecomping) {
+        verdict = `You're recomping: strength up, weight ${weight === 'down' ? 'down' : 'steady'}, waist down.`;
+    } else if (strength === 'up' && weightOk && waist === 'none') {
+        verdict = 'Likely recomping — strength up and weight steady. Log your waist to confirm.';
+    } else if (strength === 'up' && weight === 'up') {
+        verdict = 'Gaining: strength up but weight up too. Tighten nutrition if fat loss is the goal.';
+    } else if ((strength === 'flat' || strength === 'down') && weight === 'down') {
+        verdict = 'Cutting: weight down but strength flat. Hold protein and keep intensity up.';
+    } else if (strength === 'down' && weight === 'up') {
+        verdict = 'Strength dipping while weight rises — check recovery and nutrition.';
+    } else {
+        verdict = 'Keep logging to see your recomp trend.';
+    }
+
+    return { weight, strength, waist, isRecomping, verdict, weightDeltaKg, strengthDeltaPct, waistDeltaCm };
 }
 
 export function groupExercises(exercises: RoutineExercise[]): ExerciseItem[] {
