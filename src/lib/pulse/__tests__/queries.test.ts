@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loadLogs, loadProfile, loadBodyweight, loadExercises, loadRoutines, loadNotes } from '../queries';
+import { loadLogs, loadProfile, loadBodyweight, loadExercises, loadRoutines, loadNotes, loadSwaps } from '../queries';
 
 // A minimal fake of the chainable Supabase query builder. Every chain method
 // returns the same object, and the builder is awaitable so it resolves to
@@ -132,7 +132,7 @@ describe('loadExercises', () => {
         });
         const exercises = await loadExercises(client, UID);
         expect(calls.table).toBe('exercises');
-        expect(calls.select).toBe('id, name, category, default_sets, default_reps, user_id');
+        expect(calls.select).toBe('id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound');
         expect(exercises.map((e) => e.name)).toEqual(['Bench', 'Squat', 'Curl']);
     });
 });
@@ -192,5 +192,26 @@ describe('loadNotes', () => {
         expect(calls.table).toBe('exercise_notes');
         expect(calls.select).toBe('week, routine_exercise_id, note');
         expect(notes[`2-${REID}`]).toBe('felt strong');
+    });
+});
+
+describe('loadExercises select', () => {
+    it('includes movement_pattern and equipment for swap candidate ranking', async () => {
+        const { client, calls } = makeClient({ data: [], error: null });
+        await loadExercises(client, UID);
+        expect(calls.select).toContain('movement_pattern');
+        expect(calls.select).toContain('equipment');
+    });
+});
+
+describe('loadSwaps', () => {
+    it('builds a week-routineExerciseId keyed map of substitute exercise ids', async () => {
+        const { client, calls } = makeClient({
+            data: [{ week: 4, routine_exercise_id: REID, exercise_id: 'sub-1' }],
+            error: null,
+        });
+        const swaps = await loadSwaps(client, UID);
+        expect(calls.table).toBe('exercise_swaps');
+        expect(swaps[`4-${REID}`]).toBe('sub-1');
     });
 });
