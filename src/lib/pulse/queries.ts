@@ -14,6 +14,7 @@ const PROFILE_SELECT = 'display_name, unit, active_routine_id, onboarding_comple
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
 const EXERCISES_SELECT = 'id, name, category, default_sets, default_reps, user_id';
 const NOTES_SELECT = 'week, routine_exercise_id, note';
+const HIDDEN_PREFS_SELECT = 'exercise_id';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at,
             exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
@@ -111,4 +112,14 @@ export async function loadNotes(supabase: SupabaseServerClient, userId: string):
         notes[`${row.week}-${row.routine_exercise_id}`] = row.note;
     }
     return notes;
+}
+
+export async function loadHiddenExerciseIds(supabase: SupabaseServerClient, userId: string): Promise<string[]> {
+    const { data, error } = await supabase
+        .from('user_exercise_preferences')
+        .select(HIDDEN_PREFS_SELECT)
+        .eq('user_id', userId)
+        .eq('preference', 'hidden');
+    if (error) throw error;
+    return (data ?? []).map((r: { exercise_id: string }) => r.exercise_id);
 }

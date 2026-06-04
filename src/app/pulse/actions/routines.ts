@@ -21,6 +21,7 @@ import type {
     EquipmentKey,
 } from '@/lib/pulse/types';
 import { assertUuid, assertOwnsRoutine, assertOwnsRoutineExercise } from './_shared';
+import { loadHiddenExerciseIds } from '@/lib/pulse/queries';
 
 // Allowed session-time values (matches the SessionTime union).
 const SESSION_TIMES: readonly SessionTime[] = ['~30 min', '45–60 min', '90+ min'];
@@ -362,13 +363,20 @@ export async function generateAndSaveRoutine(
         .select('id, category, equipment, movement_pattern, is_compound')
         .is('user_id', null);
 
-    const pool: ExerciseMeta[] = ((poolData ?? []) as ExercisePoolRow[]).map((row) => ({
-        id: row.id,
-        category: row.category,
-        equipment: row.equipment ?? [],
-        movement_pattern: row.movement_pattern,
-        is_compound: row.is_compound,
-    }));
+    // Exclude the user's hidden exercises so generation never surfaces them. The
+    // smaller pool flows through the existing equipment filter + thin-pool
+    // fallback in generateRoutine.
+    const hidden = new Set(await loadHiddenExerciseIds(supabase, user.id));
+
+    const pool: ExerciseMeta[] = ((poolData ?? []) as ExercisePoolRow[])
+        .filter((row) => !hidden.has(row.id))
+        .map((row) => ({
+            id: row.id,
+            category: row.category,
+            equipment: row.equipment ?? [],
+            movement_pattern: row.movement_pattern,
+            is_compound: row.is_compound,
+        }));
 
     const blueprint = generateRoutine({
         style,

@@ -8,6 +8,7 @@ import { useRoutines } from '@/hooks/pulse/useRoutines';
 import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
+import { usePreferences } from '@/hooks/pulse/usePreferences';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType } from '@/lib/pulse/utils';
 import type {
@@ -72,6 +73,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
     const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
     const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
     const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes();
+    const { hiddenExerciseIds, toggleHideExercise } = usePreferences();
 
     const { mutate: globalMutate } = useSWRConfig();
     const retry = useCallback(() => {
@@ -281,6 +283,10 @@ export function PulseProvider({ email, navigate, children }: Props) {
         ],
     );
     const notesValue = useMemo(() => ({ notes, saveNote, deleteNote }), [notes, saveNote, deleteNote]);
+    const preferencesValue = useMemo(
+        () => ({ hiddenExerciseIds, toggleHideExercise }),
+        [hiddenExerciseIds, toggleHideExercise],
+    );
     const loadingValue = useMemo(() => ({ loading, errors, retry }), [loading, errors, retry]);
 
     const contextValue = useMemo(
@@ -292,9 +298,20 @@ export function PulseProvider({ email, navigate, children }: Props) {
             ...timerValue,
             ...routinesValue,
             ...notesValue,
+            ...preferencesValue,
             ...loadingValue,
         }),
-        [logsValue, profileValue, computedValue, uiStateValue, timerValue, routinesValue, notesValue, loadingValue],
+        [
+            logsValue,
+            profileValue,
+            computedValue,
+            uiStateValue,
+            timerValue,
+            routinesValue,
+            notesValue,
+            preferencesValue,
+            loadingValue,
+        ],
     );
 
     return <PulseContext.Provider value={contextValue}>{children}</PulseContext.Provider>;

@@ -141,6 +141,10 @@ export interface PulseContextValue {
     ) => Promise<DbExercise>;
     updateExercise: (id: string, name: string, defaultSets: string, defaultReps: string) => Promise<void>;
     deleteExercise: (id: string) => Promise<void>;
+
+    // Exercise preferences (hide / never-show)
+    hiddenExerciseIds: Set<string>;
+    toggleHideExercise: (exerciseId: string, hidden: boolean) => Promise<void>;
 }
 
 export const PulseContext = createContext<PulseContextValue | null>(null);

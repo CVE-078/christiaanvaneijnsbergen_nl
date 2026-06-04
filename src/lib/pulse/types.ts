@@ -101,6 +101,10 @@ export interface HistorySession {
 export const VIEWS = ['train', 'plan', 'progress', 'profile', 'library'] as const;
 export type View = (typeof VIEWS)[number];
 
+// User exercise preferences. v1 only uses 'hidden' (never-show); extensible to
+// 'favorite' later. Surfaced to the client as a Set<string> of hidden ids.
+export type ExercisePreference = 'hidden';
+
 export type PRMap = Record<string, number>;
 
 export type Notes = Record<string, string>; // key: `${week}-${routineExerciseId}`

@@ -52,6 +52,8 @@
 - Profile polish — streak shown as a coral hero stat; login screen and skeleton loader reskinned to Slate tokens
 - Auto-progression — `computeProgression` double-progression engine: climbs reps within the rep range, then adds weight and resets to the bottom; SetLogger pre-fills both weight and reps and shows the next target, deloading when a set came in harder than the target RIR
 - Instant loading (phase 1 of offline-first) — shell-first render; data fetched client-side via SWR with per-view Slate skeletons; user-scoped localStorage SWR cache (cleared on logout) makes warm visits instant via stale-while-revalidate
+- Routine generation redesign — emphasis-based generation so repeated focuses differ by design; program-style picker (Full Body / Emphasis Days / PPL / Upper-Lower / PPL+FB / Heavy-Med-Pump / ULPPL etc., keyed by day count); cross-session avoid-set variation; rep ranges by bias + lift type (incl. pump); auto-supersets for 30-min sessions; equipment correctness (every global exercise tagged + `pull_up_bar` key); A/B variants generalized to A-D with a per-day `routine_schedule.variant` pin
+- Audit cleanup — input validation, perf (targeted log writes, ExerciseCard precompute, HistoryView single pass, swrCache throttle), and DRY/maintainability (label-map collapse, TabKey comparator + `baseWorkoutType` helpers, `ui.ts` consolidation, `actions.ts`/`RoutinesTab.tsx` splits); `explore` route renamed to `library`
 
 ---
 
@@ -59,7 +61,7 @@
 
 ## In Progress
 
-- Routine generation redesign (branch `feat/routine-generation-redesign`, pending PR + two Supabase migrations) — emphasis-based generation so repeated focuses differ by design; program-style picker (Full Body / Emphasis Days / PPL / Upper-Lower / PPL+FB / Heavy-Med-Pump / ULPPL etc. keyed by day count); cross-session avoid-set variation; rep ranges by bias + lift type (incl. pump); auto-supersets for 30-min sessions; equipment correctness (every global exercise tagged, `pull_up_bar` key added); A/B variants generalized to A-D with a per-day `routine_schedule.variant` pin so each scheduled day jumps to its session.
+- Exercise preferences (hide / never-show) — `user_exercise_preferences` table (RLS-scoped); `setExercisePreference` action + `/api/pulse/preferences` GET + `usePreferences` hook; `hiddenExerciseIds` on context; hide/unhide toggle + "Show hidden" in the Library exercises tab; generation filters the hidden set out of the pool; subtle "Hidden" marker in the routine editor (non-destructive). Pending PR + migration `2026-06-04-exercise-preferences.sql`. v1 is hide-only; favorite/weighting deferred.
 
 ---
 
@@ -87,14 +89,15 @@ Differentiation opportunities:
 
 Prioritized for actual adherence (current users: the developer + spouse). "Adherence beats optimization" — personalization through preferences, a swap, and a clear "why" matters more than algorithmic coaching, which needs scale and months of logged data.
 
+_Exercise preferences (hide / never-show) — shipped (see In Progress / Shipped)._
+
 | # | Feature | Notes |
 |---|---|---|
-| 1 | Exercise preferences (dislike / never show) | Per-user excluded-exercise set fed into the generator's existing avoid-set + selection filter. Highest-adherence feature on the list; covers the real "spouse hates this lift" case. (also in: Fitbod, Jefit) |
-| 2 | Mid-workout exercise swap | Swap a busy/disliked exercise for a same-movement-pattern alternative and carry logged weights across. Natural now that the pool is equipment- + pattern-aware. (also in: Boostcamp, Fitbod, Alpha, Caliber) |
-| 3 | Generation explainability | "Upper/Lower because: intermediate · 4 days · recomp · 60 min." Nearly free — every input plus the style `bestFor` is already known. Builds trust in the new generator. (inspired by: gap most competitors leave open) |
-| 4 | Goal-based weekly volume targets | Add recomp/hypertrophy set targets per muscle on top of the existing `MuscleVolumeBars`; show target vs actual + "under on shoulders" nudges. Subsumes weak-point detection + recovery-aware nudges. |
-| 5 | Recomp dashboard | Combine the bodyweight, strength (E1RM), and measurement data already stored into one "weight down + strength up + waist down = recomping" readout. Directly serves the current users' goal. |
-| 6 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. (also in: Hevy, Fitbod, Jefit, Boostcamp, Caliber, Setgraph) |
+| 1 | Mid-workout exercise swap | Swap a busy/disliked exercise for a same-movement-pattern alternative and carry logged weights across. Natural now that the pool is equipment- + pattern-aware and the hidden set is available to skip. (also in: Boostcamp, Fitbod, Alpha, Caliber) |
+| 2 | Generation explainability | "Upper/Lower because: intermediate · 4 days · recomp · 60 min." Nearly free — every input plus the style `bestFor` is already known. Builds trust in the new generator. (inspired by: gap most competitors leave open) |
+| 3 | Goal-based weekly volume targets | Add recomp/hypertrophy set targets per muscle on top of the existing `MuscleVolumeBars`; show target vs actual + "under on shoulders" nudges. Subsumes weak-point detection + recovery-aware nudges. |
+| 4 | Recomp dashboard | Combine the bodyweight, strength (E1RM), and measurement data already stored into one "weight down + strength up + waist down = recomping" readout. Directly serves the current users' goal. |
+| 5 | Offline-first logging | PWA service worker or local-first. Gym wifi is unreliable. Strong's biggest retention driver. (also in: Hevy, Fitbod, Jefit, Boostcamp, Caliber, Setgraph) |
 | 7 | Apple Health / Google Fit sync | Important for users who track calories or use wearables. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
 
 _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions, rule-based routine generation, routine editor session grouping, routine rename, collapsible sidebar, scroll-rail muscle filter, streak hero, login + skeleton reskin (see Shipped)._
