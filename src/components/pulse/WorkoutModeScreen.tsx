@@ -229,7 +229,7 @@ export default function WorkoutModeScreen({
             const wasPR = !!(prev?.saved && isSetPR(prev.kg, prev.reps, re.id, prMap));
             const isNowPR = isSetPR(entry.kg, entry.reps, re.id, prMap);
             if (isNowPR && !wasPR) {
-                showToast(`New PR on ${re.exercise.name}`, 'success');
+                showToast(`New PR on ${(resolveDisplay?.(re) ?? re.exercise).name}`, 'success');
             }
         }
         onSave(key, entry);

@@ -12,6 +12,7 @@ import {
     baseWorkoutType,
     resolveExercise,
     swapCandidates,
+    swapKey,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
@@ -224,7 +225,7 @@ export default function LogView() {
                     const candidates = swapCandidates(original, exercises, {
                         excludeIds: new Set([...hiddenExerciseIds, ...inSessionIds]),
                     });
-                    const swapped = !!swaps[`${activeWeek}-${swapTarget.id}`];
+                    const swapped = !!swaps[swapKey(activeWeek, swapTarget.id)];
                     return (
                         <ExerciseSwapPicker
                             originalName={original.name}
@@ -322,7 +323,7 @@ export default function LogView() {
                             onDeleteNote={() => deleteNote(activeWeek, item.id)}
                             lastSession={lastSessionMap.get(item.id) ?? null}
                             displayExercise={resolveExercise(item, activeWeek, swaps, exercisesById)}
-                            isSwapped={!!swaps[`${activeWeek}-${item.id}`]}
+                            isSwapped={!!swaps[swapKey(activeWeek, item.id)]}
                             originalName={(exercisesById.get(item.exercise_id) ?? item.exercise).name}
                             onSwap={() => setSwapTarget(item)}
                             onRevert={() => clearSwap(activeWeek, item.id)}

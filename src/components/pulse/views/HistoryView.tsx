@@ -1,6 +1,6 @@
 'use client';
 import { memo, useMemo, useState } from 'react';
-import { calcE1RM, toDisplay, computeE1RMHistory } from '@/lib/pulse/utils';
+import { calcE1RM, toDisplay, computeE1RMHistory, swapKey } from '@/lib/pulse/utils';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
 import { usePulse } from '@/context/PulseContext';
 import VolumeChart from '@/components/pulse/VolumeChart';
@@ -140,7 +140,7 @@ export default function HistoryView() {
                         rir: set.rir,
                         kg: set.kg,
                         name: (() => {
-                            const subId = swaps[`${session.week}-${set.routineExerciseId}`];
+                            const subId = swaps[swapKey(session.week, set.routineExerciseId)];
                             if (subId) return exerciseNameById.get(subId) ?? nameMap.get(set.routineExerciseId) ?? '—';
                             return nameMap.get(set.routineExerciseId) ?? '—';
                         })(),
