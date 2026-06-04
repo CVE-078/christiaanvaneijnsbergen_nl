@@ -104,25 +104,27 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 
 ## Later
 
+Ordered by value-per-effort at current scale: cheap, web-native wins that serve the two current users come first; items needing accumulated data, user mass, or native platforms sink to the bottom.
+
 | Feature | Notes |
 |---|---|
-| AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. Needs months of logged data to not feel random — premature at current scale. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
-| Adaptive missed-workout regeneration | "You missed Lower B, here's an adjusted week" instead of restart. High adherence value, but lower urgency at current scale. (inspired by: Fitbod) |
+| Rest timer auto-advance | Option to automatically navigate to next exercise when rest timer completes. Global toggle or per-exercise setting. Tiny in-gym UX win, no new data. |
+| Strength Score | Single 0-100 composite metric from your main-lift E1RM PRs. Legible headline number for non-experts. Computes from data Pulse already has — no new infra. (also in: Caliber, Boostcamp) |
+| Gender in profile | Add gender field; bias onboarding recommendations toward lower-body templates for female users. Small, and directly serves one of the two current users. |
+| CSV data export | Export full workout history for users who want their own analysis or a backup. Small, pure-compute, ownership/backup value. (also in: Strong, Alpha, Caliber) |
+| Progress photos | Date-stamped progress photos alongside the existing body measurements. Visual progress comparison; pairs with the recomp tracking. Needs file upload + Supabase storage. (also in: Hevy, Strong, Jefit, Fitbod) |
+| Recovery-aware volume nudges | Extend the shipped weekly per-muscle volume targets with RIR-based over/under flags (under- vs over-trained muscles) within the 12-week plan. Differentiator. (inspired by: Fitbod, Boostcamp) |
+| Muscle priority selection | User prioritizes a muscle; generator shifts weekly volume toward it. Builds on the shipped volume targets; overlaps with the deferred gender/emphasis weighting — fold in together. |
+| Adaptive missed-workout regeneration | "You missed Lower B, here's an adjusted week" instead of restart. High adherence value; sessions infra exists. Lower urgency at current scale. (inspired by: Fitbod) |
+| Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). Bigger lift. |
 | Plateau detection + smart deload | Detect a stalled lift over N weeks and recommend volume change / exercise swap / deload. Static week-12 deload exists; this is the data-driven version. Needs accumulated logs. (also in: Alpha, Boostcamp) |
-| Muscle priority selection | User prioritizes a muscle; generator shifts weekly volume toward it. Overlaps with the deferred gender/emphasis weighting and goal-based volume targets — fold in together. |
-| Strength Score | Single 0-100 composite metric from your main-lift E1RM PRs. Legible headline number for non-experts. Computes from data Pulse already has. (also in: Caliber, Boostcamp) |
-| Progress photos | Date-stamped progress photos alongside the existing body measurements. Visual progress comparison. (also in: Hevy, Strong, Jefit, Fitbod) |
-| Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. (also in: Hevy, Jefit, Boostcamp) |
-| CSV data export | Export full workout history for users who want their own analysis or a backup. (also in: Strong, Alpha, Caliber) |
-| Recovery-aware volume nudges | Combine per-muscle volume with RIR to flag under- and over-trained muscles within the 12-week plan. Differentiator. Now folded into Near-term #4 (goal-based volume targets). (inspired by: Fitbod, Boostcamp) |
-| Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data, badges only land well at milestones users actually reach. (also in: Jefit, Boostcamp) |
-| Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support ships. |
-| Social / sharing | Friends feed, likes, follow. Requires critical user mass. Not before traction. |
-| Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. |
-| Rest timer auto-advance | Option to automatically navigate to next exercise when rest timer completes. Global toggle or per-exercise setting. |
-| Gender in profile | Add gender field; bias onboarding recommendations toward lower-body templates for female users. |
-| Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). |
+| Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support (shipped). Niche. |
+| Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data — badges only land well at milestones users actually reach. (also in: Jefit, Boostcamp) |
+| Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. Needs a year of data to be meaningful. (also in: Hevy, Jefit, Boostcamp) |
+| AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. Needs months of logged data to not feel random — premature at current scale. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
 | ExerciseCard memo effectiveness | `ExerciseCard` is wrapped in `React.memo`, but the save path still passes the whole `logs`/`prMap` objects (new refs on every save) so all cards re-render anyway. Slice per-card data upstream in `LogView` (own set entries + savedCount + per-exercise PR) so unchanged cards keep stable props and a save touches one card. Refactor of the hottest screen — defer until it actually hurts at scale. |
+| Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. Native-platform integration — same off-the-web cost as Health/Fit sync; far off. |
+| Social / sharing | Friends feed, likes, follow. Requires critical user mass. Not before traction. |
 
 ---
 
@@ -130,11 +132,13 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 
 From a ChatGPT feature audit. Real ideas, but low value at current scale or trust-risky — revisit only if the rationale changes.
 
+Ordered by revisit-likelihood: small/standalone ideas first, then those gated on a future v2 adaptive engine, then the trust-risky or heavy-modeling ones last.
+
 | Feature | Why not |
 |---|---|
+| Recovery warnings (e.g. legs Mon+Tue) | Schedule is user-chosen and small; low value. Smallest standalone rule if ever revisited. |
 | Program coherence score (X/100) | Decorative for a deterministic generator that's already correct by construction (slot-based, equipment-filtered, volume floors). It can't emit an incoherent program. Only earns its keep guarding a fuzzy v2 adaptive engine. |
+| Dynamic volume management | Needs the v2 adaptive engine + logged data. Bundle with v2 if pursued. |
+| Exercise recommendation AI | Vague; rule-based selection + the shipped preferences/swap already cover the real need. |
 | Goal forecasting ("86 kg in 12 weeks") | Easy to get wrong; a missed prediction erodes trust more than it motivates. |
 | Muscle recovery / fatigue modeling | Fitbod's signature, but heavy modeling for marginal payoff at two users and risks feeling pseudo-scientific. |
-| Dynamic volume management | Needs the v2 adaptive engine + logged data. Bundle with v2 if pursued. |
-| Exercise recommendation AI | Vague; rule-based selection + the planned preferences/swap cover the real need. |
-| Recovery warnings (e.g. legs Mon+Tue) | Schedule is user-chosen and small; low value. |
