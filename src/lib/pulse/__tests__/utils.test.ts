@@ -21,6 +21,7 @@ import {
     computeShareStats,
     isSetPR,
     computePerMuscleVolume,
+    computeVolumeProgress,
     computePlates,
     sessionTypeFor,
     computeWeeksWithData,
@@ -822,6 +823,21 @@ describe('computePerMuscleVolume', () => {
     it('returns 0 for categories with no sets that week', () => {
         const out = computePerMuscleVolume(logs, res, 3);
         expect(out.legs ?? 0).toBe(0);
+    });
+});
+
+describe('computeVolumeProgress', () => {
+    const targets = { chest: [12, 18], back: [12, 18], biceps: [8, 14] } as Partial<Record<import('../types').ExerciseCategory, [number, number]>>;
+    it('returns a row per targeted muscle with actual, range, and to-go, lagging first', () => {
+        const rows = computeVolumeProgress({ chest: 14, biceps: 2 }, targets);
+        expect(rows.map((r) => r.category)).toEqual(['back', 'biceps', 'chest']); // toGo 12, 6, 0
+        expect(rows.find((r) => r.category === 'chest')).toMatchObject({ actual: 14, min: 12, max: 18, toGo: 0 });
+        expect(rows.find((r) => r.category === 'biceps')).toMatchObject({ actual: 2, toGo: 6 });
+        expect(rows.find((r) => r.category === 'back')).toMatchObject({ actual: 0, toGo: 12 });
+    });
+    it('clamps to-go at zero when the floor is met or exceeded', () => {
+        const rows = computeVolumeProgress({ chest: 20 }, { chest: [12, 18] } as typeof targets);
+        expect(rows[0].toGo).toBe(0);
     });
 });
 

@@ -142,6 +142,14 @@ export const EXERCISE_CATEGORIES = [
 ] as const;
 export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
 
+export interface VolumeTargetRow {
+    category: ExerciseCategory;
+    actual: number;
+    min: number;
+    max: number;
+    toGo: number;
+}
+
 export interface DbExercise {
     id: string;
     name: string;

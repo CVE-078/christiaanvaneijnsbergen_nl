@@ -1,4 +1,4 @@
-import type { Phase, VolumeEntry, Workout, ScheduleDay, WorkoutType } from './types';
+import type { Phase, VolumeEntry, Workout, ScheduleDay, WorkoutType, ExerciseCategory } from './types';
 
 export const PHASES: Phase[] = [
     { weeks: [1, 2, 3], label: 'Phase 1', subtitle: 'Accumulation', rir: [3, 3, 2], color: '#4ade80' },
@@ -225,3 +225,17 @@ export const SCHEDULE: ScheduleDay[] = [
     { day: 'Sat', type: 'pull' },
     { day: 'Sun', type: 'legs' },
 ];
+
+// Weekly working-set targets per muscle [min, max], hypertrophy-oriented floors.
+// Goal-agnostic v1; tune here or make goal-based later. 'other' has no target.
+export const VOLUME_TARGETS: Partial<Record<ExerciseCategory, [number, number]>> = {
+    chest: [12, 18],
+    back: [12, 18],
+    legs: [12, 18],
+    shoulders: [10, 16],
+    glutes: [10, 16],
+    biceps: [8, 14],
+    triceps: [8, 14],
+    calves: [8, 14],
+    abs: [6, 12],
+};

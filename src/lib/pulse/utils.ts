@@ -14,6 +14,7 @@ import type {
     PRMap,
     ShareStats,
     ExerciseCategory,
+    VolumeTargetRow,
     ExerciseItem,
     LastSession,
     DbExercise,
@@ -508,6 +509,23 @@ export function computePerMuscleVolume(
         out[cat] = (out[cat] ?? 0) + 1;
     }
     return out;
+}
+
+// Per-muscle progress toward weekly set targets. Rows cover every targeted
+// muscle (even at 0 sets); toGo is the sets still needed to reach the floor.
+// Sorted lagging-first (highest toGo), then alphabetically for stability.
+export function computeVolumeProgress(
+    volume: Partial<Record<ExerciseCategory, number>>,
+    targets: Partial<Record<ExerciseCategory, [number, number]>>,
+): VolumeTargetRow[] {
+    const rows: VolumeTargetRow[] = [];
+    for (const [category, range] of Object.entries(targets) as Array<[ExerciseCategory, [number, number]]>) {
+        const [min, max] = range;
+        const actual = volume[category] ?? 0;
+        rows.push({ category, actual, min, max, toGo: Math.max(0, min - actual) });
+    }
+    rows.sort((a, b) => b.toGo - a.toGo || a.category.localeCompare(b.category));
+    return rows;
 }
 
 export type PlateEquipment = 'barbell' | 'dumbbell';

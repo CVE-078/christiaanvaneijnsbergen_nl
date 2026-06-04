@@ -9,6 +9,7 @@ import E1RMChart from '@/components/pulse/E1RMChart';
 import BestLifts from '@/components/pulse/BestLifts';
 import MuscleVolumeBars from '@/components/pulse/MuscleVolumeBars';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
+import { VOLUME_TARGETS } from '@/lib/pulse/data';
 import type { Unit } from '@/lib/pulse/types';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
@@ -203,7 +204,7 @@ export default function HistoryView() {
                 {/* Per-muscle volume this week */}
                 <div>
                     <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
-                    <MuscleVolumeBars volume={muscleVolume} />
+                    <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} />
                 </div>
 
                 {/* e1RM Progression */}
