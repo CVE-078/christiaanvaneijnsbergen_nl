@@ -160,7 +160,7 @@ export default function LogView() {
                     className="font-pulse text-sm font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-5 py-2.5 cursor-pointer border-none"
                 />
                 <button
-                    onClick={() => navigate('explore')}
+                    onClick={() => navigate('library')}
                     className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer">
                     Browse the Library
                 </button>

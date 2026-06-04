@@ -87,7 +87,7 @@ describe('LogView', () => {
         expect(screen.getByText(/no routine active/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /generate a routine/i })).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: /browse the library/i }));
-        expect(navigate).toHaveBeenCalledWith('explore');
+        expect(navigate).toHaveBeenCalledWith('library');
     });
 
     it('shows an empty state hint when no sets are logged for the current week', () => {

@@ -109,7 +109,7 @@ describe('DesktopLayout', () => {
         expect(screen.getByRole('button', { name: /^plan$/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /^progress$/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /^profile$/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /^explore$/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^library$/i })).toBeInTheDocument();
     });
 
     it('calls navigate when a nav item is clicked', async () => {

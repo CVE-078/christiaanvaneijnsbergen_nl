@@ -1,4 +1,4 @@
 import LibraryView from '@/components/pulse/views/LibraryView';
-export default function ExplorePage() {
+export default function LibraryPage() {
     return <LibraryView />;
 }

@@ -48,8 +48,8 @@ const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
         ),
     },
     {
-        id: 'explore',
-        label: 'Explore',
+        id: 'library',
+        label: 'Library',
         icon: (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
                 <circle cx="11" cy="11" r="7" />

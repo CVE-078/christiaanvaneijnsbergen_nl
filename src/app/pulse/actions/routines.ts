@@ -344,7 +344,11 @@ export async function generateAndSaveRoutine(
         throw new Error('Invalid data');
     if (!SESSION_TIMES.includes(sessionTime)) throw new Error('Invalid data');
 
-    let routineName = 'Generated routine';
+    const style = resolveStyle(styleKey, trainingDays.length);
+
+    // Default the routine name to the chosen program style (e.g. "Classic Upper /
+    // Lower"); an explicit, non-empty name overrides it.
+    let routineName = style.name;
     if (name !== undefined) {
         const trimmed = name.trim();
         if (trimmed.length > 80) throw new Error('Invalid data');
@@ -365,8 +369,6 @@ export async function generateAndSaveRoutine(
         movement_pattern: row.movement_pattern,
         is_compound: row.is_compound,
     }));
-
-    const style = resolveStyle(styleKey, trainingDays.length);
 
     const blueprint = generateRoutine({
         style,
