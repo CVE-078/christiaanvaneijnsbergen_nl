@@ -62,6 +62,19 @@ export interface BodyweightEntry {
     weight_kg: number;
 }
 
+// Strength score readout. Pure logic and the standards table live in
+// strength.ts; this type stays here so types.ts remains the single source for
+// domain types. MainLift is imported from strength.ts to avoid duplicating it.
+import type { MainLift } from './strength';
+export type { MainLift } from './strength';
+
+export interface StrengthScore {
+    score: number | null;
+    level: string | null;
+    reason: string | null;
+    lifts: Array<{ lift: MainLift; label: string; subScore: number; ratio: number }>;
+}
+
 export type Trend = 'up' | 'down' | 'flat' | 'none';
 export interface RecompReadout {
     weight: Trend;
