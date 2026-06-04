@@ -88,7 +88,25 @@ export async function loadBodyMeasurements(supabase: SupabaseServerClient, userI
         .limit(90);
     if (error) throw error;
 
-    return (data ?? []) as BodyMeasurement[];
+    // numeric(5,1) columns come back as strings from the client; coerce like
+    // loadBodyweight so the declared `number | null` type holds at runtime.
+    const num = (v: unknown): number | null => (v == null ? null : Number(v));
+    const rows = (data ?? []) as Array<{
+        id: string;
+        measured_at: string;
+        waist_cm: unknown;
+        hips_cm: unknown;
+        chest_cm: unknown;
+        arms_cm: unknown;
+    }>;
+    return rows.map((r) => ({
+        id: r.id,
+        measured_at: r.measured_at,
+        waist_cm: num(r.waist_cm),
+        hips_cm: num(r.hips_cm),
+        chest_cm: num(r.chest_cm),
+        arms_cm: num(r.arms_cm),
+    }));
 }
 
 export async function loadExercises(supabase: SupabaseServerClient, userId: string): Promise<DbExercise[]> {
