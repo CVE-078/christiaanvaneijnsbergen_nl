@@ -91,11 +91,14 @@ Differentiation opportunities:
 
 ## Near-term
 
-Prioritized for actual adherence (current users: the developer + spouse). "Adherence beats optimization." The personalization batch — exercise preferences, mid-workout swap, generation explainability, weekly volume targets, recomp dashboard, and offline-first logging — has all shipped (see Shipped). The remaining near-term item is health-platform sync.
+Freshly re-prioritized across all unshipped items (2026-06-04), ordered by value-per-effort at current scale (developer + spouse, web PWA): cheap, web-native wins that serve the two users and need no accumulated data or user mass come first. Health-platform and wearable sync moved to Later — they require leaving the web for native platforms, for low ROI at two users.
 
 | # | Feature | Notes |
 |---|---|---|
-| 1 | Apple Health / Google Fit sync | Import bodyweight / activity from wearables and calorie trackers; export workouts. Bigger lift — external APIs + native bridges. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
+| 1 | Rest timer auto-advance | Auto-advance to the next exercise when the rest timer completes; global toggle or per-exercise. Tiny in-gym UX win, no new data — smallest next step. |
+| 2 | Strength Score | Single 0-100 composite from your main-lift E1RM PRs. Legible, motivating headline number; computes entirely from data Pulse already has. (also in: Caliber, Boostcamp) |
+| 3 | Recovery-aware volume nudges | Extend the shipped weekly per-muscle volume targets with RIR-based over/under flags (under- vs over-trained muscles) across the 12-week plan. Uses RIR already logged; analytical differentiator. (inspired by: Fitbod, Boostcamp) |
+| 4 | Gender in profile | Add a gender field and bias onboarding recommendations (e.g. lower-body emphasis). Small, and directly serves one of the two current users. |
 
 _Shipped 2026-06-04: mid-workout exercise swap, generation explainability, weekly per-muscle volume targets, recomp dashboard, offline-first logging (see Shipped)._
 _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions, rule-based routine generation, routine editor session grouping, routine rename, collapsible sidebar, scroll-rail muscle filter, streak hero, login + skeleton reskin (see Shipped)._
@@ -104,16 +107,12 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 
 ## Later
 
-Ordered by value-per-effort at current scale: cheap, web-native wins that serve the two current users come first; items needing accumulated data, user mass, or native platforms sink to the bottom.
+Same value-per-effort ordering as Near-term, continued: web-native moderate-value items first, then bigger or data-gated work, then native-platform and scale-gated items last.
 
 | Feature | Notes |
 |---|---|
-| Rest timer auto-advance | Option to automatically navigate to next exercise when rest timer completes. Global toggle or per-exercise setting. Tiny in-gym UX win, no new data. |
-| Strength Score | Single 0-100 composite metric from your main-lift E1RM PRs. Legible headline number for non-experts. Computes from data Pulse already has — no new infra. (also in: Caliber, Boostcamp) |
-| Gender in profile | Add gender field; bias onboarding recommendations toward lower-body templates for female users. Small, and directly serves one of the two current users. |
-| CSV data export | Export full workout history for users who want their own analysis or a backup. Small, pure-compute, ownership/backup value. (also in: Strong, Alpha, Caliber) |
 | Progress photos | Date-stamped progress photos alongside the existing body measurements. Visual progress comparison; pairs with the recomp tracking. Needs file upload + Supabase storage. (also in: Hevy, Strong, Jefit, Fitbod) |
-| Recovery-aware volume nudges | Extend the shipped weekly per-muscle volume targets with RIR-based over/under flags (under- vs over-trained muscles) within the 12-week plan. Differentiator. (inspired by: Fitbod, Boostcamp) |
+| CSV data export | Export full workout history for users who want their own analysis or a backup. Small, pure-compute, ownership/backup value. (also in: Strong, Alpha, Caliber) |
 | Muscle priority selection | User prioritizes a muscle; generator shifts weekly volume toward it. Builds on the shipped volume targets; overlaps with the deferred gender/emphasis weighting — fold in together. |
 | Adaptive missed-workout regeneration | "You missed Lower B, here's an adjusted week" instead of restart. High adherence value; sessions infra exists. Lower urgency at current scale. (inspired by: Fitbod) |
 | Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). Bigger lift. |
@@ -123,6 +122,7 @@ Ordered by value-per-effort at current scale: cheap, web-native wins that serve 
 | Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. Needs a year of data to be meaningful. (also in: Hevy, Jefit, Boostcamp) |
 | AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. Needs months of logged data to not feel random — premature at current scale. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
 | ExerciseCard memo effectiveness | `ExerciseCard` is wrapped in `React.memo`, but the save path still passes the whole `logs`/`prMap` objects (new refs on every save) so all cards re-render anyway. Slice per-card data upstream in `LogView` (own set entries + savedCount + per-exercise PR) so unchanged cards keep stable props and a save touches one card. Refactor of the hottest screen — defer until it actually hurts at scale. |
+| Apple Health / Google Fit sync | Import bodyweight / activity from wearables and calorie trackers; export workouts. Native-gated — HealthKit is iOS-native (no web API) and Google has been moving Fit to Android-native Health Connect, so this means going off the web (Capacitor/native). Low ROI at two users. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
 | Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. Native-platform integration — same off-the-web cost as Health/Fit sync; far off. |
 | Social / sharing | Friends feed, likes, follow. Requires critical user mass. Not before traction. |
 
