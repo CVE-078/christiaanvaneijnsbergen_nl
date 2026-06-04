@@ -9,15 +9,8 @@ import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
 import { useToast } from '@/lib/pulse/toast';
-import { computeStreak, computePRMap } from '@/lib/pulse/utils';
-import { WORKOUT_TYPE_ORDER } from '@/lib/pulse/constants';
+import { computeStreak, computePRMap, orderTabKeys } from '@/lib/pulse/utils';
 import type {
-    Logs,
-    Notes,
-    Profile,
-    BodyweightEntry,
-    DbExercise,
-    RoutineWithExercises,
     RoutineExercise,
     WorkoutType,
     TabKey,
@@ -25,41 +18,13 @@ import type {
     View,
 } from '@/lib/pulse/types';
 
-// Mirror the tab ordering WorkoutTabs renders: base workout_type order, then A before B.
-function orderTabKeys(keys: TabKey[]): TabKey[] {
-    return [...keys].sort((a, b) => {
-        const baseA = a.includes(':') ? (a.split(':')[0] as WorkoutType) : (a as WorkoutType);
-        const baseB = b.includes(':') ? (b.split(':')[0] as WorkoutType) : (b as WorkoutType);
-        const orderA = WORKOUT_TYPE_ORDER.indexOf(baseA);
-        const orderB = WORKOUT_TYPE_ORDER.indexOf(baseB);
-        if (orderA !== orderB) return orderA - orderB;
-        return a < b ? -1 : 1;
-    });
-}
-
 interface Props {
-    initialLogs?: Logs;
-    initialProfile?: Profile;
-    initialBodyweightLogs?: BodyweightEntry[];
-    initialExercises?: DbExercise[];
-    initialRoutines?: RoutineWithExercises[];
-    initialNotes?: Notes;
     email: string;
     navigate: (view: View) => void;
     children: React.ReactNode;
 }
 
-export function PulseProvider({
-    initialLogs,
-    initialProfile,
-    initialBodyweightLogs,
-    initialExercises,
-    initialRoutines,
-    initialNotes,
-    email,
-    navigate,
-    children,
-}: Props) {
+export function PulseProvider({ email, navigate, children }: Props) {
     const { show: showToast } = useToast();
     const onSaveError = useCallback((msg: string) => showToast(msg, 'error'), [showToast]);
     const {
@@ -69,7 +34,7 @@ export function PulseProvider({
         handleExport,
         loading: loadingLogs,
         error: logsError,
-    } = useWorkoutLogs(initialLogs, onSaveError);
+    } = useWorkoutLogs(onSaveError);
     const {
         profile,
         bodyweightLogs,
@@ -80,7 +45,7 @@ export function PulseProvider({
         loadingBodyweight,
         profileError,
         bodyweightError,
-    } = useProfile(initialProfile, initialBodyweightLogs);
+    } = useProfile();
     const {
         exercises,
         routines,
@@ -103,10 +68,10 @@ export function PulseProvider({
         createExercise,
         updateExercise,
         deleteExercise,
-    } = useRoutines(initialExercises, initialRoutines, profile.active_routine_id);
+    } = useRoutines(profile.active_routine_id);
     const { activeWeek, setActiveWeek, activeTab, setActiveTab } = useUIState();
     const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
-    const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes(initialNotes);
+    const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes();
 
     const { mutate: globalMutate } = useSWRConfig();
     const retry = useCallback(() => {

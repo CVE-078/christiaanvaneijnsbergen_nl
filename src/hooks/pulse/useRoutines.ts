@@ -38,11 +38,17 @@ const PROFILE_KEY = '/api/pulse/profile';
 const EMPTY_EXERCISES: DbExercise[] = [];
 const EMPTY_ROUTINES: RoutineWithExercises[] = [];
 
-export function useRoutines(
-    initialExercises?: DbExercise[],
-    initialRoutines?: RoutineWithExercises[],
-    activeRoutineId: string | null = null,
-) {
+// The exercise library is effectively static within a session (it only changes
+// when the user creates/edits/deletes an exercise, which calls mutateExercises
+// explicitly). Skip stale revalidation on mount and dedupe aggressively so view
+// switches never re-fetch it.
+const EXERCISES_READ_OPTS = {
+    ...SWR_READ_OPTS,
+    revalidateIfStale: false,
+    dedupingInterval: 600000,
+} as const;
+
+export function useRoutines(activeRoutineId: string | null = null) {
     const { mutate: globalMutate } = useSWRConfig();
 
     const {
@@ -50,20 +56,14 @@ export function useRoutines(
         mutate: mutateExercises,
         isLoading: loadingExercises,
         error: exercisesError,
-    } = useSWR<DbExercise[]>(EXERCISES_KEY, fetcher, {
-        fallbackData: initialExercises,
-        ...SWR_READ_OPTS,
-    });
+    } = useSWR<DbExercise[]>(EXERCISES_KEY, fetcher, EXERCISES_READ_OPTS);
 
     const {
         data: routines,
         mutate: mutateRoutines,
         isLoading: loadingRoutines,
         error: routinesError,
-    } = useSWR<RoutineWithExercises[]>(ROUTINES_KEY, fetcher, {
-        fallbackData: initialRoutines,
-        ...SWR_READ_OPTS,
-    });
+    } = useSWR<RoutineWithExercises[]>(ROUTINES_KEY, fetcher, SWR_READ_OPTS);
 
     const activeRoutine = (routines ?? EMPTY_ROUTINES).find((r) => r.id === activeRoutineId) ?? null;
 

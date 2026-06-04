@@ -85,7 +85,7 @@ beforeEach(() => {
 
 describe('useRoutines', () => {
     it('returns exercises from SWR data', () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
         expect(result.current.exercises).toEqual(defaultExercises);
     });
 
@@ -99,28 +99,28 @@ describe('useRoutines', () => {
                 typeof useSWR
             >);
 
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
         // initial props are only SWR fallbackData now; no resolved data -> empty.
         expect(result.current.exercises).toEqual([]);
     });
 
     it('returns routines from SWR data', () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
         expect(result.current.routines).toEqual(defaultRoutines);
     });
 
     it('derives activeRoutine from routines + activeRoutineId', () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, 'r-1'));
+        const { result } = renderHook(() => useRoutines('r-1'));
         expect(result.current.activeRoutine).toEqual(defaultRoutine);
     });
 
     it('returns null activeRoutine when activeRoutineId does not match', () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, 'r-999'));
+        const { result } = renderHook(() => useRoutines('r-999'));
         expect(result.current.activeRoutine).toBeNull();
     });
 
     it('returns null activeRoutine when activeRoutineId is null', () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
         expect(result.current.activeRoutine).toBeNull();
     });
 
@@ -133,7 +133,7 @@ describe('useRoutines', () => {
         };
         vi.mocked(serverCreateRoutine).mockResolvedValueOnce(newRoutine);
 
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             const returned = await result.current.createRoutine('Upper/Lower');
@@ -145,7 +145,7 @@ describe('useRoutines', () => {
     });
 
     it('setActiveRoutine calls server action and revalidates profile and routines', async () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             await result.current.setActiveRoutine('r-1');
@@ -157,7 +157,7 @@ describe('useRoutines', () => {
     });
 
     it('setActiveRoutine accepts null to clear active routine', async () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, 'r-1'));
+        const { result } = renderHook(() => useRoutines('r-1'));
 
         await act(async () => {
             await result.current.setActiveRoutine(null);
@@ -168,7 +168,7 @@ describe('useRoutines', () => {
     });
 
     it('deleteRoutine calls server action, revalidates routines and profile', async () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, 'r-1'));
+        const { result } = renderHook(() => useRoutines('r-1'));
 
         await act(async () => {
             await result.current.deleteRoutine('r-1');
@@ -195,7 +195,7 @@ describe('useRoutines', () => {
         };
         vi.mocked(serverAddExerciseToRoutine).mockResolvedValueOnce(newRoutineExercise);
 
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             const returned = await result.current.addExerciseToRoutine('r-1', 'ex-1', '3', '8', 60, 'push');
@@ -207,7 +207,7 @@ describe('useRoutines', () => {
     });
 
     it('removeExerciseFromRoutine calls server action and revalidates routines', async () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             await result.current.removeExerciseFromRoutine('re-1');
@@ -218,7 +218,7 @@ describe('useRoutines', () => {
     });
 
     it('updateRoutineExercise calls server action and revalidates routines', async () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             await result.current.updateRoutineExercise('re-1', '4', '10', 80, null);
@@ -229,7 +229,7 @@ describe('useRoutines', () => {
     });
 
     it('reorderRoutineExercises calls server action and revalidates routines', async () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             await result.current.reorderRoutineExercises('r-1', ['re-2', 're-1']);
@@ -250,7 +250,7 @@ describe('useRoutines', () => {
         };
         vi.mocked(serverCreateExercise).mockResolvedValueOnce(newExercise);
 
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             const returned = await result.current.createExercise('Squat', 'legs', '4', '5');
@@ -262,7 +262,7 @@ describe('useRoutines', () => {
     });
 
     it('updateExercise calls server action and revalidates exercises', async () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             await result.current.updateExercise('ex-1', 'Incline Bench Press', '4', '6-8');
@@ -273,7 +273,7 @@ describe('useRoutines', () => {
     });
 
     it('deleteExercise calls server action and revalidates exercises', async () => {
-        const { result } = renderHook(() => useRoutines(defaultExercises, defaultRoutines, null));
+        const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
             await result.current.deleteExercise('ex-1');

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import useSWR from 'swr';
+import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import { usePulse } from '@/context/PulseContext';
 import { templateMatchesEquipment } from '@/lib/pulse/types';
 import type { RoutineTemplate, EquipmentKey } from '@/lib/pulse/types';
@@ -31,9 +32,12 @@ const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
 
 export default function TemplatesTab() {
     const { cloneTemplate, navigate } = usePulse();
-    const { data: templates = [] } = useSWR<RoutineTemplate[]>('/api/pulse/templates', (url: string) =>
-        fetch(url).then((r) => r.json()),
-    );
+    // Templates are static per session — dedupe aggressively and don't refetch on focus.
+    const { data: templates = [] } = useSWR<RoutineTemplate[]>('/api/pulse/templates', fetcher, {
+        ...SWR_READ_OPTS,
+        dedupingInterval: 600000,
+        revalidateIfStale: false,
+    });
     const [filter, setFilter] = useState<EquipmentFilter>('all');
     const [setupTemplate, setSetupTemplate] = useState<RoutineTemplate | null>(null);
 

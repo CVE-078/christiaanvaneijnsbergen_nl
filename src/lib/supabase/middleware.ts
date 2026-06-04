@@ -28,9 +28,11 @@ export function buildCsp(nonce: string, supabaseHost: string): string {
 }
 
 function supabaseHostFromEnv(): string {
-    return process.env.NEXT_PUBLIC_SUPABASE_URL
-        ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
-        : 'fjlkzzxwmyrksyockdko.supabase.co';
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!url) {
+        throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+    }
+    return new URL(url).host;
 }
 
 export async function updateSession(request: NextRequest) {

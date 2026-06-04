@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
     logKey,
     parseMaxSets,
@@ -33,7 +33,7 @@ interface Props {
     lastSession?: LastSession | null;
 }
 
-export default function ExerciseCard({
+function ExerciseCard({
     routineExercise: re,
     week,
     logs,
@@ -265,3 +265,5 @@ export default function ExerciseCard({
         </>
     );
 }
+
+export default memo(ExerciseCard);

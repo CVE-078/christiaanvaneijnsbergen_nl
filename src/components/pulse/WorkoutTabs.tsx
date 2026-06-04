@@ -1,28 +1,21 @@
 'use client';
 import { useMemo } from 'react';
-import { logKey, parseMaxSets } from '@/lib/pulse/utils';
+import { logKey, parseMaxSets, orderTabKeys } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
-import { WORKOUT_TYPE_ORDER, tabKeyLabel } from '@/lib/pulse/constants';
-import type { TabKey, WorkoutType } from '@/lib/pulse/types';
+import { tabKeyLabel } from '@/lib/pulse/constants';
+import type { TabKey } from '@/lib/pulse/types';
 import TabButton from './TabButton';
 
 export default function WorkoutTabs() {
     const { activeTab, setActiveTab, routineExercisesByTabKey, logs, activeWeek } = usePulse();
 
-    // Build ordered tab list: sort by base workout_type order, then A before B.
-    // The provider clamps activeTab to a valid tab when this set changes, so no
-    // set-state-during-effect is needed here.
-    const tabs: TabKey[] = useMemo(() => {
-        const keys = Object.keys(routineExercisesByTabKey) as TabKey[];
-        return [...keys].sort((a, b) => {
-            const baseA = a.includes(':') ? (a.split(':')[0] as WorkoutType) : (a as WorkoutType);
-            const baseB = b.includes(':') ? (b.split(':')[0] as WorkoutType) : (b as WorkoutType);
-            const orderA = WORKOUT_TYPE_ORDER.indexOf(baseA);
-            const orderB = WORKOUT_TYPE_ORDER.indexOf(baseB);
-            if (orderA !== orderB) return orderA - orderB;
-            return a < b ? -1 : 1; // 'push:A' before 'push:B'
-        });
-    }, [routineExercisesByTabKey]);
+    // Build ordered tab list via the shared comparator (base workout_type order,
+    // then A before B). The provider clamps activeTab to a valid tab when this set
+    // changes, so no set-state-during-effect is needed here.
+    const tabs: TabKey[] = useMemo(
+        () => orderTabKeys(Object.keys(routineExercisesByTabKey) as TabKey[]),
+        [routineExercisesByTabKey],
+    );
 
     function handleKeyDown(e: React.KeyboardEvent, idx: number) {
         if (e.key === 'ArrowRight') {

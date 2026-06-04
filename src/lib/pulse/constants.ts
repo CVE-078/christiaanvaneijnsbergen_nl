@@ -16,6 +16,19 @@ export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
     full_body: 'Full Body',
 };
 
+// Long form used on the share card ("Push Day", "Leg Day"). Derived from the
+// single base map above so the two never drift; the few labels that read oddly
+// with a plain "Day" suffix (Legs→Leg, Shoulders→Shoulder, Full Body) override.
+const WORKOUT_TYPE_LABEL_LONG_OVERRIDE: Partial<Record<WorkoutType, string>> = {
+    legs: 'Leg Day',
+    shoulders: 'Shoulder Day',
+    full_body: 'Full Body',
+};
+
+export function workoutTypeLabelLong(type: WorkoutType): string {
+    return WORKOUT_TYPE_LABEL_LONG_OVERRIDE[type] ?? `${WORKOUT_TYPE_LABELS[type]} Day`;
+}
+
 export const WORKOUT_TYPE_ORDER: readonly WorkoutType[] = [
     'push',
     'pull',

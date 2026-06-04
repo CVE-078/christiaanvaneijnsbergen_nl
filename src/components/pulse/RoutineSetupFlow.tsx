@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { DAY_NAMES, SUGGESTED_DAYS } from '@/lib/pulse/constants';
 import { STYLES, recommendStyle } from '@/lib/pulse/generation';
+import { BTN_PRIMARY_BLOCK } from './ui';
 import type { EquipmentKey, SessionTime } from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
@@ -12,8 +13,6 @@ type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
 const CARD = 'bg-pulse-surface rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
 const Q = 'font-pulse text-lg font-medium text-pulse-text tracking-[-0.01em]';
-const BTN_PRIMARY =
-    'font-pulse text-sm font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-5 py-2.5 cursor-pointer border-none disabled:opacity-50 w-full';
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
     return (
@@ -181,7 +180,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                         ))}
                     </div>
                     <div className="flex flex-col gap-2">
-                        <button onClick={() => setStep(2)} disabled={equipment.size === 0} className={BTN_PRIMARY}>
+                        <button onClick={() => setStep(2)} disabled={equipment.size === 0} className={BTN_PRIMARY_BLOCK}>
                             Next
                         </button>
                         <button
@@ -220,7 +219,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                             onClick={() => setExperience('advanced')}
                         />
                     </div>
-                    <button onClick={() => setStep(3)} disabled={!experience} className={BTN_PRIMARY}>
+                    <button onClick={() => setStep(3)} disabled={!experience} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
                 </div>
@@ -253,7 +252,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                             onClick={() => setGoal('general_fitness')}
                         />
                     </div>
-                    <button onClick={() => setStep(4)} disabled={!goal} className={BTN_PRIMARY}>
+                    <button onClick={() => setStep(4)} disabled={!goal} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
                 </div>
@@ -277,7 +276,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                             setStep(5);
                         }}
                         disabled={!days}
-                        className={BTN_PRIMARY}>
+                        className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
                 </div>
@@ -316,7 +315,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                             setStep(showStyleStep ? 6 : 7);
                         }}
                         disabled={trainingDays.length === 0}
-                        className={BTN_PRIMARY}>
+                        className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
                 </div>
@@ -344,7 +343,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                             </button>
                         ))}
                     </div>
-                    <button onClick={() => setStep(7)} disabled={!styleKey} className={BTN_PRIMARY}>
+                    <button onClick={() => setStep(7)} disabled={!styleKey} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
                 </div>
@@ -376,7 +375,7 @@ export default function RoutineSetupFlow({ initial, onComplete, onClose, complet
                         onClick={() => setSessionTime('90+ min')}
                     />
                 </div>
-                <button onClick={handleComplete} disabled={!sessionTime || loading} className={BTN_PRIMARY}>
+                <button onClick={handleComplete} disabled={!sessionTime || loading} className={BTN_PRIMARY_BLOCK}>
                     {loading ? 'Building your routine…' : completeLabel}
                 </button>
             </div>

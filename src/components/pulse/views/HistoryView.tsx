@@ -1,15 +1,7 @@
 'use client';
 import { memo, useMemo, useState } from 'react';
-import {
-    buildHistory,
-    calcE1RM,
-    toDisplay,
-    parseLogKey,
-    computeVolumeByTypeAndWeek,
-    computeE1RMHistory,
-    computeBestSets,
-    computePerMuscleVolume,
-} from '@/lib/pulse/utils';
+import { calcE1RM, toDisplay, computeE1RMHistory } from '@/lib/pulse/utils';
+import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
 import { usePulse } from '@/context/PulseContext';
 import VolumeChart from '@/components/pulse/VolumeChart';
 import StreakCalendar from '@/components/pulse/StreakCalendar';
@@ -110,30 +102,15 @@ export default function HistoryView() {
         return m;
     }, [allRoutineExercises]);
 
-    const sessions = useMemo(() => buildHistory(logs), [logs]);
-
-    const volByWeek = useMemo(() => computeVolumeByTypeAndWeek(logs, allRoutineExercises), [logs, allRoutineExercises]);
-
-    const bestSets = useMemo(() => computeBestSets(logs), [logs]);
-
     const activeRoutineExercises = useMemo(() => activeRoutine?.exercises ?? [], [activeRoutine]);
 
-    const muscleVolume = useMemo(
-        () => computePerMuscleVolume(logs, activeRoutineExercises, activeWeek),
-        [logs, activeRoutineExercises, activeWeek],
+    // One pass over logs replacing the former five independent scans
+    // (buildHistory, computeVolumeByTypeAndWeek, computeBestSets,
+    // computePerMuscleVolume, default-exercise scan).
+    const { sessions, volByWeek, bestSets, muscleVolume, defaultExerciseId } = useMemo(
+        () => computeHistoryBundle(logs, allRoutineExercises, activeRoutineExercises, activeWeek),
+        [logs, allRoutineExercises, activeRoutineExercises, activeWeek],
     );
-
-    const defaultExerciseId = useMemo(() => {
-        const counts: Record<string, number> = {};
-        for (const [key, val] of Object.entries(logs)) {
-            if (!val?.saved) continue;
-            const parsed = parseLogKey(key);
-            if (!parsed) continue;
-            const id = parsed.routineExerciseId;
-            counts[id] = (counts[id] ?? 0) + 1;
-        }
-        return Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
-    }, [logs]);
 
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     const exerciseId = selectedExerciseId ?? defaultExerciseId;

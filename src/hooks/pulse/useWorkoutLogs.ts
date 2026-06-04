@@ -10,11 +10,8 @@ const LOGS_KEY = '/api/pulse/logs';
 // across renders (otherwise the useCallback deps below churn every render).
 const EMPTY_LOGS: Logs = {};
 
-export function useWorkoutLogs(initialLogs?: Logs, onError?: (msg: string) => void) {
-    const { data, mutate, isLoading, error } = useSWR<Logs>(LOGS_KEY, fetcher, {
-        fallbackData: initialLogs,
-        ...SWR_READ_OPTS,
-    });
+export function useWorkoutLogs(onError?: (msg: string) => void) {
+    const { data, mutate, isLoading, error } = useSWR<Logs>(LOGS_KEY, fetcher, SWR_READ_OPTS);
     const logs = data ?? EMPTY_LOGS;
 
     const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);

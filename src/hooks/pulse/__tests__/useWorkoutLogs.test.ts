@@ -25,7 +25,7 @@ describe('useWorkoutLogs', () => {
     it('returns logs from SWR data', () => {
         const logs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
-        const { result } = renderHook(() => useWorkoutLogs({}));
+        const { result } = renderHook(() => useWorkoutLogs());
         expect(result.current.logs).toEqual(logs);
     });
 
@@ -33,15 +33,13 @@ describe('useWorkoutLogs', () => {
         vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
             typeof useSWR
         >);
-        const initialLogs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
-        const { result } = renderHook(() => useWorkoutLogs(initialLogs));
-        // initialLogs is now only SWR fallbackData; with no resolved data the hook
-        // reports empty (client-fetch model) rather than echoing the initial prop.
+        const { result } = renderHook(() => useWorkoutLogs());
+        // With no resolved SWR data the hook reports empty (client-fetch model).
         expect(result.current.logs).toEqual({});
     });
 
     it('updateLog calls mutate optimistically then upserts the single row', async () => {
-        const { result } = renderHook(() => useWorkoutLogs({}));
+        const { result } = renderHook(() => useWorkoutLogs());
         const entry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
 
         await act(async () => {
@@ -55,7 +53,7 @@ describe('useWorkoutLogs', () => {
     it('deleteLog removes the key, calls mutate optimistically then deletes the single row', async () => {
         const logs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
-        const { result } = renderHook(() => useWorkoutLogs(logs));
+        const { result } = renderHook(() => useWorkoutLogs());
 
         await act(async () => {
             result.current.deleteLog('1-push-0-0');
@@ -68,7 +66,7 @@ describe('useWorkoutLogs', () => {
     it('calls onError with retry message when the upsert throws', async () => {
         vi.mocked(upsertLog).mockRejectedValueOnce(new Error('Network error'));
         const onError = vi.fn();
-        const { result } = renderHook(() => useWorkoutLogs({}, onError));
+        const { result } = renderHook(() => useWorkoutLogs(onError));
 
         await act(async () => {
             result.current.updateLog('1-push-0-0', { kg: 80, reps: 8, rir: 2, saved: true });
@@ -79,7 +77,7 @@ describe('useWorkoutLogs', () => {
 
     it('does not throw when no onError callback is provided and the upsert fails', async () => {
         vi.mocked(upsertLog).mockRejectedValueOnce(new Error('Network error'));
-        const { result } = renderHook(() => useWorkoutLogs({}));
+        const { result } = renderHook(() => useWorkoutLogs());
 
         await expect(
             act(async () => {

@@ -4,6 +4,7 @@ import { logKey, parseMaxSets, computeLastSession, isSetPR, groupExercises } fro
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
+import { BTN_PRIMARY_BLOCK } from './ui';
 import type { RoutineExercise, Logs, LogEntry, Unit, WorkoutVariant, ExerciseItem, PRMap } from '@/lib/pulse/types';
 
 interface Props {
@@ -299,7 +300,7 @@ export default function WorkoutModeScreen({
                         aria-label="next exercise"
                         onClick={() => setStepIdx((i) => i + 1)}
                         disabled={!canAdvance}
-                        className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-pulse-bg font-semibold text-sm cursor-pointer border-none disabled:opacity-60 disabled:cursor-default">
+                        className={BTN_PRIMARY_BLOCK}>
                         Next exercise →
                     </button>
                 ) : (
@@ -307,7 +308,7 @@ export default function WorkoutModeScreen({
                         aria-label="finish workout"
                         onClick={handleFinish}
                         disabled={completing || sessionId === null}
-                        className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-pulse-bg font-semibold text-sm cursor-pointer border-none disabled:opacity-60">
+                        className={BTN_PRIMARY_BLOCK}>
                         {completing ? 'Finishing…' : 'Finish workout ✓'}
                     </button>
                 )}

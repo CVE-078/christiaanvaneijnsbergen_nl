@@ -38,7 +38,7 @@ beforeEach(() => {
 
 describe('useProfile', () => {
     it('returns profile from SWR data', () => {
-        const { result } = renderHook(() => useProfile(defaultProfile, defaultBWLogs));
+        const { result } = renderHook(() => useProfile());
         expect(result.current.profile).toEqual(defaultProfile);
     });
 
@@ -46,12 +46,12 @@ describe('useProfile', () => {
         vi.mocked(useSWR)
             .mockReturnValueOnce({ data: undefined, mutate: profileMutate } as unknown as ReturnType<typeof useSWR>)
             .mockReturnValueOnce({ data: [], mutate: bwMutate } as unknown as ReturnType<typeof useSWR>);
-        const { result } = renderHook(() => useProfile(defaultProfile, defaultBWLogs));
+        const { result } = renderHook(() => useProfile());
         expect(result.current.profile).toEqual(defaultProfile);
     });
 
     it('updateProfile calls mutate optimistically and calls the server action', async () => {
-        const { result } = renderHook(() => useProfile(defaultProfile, defaultBWLogs));
+        const { result } = renderHook(() => useProfile());
 
         await act(async () => {
             await result.current.updateProfile('New Name', 'lbs');
@@ -78,7 +78,7 @@ describe('useProfile', () => {
             >)
             .mockReturnValueOnce({ data: bwLogs, mutate: bwMutate } as unknown as ReturnType<typeof useSWR>);
 
-        const { result } = renderHook(() => useProfile(defaultProfile, bwLogs));
+        const { result } = renderHook(() => useProfile());
 
         await act(async () => {
             await result.current.deleteBodyWeight('abc');
@@ -92,7 +92,7 @@ describe('useProfile', () => {
     it('logBodyWeight calls server action and updates cache', async () => {
         const entry: BodyweightEntry = { id: 'xyz', logged_at: '2026-05-25', weight_kg: 75 };
         vi.mocked(logBodyWeight).mockResolvedValueOnce(entry);
-        const { result } = renderHook(() => useProfile(defaultProfile, defaultBWLogs));
+        const { result } = renderHook(() => useProfile());
 
         await act(async () => {
             const returned = await result.current.logBodyWeight(75);

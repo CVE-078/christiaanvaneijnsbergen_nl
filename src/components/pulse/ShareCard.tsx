@@ -1,5 +1,6 @@
 'use client';
 import { computeShareStats } from '@/lib/pulse/utils';
+import { BTN_PRIMARY_BLOCK } from './ui';
 import type { WorkoutSession, RoutineExercise, Logs, PRMap, Unit } from '@/lib/pulse/types';
 
 interface Props {
@@ -87,9 +88,7 @@ export default function ShareCard({ session, completedAt, exercises, logs, prMap
 
             {/* Done button */}
             <div className="px-6 pb-8">
-                <button
-                    onClick={onDismiss}
-                    className="font-pulse w-full py-3 rounded-xl bg-pulse-accent text-pulse-bg font-semibold text-sm cursor-pointer border-none">
+                <button onClick={onDismiss} className={BTN_PRIMARY_BLOCK}>
                     Done
                 </button>
             </div>

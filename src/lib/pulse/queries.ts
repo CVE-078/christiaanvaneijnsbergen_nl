@@ -92,6 +92,9 @@ export async function loadRoutines(supabase: SupabaseServerClient, userId: strin
     if (error) throw error;
 
     // Sort each routine's exercises by "order" ascending and schedule by day_of_week.
+    // Load-bearing cast: the client types the embedded `exercise:exercises` join as
+    // an array, but the select returns one related row, so the inferred row shape
+    // does not structurally match RoutineWithExercises. Narrowing via `unknown`.
     return ((data ?? []) as unknown as RoutineWithExercises[]).map((routine) => ({
         ...routine,
         exercises: [...(routine.exercises ?? [])].sort((a, b) => a.order - b.order),

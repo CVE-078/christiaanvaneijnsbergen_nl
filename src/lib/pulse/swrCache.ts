@@ -4,6 +4,23 @@
 // leaks another account's cached data; cleared on logout.
 const PREFIX = 'pulse-swr-cache:';
 
+// Only the warm-start domains the protected layout reloads with initial* props
+// are worth persisting. Serializing the entire SWR cache (transient request
+// state, derived keys, etc.) on every tab-hide is wasteful — these six keys are
+// the ones that give a returning user an instant stale render.
+const WARM_KEYS = [
+    '/api/pulse/logs',
+    '/api/pulse/profile',
+    '/api/pulse/bodyweight',
+    '/api/pulse/exercises',
+    '/api/pulse/routines',
+    '/api/pulse/notes',
+];
+
+// Throttle window so a burst of visibilitychange/beforeunload events (e.g. a
+// quick tab switch back and forth) doesn't re-stringify repeatedly.
+const PERSIST_THROTTLE_MS = 2000;
+
 // SWR's cache provider expects a Map of internal State entries; the loose value
 // type matches the canonical SWR localStorage-persistence recipe and keeps it
 // structurally compatible with SWR's Cache type.
@@ -20,16 +37,33 @@ export function makeSWRCacheProvider(userId: string): () => SWRCacheMap {
             map = new Map();
         }
 
-        const persist = () => {
+        let lastPersist = 0;
+        const writeWarmKeys = () => {
             try {
-                localStorage.setItem(storageKey, JSON.stringify(Array.from(map.entries())));
+                const entries: [string, unknown][] = [];
+                for (const key of WARM_KEYS) {
+                    if (map.has(key)) entries.push([key, map.get(key)]);
+                }
+                localStorage.setItem(storageKey, JSON.stringify(entries));
             } catch {
                 // storage full / unavailable (private mode) — cache is best-effort
             }
         };
 
+        const persist = () => {
+            const now = Date.now();
+            if (now - lastPersist < PERSIST_THROTTLE_MS) return;
+            lastPersist = now;
+            writeWarmKeys();
+        };
+
         if (typeof window !== 'undefined') {
-            window.addEventListener('beforeunload', persist);
+            // beforeunload is the final chance to persist, so always write (bypass
+            // the throttle) rather than risk dropping the page's last state.
+            window.addEventListener('beforeunload', () => {
+                lastPersist = Date.now();
+                writeWarmKeys();
+            });
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') persist();
             });

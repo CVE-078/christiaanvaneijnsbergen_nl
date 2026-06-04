@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T) => void] {
     const [value, setValue] = useState<T>(defaultValue);
+    const hydrated = useRef(false);
 
     useEffect(() => {
         try {
@@ -15,6 +16,12 @@ export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T)
     }, []);
 
     useEffect(() => {
+        // Skip the mount run so we never overwrite the stored value with the
+        // default before the read-effect above has hydrated it.
+        if (!hydrated.current) {
+            hydrated.current = true;
+            return;
+        }
         try {
             localStorage.setItem(key, JSON.stringify(value));
         } catch {

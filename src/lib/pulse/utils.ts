@@ -1,5 +1,5 @@
 import { PHASES } from './data';
-import { BARBELL_KG, DUMBBELL_HANDLE_KG, PLATES_KG } from './constants';
+import { BARBELL_KG, DUMBBELL_HANDLE_KG, PLATES_KG, WORKOUT_TYPE_ORDER, workoutTypeLabelLong } from './constants';
 import type {
     Phase,
     Logs,
@@ -8,6 +8,7 @@ import type {
     Unit,
     RoutineExercise,
     WorkoutType,
+    TabKey,
     BestSet,
     WorkoutSession,
     PRMap,
@@ -20,18 +21,24 @@ import type {
 // UUID v4 pattern used in new log keys
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const WORKOUT_LABELS: Partial<Record<WorkoutType, string>> = {
-    push: 'Push Day',
-    pull: 'Pull Day',
-    legs: 'Leg Day',
-    chest: 'Chest Day',
-    back: 'Back Day',
-    shoulders: 'Shoulder Day',
-    arms: 'Arms Day',
-    upper: 'Upper Day',
-    lower: 'Lower Day',
-    full_body: 'Full Body',
-};
+// Strip the optional `:variant` suffix off a TabKey to get its base workout type.
+export function baseWorkoutType(key: TabKey): WorkoutType {
+    return (key.includes(':') ? key.split(':')[0] : key) as WorkoutType;
+}
+
+// Order TabKeys for tab rendering: by base workout_type order, then A before B
+// (so 'push:A' precedes 'push:B'). Single source for WorkoutTabs and the
+// provider's activeTab clamp so they never disagree on the first tab.
+export function compareTabKeys(a: TabKey, b: TabKey): number {
+    const orderA = WORKOUT_TYPE_ORDER.indexOf(baseWorkoutType(a));
+    const orderB = WORKOUT_TYPE_ORDER.indexOf(baseWorkoutType(b));
+    if (orderA !== orderB) return orderA - orderB;
+    return a < b ? -1 : 1;
+}
+
+export function orderTabKeys(keys: TabKey[]): TabKey[] {
+    return [...keys].sort(compareTabKeys);
+}
 
 // Roll a granular workout type up toward its broadest parent. Full-body routines
 // schedule a single `full_body` session but tag their exercises push/pull/legs, so
@@ -374,7 +381,7 @@ export function computeShareStats(
     const diff = endMs - startMs;
     const durationMin = isNaN(diff) || diff < 0 ? 0 : Math.floor(diff / 60000);
 
-    const baseLabel = WORKOUT_LABELS[session.workout_type as WorkoutType] ?? session.workout_type;
+    const baseLabel = workoutTypeLabelLong(session.workout_type as WorkoutType);
     const workoutLabel = session.variant ? `${baseLabel} · Variant ${session.variant}` : baseLabel;
 
     const date = new Date(completedAt).toLocaleDateString('en-GB', {

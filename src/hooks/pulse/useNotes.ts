@@ -10,11 +10,8 @@ const NOTES_KEY = '/api/pulse/notes';
 // across renders (otherwise the useCallback deps below churn every render).
 const EMPTY_NOTES: Notes = {};
 
-export function useNotes(initialNotes?: Notes) {
-    const { data, mutate, isLoading, error } = useSWR<Notes>(NOTES_KEY, fetcher, {
-        fallbackData: initialNotes,
-        ...SWR_READ_OPTS,
-    });
+export function useNotes() {
+    const { data, mutate, isLoading, error } = useSWR<Notes>(NOTES_KEY, fetcher, SWR_READ_OPTS);
     const notes = data ?? EMPTY_NOTES;
 
     const saveNote = useCallback(

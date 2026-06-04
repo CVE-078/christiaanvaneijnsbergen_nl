@@ -23,16 +23,13 @@ const DEFAULT_PROFILE: Profile = {
     goal_weight_kg: null,
 };
 
-export function useProfile(initialProfile?: Profile, initialBodyweightLogs?: BodyweightEntry[]) {
+export function useProfile() {
     const {
         data: profileData,
         mutate: mutateProfile,
         isLoading: loadingProfile,
         error: profileError,
-    } = useSWR<Profile>(PROFILE_KEY, fetcher, {
-        fallbackData: initialProfile,
-        ...SWR_READ_OPTS,
-    });
+    } = useSWR<Profile>(PROFILE_KEY, fetcher, SWR_READ_OPTS);
     const profile = profileData ?? DEFAULT_PROFILE;
 
     const {
@@ -40,10 +37,7 @@ export function useProfile(initialProfile?: Profile, initialBodyweightLogs?: Bod
         mutate: mutateBW,
         isLoading: loadingBodyweight,
         error: bodyweightError,
-    } = useSWR<BodyweightEntry[]>(BODYWEIGHT_KEY, fetcher, {
-        fallbackData: initialBodyweightLogs,
-        ...SWR_READ_OPTS,
-    });
+    } = useSWR<BodyweightEntry[]>(BODYWEIGHT_KEY, fetcher, SWR_READ_OPTS);
     const bodyweightLogs = bwData ?? EMPTY_BW;
 
     const updateProfile = useCallback(
