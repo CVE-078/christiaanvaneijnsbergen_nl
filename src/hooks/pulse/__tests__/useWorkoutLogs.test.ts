@@ -63,26 +63,18 @@ describe('useWorkoutLogs', () => {
         expect(deleteLogRow).toHaveBeenCalledWith('1-push-0-0');
     });
 
-    it('calls onError with retry message when the upsert throws', async () => {
+    it('does not throw when the upsert fails (write is durably queued by runMutation)', async () => {
+        // Failed writes are now queued to IndexedDB and replayed on reconnect, so the
+        // hook no longer surfaces an error or calls onError; it must simply not throw.
         vi.mocked(upsertLog).mockRejectedValueOnce(new Error('Network error'));
         const onError = vi.fn();
         const { result } = renderHook(() => useWorkoutLogs(onError));
-
-        await act(async () => {
-            result.current.updateLog('1-push-0-0', { kg: 80, reps: 8, rir: 2, saved: true });
-        });
-
-        expect(onError).toHaveBeenCalledWith('Failed to save. Retrying…');
-    });
-
-    it('does not throw when no onError callback is provided and the upsert fails', async () => {
-        vi.mocked(upsertLog).mockRejectedValueOnce(new Error('Network error'));
-        const { result } = renderHook(() => useWorkoutLogs());
 
         await expect(
             act(async () => {
                 result.current.updateLog('1-push-0-0', { kg: 80, reps: 8, rir: 2, saved: true });
             }),
         ).resolves.not.toThrow();
+        expect(onError).not.toHaveBeenCalled();
     });
 });

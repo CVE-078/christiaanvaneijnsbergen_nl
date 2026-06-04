@@ -1,6 +1,6 @@
 import useSWR from 'swr';
-import { useCallback, useRef, useEffect } from 'react';
-import { upsertLog, deleteLogRow } from '@/app/pulse/actions';
+import { useCallback } from 'react';
+import { runMutation } from '@/lib/pulse/offlineSync';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import type { Logs, LogEntry } from '@/lib/pulse/types';
 
@@ -10,40 +10,19 @@ const LOGS_KEY = '/api/pulse/logs';
 // across renders (otherwise the useCallback deps below churn every render).
 const EMPTY_LOGS: Logs = {};
 
-export function useWorkoutLogs(onError?: (msg: string) => void) {
+// `onError` is retained for signature compatibility with existing callers. Failed
+// writes are now durably queued to IndexedDB and replayed on reconnect (see
+// offlineSync), so it is no longer invoked here.
+export function useWorkoutLogs(_onError?: (msg: string) => void) {
     const { data, mutate, isLoading, error } = useSWR<Logs>(LOGS_KEY, fetcher, SWR_READ_OPTS);
     const logs = data ?? EMPTY_LOGS;
-
-    const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        return () => {
-            if (retryRef.current) clearTimeout(retryRef.current);
-        };
-    }, []);
-
-    // Run a single-row write with one retry on failure. The optimistic SWR mutate
-    // is done by the caller before this; only the server write is retried.
-    const runWithRetry = useCallback(
-        (op: () => Promise<unknown>) => {
-            if (retryRef.current) clearTimeout(retryRef.current);
-            op().catch(() => {
-                onError?.('Failed to save. Retrying…');
-                retryRef.current = setTimeout(
-                    () => op().catch(() => onError?.('Save failed. Check your connection.')),
-                    3000,
-                );
-            });
-        },
-        [onError],
-    );
 
     const updateLog = useCallback(
         (key: string, entry: LogEntry) => {
             mutate({ ...logs, [key]: entry }, false);
-            runWithRetry(() => upsertLog(key, entry));
+            runMutation('upsertLog', [key, entry]);
         },
-        [logs, mutate, runWithRetry],
+        [logs, mutate],
     );
 
     const deleteLog = useCallback(
@@ -51,9 +30,9 @@ export function useWorkoutLogs(onError?: (msg: string) => void) {
             const newLogs = { ...logs };
             delete newLogs[key];
             mutate(newLogs, false);
-            runWithRetry(() => deleteLogRow(key));
+            runMutation('deleteLogRow', [key]);
         },
-        [logs, mutate, runWithRetry],
+        [logs, mutate],
     );
 
     const handleExport = useCallback(() => {
