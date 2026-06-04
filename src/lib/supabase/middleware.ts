@@ -21,6 +21,7 @@ export function buildCsp(nonce: string, supabaseHost: string): string {
         "img-src 'self' data:",
         "font-src 'self'",
         "manifest-src 'self'",
+        "worker-src 'self'",
         "frame-ancestors 'none'",
         "object-src 'none'",
         "base-uri 'self'",
