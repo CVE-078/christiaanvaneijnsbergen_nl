@@ -16,6 +16,8 @@ import type {
     ExerciseCategory,
     ExerciseItem,
     LastSession,
+    DbExercise,
+    Swaps,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -112,6 +114,20 @@ export function logKey(week: number, routineExerciseId: string, setIdx: number):
 // Key for the per-(week, slot) exercise swap map. Mirrors the Notes keying.
 export function swapKey(week: number, routineExerciseId: string): string {
     return `${week}-${routineExerciseId}`;
+}
+
+// Resolve the exercise a slot displays for a given week. A week-scoped swap
+// overrides the slot's default exercise; falls back to the original if no swap
+// exists or the substitute is gone (deleted/hidden).
+export function resolveExercise(
+    re: RoutineExercise,
+    week: number,
+    swaps: Swaps,
+    exercisesById: Map<string, DbExercise>,
+): DbExercise {
+    const subId = swaps[swapKey(week, re.id)];
+    if (!subId) return re.exercise;
+    return exercisesById.get(subId) ?? re.exercise;
 }
 
 // Parse a log key of the form "<week>-<routineExerciseId>-<setIdx>".
