@@ -63,6 +63,11 @@ const defaultContext = {
     notes: {},
     saveNote: vi.fn().mockResolvedValue(undefined),
     deleteNote: vi.fn().mockResolvedValue(undefined),
+    exercises: [],
+    swaps: {},
+    setSwap: vi.fn().mockResolvedValue(undefined),
+    clearSwap: vi.fn().mockResolvedValue(undefined),
+    hiddenExerciseIds: new Set<string>(),
 };
 
 beforeEach(() => {
@@ -177,5 +182,44 @@ describe('LogView', () => {
         expect(screen.getByText(/superset/i)).toBeInTheDocument();
         expect(screen.getByText('Bench Press')).toBeInTheDocument();
         expect(screen.getByText('Cable Fly')).toBeInTheDocument();
+    });
+
+    it('opens the swap picker when "Swap exercise" is clicked on a solo card', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const swapRE: RoutineExercise = {
+            ...mockRE,
+            exercise: {
+                id: 'ex-1',
+                name: 'Bench Press',
+                category: 'chest',
+                default_sets: '3',
+                default_reps: '8-12',
+                user_id: null,
+                movement_pattern: 'horizontal_push',
+                equipment: ['barbell'],
+            },
+        };
+        const altExercise = {
+            id: 'ex-2',
+            name: 'Dumbbell Press',
+            category: 'chest',
+            default_sets: '3',
+            default_reps: '8-12',
+            user_id: null,
+            movement_pattern: 'horizontal_push',
+            equipment: ['dumbbell'],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            routineExercisesByTabKey: { chest: [swapRE] },
+            activeRoutine: { id: 'r1', user_id: 'u1', name: 'Push', created_at: '', exercises: [swapRE] },
+            exercises: [swapRE.exercise, altExercise],
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<LogView />);
+        // Expand the card, then click the swap control.
+        await userEvent.click(screen.getByRole('button', { name: /expand bench press/i }));
+        await userEvent.click(screen.getByRole('button', { name: /swap exercise/i }));
+        expect(screen.getByRole('dialog', { name: /swap bench press/i })).toBeInTheDocument();
+        expect(screen.getByText('Dumbbell Press')).toBeInTheDocument();
     });
 });

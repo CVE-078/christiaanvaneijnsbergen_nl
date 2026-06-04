@@ -5,7 +5,16 @@ import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
 import { BTN_PRIMARY_BLOCK } from './ui';
-import type { RoutineExercise, Logs, LogEntry, Unit, WorkoutVariant, ExerciseItem, PRMap } from '@/lib/pulse/types';
+import type {
+    RoutineExercise,
+    Logs,
+    LogEntry,
+    Unit,
+    WorkoutVariant,
+    ExerciseItem,
+    PRMap,
+    DbExercise,
+} from '@/lib/pulse/types';
 
 interface Props {
     exercises: RoutineExercise[];
@@ -18,6 +27,8 @@ interface Props {
     onDelete: (key: string) => void;
     onComplete: () => Promise<void>;
     onClose: () => void;
+    resolveDisplay?: (re: RoutineExercise) => DbExercise;
+    onSwapExercise?: (re: RoutineExercise) => void;
 }
 
 function SingleStep({
@@ -26,6 +37,8 @@ function SingleStep({
     logs,
     unit,
     prMap,
+    displayName,
+    onSwap,
     onSave,
     onDelete,
 }: {
@@ -34,6 +47,8 @@ function SingleStep({
     logs: Logs;
     unit: Unit;
     prMap: PRMap;
+    displayName: string;
+    onSwap?: () => void;
     onSave: (key: string, entry: LogEntry) => void;
     onDelete: (key: string) => void;
 }) {
@@ -41,7 +56,16 @@ function SingleStep({
     const lastSession = computeLastSession(logs, re.id, week);
     return (
         <>
-            <h2 className="font-pulse text-xl font-bold text-pulse-text mb-1">{re.exercise.name}</h2>
+            <div className="flex items-start justify-between gap-3 mb-1">
+                <h2 className="font-pulse text-xl font-bold text-pulse-text">{displayName}</h2>
+                {onSwap && (
+                    <button
+                        onClick={onSwap}
+                        className="font-pulse text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer hover:text-pulse-accent shrink-0 mt-1">
+                        ⇄ Swap
+                    </button>
+                )}
+            </div>
             <p className="font-pulse text-sm text-pulse-muted mb-5">
                 {re.sets} sets · {re.reps} reps
                 {lastSession ? ` · Last: ${lastSession.kg}kg × ${lastSession.reps}` : ''}
@@ -175,6 +199,8 @@ export default function WorkoutModeScreen({
     onDelete,
     onComplete,
     onClose,
+    resolveDisplay,
+    onSwapExercise,
 }: Props) {
     const { prMap } = usePulse();
     const { show: showToast } = useToast();
@@ -286,6 +312,8 @@ export default function WorkoutModeScreen({
                         logs={logs}
                         unit={unit}
                         prMap={prMap}
+                        displayName={(resolveDisplay?.(step as RoutineExercise) ?? (step as RoutineExercise).exercise).name}
+                        onSwap={onSwapExercise ? () => onSwapExercise(step as RoutineExercise) : undefined}
                         onSave={handleSetSave}
                         onDelete={onDelete}
                     />
