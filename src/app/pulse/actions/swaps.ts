@@ -8,7 +8,7 @@ export async function setExerciseSwap(
     week: number,
     exerciseId: string,
 ): Promise<void> {
-    if (!Number.isInteger(week) || week < 1 || week > 12) throw new Error('Invalid week');
+    if (!Number.isInteger(week) || week < 1 || week > 52) throw new Error('Invalid week');
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid routine exercise id');
     if (!UUID_RE.test(exerciseId)) throw new Error('Invalid exercise id');
 
@@ -28,7 +28,7 @@ export async function setExerciseSwap(
 }
 
 export async function clearExerciseSwap(routineExerciseId: string, week: number): Promise<void> {
-    if (!Number.isInteger(week) || week < 1 || week > 12) throw new Error('Invalid week');
+    if (!Number.isInteger(week) || week < 1 || week > 52) throw new Error('Invalid week');
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid routine exercise id');
 
     const { supabase, user } = await getUserOrThrow();
