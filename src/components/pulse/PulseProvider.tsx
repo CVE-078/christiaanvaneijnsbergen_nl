@@ -12,7 +12,8 @@ import { useSwaps } from '@/hooks/pulse/useSwaps';
 import { usePreferences } from '@/hooks/pulse/usePreferences';
 import { useOfflineSync } from '@/hooks/pulse/useOfflineSync';
 import { useToast } from '@/lib/pulse/toast';
-import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType } from '@/lib/pulse/utils';
+import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType, swapKey } from '@/lib/pulse/utils';
+import { buildWorkoutCsv } from '@/lib/pulse/csv';
 import type { RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View } from '@/lib/pulse/types';
 
 interface Props {
@@ -28,7 +29,6 @@ export function PulseProvider({ email, navigate, children }: Props) {
         logs,
         updateLog,
         deleteLog,
-        handleExport,
         loading: loadingLogs,
         error: logsError,
     } = useWorkoutLogs(onSaveError);
@@ -120,6 +120,31 @@ export function PulseProvider({ email, navigate, children }: Props) {
 
     const streak = useMemo(() => computeStreak(logs), [logs]);
     const prMap = useMemo(() => computePRMap(logs), [logs]);
+
+    // Download the full logged history as CSV. Resolves exercise names (honouring
+    // week-scoped swaps) from routines/exercises, which only the provider has —
+    // hence it lives here rather than in useWorkoutLogs.
+    const handleExport = useCallback(() => {
+        const reName = new Map<string, string>();
+        for (const r of routines) for (const re of r.exercises) reName.set(re.id, re.exercise.name);
+        const exName = new Map<string, string>();
+        for (const e of exercises) exName.set(e.id, e.name);
+        const nameFor = (reId: string, week: number) => {
+            const subId = swaps[swapKey(week, reId)];
+            if (subId) return exName.get(subId) ?? reName.get(reId) ?? '—';
+            return reName.get(reId) ?? '—';
+        };
+        const csv = buildWorkoutCsv(logs, { nameFor, prMap });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pulse-history-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, [logs, routines, exercises, swaps, prMap]);
 
     const [onboardingOverride, setOnboardingOverride] = useState<boolean | null>(null);
     // Gate on loaded routines so the onboarding modal does not flash before the
