@@ -889,29 +889,33 @@ describe('computeRecoveryFlags', () => {
             [logKey(3, UUID_A, 1)]: { kg: 20, reps: 10, rir: 2, saved: true },
         };
         const out = computeRecoveryFlags(logs, res, 3, targets);
-        expect(out.chest).toBe('under');
-        expect(out.back).toBe('under');
+        expect(out.chest?.status).toBe('under');
+        expect(out.back?.status).toBe('under');
+        // detail: 2 of 4 chest sets logged -> 2 to go; back has none logged -> 4 to go
+        expect(out.chest).toMatchObject({ sets: 2, toGo: 2, min: 4, max: 8 });
+        expect(out.back).toMatchObject({ sets: 0, toGo: 4, avgRir: null });
     });
 
     it('flags overreaching when sets exceed max', () => {
         const logs: Logs = {};
         for (let i = 0; i < 9; i++) logs[logKey(3, UUID_A, i)] = { kg: 20, reps: 10, rir: 2, saved: true };
         const out = computeRecoveryFlags(logs, res, 3, targets);
-        expect(out.chest).toBe('overreaching');
+        expect(out.chest?.status).toBe('overreaching');
     });
 
     it('flags high_fatigue when in range with avgRir <= 0.5', () => {
         const logs: Logs = {};
         for (let i = 0; i < 5; i++) logs[logKey(3, UUID_A, i)] = { kg: 20, reps: 10, rir: 0, saved: true };
         const out = computeRecoveryFlags(logs, res, 3, targets);
-        expect(out.chest).toBe('high_fatigue');
+        expect(out.chest?.status).toBe('high_fatigue');
+        expect(out.chest?.avgRir).toBe(0);
     });
 
     it('flags optimal when in range with avgRir > 0.5', () => {
         const logs: Logs = {};
         for (let i = 0; i < 5; i++) logs[logKey(3, UUID_A, i)] = { kg: 20, reps: 10, rir: 2, saved: true };
         const out = computeRecoveryFlags(logs, res, 3, targets);
-        expect(out.chest).toBe('optimal');
+        expect(out.chest?.status).toBe('optimal');
     });
 
     it('ignores other weeks and unsaved sets', () => {
@@ -922,7 +926,7 @@ describe('computeRecoveryFlags', () => {
         };
         const out = computeRecoveryFlags(logs, res, 3, targets);
         // only 1 saved set this week -> below min -> under
-        expect(out.chest).toBe('under');
+        expect(out.chest?.status).toBe('under');
     });
 });
 
