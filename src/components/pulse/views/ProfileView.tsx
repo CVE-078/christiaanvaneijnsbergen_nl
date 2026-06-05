@@ -3,7 +3,8 @@ import { useTransition, useState } from 'react';
 import { toDisplay, toKg, toLengthDisplay, toCm, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
-import type { BodyweightEntry, Gender, LengthUnit } from '@/lib/pulse/types';
+import type { BodyweightEntry, Gender, LengthUnit, PriorityMuscle } from '@/lib/pulse/types';
+import { genderDefault } from '@/lib/pulse/generation';
 import SectionLabel from '../SectionLabel';
 import PageTitle from '../PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
@@ -104,6 +105,7 @@ export default function ProfileView() {
         bodyMeasurements,
         refreshMeasurements,
         updateLengthUnit,
+        updatePriorityMuscle,
         triggerOnboarding,
         loading,
         errors,
@@ -112,6 +114,18 @@ export default function ProfileView() {
     const toast = useToast();
 
     const { display_name: displayName, unit, gender, length_unit: lengthUnit } = profile;
+    // What the priority control shows: the explicit choice, or the gender default
+    // when never set. 'balanced' renders as the "Balanced" option.
+    const priorityValue: PriorityMuscle | 'balanced' = profile.priority_muscle ?? genderDefault(gender);
+    const PRIORITY_OPTIONS: (PriorityMuscle | 'balanced')[] = [
+        'balanced',
+        'glutes',
+        'legs',
+        'chest',
+        'back',
+        'shoulders',
+        'arms',
+    ];
 
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
@@ -157,6 +171,14 @@ export default function ProfileView() {
         startTransition(async () => {
             await updateProfile(displayName, newUnit);
             toast.show('Unit updated', 'success');
+        });
+    }
+
+    function handlePriorityChange(value: PriorityMuscle | 'balanced') {
+        if (value === priorityValue || isPending) return;
+        startTransition(async () => {
+            await updatePriorityMuscle(value);
+            toast.show('Training priority updated', 'success');
         });
     }
 
@@ -293,6 +315,26 @@ export default function ProfileView() {
                             </button>
                         ))}
                     </div>
+                </div>
+
+                {/* Training priority — tilts generated routines toward this muscle */}
+                <div>
+                    <SectionLabel className="mb-2">Training priority</SectionLabel>
+                    <select
+                        aria-label="Training priority"
+                        value={priorityValue}
+                        onChange={(e) => handlePriorityChange(e.target.value as PriorityMuscle | 'balanced')}
+                        disabled={isPending}
+                        className={`${INPUT} capitalize`}>
+                        {PRIORITY_OPTIONS.map((p) => (
+                            <option key={p} value={p}>
+                                {p === 'balanced' ? 'Balanced' : p[0].toUpperCase() + p.slice(1)}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="font-pulse text-[0.6875rem] text-pulse-muted mt-1.5">
+                        New generated routines lean toward this muscle.
+                    </p>
                 </div>
 
                 {/* Auto-advance rest timer */}
