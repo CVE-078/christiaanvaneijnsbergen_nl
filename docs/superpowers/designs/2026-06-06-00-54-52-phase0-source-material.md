@@ -27,7 +27,7 @@ The draft maps 15 generic patterns. Mapped onto Pulse's real patterns:
 
 The draft (and the MEV/MAV/MRV landmarks) assume finer muscles than Pulse models: it splits `quads` vs `hamstrings` and `front` vs `rear delts`; Pulse has only `legs` and `shoulders`. Two options:
 
-- **(A, recommended) Keep the 10-category taxonomy, collapse the map into it.** No churn to `VOLUME_TARGETS`, `computePerMuscleVolume`, `MuscleVolumeBars`, recovery, the `exercises.category` CHECK, or seeds. Loses quad/ham precision.
+- **(A, recommended) Keep the 10-category taxonomy, collapse the map into it.** No churn to `VOLUME_TARGETS`, `computePerMuscleVolume`, `MuscleVolumeBars`, recovery, the `exercises.category` CHECK, or seeds. Loses quad/ham precision. **Collapse only the muscle target side of the bridge: the 15 movement patterns remain the generation control layer and never merge with the 10 reporting categories** (see the three-layer rule in the roadmap's Product decisions).
 - **(B) Expand the taxonomy** (add quads, hamstrings, front/rear delts, lower_back). Ripples through the entire analytics + generation surface. Defer unless specialization genuinely needs it.
 
 Start with A.
