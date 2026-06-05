@@ -76,6 +76,7 @@ describe('useProfile', () => {
                 gender: null,
                 priority_muscle: null,
                 timezone: 'UTC',
+                accent_color: null,
             },
             false,
         );

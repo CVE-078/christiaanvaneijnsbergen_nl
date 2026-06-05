@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
+import { ACCENT_PRESETS } from '@/lib/pulse/constants';
 import { assertUuid } from './_shared';
 import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle } from '@/lib/pulse/types';
 
@@ -105,6 +106,17 @@ export async function updateTimezone(timezone: string): Promise<void> {
         .from('profiles')
         .upsert({ id: user.id, timezone, updated_at: new Date().toISOString() }, { onConflict: 'id' });
     if (error) throw new Error('Failed to update timezone');
+}
+
+export async function updateAccentColor(accentColor: string): Promise<void> {
+    if (!ACCENT_PRESETS.some((p) => p.key === accentColor)) throw new Error('Invalid accent colour');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, accent_color: accentColor, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw new Error('Failed to update accent colour');
 }
 
 export async function updateGender(gender: Gender | null): Promise<void> {

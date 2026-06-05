@@ -6,6 +6,7 @@ import {
     updateLengthUnit as serverUpdateLengthUnit,
     updatePriorityMuscle as serverUpdatePriorityMuscle,
     updateTimezone as serverUpdateTimezone,
+    updateAccentColor as serverUpdateAccentColor,
     logBodyWeight as serverLogBodyWeight,
     deleteBodyWeight as serverDeleteBodyWeight,
 } from '@/app/pulse/actions';
@@ -39,6 +40,7 @@ const DEFAULT_PROFILE: Profile = {
     gender: null,
     priority_muscle: null,
     timezone: 'UTC',
+    accent_color: null,
 };
 
 export function useProfile() {
@@ -129,6 +131,18 @@ export function useProfile() {
         [mutateProfile, profile],
     );
 
+    const updateAccentColor = useCallback(
+        async (accentColor: string): Promise<void> => {
+            mutateProfile({ ...profile, accent_color: accentColor }, false);
+            try {
+                await serverUpdateAccentColor(accentColor);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
     const logBodyWeight = useCallback(
         async (weightKg: number): Promise<BodyweightEntry> => {
             const entry = await serverLogBodyWeight(weightKg);
@@ -163,6 +177,7 @@ export function useProfile() {
         updateLengthUnit,
         updatePriorityMuscle,
         updateTimezone,
+        updateAccentColor,
         logBodyWeight,
         deleteBodyWeight,
         loadingProfile,

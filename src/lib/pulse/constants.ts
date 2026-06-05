@@ -82,6 +82,30 @@ export const MAX_TRAINING_DAYS: Record<DaysPerWeek, number> = {
     '5-6': 6,
 };
 
+// Selectable accent colours. `key` is stored on the profile; `accent`/`dim`
+// override the `--color-pulse-accent` / `--color-pulse-accent-dim` tokens at
+// runtime. The first entry (coral) is the default and matches globals.css.
+export interface AccentPreset {
+    key: string;
+    label: string;
+    accent: string;
+    dim: string;
+}
+export const ACCENT_PRESETS: AccentPreset[] = [
+    { key: 'coral', label: 'Coral', accent: '#ff7d66', dim: '#b0503d' },
+    { key: 'emerald', label: 'Emerald', accent: '#34d399', dim: '#1f8a63' },
+    { key: 'sky', label: 'Sky', accent: '#38bdf8', dim: '#2b7fa6' },
+    { key: 'violet', label: 'Violet', accent: '#a78bfa', dim: '#6d57b5' },
+    { key: 'amber', label: 'Amber', accent: '#fbbf24', dim: '#b08712' },
+    { key: 'rose', label: 'Rose', accent: '#fb7185', dim: '#b04a58' },
+];
+export const DEFAULT_ACCENT_KEY = 'coral';
+
+// Resolve a stored accent key to its preset, falling back to the default.
+export function accentPreset(key: string | null | undefined): AccentPreset {
+    return ACCENT_PRESETS.find((p) => p.key === key) ?? ACCENT_PRESETS[0];
+}
+
 export const EXPERIENCE_LEVEL_COLOR: Record<ExperienceLevel, string> = {
     beginner: 'text-emerald-400',
     intermediate: 'text-amber-400',
