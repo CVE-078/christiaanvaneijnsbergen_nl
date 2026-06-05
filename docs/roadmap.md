@@ -174,6 +174,7 @@ Ordered to deepen the adaptive-coach moat. Tier 1 is cheap and makes existing in
 | 7 | Behavior-driven adaptation (v1.5) | Learn from logged behavior (repeated swaps, skips, added / cut volume) and bias future blocks' avoid-set + emphasis. The pre-AI alternative to "AI generation v2" — build this first. Foundation already exists: `exercise_swaps` + `set_logs` + the routine-wide avoid-set. |
 | 8 | Smart substitution v2 | Reason-tagged swaps (pain / no equipment / crowded) offering 2-3 ranked same-stimulus suggestions, on top of the existing swap. Small enhancement to a shipped feature. |
 | 9 | Progress photos | (Promoted from Later.) Date-stamped photos alongside measurements, paired with the recomp dashboard. Outcomes beat metrics for most users. Needs file upload + a Supabase storage bucket (RLS) + a CSP `img-src` / `connect-src` update. Only item here with real infra cost. |
+| 10 | Coach Decision Timeline | A persistent, plain-language log of every program decision Pulse makes: program created, ramp-back applied, deload triggered, new block started, priority changed. It is the user-facing payoff of the adaptive engine, turning invisible smarts into the clearest proof that Pulse is a coach, not a logger. Cheap once the plumbing exists, but it depends on that plumbing: ramp-back is already persisted (`program_adjustments`), yet auto-deloads are computed and never stored, so this needs deload / progression events persisted plus the Phase 0 session-linked logging. Persistent extension of Tier 1 #1 (surface adaptation). |
 
 ### Routine generation v2 — engine direction
 
@@ -187,6 +188,12 @@ Phased plan (do in order, foundations before features):
 - **Phase 1 — personalization (= Tier 2 generation work; biggest gain per onboarding question, all clean slot-first hooks):** training style (general / bodybuilding / strength / powerbuilding) → session `bias` + `repRange`; injury restrictions → pool filter; equipment preference (prefer barbell / dumbbell / machine, distinct from owned) → `byPattern` secondary sort; variety preference → avoid-set strictness.
 - **Phase 2 — behavior learning:** trustworthy skip tracking (needs Phase 0 session linkage), behavior-driven adaptation (= Tier 3 #7), smarter substitution.
 - **Phase 3 — advanced programming (only when ranked specialization genuinely demands it):** ranked multi-priority + the volume-first planner, built on the Phase 0 bridge. A single `priority_muscle` already covers ~80% of users, so this is deliberately last.
+
+### Product decisions & principles (2026-06-06)
+
+- **Gender is no longer a programming input.** Its only generation role today is `genderDefault` (female to glutes priority), a weak proxy. Replace it with a direct "what do you want to prioritize?" question (the deferred explicit-priority step), and keep `gender` on the profile only for Strength Score standards, which are physiologically sex-based. Net: gender stays for analytics, stops guessing the program.
+- **Generate fast, refine later (onboarding-friction guard).** Every Phase 1 preference input is another onboarding step on top of the existing 6-7. Keep onboarding minimal and generate immediately, then expose style / restrictions / equipment-preference / variety as an optional post-generation "refine your plan" step (Profile or a tune-it screen), not as new required onboarding questions. Decide this before building Phase 1 so the funnel does not bloat.
+- **Templates vs generation, pick a role.** 17 hand-authored templates and the generator coexist, and `recommendTemplate` is now largely vestigial, so two systems are drifting. Decide deliberately: either templates stay as the "named program I trust" anchor (5/3/1, PPL) with a distinct purpose, or they fold into generation over time. Otherwise they are maintenance debt. This is a decision to make before extending either path, not a feature.
 
 ---
 
