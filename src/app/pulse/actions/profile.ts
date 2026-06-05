@@ -89,6 +89,24 @@ export async function updateLengthUnit(lengthUnit: LengthUnit): Promise<void> {
     revalidatePath('/pulse');
 }
 
+export async function updateTimezone(timezone: string): Promise<void> {
+    if (typeof timezone !== 'string' || timezone.length === 0 || timezone.length > 64)
+        throw new Error('Invalid timezone');
+    try {
+        // Throws RangeError for an unknown IANA zone.
+        new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    } catch {
+        throw new Error('Invalid timezone');
+    }
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, timezone, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw new Error('Failed to update timezone');
+}
+
 export async function updateGender(gender: Gender | null): Promise<void> {
     if (gender !== null && gender !== 'male' && gender !== 'female') throw new Error('Invalid gender');
 
@@ -102,8 +120,7 @@ export async function updateGender(gender: Gender | null): Promise<void> {
 }
 
 export async function updatePriorityMuscle(priority: PriorityMuscle | 'balanced' | null): Promise<void> {
-    if (priority !== null && !PRIORITY_MUSCLE_VALUES.includes(priority))
-        throw new Error('Invalid priority muscle');
+    if (priority !== null && !PRIORITY_MUSCLE_VALUES.includes(priority)) throw new Error('Invalid priority muscle');
 
     const { supabase, user } = await getUserOrThrow();
 

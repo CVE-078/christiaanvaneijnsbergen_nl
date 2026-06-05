@@ -55,6 +55,9 @@ export interface Profile {
     goal_weight_kg: number | null;
     gender: Gender | null;
     priority_muscle: PriorityMuscle | 'balanced' | null;
+    // IANA timezone (e.g. 'Europe/Amsterdam'); used to resolve "today"/weekday
+    // for calendar adherence. Defaults to 'UTC' until the browser reports one.
+    timezone: string;
 }
 
 export interface BodyMeasurement {
@@ -223,6 +226,9 @@ export interface WorkoutRoutine {
     // Periodized block length (8/10/12/16); the program repeats this block.
     // Optional in the type so existing constructors stay valid; readers default to 12.
     program_weeks?: number;
+    // Calendar anchor for program "week 1, day 1". Drives completion-paced
+    // progression + calendar adherence. Null only for legacy rows pre-backfill.
+    program_anchor?: string | null;
 }
 
 export interface RoutineExercise {
@@ -263,6 +269,53 @@ export interface WorkoutSession {
     started_at: string;
     completed_at: string | null;
 }
+
+// ── Adaptive missed-workout regeneration ────────────────────────────────────
+// Persisted record of a ramp-back decision. Append-only; the engine reads these
+// back to suppress repeat prompts and to offset progression for inserted weeks.
+export type AdjustmentKind = 'reentry_deload' | 'reentry_dismissed';
+
+export interface ProgramAdjustment {
+    id: string;
+    routine_id: string;
+    kind: AdjustmentKind;
+    // The monotonic program weekInteger this adjustment applies to.
+    effective_week: number;
+    created_at: string;
+    payload: { volumeFactor?: number; rirBonus?: number; daysAway?: number };
+}
+
+export type AdherenceStatus = 'on_track' | 'behind' | 'lapsed';
+
+// Derived program position. weekInteger is completion-paced (advances when a
+// scheduled microcycle is completed); progressionIndex is weekInteger minus any
+// inserted ramp-back weeks, and is what feeds getPhase/getRIR/volumeForWeek.
+export interface ProgramPosition {
+    weekInteger: number;
+    progressionIndex: number;
+    isRampBack: boolean;
+    completedCount: number;
+    calendarWeek: number;
+    behindBy: number;
+    daysSinceLastSession: number | null;
+    status: AdherenceStatus;
+    nextEntry: ScheduleEntry | null;
+}
+
+// Within-current-week adherence: which scheduled entries are done, still
+// upcoming, or already missed (their day passed without a matching session).
+export interface WeekAdherence {
+    missed: ScheduleEntry[];
+    upcoming: ScheduleEntry[];
+    done: ScheduleEntry[];
+}
+
+// What the nudge offers. catch_up is informational (not persisted); a
+// reentry_deload suggestion becomes a persisted adjustment when accepted.
+export type RegenSuggestion =
+    | { kind: 'reentry_deload'; weekInteger: number; daysAway: number }
+    | { kind: 'catch_up'; missed: ScheduleEntry[] }
+    | null;
 
 export const EQUIPMENT_KEYS = ['dumbbells', 'barbell', 'bench', 'cables', 'machines', 'pull_up_bar'] as const;
 export type EquipmentKey = (typeof EQUIPMENT_KEYS)[number];

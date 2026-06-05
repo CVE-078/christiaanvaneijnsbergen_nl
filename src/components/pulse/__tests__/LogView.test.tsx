@@ -70,6 +70,11 @@ const defaultContext = {
     hiddenExerciseIds: new Set<string>(),
     workoutModeOpen: false,
     setWorkoutModeOpen: vi.fn(),
+    adjustments: [],
+    currentWeek: 1,
+    programPosition: null,
+    regenSuggestion: null,
+    refreshSessions: vi.fn(),
 };
 
 beforeEach(() => {

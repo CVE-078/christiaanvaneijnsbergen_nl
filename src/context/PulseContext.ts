@@ -24,6 +24,9 @@ import type {
     ExerciseCategory,
     ScheduleEntry,
     SessionTime,
+    ProgramAdjustment,
+    ProgramPosition,
+    RegenSuggestion,
 } from '@/lib/pulse/types';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 
@@ -51,6 +54,7 @@ export interface PulseContextValue {
     updateGender: (gender: Gender | null) => Promise<void>;
     updateLengthUnit: (lengthUnit: LengthUnit) => Promise<void>;
     updatePriorityMuscle: (priority: PriorityMuscle | 'balanced' | null) => Promise<void>;
+    updateTimezone: (timezone: string) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;
@@ -105,6 +109,8 @@ export interface PulseContextValue {
         routines: boolean;
         exercises: boolean;
         notes: boolean;
+        sessions: boolean;
+        adjustments: boolean;
     };
     errors: {
         profile: boolean;
@@ -113,6 +119,8 @@ export interface PulseContextValue {
         routines: boolean;
         exercises: boolean;
         notes: boolean;
+        sessions: boolean;
+        adjustments: boolean;
     };
     retry: () => void;
 
@@ -168,6 +176,21 @@ export interface PulseContextValue {
     // Exercise preferences (hide / never-show)
     hiddenExerciseIds: Set<string>;
     toggleHideExercise: (exerciseId: string, hidden: boolean) => Promise<void>;
+
+    // Adaptive missed-workout regeneration
+    adjustments: ProgramAdjustment[];
+    // Derived program position for the active routine (null when none/loading).
+    programPosition: ProgramPosition | null;
+    // Completion-paced current program week (falls back to activeWeek when there
+    // is no anchored program yet). The week the user is "due" to train.
+    currentWeek: number;
+    // The active nudge to surface on Train, or null.
+    regenSuggestion: RegenSuggestion;
+    acceptReentryDeload: (routineId: string, weekInteger: number, daysAway?: number) => Promise<void>;
+    dismissReentry: (routineId: string, weekInteger: number) => Promise<void>;
+    // Revalidate the sessions feed (call after completing a workout so the
+    // derived program position updates immediately rather than after SWR's dedup).
+    refreshSessions: () => void;
 }
 
 export const PulseContext = createContext<PulseContextValue | null>(null);

@@ -2,8 +2,12 @@ import { useCallback, useState } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import type { TabKey } from '@/lib/pulse/types';
 
+// Programs repeat their block indefinitely and can be up to 16 weeks long, so
+// the week is monotonic and can exceed 12 (week 13 = block 2, week 1). Clamp
+// only against junk / absurd values, not the block length. ~10 years of weeks.
+const MAX_WEEK = 520;
 function clampWeek(raw: number): number {
-    return raw >= 1 && raw <= 12 ? raw : 1;
+    return Number.isFinite(raw) && raw >= 1 && raw <= MAX_WEEK ? Math.floor(raw) : 1;
 }
 
 export function useUIState() {

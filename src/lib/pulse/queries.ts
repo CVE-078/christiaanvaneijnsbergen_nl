@@ -10,6 +10,9 @@ import type {
     BodyMeasurement,
     DbExercise,
     RoutineWithExercises,
+    WorkoutSession,
+    ProgramAdjustment,
+    AdjustmentKind,
 } from '@/lib/pulse/types';
 
 // Canonical Supabase server client type. Both the layout and the GET route
@@ -20,7 +23,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 // routes should both call the loaders below rather than duplicating queries.
 const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops';
 const PROFILE_SELECT =
-    'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle';
+    'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle, timezone';
 const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'];
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
 const MEASUREMENTS_SELECT = 'id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm';
@@ -29,8 +32,10 @@ const EXERCISES_SELECT =
 const NOTES_SELECT = 'week, routine_exercise_id, note';
 const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
+const SESSIONS_SELECT = 'id, user_id, routine_id, workout_type, variant, started_at, completed_at';
+const ADJUSTMENTS_SELECT = 'id, routine_id, kind, effective_week, created_at, payload';
 const ROUTINES_SELECT = `
-            id, user_id, name, created_at, rationale, program_weeks,
+            id, user_id, name, created_at, rationale, program_weeks, program_anchor,
             exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
             schedule:routine_schedule ( day_of_week, workout_type, variant )
         `;
@@ -68,6 +73,7 @@ export async function loadProfile(supabase: SupabaseServerClient, userId: string
             data && (PRIORITY_MUSCLE_VALUES as readonly string[]).includes(data.priority_muscle as string)
                 ? (data.priority_muscle as Profile['priority_muscle'])
                 : null,
+        timezone: typeof data?.timezone === 'string' && data.timezone ? data.timezone : 'UTC',
     };
 }
 
@@ -184,4 +190,46 @@ export async function loadHiddenExerciseIds(supabase: SupabaseServerClient, user
         .eq('preference', 'hidden');
     if (error) throw error;
     return (data ?? []).map((r: { exercise_id: string }) => r.exercise_id);
+}
+
+// All of the user's workout sessions (both routines, completed and in-progress),
+// oldest first. The adherence engine is the spine consumer: it filters to
+// completed sessions for the active routine and attributes them to program
+// weeks. Set logs carry no timestamp, so sessions are the only real-date source.
+export async function loadSessions(supabase: SupabaseServerClient, userId: string): Promise<WorkoutSession[]> {
+    const { data, error } = await supabase
+        .from('workout_sessions')
+        .select(SESSIONS_SELECT)
+        .eq('user_id', userId)
+        .order('started_at', { ascending: true });
+    if (error) throw error;
+
+    return (data ?? []).map((r) => ({
+        id: r.id,
+        user_id: r.user_id,
+        routine_id: r.routine_id ?? null,
+        workout_type: r.workout_type,
+        variant: r.variant ?? null,
+        started_at: r.started_at,
+        completed_at: r.completed_at ?? null,
+    }));
+}
+
+// Append-only ramp-back adjustments for the user, oldest first.
+export async function loadAdjustments(supabase: SupabaseServerClient, userId: string): Promise<ProgramAdjustment[]> {
+    const { data, error } = await supabase
+        .from('program_adjustments')
+        .select(ADJUSTMENTS_SELECT)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+    if (error) throw error;
+
+    return (data ?? []).map((r) => ({
+        id: r.id,
+        routine_id: r.routine_id,
+        kind: r.kind as AdjustmentKind,
+        effective_week: Number(r.effective_week),
+        created_at: r.created_at,
+        payload: (r.payload ?? {}) as ProgramAdjustment['payload'],
+    }));
 }

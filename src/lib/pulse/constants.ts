@@ -51,6 +51,14 @@ export const BARBELL_KG = 20;
 export const DUMBBELL_HANDLE_KG = 2.5;
 export const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
 
+// Adaptive missed-workout regeneration. Under ~a week off there is no real
+// detraining, so a gap only triggers a ramp-back suggestion at GAP_DAYS or more.
+// A ramp-back week runs reduced volume at an easier RIR before normal progression
+// resumes.
+export const GAP_DAYS = 10;
+export const RAMPBACK_VOLUME_FACTOR = 0.6;
+export const RAMPBACK_RIR_BONUS = 1;
+
 export const SUGGESTED_DAYS: Record<DaysPerWeek, number[]> = {
     '2-3': [1, 3],
     '4': [1, 2, 4, 5],

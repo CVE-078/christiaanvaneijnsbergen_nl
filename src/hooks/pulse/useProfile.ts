@@ -5,6 +5,7 @@ import {
     updateGender as serverUpdateGender,
     updateLengthUnit as serverUpdateLengthUnit,
     updatePriorityMuscle as serverUpdatePriorityMuscle,
+    updateTimezone as serverUpdateTimezone,
     logBodyWeight as serverLogBodyWeight,
     deleteBodyWeight as serverDeleteBodyWeight,
 } from '@/app/pulse/actions';
@@ -37,6 +38,7 @@ const DEFAULT_PROFILE: Profile = {
     goal_weight_kg: null,
     gender: null,
     priority_muscle: null,
+    timezone: 'UTC',
 };
 
 export function useProfile() {
@@ -115,6 +117,18 @@ export function useProfile() {
         [mutateProfile, profile],
     );
 
+    const updateTimezone = useCallback(
+        async (timezone: string): Promise<void> => {
+            mutateProfile({ ...profile, timezone }, false);
+            try {
+                await serverUpdateTimezone(timezone);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
     const logBodyWeight = useCallback(
         async (weightKg: number): Promise<BodyweightEntry> => {
             const entry = await serverLogBodyWeight(weightKg);
@@ -148,6 +162,7 @@ export function useProfile() {
         updateGender,
         updateLengthUnit,
         updatePriorityMuscle,
+        updateTimezone,
         logBodyWeight,
         deleteBodyWeight,
         loadingProfile,

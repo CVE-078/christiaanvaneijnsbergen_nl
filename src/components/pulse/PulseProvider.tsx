@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useSWRConfig } from 'swr';
 import { PulseContext } from '@/context/PulseContext';
 import { useWorkoutLogs } from '@/hooks/pulse/useWorkoutLogs';
@@ -10,11 +10,14 @@ import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
 import { useSwaps } from '@/hooks/pulse/useSwaps';
 import { usePreferences } from '@/hooks/pulse/usePreferences';
+import { useSessions } from '@/hooks/pulse/useSessions';
+import { useProgramAdjustments } from '@/hooks/pulse/useProgramAdjustments';
 import { useOfflineSync } from '@/hooks/pulse/useOfflineSync';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType, swapKey } from '@/lib/pulse/utils';
+import { computeProgramPosition, computeWeekAdherence, computeRegenSuggestion } from '@/lib/pulse/adherence';
 import { buildWorkoutCsv } from '@/lib/pulse/csv';
-import type { RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View } from '@/lib/pulse/types';
+import type { RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View, ProgramPosition } from '@/lib/pulse/types';
 
 interface Props {
     email: string;
@@ -25,13 +28,7 @@ interface Props {
 export function PulseProvider({ email, navigate, children }: Props) {
     const { show: showToast } = useToast();
     const onSaveError = useCallback((msg: string) => showToast(msg, 'error'), [showToast]);
-    const {
-        logs,
-        updateLog,
-        deleteLog,
-        loading: loadingLogs,
-        error: logsError,
-    } = useWorkoutLogs(onSaveError);
+    const { logs, updateLog, deleteLog, loading: loadingLogs, error: logsError } = useWorkoutLogs(onSaveError);
     const {
         profile,
         bodyweightLogs,
@@ -41,6 +38,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
         updateGender,
         updateLengthUnit,
         updatePriorityMuscle,
+        updateTimezone,
         logBodyWeight,
         deleteBodyWeight,
         loadingProfile,
@@ -86,6 +84,14 @@ export function PulseProvider({ email, navigate, children }: Props) {
     const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes();
     const { swaps, setSwap, clearSwap } = useSwaps();
     const { hiddenExerciseIds, toggleHideExercise } = usePreferences();
+    const { sessions, refreshSessions, loading: loadingSessions, error: sessionsError } = useSessions();
+    const {
+        adjustments,
+        acceptReentryDeload,
+        dismissReentry,
+        loading: loadingAdjustments,
+        error: adjustmentsError,
+    } = useProgramAdjustments();
 
     // Replay any offline-queued log/note writes on mount, reconnect, and focus.
     useOfflineSync();
@@ -103,8 +109,19 @@ export function PulseProvider({ email, navigate, children }: Props) {
             routines: loadingRoutines,
             exercises: loadingExercises,
             notes: loadingNotes,
+            sessions: loadingSessions,
+            adjustments: loadingAdjustments,
         }),
-        [loadingProfile, loadingBodyweight, loadingLogs, loadingRoutines, loadingExercises, loadingNotes],
+        [
+            loadingProfile,
+            loadingBodyweight,
+            loadingLogs,
+            loadingRoutines,
+            loadingExercises,
+            loadingNotes,
+            loadingSessions,
+            loadingAdjustments,
+        ],
     );
 
     const errors = useMemo(
@@ -115,8 +132,19 @@ export function PulseProvider({ email, navigate, children }: Props) {
             routines: !!routinesError,
             exercises: !!exercisesError,
             notes: !!notesError,
+            sessions: !!sessionsError,
+            adjustments: !!adjustmentsError,
         }),
-        [profileError, bodyweightError, logsError, routinesError, exercisesError, notesError],
+        [
+            profileError,
+            bodyweightError,
+            logsError,
+            routinesError,
+            exercisesError,
+            notesError,
+            sessionsError,
+            adjustmentsError,
+        ],
     );
 
     const streak = useMemo(() => computeStreak(logs), [logs]);
@@ -180,6 +208,80 @@ export function PulseProvider({ email, navigate, children }: Props) {
         [activeRoutine],
     );
 
+    // ── Adaptive missed-workout regeneration ────────────────────────────────
+    // Derive the program position and the nudge from the active routine's
+    // anchor, schedule, completed sessions, and accepted adjustments. `now` is
+    // fixed at mount — detecting a live day rollover mid-session is unnecessary.
+    const nowIso = useMemo(() => new Date().toISOString(), []);
+    const routineSessions = useMemo(
+        () => (activeRoutine ? sessions.filter((s) => s.routine_id === activeRoutine.id) : []),
+        [sessions, activeRoutine],
+    );
+    const routineAdjustments = useMemo(
+        () => (activeRoutine ? adjustments.filter((a) => a.routine_id === activeRoutine.id) : []),
+        [adjustments, activeRoutine],
+    );
+    const programPosition = useMemo<ProgramPosition | null>(() => {
+        if (!activeRoutine) return null;
+        return computeProgramPosition({
+            anchor: activeRoutine.program_anchor,
+            programWeeks: activeRoutine.program_weeks ?? 12,
+            schedule: activeSchedule,
+            sessions: routineSessions,
+            adjustments: routineAdjustments,
+            tz: profile.timezone,
+            now: nowIso,
+        });
+    }, [activeRoutine, activeSchedule, routineSessions, routineAdjustments, profile.timezone, nowIso]);
+    const regenSuggestion = useMemo(() => {
+        if (!activeRoutine || !programPosition) return null;
+        const weekAdherence = computeWeekAdherence({
+            schedule: activeSchedule,
+            sessions: routineSessions,
+            anchor: activeRoutine.program_anchor,
+            tz: profile.timezone,
+            now: nowIso,
+        });
+        return computeRegenSuggestion(programPosition, weekAdherence, routineAdjustments);
+    }, [activeRoutine, programPosition, activeSchedule, routineSessions, routineAdjustments, profile.timezone, nowIso]);
+    const currentWeek = programPosition?.weekInteger ?? activeWeek;
+
+    // Persist the browser timezone once the profile has loaded, if it changed.
+    // updateTimezone is a stable useCallback; listed so the effect always uses
+    // the current instance.
+    useEffect(() => {
+        if (loadingProfile) return;
+        const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (browserTz && browserTz !== profile.timezone) {
+            updateTimezone(browserTz).catch(() => {});
+        }
+    }, [loadingProfile, profile.timezone, updateTimezone]);
+
+    // Make activeWeek default to, and then follow, the completion-paced current
+    // week — without yanking the user while they browse. On the first sync for a
+    // routine we snap to current; afterwards we only advance when currentWeek
+    // moves AND the user was sitting on the previous current week (so manual
+    // navigation elsewhere is left alone). Keyed by routine id so a switch resyncs.
+    const weekFollow = useRef<{ routineId: string | null; lastCurrent: number | null }>({
+        routineId: null,
+        lastCurrent: null,
+    });
+    useEffect(() => {
+        if (loadingRoutines || loadingSessions) return;
+        if (!activeRoutine?.program_anchor || !programPosition) return;
+        const current = programPosition.weekInteger;
+        const follow = weekFollow.current;
+        if (follow.routineId !== activeRoutine.id) {
+            weekFollow.current = { routineId: activeRoutine.id, lastCurrent: current };
+            if (current !== activeWeek) setActiveWeek(current);
+            return;
+        }
+        if (current !== follow.lastCurrent) {
+            if (activeWeek === follow.lastCurrent) setActiveWeek(current);
+            weekFollow.current = { routineId: activeRoutine.id, lastCurrent: current };
+        }
+    }, [loadingRoutines, loadingSessions, activeRoutine, programPosition, activeWeek, setActiveWeek]);
+
     const [activeDay, _setActiveDay] = useState<number | null>(null);
 
     // Resolve a schedule entry to the best AVAILABLE tab key. The pinned
@@ -239,6 +341,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             updateGender,
             updateLengthUnit,
             updatePriorityMuscle,
+            updateTimezone,
             logBodyWeight,
             deleteBodyWeight,
             refreshMeasurements,
@@ -251,6 +354,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             updateGender,
             updateLengthUnit,
             updatePriorityMuscle,
+            updateTimezone,
             logBodyWeight,
             deleteBodyWeight,
             refreshMeasurements,
@@ -349,6 +453,26 @@ export function PulseProvider({ email, navigate, children }: Props) {
         () => ({ hiddenExerciseIds, toggleHideExercise }),
         [hiddenExerciseIds, toggleHideExercise],
     );
+    const regenValue = useMemo(
+        () => ({
+            adjustments,
+            programPosition,
+            currentWeek,
+            regenSuggestion,
+            acceptReentryDeload,
+            dismissReentry,
+            refreshSessions,
+        }),
+        [
+            adjustments,
+            programPosition,
+            currentWeek,
+            regenSuggestion,
+            acceptReentryDeload,
+            dismissReentry,
+            refreshSessions,
+        ],
+    );
     const loadingValue = useMemo(() => ({ loading, errors, retry }), [loading, errors, retry]);
 
     const contextValue = useMemo(
@@ -362,6 +486,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             ...notesValue,
             ...swapsValue,
             ...preferencesValue,
+            ...regenValue,
             ...loadingValue,
         }),
         [
@@ -374,6 +499,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             notesValue,
             swapsValue,
             preferencesValue,
+            regenValue,
             loadingValue,
         ],
     );

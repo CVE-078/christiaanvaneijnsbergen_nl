@@ -9,3 +9,4 @@ export * from './actions/routines';
 export * from './actions/notes';
 export * from './actions/session';
 export * from './actions/swaps';
+export * from './actions/adjustments';

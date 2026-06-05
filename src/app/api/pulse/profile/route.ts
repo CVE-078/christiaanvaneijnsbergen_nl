@@ -16,6 +16,7 @@ export async function GET() {
         goal_weight_kg: null,
         gender: null,
         priority_muscle: null,
+        timezone: 'UTC',
     };
     try {
         profile = await loadProfile(supabase, user.id);

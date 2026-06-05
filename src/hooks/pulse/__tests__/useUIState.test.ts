@@ -25,8 +25,14 @@ describe('useUIState', () => {
         expect(result.current.activeWeek).toBe(5);
     });
 
-    it('activeWeek from localStorage is clamped to 1–12 range', () => {
-        localStorage.setItem('pulse_week', '99');
+    it('preserves a week beyond the first block (programs repeat)', () => {
+        localStorage.setItem('pulse_week', '30');
+        const { result } = renderHook(() => useUIState());
+        expect(result.current.activeWeek).toBe(30);
+    });
+
+    it('clamps junk / absurd weeks back to 1', () => {
+        localStorage.setItem('pulse_week', '99999');
         const { result } = renderHook(() => useUIState());
         expect(result.current.activeWeek).toBe(1);
     });
