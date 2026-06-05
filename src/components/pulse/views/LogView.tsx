@@ -13,8 +13,11 @@ import {
     swapCandidates,
     swapKey,
 } from '@/lib/pulse/utils';
+import { progressionInfo } from '@/lib/pulse/adherence';
+import { RAMPBACK_RIR_BONUS } from '@/lib/pulse/constants';
 import { usePulse } from '@/context/PulseContext';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
+import RegenNudge from '../RegenNudge';
 import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
@@ -38,6 +41,9 @@ export default function LogView() {
         profile,
         prMap,
         activeRoutine,
+        adjustments,
+        currentWeek,
+        programPosition,
         routineExercisesByTabKey,
         navigate,
         updateLog,
@@ -66,8 +72,22 @@ export default function LogView() {
     } | null>(null);
 
     const programWeeks = activeRoutine?.program_weeks ?? 12;
-    const rir = getRIR(activeWeek, programWeeks);
-    const phase = getPhase(activeWeek, programWeeks);
+    // Progression follows completion: a viewed week is offset by any inserted
+    // ramp-back weeks, and a ramp-back week itself shows an easier RIR. With no
+    // adjustments this is identical to the raw week, so behaviour is unchanged.
+    const routineAdjustments = useMemo(
+        () => (activeRoutine ? adjustments.filter((a) => a.routine_id === activeRoutine.id) : []),
+        [adjustments, activeRoutine],
+    );
+    const { progressionIndex, isRampBack } = progressionInfo(activeWeek, routineAdjustments);
+    const phase = getPhase(progressionIndex, programWeeks);
+    const rir = getRIR(progressionIndex, programWeeks) + (isRampBack ? RAMPBACK_RIR_BONUS : 0);
+    const statusLabel =
+        programPosition && programPosition.status !== 'on_track'
+            ? programPosition.status === 'lapsed'
+                ? `Back after ${programPosition.daysSinceLastSession ?? 0}d`
+                : `${programPosition.behindBy} behind`
+            : null;
     const unit = profile.unit;
     const routineExercises: RoutineExercise[] = useMemo(
         () => routineExercisesByTabKey[activeTab] ?? [],
@@ -244,6 +264,7 @@ export default function LogView() {
                 })()}
 
             <div className="px-4 pt-6 pb-3 max-w-[600px] lg:max-w-[820px] mx-auto">
+                <RegenNudge />
                 <div className="bg-pulse-surface rounded-2xl px-4 py-3.5">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -251,10 +272,22 @@ export default function LogView() {
                                 <span className="text-pulse-dim font-medium">
                                     Week {String(activeWeek).padStart(2, '0')}
                                 </span>{' '}
-                                / 12 · {phase.label} · target{' '}
+                                / {programWeeks} · {isRampBack ? 'Ramp-back' : phase.label} · target{' '}
                                 <span className="text-pulse-dim font-medium">RIR {rir}</span>
                             </div>
                             <PendingSyncBadge />
+                            {statusLabel && (
+                                <span className="whitespace-nowrap rounded-md bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] font-semibold text-pulse-accent">
+                                    {statusLabel}
+                                </span>
+                            )}
+                            {currentWeek !== activeWeek && (
+                                <button
+                                    onClick={() => setActiveWeek(currentWeek)}
+                                    className="cursor-pointer whitespace-nowrap rounded-md border-none bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] font-semibold text-pulse-accent hover:text-pulse-text">
+                                    Go to Wk {currentWeek}
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                             <div className="inline-flex items-center bg-pulse-surface-2 rounded-lg p-[3px] gap-[3px]">
