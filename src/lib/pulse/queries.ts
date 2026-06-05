@@ -30,7 +30,7 @@ const NOTES_SELECT = 'week, routine_exercise_id, note';
 const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
 const ROUTINES_SELECT = `
-            id, user_id, name, created_at, rationale,
+            id, user_id, name, created_at, rationale, program_weeks,
             exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
             schedule:routine_schedule ( day_of_week, workout_type, variant )
         `;
@@ -148,6 +148,7 @@ export async function loadRoutines(supabase: SupabaseServerClient, userId: strin
     // does not structurally match RoutineWithExercises. Narrowing via `unknown`.
     return ((data ?? []) as unknown as RoutineWithExercises[]).map((routine) => ({
         ...routine,
+        program_weeks: routine.program_weeks ?? 12,
         exercises: [...(routine.exercises ?? [])].sort((a, b) => a.order - b.order),
         schedule: [...(routine.schedule ?? [])].sort((a, b) => a.day_of_week - b.day_of_week),
     }));

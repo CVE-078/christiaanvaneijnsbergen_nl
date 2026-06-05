@@ -34,8 +34,49 @@ import {
     toLengthDisplay,
     toCm,
     priorityAdjustedTargets,
+    weekInBlock,
+    volumeForWeek,
 } from '../utils';
+import { buildProgram, PROGRAM_LENGTHS } from '../data';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
+
+describe('periodized blocks', () => {
+    it('buildProgram(12) is the canonical 4-phase / 12-week block', () => {
+        const p = buildProgram(12);
+        expect(p.phases).toHaveLength(4);
+        expect(p.volume).toHaveLength(12);
+        expect(buildProgram(999)).toBe(buildProgram(12)); // unknown length falls back to 12
+    });
+
+    it('every supported length covers exactly its weeks and ends on a deload (lowest-volume week)', () => {
+        for (const n of PROGRAM_LENGTHS) {
+            const p = buildProgram(n);
+            expect(p.volume).toHaveLength(n);
+            const weeks = p.phases.flatMap((ph) => ph.weeks);
+            expect(weeks).toEqual(Array.from({ length: n }, (_, i) => i + 1));
+            const last = p.volume[n - 1].sets;
+            expect(last).toBe(Math.min(...p.volume.map((v) => v.sets))); // block ends on a deload
+        }
+    });
+
+    it('weekInBlock wraps the repeating program', () => {
+        expect(weekInBlock(1, 12)).toBe(1);
+        expect(weekInBlock(12, 12)).toBe(12);
+        expect(weekInBlock(13, 12)).toBe(1); // block 2, week 1
+        expect(weekInBlock(20, 8)).toBe(4);
+    });
+
+    it('getPhase/getRIR/volumeForWeek repeat across block boundaries', () => {
+        expect(getPhase(13, 12).label).toBe(getPhase(1, 12).label);
+        expect(getRIR(13, 12)).toBe(getRIR(1, 12));
+        expect(volumeForWeek(13, 12)).toBe(volumeForWeek(1, 12));
+    });
+
+    it('defaults to the 12-week block, preserving legacy behavior', () => {
+        expect(getRIR(1)).toBe(getRIR(1, 12));
+        expect(getPhase(7).subtitle).toBe('Overreach');
+    });
+});
 
 describe('priorityAdjustedTargets', () => {
     const base = { chest: [10, 16] as [number, number], biceps: [8, 14] as [number, number], legs: [12, 18] as [number, number] };
@@ -104,9 +145,10 @@ describe('getPhase', () => {
         expect(getPhase(12).label).toBe('Phase 4');
     });
 
-    it('falls back to Phase 1 for out-of-range weeks', () => {
-        expect(getPhase(0).label).toBe('Phase 1');
+    it('wraps weeks beyond the block (the program repeats)', () => {
+        // week 99 in a 12-week block → week 3 → Phase 1; week 13 → week 1 → Phase 1.
         expect(getPhase(99).label).toBe('Phase 1');
+        expect(getPhase(13).label).toBe('Phase 1');
     });
 });
 

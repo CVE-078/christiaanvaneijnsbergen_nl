@@ -220,6 +220,9 @@ export interface WorkoutRoutine {
     name: string;
     created_at: string;
     rationale?: string | null;
+    // Periodized block length (8/10/12/16); the program repeats this block.
+    // Optional in the type so existing constructors stay valid; readers default to 12.
+    program_weeks?: number;
 }
 
 export interface RoutineExercise {

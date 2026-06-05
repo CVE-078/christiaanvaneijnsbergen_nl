@@ -22,6 +22,52 @@ export const VOLUME: VolumeEntry[] = [
     { week: 12, sets: 10 },
 ];
 
+// ── Periodized blocks ────────────────────────────────────────────────────────
+// One block per supported length. The program repeats a block indefinitely
+// (week 13 of a 12-week block = block 2, week 1), deloading at each block end.
+// PROGRAMS[12] is the canonical legacy block (= PHASES / VOLUME above). Other
+// lengths follow the same accumulation → intensification → overreach → peak/
+// deload shape; 16 also gets a mid-block deload at week 8.
+export const PROGRAM_LENGTHS = [8, 10, 12, 16] as const;
+export type ProgramLength = (typeof PROGRAM_LENGTHS)[number];
+
+const toVolume = (sets: number[]): VolumeEntry[] => sets.map((s, i) => ({ week: i + 1, sets: s }));
+
+export const PROGRAMS: Record<ProgramLength, { phases: Phase[]; volume: VolumeEntry[] }> = {
+    8: {
+        phases: [
+            { weeks: [1, 2, 3], label: 'Phase 1', subtitle: 'Accumulation', rir: [3, 3, 2], color: '#4ade80' },
+            { weeks: [4, 5, 6], label: 'Phase 2', subtitle: 'Intensification', rir: [2, 1, 1], color: '#facc15' },
+            { weeks: [7, 8], label: 'Phase 3', subtitle: 'Peak & Deload', rir: [0, 3], color: '#f43f5e' },
+        ],
+        volume: toVolume([12, 14, 16, 15, 17, 19, 18, 10]),
+    },
+    10: {
+        phases: [
+            { weeks: [1, 2, 3], label: 'Phase 1', subtitle: 'Accumulation', rir: [3, 3, 2], color: '#4ade80' },
+            { weeks: [4, 5, 6], label: 'Phase 2', subtitle: 'Intensification', rir: [2, 2, 1], color: '#facc15' },
+            { weeks: [7, 8, 9], label: 'Phase 3', subtitle: 'Overreach', rir: [1, 1, 0], color: '#f97316' },
+            { weeks: [10], label: 'Phase 4', subtitle: 'Deload', rir: [3], color: '#f43f5e' },
+        ],
+        volume: toVolume([12, 14, 16, 15, 17, 19, 18, 20, 21, 10]),
+    },
+    12: { phases: PHASES, volume: VOLUME },
+    16: {
+        phases: [
+            { weeks: [1, 2, 3, 4], label: 'Phase 1', subtitle: 'Accumulation', rir: [3, 3, 2, 2], color: '#4ade80' },
+            { weeks: [5, 6, 7, 8], label: 'Phase 2', subtitle: 'Intensification', rir: [2, 1, 1, 3], color: '#facc15' },
+            { weeks: [9, 10, 11, 12], label: 'Phase 3', subtitle: 'Overreach', rir: [2, 1, 1, 0], color: '#f97316' },
+            { weeks: [13, 14, 15, 16], label: 'Phase 4', subtitle: 'Peak & Deload', rir: [1, 1, 0, 3], color: '#f43f5e' },
+        ],
+        volume: toVolume([12, 14, 16, 18, 16, 18, 20, 10, 16, 18, 20, 22, 18, 20, 22, 10]),
+    },
+};
+
+// Resolve a block by length, falling back to the canonical 12-week block.
+export function buildProgram(weeks: number): { phases: Phase[]; volume: VolumeEntry[] } {
+    return PROGRAMS[weeks as ProgramLength] ?? PROGRAMS[12];
+}
+
 // Legacy push/pull/legs workout definitions used by the program view.
 // New granular types (chest, back, shoulders, arms) fall back to their
 // parent push/pull workout definitions.

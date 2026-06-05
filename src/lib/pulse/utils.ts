@@ -1,4 +1,4 @@
-import { PHASES } from './data';
+import { buildProgram } from './data';
 import { BARBELL_KG, DUMBBELL_HANDLE_KG, PLATES_KG, WORKOUT_TYPE_ORDER, workoutTypeLabelLong } from './constants';
 import type {
     Phase,
@@ -120,14 +120,32 @@ export function getInitials(name: string, max = 3): string {
         .join('');
 }
 
-export function getPhase(week: number): Phase {
-    return PHASES.find((p) => p.weeks.includes(week)) ?? PHASES[0];
+// Map an absolute week into its 1-based position within a repeating block of
+// `weeks` length: week 13 in a 12-week block → week 1 of block 2.
+export function weekInBlock(week: number, weeks: number): number {
+    return ((week - 1) % weeks + weeks) % weeks + 1;
 }
 
-export function getRIR(week: number): number {
-    const phase = getPhase(week);
-    const idx = phase.weeks.indexOf(week);
+// Phase for a week, given the block length (default 12 = legacy behavior). Weeks
+// beyond the block length wrap, since the program repeats.
+export function getPhase(week: number, weeks = 12): Phase {
+    const { phases } = buildProgram(weeks);
+    const w = weekInBlock(week, weeks);
+    return phases.find((p) => p.weeks.includes(w)) ?? phases[0];
+}
+
+export function getRIR(week: number, weeks = 12): number {
+    const w = weekInBlock(week, weeks);
+    const phase = getPhase(week, weeks);
+    const idx = phase.weeks.indexOf(w);
     return idx !== -1 ? phase.rir[idx] : phase.rir[0];
+}
+
+// Planned working-set volume for a week within a (repeating) block.
+export function volumeForWeek(week: number, weeks = 12): number {
+    const { volume } = buildProgram(weeks);
+    const w = weekInBlock(week, weeks);
+    return volume.find((v) => v.week === w)?.sets ?? volume[0]?.sets ?? 0;
 }
 
 export function logKey(week: number, routineExerciseId: string, setIdx: number): string {
