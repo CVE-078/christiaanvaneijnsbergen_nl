@@ -213,61 +213,141 @@ export default function SetLogger({
 
                 {showInputs ? (
                     <>
-                        <div className="flex-1 min-w-0 flex flex-col gap-[0.25rem]">
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    aria-label={`Weight in ${unit}`}
-                                    placeholder={unit}
-                                    value={kg}
-                                    min={displayMin}
-                                    max={displayMax}
-                                    step={displayStep}
-                                    onChange={(e) => {
-                                        setKg(e.target.value);
-                                        setInputError(null);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSave();
-                                    }}
-                                    className={inputClass}
-                                />
-                                <span className="font-pulse text-pulse-muted text-sm">×</span>
-                                <input
-                                    type="number"
-                                    aria-label="Repetitions"
-                                    placeholder="reps"
-                                    value={reps}
-                                    min={1}
-                                    max={100}
-                                    onChange={(e) => {
-                                        setReps(e.target.value);
-                                        setInputError(null);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSave();
-                                    }}
-                                    className={inputClass}
-                                />
-                                <span className="font-pulse text-[0.8125rem] text-pulse-dim shrink-0">
-                                    {targetRIR} RIR
-                                </span>
-                            </div>
-                            {previousEntry && (
-                                <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
-                                    → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
-                                </span>
-                            )}
-                            {target && (
-                                <span
-                                    aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
-                                    className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
-                                    {deloadTgt ? '↓ deload target' : '↑ target'} {toDisplay(target.kg, unit)} {unit} ×{' '}
-                                    {target.reps}
-                                </span>
-                            )}
-                            {inputError && (
-                                <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>
+                        <div className={`flex min-w-0 flex-1 flex-col ${editorial ? 'gap-2' : 'gap-[0.25rem]'}`}>
+                            {editorial ? (
+                                <>
+                                    <div className="flex items-stretch gap-2.5">
+                                        <label className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-xl border border-pulse-border bg-pulse-bg px-3 py-1.5 transition-colors focus-within:border-pulse-accent/60">
+                                            <span className="font-pulse-body text-[0.5625rem] uppercase tracking-[0.16em] text-pulse-muted">
+                                                Weight
+                                            </span>
+                                            <span className="flex items-baseline gap-1">
+                                                <input
+                                                    type="number"
+                                                    aria-label={`Weight in ${unit}`}
+                                                    placeholder={unit}
+                                                    value={kg}
+                                                    min={displayMin}
+                                                    max={displayMax}
+                                                    step={displayStep}
+                                                    onChange={(e) => {
+                                                        setKg(e.target.value);
+                                                        setInputError(null);
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleSave();
+                                                    }}
+                                                    className="w-full min-w-0 bg-transparent font-pulse-display text-2xl font-bold leading-none text-pulse-text outline-none [appearance:textfield] placeholder:text-pulse-muted [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                />
+                                                <span className="font-pulse text-[0.6875rem] font-medium text-pulse-dim">
+                                                    {unit}
+                                                </span>
+                                            </span>
+                                        </label>
+                                        <label className="flex w-[4.75rem] flex-col gap-0.5 rounded-xl border border-pulse-border bg-pulse-bg px-3 py-1.5 transition-colors focus-within:border-pulse-accent/60">
+                                            <span className="font-pulse-body text-[0.5625rem] uppercase tracking-[0.16em] text-pulse-muted">
+                                                Reps
+                                            </span>
+                                            <input
+                                                type="number"
+                                                aria-label="Repetitions"
+                                                placeholder="reps"
+                                                value={reps}
+                                                min={1}
+                                                max={100}
+                                                onChange={(e) => {
+                                                    setReps(e.target.value);
+                                                    setInputError(null);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSave();
+                                                }}
+                                                className="w-full min-w-0 bg-transparent font-pulse-display text-2xl font-bold leading-none text-pulse-text outline-none [appearance:textfield] placeholder:text-pulse-muted [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                            />
+                                        </label>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                        <span className="rounded-md border border-pulse-border bg-pulse-surface px-2 py-0.5 font-pulse-body text-[0.625rem] tracking-[0.02em] text-pulse-dim">
+                                            Target RIR {targetRIR}
+                                        </span>
+                                        {target && (
+                                            <span
+                                                aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
+                                                className="font-pulse-body text-[0.6875rem] font-medium tracking-[0.02em] text-pulse-accent">
+                                                {deloadTgt ? '↓ deload' : '↑ target'} {toDisplay(target.kg, unit)}{' '}
+                                                {unit} × {target.reps}
+                                            </span>
+                                        )}
+                                        {previousEntry && (
+                                            <span className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-muted">
+                                                Last {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
+                                            </span>
+                                        )}
+                                        {inputError && (
+                                            <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">
+                                                {inputError}
+                                            </span>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            aria-label={`Weight in ${unit}`}
+                                            placeholder={unit}
+                                            value={kg}
+                                            min={displayMin}
+                                            max={displayMax}
+                                            step={displayStep}
+                                            onChange={(e) => {
+                                                setKg(e.target.value);
+                                                setInputError(null);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSave();
+                                            }}
+                                            className={inputClass}
+                                        />
+                                        <span className="font-pulse text-pulse-muted text-sm">×</span>
+                                        <input
+                                            type="number"
+                                            aria-label="Repetitions"
+                                            placeholder="reps"
+                                            value={reps}
+                                            min={1}
+                                            max={100}
+                                            onChange={(e) => {
+                                                setReps(e.target.value);
+                                                setInputError(null);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSave();
+                                            }}
+                                            className={inputClass}
+                                        />
+                                        <span className="font-pulse text-[0.8125rem] text-pulse-dim shrink-0">
+                                            {targetRIR} RIR
+                                        </span>
+                                    </div>
+                                    {previousEntry && (
+                                        <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
+                                            → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
+                                        </span>
+                                    )}
+                                    {target && (
+                                        <span
+                                            aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
+                                            className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
+                                            {deloadTgt ? '↓ deload target' : '↑ target'} {toDisplay(target.kg, unit)}{' '}
+                                            {unit} × {target.reps}
+                                        </span>
+                                    )}
+                                    {inputError && (
+                                        <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>
+                                    )}
+                                </>
                             )}
                             {drops.map((d, di) => (
                                 <div key={d.id} className="flex items-center gap-2">
@@ -354,7 +434,11 @@ export default function SetLogger({
                             )}
                             <button
                                 onClick={handleSave}
-                                className="font-pulse text-[0.75rem] font-semibold tracking-[0.06em] uppercase h-10 px-4 bg-pulse-accent border-none rounded-[6px] text-pulse-bg cursor-pointer shrink-0 transition-opacity duration-100">
+                                className={`shrink-0 cursor-pointer border-none bg-pulse-accent font-pulse font-semibold text-pulse-bg transition-opacity duration-100 ${
+                                    editorial
+                                        ? 'h-12 rounded-xl px-5 text-sm'
+                                        : 'h-10 rounded-[6px] px-4 text-[0.75rem] uppercase tracking-[0.06em]'
+                                }`}>
                                 {editing ? 'Update' : 'Save'}
                             </button>
                         </div>
