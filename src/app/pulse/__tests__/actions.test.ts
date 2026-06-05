@@ -34,7 +34,7 @@ vi.mock('@/lib/pulse/auth', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }));
 
-import { logBodyMeasurement, addExerciseToRoutine, updateSex } from '../actions';
+import { logBodyMeasurement, addExerciseToRoutine, updateGender } from '../actions';
 
 const VALID_UUID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const VALID_UUID_2 = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -75,18 +75,18 @@ describe('logBodyMeasurement validation', () => {
     });
 });
 
-describe('updateSex validation', () => {
+describe('updateGender validation', () => {
     it('accepts male, female, and null', async () => {
         queue.push({ data: null, error: null });
-        await expect(updateSex('male')).resolves.toBeUndefined();
+        await expect(updateGender('male')).resolves.toBeUndefined();
         queue.push({ data: null, error: null });
-        await expect(updateSex('female')).resolves.toBeUndefined();
+        await expect(updateGender('female')).resolves.toBeUndefined();
         queue.push({ data: null, error: null });
-        await expect(updateSex(null)).resolves.toBeUndefined();
+        await expect(updateGender(null)).resolves.toBeUndefined();
     });
 
-    it('rejects an invalid sex value', async () => {
-        await expect(updateSex('other' as never)).rejects.toThrow('Invalid sex');
+    it('rejects an invalid gender value', async () => {
+        await expect(updateGender('other' as never)).rejects.toThrow('Invalid gender');
     });
 });
 

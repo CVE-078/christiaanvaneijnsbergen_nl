@@ -54,10 +54,10 @@ describe('scoreRatio', () => {
 });
 
 describe('STRENGTH_STANDARDS', () => {
-    it('has 5 ascending thresholds per lift per sex', () => {
-        for (const sex of ['male', 'female'] as const) {
+    it('has 5 ascending thresholds per lift per gender', () => {
+        for (const gender of ['male', 'female'] as const) {
             for (const lift of ['bench', 'squat', 'deadlift', 'ohp'] as const) {
-                const arr = STRENGTH_STANDARDS[sex][lift];
+                const arr = STRENGTH_STANDARDS[gender][lift];
                 expect(arr).toHaveLength(5);
                 for (let i = 1; i < arr.length; i++) {
                     expect(arr[i]).toBeGreaterThan(arr[i - 1]);
@@ -68,23 +68,23 @@ describe('STRENGTH_STANDARDS', () => {
 });
 
 describe('computeStrengthScore', () => {
-    it('returns a sex reason when sex is null', () => {
-        const r = computeStrengthScore({ sex: null, bodyweightKg: 80, lifts: [{ name: 'Bench', e1rm: 100 }] });
+    it('returns a gender reason when gender is null', () => {
+        const r = computeStrengthScore({ gender: null, bodyweightKg: 80, lifts: [{ name: 'Bench', e1rm: 100 }] });
         expect(r.score).toBeNull();
         expect(r.level).toBeNull();
-        expect(r.reason).toBe('Set your sex in Profile to get a strength score.');
+        expect(r.reason).toBe('Set your gender in Profile to get a strength score.');
         expect(r.lifts).toEqual([]);
     });
     it('returns a bodyweight reason when bodyweight is null or <= 0', () => {
-        const a = computeStrengthScore({ sex: 'male', bodyweightKg: null, lifts: [{ name: 'Bench', e1rm: 100 }] });
+        const a = computeStrengthScore({ gender: 'male', bodyweightKg: null, lifts: [{ name: 'Bench', e1rm: 100 }] });
         expect(a.reason).toBe('Log your bodyweight to get a strength score.');
-        const b = computeStrengthScore({ sex: 'male', bodyweightKg: 0, lifts: [{ name: 'Bench', e1rm: 100 }] });
+        const b = computeStrengthScore({ gender: 'male', bodyweightKg: 0, lifts: [{ name: 'Bench', e1rm: 100 }] });
         expect(b.reason).toBe('Log your bodyweight to get a strength score.');
         expect(b.score).toBeNull();
     });
     it('returns a main-lift reason when no input lift classifies', () => {
         const r = computeStrengthScore({
-            sex: 'male',
+            gender: 'male',
             bodyweightKg: 80,
             lifts: [{ name: 'Bicep Curl', e1rm: 40 }],
         });
@@ -93,7 +93,7 @@ describe('computeStrengthScore', () => {
     });
     it('scores a single lift and labels it', () => {
         // male bench thresholds [0.5,0.75,1.25,1.75,2.0]; ratio 1.25 -> 50
-        const r = computeStrengthScore({ sex: 'male', bodyweightKg: 80, lifts: [{ name: 'Bench Press', e1rm: 100 }] });
+        const r = computeStrengthScore({ gender: 'male', bodyweightKg: 80, lifts: [{ name: 'Bench Press', e1rm: 100 }] });
         expect(r.score).toBe(50);
         expect(r.lifts).toHaveLength(1);
         expect(r.lifts[0]).toMatchObject({ lift: 'bench', label: 'Bench Press', subScore: 50, ratio: 1.25 });
@@ -102,7 +102,7 @@ describe('computeStrengthScore', () => {
     it('averages across multiple lifts', () => {
         // bench ratio 1.25 -> 50, squat ratio 1.5 -> 50, mean 50
         const r = computeStrengthScore({
-            sex: 'male',
+            gender: 'male',
             bodyweightKg: 100,
             lifts: [
                 { name: 'Bench Press', e1rm: 125 },
@@ -114,7 +114,7 @@ describe('computeStrengthScore', () => {
     });
     it('keeps the best e1rm per main lift', () => {
         const r = computeStrengthScore({
-            sex: 'male',
+            gender: 'male',
             bodyweightKg: 80,
             lifts: [
                 { name: 'Bench Press', e1rm: 60 },
@@ -132,7 +132,7 @@ describe('computeStrengthScore', () => {
             const ratioFor: Record<number, number> = { 0: 0.5, 25: 0.75, 50: 1.25, 75: 1.75, 100: 2.0 };
             const ratio = ratioFor[subScore];
             return computeStrengthScore({
-                sex: 'male',
+                gender: 'male',
                 bodyweightKg: 100,
                 lifts: [{ name: 'Bench Press', e1rm: ratio * 100 }],
             }).level;

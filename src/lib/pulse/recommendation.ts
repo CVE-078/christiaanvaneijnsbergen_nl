@@ -1,4 +1,4 @@
-import type { EquipmentKey, Sex } from './types';
+import type { EquipmentKey, Gender } from './types';
 
 export const EXPERIENCE_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
 export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
@@ -14,7 +14,7 @@ export interface OnboardingAnswers {
     experience: ExperienceLevel;
     goal: Goal;
     days: DaysPerWeek;
-    sex?: Sex | null;
+    gender?: Gender | null;
 }
 
 export function getEquipmentTier(equipment: Set<EquipmentKey>): 'db' | 'home' | 'gym' {

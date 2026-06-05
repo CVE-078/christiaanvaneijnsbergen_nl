@@ -7,18 +7,18 @@ import RoutineSetupFlow from './RoutineSetupFlow';
 // GENERATE a tailored routine (no template-match step). Replaces the old
 // recommend-a-template + clone flow.
 export default function OnboardingModal() {
-    const { generateRoutine, completeOnboarding, dismissOnboarding, navigate, updateSex } = usePulse();
+    const { generateRoutine, completeOnboarding, dismissOnboarding, navigate, updateGender } = usePulse();
     return (
         <RoutineSetupFlow
             completeLabel="Create my routine"
-            collectSex
-            onComplete={async ({ answers, trainingDays, sessionTime, styleKey, sex }) => {
-                if (sex) await updateSex(sex);
+            collectGender
+            onComplete={async ({ answers, trainingDays, sessionTime, styleKey, gender }) => {
+                if (gender) await updateGender(gender);
                 await generateRoutine(
                     answers,
                     trainingDays,
                     sessionTime,
-                    styleKey ?? recommendStyle(trainingDays.length, sex),
+                    styleKey ?? recommendStyle(trainingDays.length, gender),
                 );
                 await completeOnboarding();
                 navigate('train');

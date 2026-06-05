@@ -36,7 +36,7 @@ export interface ScheduleEntry {
 
 export type Unit = 'kg' | 'lbs';
 
-export type Sex = 'male' | 'female';
+export type Gender = 'male' | 'female';
 
 export interface Profile {
     display_name: string | null;
@@ -44,7 +44,7 @@ export interface Profile {
     active_routine_id: string | null;
     onboarding_completed: boolean;
     goal_weight_kg: number | null;
-    sex: Sex | null;
+    gender: Gender | null;
 }
 
 export interface BodyMeasurement {

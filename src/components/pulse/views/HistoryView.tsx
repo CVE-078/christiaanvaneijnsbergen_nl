@@ -150,11 +150,11 @@ export default function HistoryView() {
     const strength = useMemo(
         () =>
             computeStrengthScore({
-                sex: profile.sex,
+                gender: profile.gender,
                 bodyweightKg: bodyweightLogs[0]?.weight_kg ?? null,
                 lifts: Object.entries(prMap).map(([rid, e1rm]) => ({ name: nameMap.get(rid) ?? '', e1rm })),
             }),
-        [prMap, nameMap, bodyweightLogs, profile.sex],
+        [prMap, nameMap, bodyweightLogs, profile.gender],
     );
 
     // One pass over logs replacing the former five independent scans
