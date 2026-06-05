@@ -17,6 +17,7 @@ import E1RMChart from '@/components/pulse/E1RMChart';
 import BestLifts from '@/components/pulse/BestLifts';
 import MuscleVolumeBars from '@/components/pulse/MuscleVolumeBars';
 import RecompCard from '@/components/pulse/RecompCard';
+import RecoveryCard from '@/components/pulse/RecoveryCard';
 import StrengthScoreCard from '@/components/pulse/StrengthScoreCard';
 import { computeStrengthScore } from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
@@ -206,6 +207,26 @@ export default function HistoryView() {
         [sessions, prMap, nameMap, swaps, exerciseNameById],
     );
 
+    // Top personal records, pulled over from the old ProfileView. Ranked by
+    // estimated 1RM and capped at five, with names resolved from the routine.
+    const prRecords = useMemo(
+        () =>
+            Object.entries(prMap)
+                .map(([reId, e1rm]) => ({ name: nameMap.get(reId) ?? reId, e1rm }))
+                .sort((a, b) => b.e1rm - a.e1rm)
+                .slice(0, 5),
+        [prMap, nameMap],
+    );
+
+    // Session history shows the last four by default (most recent week first),
+    // with the rest revealed behind a toggle.
+    const [showAllSessions, setShowAllSessions] = useState(false);
+    const sortedSessionCards = useMemo(
+        () => [...sessionCards].sort((a, b) => b.week - a.week),
+        [sessionCards],
+    );
+    const visibleSessionCards = showAllSessions ? sortedSessionCards : sortedSessionCards.slice(0, 4);
+
     const hasData = sessions.length > 0;
 
     if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
@@ -223,35 +244,19 @@ export default function HistoryView() {
                 </span>
             </div>
 
-            {/* Strength Score headline */}
-            <div className="mb-4">
+            {/* TIER 1: headline + recovery coaching */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <StrengthScoreCard strength={strength} />
+                <RecoveryCard recovery={recovery} />
             </div>
 
-            {/* Recomp readout */}
-            <div className="mb-12">
+            {/* TIER 2: recomp readout, full width */}
+            <div className="mb-4">
                 <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
             </div>
 
-            {/* Four data blocks - separated by tone and whitespace, two columns on wide screens */}
+            {/* TIER 3: training trends */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-12">
-                {/* Streak */}
-                <div>
-                    <SectionHeader>Weekly streak - 12 weeks</SectionHeader>
-                    <StreakCalendar logs={logs} currentWeek={activeWeek} />
-                    <p className="sr-only">
-                        {streak === 0
-                            ? 'No streak yet.'
-                            : `Current streak: ${streak} consecutive week${streak !== 1 ? 's' : ''}.`}
-                    </p>
-                </div>
-
-                {/* Best Lifts */}
-                <div>
-                    <SectionHeader>Best Lifts</SectionHeader>
-                    <BestLifts allRoutineExercises={allRoutineExercises} bestSets={bestSets} unit={unit} />
-                </div>
-
                 {/* Weekly Volume */}
                 <div>
                     <SectionHeader>Sets per week</SectionHeader>
@@ -262,12 +267,6 @@ export default function HistoryView() {
                             Log a session to see volume trends.
                         </p>
                     )}
-                </div>
-
-                {/* Per-muscle volume this week */}
-                <div>
-                    <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
-                    <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} recovery={recovery} />
                 </div>
 
                 {/* e1RM Progression */}
@@ -290,17 +289,79 @@ export default function HistoryView() {
                     </div>
                     <E1RMChart history={e1rmHistory} unit={unit} />
                 </div>
+
+                {/* Per-muscle volume this week */}
+                <div>
+                    <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
+                    <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} />
+                </div>
+
+                {/* Streak */}
+                <div>
+                    <SectionHeader>Weekly streak - 12 weeks</SectionHeader>
+                    <StreakCalendar logs={logs} currentWeek={activeWeek} />
+                    <p className="sr-only">
+                        {streak === 0
+                            ? 'No streak yet.'
+                            : `Current streak: ${streak} consecutive week${streak !== 1 ? 's' : ''}.`}
+                    </p>
+                </div>
+
+                {/* Best Lifts */}
+                <div>
+                    <SectionHeader>Best Lifts</SectionHeader>
+                    <BestLifts allRoutineExercises={allRoutineExercises} bestSets={bestSets} unit={unit} />
+                </div>
+
+                {/* Personal Records - pulled over from Profile */}
+                <div>
+                    <SectionHeader>Personal Records</SectionHeader>
+                    {prRecords.length === 0 ? (
+                        <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">
+                            No records yet — start logging sets.
+                        </p>
+                    ) : (
+                        <ul className="flex flex-col gap-2.5">
+                            {prRecords.map((pr) => (
+                                <li key={pr.name} className="flex items-center justify-between gap-3">
+                                    <span className="font-pulse text-[0.8125rem] text-pulse-dim overflow-hidden text-ellipsis whitespace-nowrap">
+                                        {pr.name}
+                                    </span>
+                                    <span className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent shrink-0">
+                                        {unit === 'kg'
+                                            ? `${toDisplay(pr.e1rm, 'kg').toFixed(1)} kg`
+                                            : `${toDisplay(pr.e1rm, 'lbs').toFixed(1)} lbs`}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             </div>
 
-            {/* Session History */}
+            {/* Session History - last 4 by default, rest behind a toggle */}
             {hasData && (
                 <div className="mt-12">
-                    <SectionHeader>Session History</SectionHeader>
+                    <SectionHeader>Recent sessions</SectionHeader>
                     <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-                        {sessionCards.map((session) => (
+                        {visibleSessionCards.map((session) => (
                             <SessionCard key={session.week} session={session} unit={unit} />
                         ))}
                     </div>
+                    {sortedSessionCards.length > 4 && (
+                        <button
+                            type="button"
+                            onClick={() => setShowAllSessions((v) => !v)}
+                            aria-expanded={showAllSessions}
+                            className="mt-3 w-full flex items-center justify-between rounded-xl bg-pulse-surface px-4 py-3 font-pulse text-[0.8125rem] text-pulse-dim hover:text-pulse-text transition-colors">
+                            <span>
+                                {showAllSessions
+                                    ? 'Show fewer sessions'
+                                    : `Show all ${sortedSessionCards.length} sessions`}
+                            </span>
+                            <span className="text-pulse-muted">{showAllSessions ? '↑' : '↓'}</span>
+                        </button>
+                    )}
                 </div>
             )}
 
