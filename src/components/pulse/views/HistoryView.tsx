@@ -20,6 +20,7 @@ import MuscleVolumeBars from '@/components/pulse/MuscleVolumeBars';
 import RecompCard from '@/components/pulse/RecompCard';
 import RecoveryCard from '@/components/pulse/RecoveryCard';
 import StrengthScoreCard from '@/components/pulse/StrengthScoreCard';
+import PageTitle from '@/components/pulse/PageTitle';
 import { computeStrengthScore } from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
@@ -264,9 +265,7 @@ export default function HistoryView() {
         <div className="p-4 sm:p-8 max-w-[960px] mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
-                <h1 className="font-pulse text-[1.75rem] sm:text-[2.25rem] font-medium tracking-[-0.018em] text-pulse-text">
-                    Progress
-                </h1>
+                <PageTitle>Progress</PageTitle>
                 <div className="flex items-center gap-3">
                     <span className="font-pulse-body text-[0.8125rem] text-pulse-muted tracking-[0.03em]">
                         {streak === 0 ? 'No streak yet' : `${streak}-week streak`}
