@@ -6,6 +6,7 @@ import { usePulse } from '@/context/PulseContext';
 import { templateMatchesEquipment } from '@/lib/pulse/types';
 import type { RoutineTemplate, EquipmentKey } from '@/lib/pulse/types';
 import RoutineSetupFlow from '@/components/pulse/RoutineSetupFlow';
+import FilterChips from './library/FilterChips';
 
 type EquipmentFilter = 'all' | 'dumbbells' | 'home' | 'gym';
 
@@ -46,24 +47,17 @@ export default function TemplatesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Unified toolbar — equipment filter chips wrap, matching the other tabs. */}
-            <div className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap gap-1.5">
-                        {(['all', 'dumbbells', 'home', 'gym'] as EquipmentFilter[]).map((f) => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`font-pulse text-xs tracking-[0.04em] capitalize rounded-full px-3 py-1.5 border cursor-pointer shrink-0 ${
-                                    filter === f
-                                        ? 'bg-pulse-accent text-pulse-bg border-pulse-accent font-semibold'
-                                        : 'bg-transparent text-pulse-dim border-pulse-border'
-                                }`}>
-                                {FILTER_LABELS[f]}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+            {/* Unified toolbar — same scrollable FilterChips rail as the other tabs. */}
+            <div className="flex items-center gap-2">
+                <FilterChips
+                    className="flex-1"
+                    items={(['all', 'dumbbells', 'home', 'gym'] as EquipmentFilter[]).map((f) => ({
+                        key: f,
+                        label: FILTER_LABELS[f],
+                    }))}
+                    activeKey={filter}
+                    onSelect={(k) => setFilter(k as EquipmentFilter)}
+                />
             </div>
 
             {/* Template list — unified row card. */}
