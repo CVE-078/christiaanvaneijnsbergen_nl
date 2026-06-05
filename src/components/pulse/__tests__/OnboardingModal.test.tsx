@@ -11,15 +11,20 @@ const dismissOnboarding = vi.fn();
 const navigate = vi.fn();
 const updateGender = vi.fn().mockResolvedValue(undefined);
 
-beforeEach(() => {
-    vi.clearAllMocks();
+function mockPulse(profile: { gender?: string | null } = { gender: null }) {
     (usePulse as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+        profile,
         generateRoutine,
         completeOnboarding,
         dismissOnboarding,
         navigate,
         updateGender,
     });
+}
+
+beforeEach(() => {
+    vi.clearAllMocks();
+    mockPulse();
 });
 
 describe('OnboardingModal', () => {
@@ -34,6 +39,13 @@ describe('OnboardingModal', () => {
     it('lets you skip the gender step', () => {
         render(<OnboardingModal />);
         fireEvent.click(screen.getByText('Skip'));
+        expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
+    });
+
+    it('hides the gender step when the profile already has one', () => {
+        mockPulse({ gender: 'female' });
+        render(<OnboardingModal />);
+        expect(screen.queryByText(/what's your gender/i)).not.toBeInTheDocument();
         expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
     });
 
