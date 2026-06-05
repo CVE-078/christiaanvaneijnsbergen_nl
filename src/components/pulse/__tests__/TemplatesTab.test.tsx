@@ -28,6 +28,8 @@ const templates: RoutineTemplate[] = [
         description: 'One session works everything.',
         schedule_pattern: ['full_body'],
         default_days: [1, 3, 5],
+        goal: 'general_fitness',
+        gender_fit: 'any',
     },
     {
         id: '2',
@@ -40,6 +42,8 @@ const templates: RoutineTemplate[] = [
         description: 'Classic PPL with full gym access.',
         schedule_pattern: ['push', 'pull', 'legs'],
         default_days: [1, 2, 3, 4, 5, 6],
+        goal: 'build_muscle',
+        gender_fit: 'any',
     },
 ];
 
@@ -50,6 +54,7 @@ beforeEach(() => {
         cloneTemplate: mockCloneTemplate,
         navigate: mockNavigate,
         routines: [],
+        profile: { gender: null },
     });
 });
 
@@ -65,6 +70,13 @@ describe('TemplatesTab', () => {
         fireEvent.click(screen.getByText('Dumbbells'));
         expect(screen.getByText('Full Body — Dumbbells')).toBeInTheDocument();
         expect(screen.queryByText('PPL — Gym')).not.toBeInTheDocument();
+    });
+
+    it('filters by goal', () => {
+        render(<TemplatesTab />);
+        fireEvent.click(screen.getByText('Build muscle'));
+        expect(screen.getByText('PPL — Gym')).toBeInTheDocument();
+        expect(screen.queryByText('Full Body — Dumbbells')).not.toBeInTheDocument();
     });
 
     it('opens the setup flow on Use this, with no native prompt or confirm dialog', () => {
