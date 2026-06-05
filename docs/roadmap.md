@@ -18,6 +18,21 @@
 
 ---
 
+## Status & next session (2026-06-06)
+
+**Where things stand:** the generation-engine v2 strategy and the full Phase 0 spec are complete and frozen across two design docs (`docs/superpowers/designs/2026-06-06-00-30-19-generation-engine-v2-audit.md` and `…-00-54-52-phase0-source-material.md`), which hold the canonical v1 muscle map, the exercise-metadata schema, the `DecisionEvent` taxonomy, substitution classes, golden tests, edge rules, and volume landmarks. The `exercise_swaps` week-cap fix (12 → 52) shipped this session. No code work is open beyond that — next session is execution, not design.
+
+**Next up, in order:**
+1. **Phase 0 #1 — `muscleMap.ts` (the MovementPattern → muscle bridge).** Pure module, no migration, fully TDD-able. The canonical v1 weight map is frozen in the Phase 0 doc, ready to drop in. Start here. An implementation plan can be written first (the `writing-plans` skill).
+2. **Phase 0 #2 — exercise metadata + seed.** Feed the 94 exercise names + their existing seeded `movement_pattern`s to ChatGPT for the six new fields only (secondary muscles, unilateral, fatigue, joint_stress, difficulty, substitution_class); a script maps muscles to the 10 categories and writes the seed migration.
+3. **Phase 0 #3 — `session_id` + workout date on `set_logs`, and the `DecisionEvent` log.** Unblocks trustworthy skip detection, adherence, behavior learning, and the Coach Decision Timeline.
+
+**Available anytime (cheap, independent of Phase 0):** Tier 1 quick wins — surface adaptation decisions + the desktop right rail (Tier 1 #1), and the guided set-row polish (Tier 1 #2). Good warm-up tasks if you don't want to start Phase 0 cold.
+
+Full detail and rationale live in the phased plan under "Roadmap (re-tiered)" below and the two 2026-06-06 design docs.
+
+---
+
 ## Shipped
 
 - Fast workout logging (ExerciseCard, set logger, RIR)
