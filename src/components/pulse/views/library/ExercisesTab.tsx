@@ -5,6 +5,7 @@ import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
 import type { DbExercise, ExerciseCategory } from '@/lib/pulse/types';
 import { INPUT, BTN_PRIMARY, BTN_GHOST, CARD } from '@/components/pulse/ui';
 import CategoryBadge from './CategoryBadge';
+import FilterChips, { type FilterChipItem } from './FilterChips';
 import ExerciseInstructionModal from '@/components/pulse/ExerciseInstructionModal';
 
 const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
@@ -40,6 +41,14 @@ export default function ExercisesTab() {
         for (const ex of exercises) m.set(ex.category, (m.get(ex.category) ?? 0) + 1);
         return m;
     }, [exercises]);
+
+    const categoryItems = useMemo<FilterChipItem[]>(
+        () => [
+            { key: 'all', label: 'all', count: exercises.length },
+            ...EXERCISE_CATEGORIES.map((c) => ({ key: c, label: c, count: categoryCounts.get(c) ?? 0 })),
+        ],
+        [exercises.length, categoryCounts],
+    );
 
     function handleAdd() {
         const name = newName.trim();
@@ -81,39 +90,15 @@ export default function ExercisesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Unified toolbar — filter chips wrap (so every category stays reachable on
-                desktop, where a horizontal scroll rail can't be panned with a mouse);
-                Hidden + Add stay pinned to the right, top-aligned when the filters wrap. */}
-            <div className="flex items-start gap-2">
-                {/* Filter chips — wrap onto as many lines as needed; each shows its count. */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap gap-1.5">
-                        {(['all', ...EXERCISE_CATEGORIES] as const).map((f) => {
-                            const active = filter === f;
-                            const count = f === 'all' ? exercises.length : (categoryCounts.get(f) ?? 0);
-                            return (
-                                <button
-                                    key={f}
-                                    onClick={() => setFilter(f)}
-                                    aria-label={f}
-                                    aria-pressed={active}
-                                    className={`font-pulse text-xs tracking-[0.02em] capitalize rounded-full px-3 py-1.5 cursor-pointer border-none shrink-0 inline-flex items-center gap-1.5 transition-colors ${
-                                        active
-                                            ? 'bg-pulse-accent text-pulse-bg font-semibold'
-                                            : 'bg-pulse-surface-2 text-pulse-dim'
-                                    }`}>
-                                    {f}
-                                    <span
-                                        className={`font-pulse text-[0.625rem] font-semibold tabular-nums rounded px-1 ${
-                                            active ? 'bg-pulse-bg/20 text-pulse-bg' : 'bg-white/5 text-pulse-muted'
-                                        }`}>
-                                        {count}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+            {/* Unified toolbar — a single-row scrollable filter rail (shared FilterChips),
+                with Hidden + Add pinned to the right. */}
+            <div className="flex items-center gap-2">
+                <FilterChips
+                    className="flex-1"
+                    items={categoryItems}
+                    activeKey={filter}
+                    onSelect={(k) => setFilter(k as 'all' | ExerciseCategory)}
+                />
 
                 {/* Show-hidden toggle — only when the user has hidden something. */}
                 {hiddenCount > 0 && (
