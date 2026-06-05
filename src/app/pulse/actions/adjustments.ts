@@ -5,9 +5,10 @@ import { RAMPBACK_VOLUME_FACTOR, RAMPBACK_RIR_BONUS } from '@/lib/pulse/constant
 import { assertOwnsRoutine } from './_shared';
 import type { AdjustmentKind } from '@/lib/pulse/types';
 
-// One ramp-back decision per (routine, week). The table is append-only, so we
-// clear any prior decision for that week first — this keeps accept/dismiss
-// idempotent and lets a dismissal be changed to an acceptance.
+// One ramp-back decision per (routine, week). A single upsert on the
+// (user_id, routine_id, effective_week) unique constraint keeps this atomic and
+// idempotent — re-accepting is a no-op, and a dismissal can flip to an
+// acceptance — with no delete-then-insert race or duplicate rows.
 async function recordDecision(
     routineId: string,
     weekInteger: number,
@@ -20,13 +21,6 @@ async function recordDecision(
     const { supabase, user } = await getUserOrThrow();
     await assertOwnsRoutine(supabase, routineId, user.id);
 
-    await supabase
-        .from('program_adjustments')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('routine_id', routineId)
-        .eq('effective_week', weekInteger);
-
     const payload =
         kind === 'reentry_deload'
             ? {
@@ -36,13 +30,16 @@ async function recordDecision(
               }
             : {};
 
-    const { error } = await supabase.from('program_adjustments').insert({
-        user_id: user.id,
-        routine_id: routineId,
-        kind,
-        effective_week: weekInteger,
-        payload,
-    });
+    const { error } = await supabase.from('program_adjustments').upsert(
+        {
+            user_id: user.id,
+            routine_id: routineId,
+            kind,
+            effective_week: weekInteger,
+            payload,
+        },
+        { onConflict: 'user_id,routine_id,effective_week' },
+    );
     if (error) throw new Error('Failed to save adjustment');
 }
 

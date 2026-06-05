@@ -29,6 +29,7 @@ export default function RegenNudge() {
                 </p>
                 <div className="mt-2.5 flex items-center gap-2">
                     <button
+                        type="button"
                         onClick={() => {
                             acceptReentryDeload(activeRoutine.id, weekInteger, daysAway);
                             setActiveWeek(weekInteger);
@@ -37,6 +38,7 @@ export default function RegenNudge() {
                         Add ramp-back week
                     </button>
                     <button
+                        type="button"
                         onClick={() => dismissReentry(activeRoutine.id, weekInteger)}
                         className="cursor-pointer rounded-lg border-none bg-pulse-surface-2 px-3.5 py-1.5 font-pulse text-xs font-semibold text-pulse-dim hover:text-pulse-text">
                         Resume normally
@@ -65,6 +67,7 @@ export default function RegenNudge() {
                     </p>
                 </div>
                 <button
+                    type="button"
                     onClick={() => setDismissedCatchUp(true)}
                     aria-label="Dismiss"
                     className="shrink-0 cursor-pointer border-none bg-transparent px-1 font-pulse text-base leading-none text-pulse-muted hover:text-pulse-text">
@@ -73,9 +76,11 @@ export default function RegenNudge() {
             </div>
             <div className="mt-2.5">
                 <button
+                    type="button"
                     onClick={() => setActiveDay(first.day_of_week)}
                     className="cursor-pointer rounded-lg border-none bg-pulse-accent px-3.5 py-1.5 font-pulse text-xs font-semibold text-pulse-bg">
                     Train {entryLabel(first)}
+                    {missed.length > 1 ? ' first' : ''}
                 </button>
             </div>
         </div>

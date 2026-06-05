@@ -64,6 +64,20 @@ describe('RegenNudge', () => {
         expect(setActiveDay).toHaveBeenCalledWith(4);
     });
 
+    it('shows a plural heading and a "first" hint for multiple missed sessions', async () => {
+        mockCtx({
+            kind: 'catch_up',
+            missed: [
+                { day_of_week: 4, workout_type: 'upper', variant: 'B' },
+                { day_of_week: 5, workout_type: 'lower', variant: 'B' },
+            ],
+        });
+        render(<RegenNudge />);
+        expect(screen.getByText(/2 sessions still open this week/i)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /train upper b first/i }));
+        expect(setActiveDay).toHaveBeenCalledWith(4);
+    });
+
     it('catch-up can be dismissed for the session', async () => {
         mockCtx({ kind: 'catch_up', missed: [{ day_of_week: 4, workout_type: 'upper', variant: 'B' }] });
         render(<RegenNudge />);

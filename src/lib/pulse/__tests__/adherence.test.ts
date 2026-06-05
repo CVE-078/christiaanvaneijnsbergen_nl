@@ -129,6 +129,19 @@ describe('attributeSessions', () => {
         expect(a.completedCount).toBe(1);
         expect(a.currentCycleRemaining).toHaveLength(3);
     });
+    it('multiple off-plan sessions complete cycles and advance weeks', () => {
+        const two = [entry(1, 'upper', 'A'), entry(4, 'lower', 'A')];
+        const a = attributeSessions(two, [
+            sess('2026-06-01T10:00:00Z', 'legs', null),
+            sess('2026-06-02T10:00:00Z', 'legs', null),
+            sess('2026-06-03T10:00:00Z', 'legs', null),
+            sess('2026-06-04T10:00:00Z', 'legs', null),
+        ]);
+        // 4 sessions / 2-per-cycle = 2 completed cycles, so we are at the start of week 3.
+        expect(a.completedCount).toBe(4);
+        expect(a.weekInteger).toBe(3);
+        expect(a.currentCycleRemaining).toHaveLength(2);
+    });
     it('variant-null entries match variant-null sessions', () => {
         const s2 = [entry(1, 'full_body', null), entry(3, 'full_body', null)];
         const a = attributeSessions(s2, [sess('2026-06-01T10:00:00Z', 'full_body', null)]);
@@ -263,6 +276,18 @@ describe('computeWeekAdherence', () => {
             sessions: [sess('2026-05-20T10:00:00Z', 'upper', 'A')],
         });
         expect(wa.done).toEqual([]);
+    });
+    it('keeps a session due today as upcoming, not missed', () => {
+        // anchor Mon 2026-06-01; today Thu 2026-06-04; the Thursday entry is due today.
+        const wa = computeWeekAdherence({
+            schedule: SCHED,
+            anchor: '2026-06-01T00:00:00Z',
+            tz: 'UTC',
+            now: '2026-06-04T12:00:00Z',
+            sessions: [],
+        });
+        expect(wa.upcoming).toContainEqual(entry(4, 'upper', 'B'));
+        expect(wa.missed).not.toContainEqual(entry(4, 'upper', 'B'));
     });
     it('returns empty when there is no anchor', () => {
         const wa = computeWeekAdherence({

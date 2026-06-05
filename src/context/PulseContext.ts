@@ -109,6 +109,8 @@ export interface PulseContextValue {
         routines: boolean;
         exercises: boolean;
         notes: boolean;
+        sessions: boolean;
+        adjustments: boolean;
     };
     errors: {
         profile: boolean;
@@ -117,6 +119,8 @@ export interface PulseContextValue {
         routines: boolean;
         exercises: boolean;
         notes: boolean;
+        sessions: boolean;
+        adjustments: boolean;
     };
     retry: () => void;
 
@@ -184,6 +188,9 @@ export interface PulseContextValue {
     regenSuggestion: RegenSuggestion;
     acceptReentryDeload: (routineId: string, weekInteger: number, daysAway?: number) => Promise<void>;
     dismissReentry: (routineId: string, weekInteger: number) => Promise<void>;
+    // Revalidate the sessions feed (call after completing a workout so the
+    // derived program position updates immediately rather than after SWR's dedup).
+    refreshSessions: () => void;
 }
 
 export const PulseContext = createContext<PulseContextValue | null>(null);

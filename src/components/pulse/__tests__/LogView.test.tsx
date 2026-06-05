@@ -74,6 +74,7 @@ const defaultContext = {
     currentWeek: 1,
     programPosition: null,
     regenSuggestion: null,
+    refreshSessions: vi.fn(),
 };
 
 beforeEach(() => {

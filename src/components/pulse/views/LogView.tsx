@@ -44,6 +44,7 @@ export default function LogView() {
         adjustments,
         currentWeek,
         programPosition,
+        refreshSessions,
         routineExercisesByTabKey,
         navigate,
         updateLog,
@@ -82,11 +83,17 @@ export default function LogView() {
     const { progressionIndex, isRampBack } = progressionInfo(activeWeek, routineAdjustments);
     const phase = getPhase(progressionIndex, programWeeks);
     const rir = getRIR(progressionIndex, programWeeks) + (isRampBack ? RAMPBACK_RIR_BONUS : 0);
+    const rampDaysAway = isRampBack
+        ? routineAdjustments.find((a) => a.kind === 'reentry_deload' && a.effective_week === activeWeek)?.payload
+              .daysAway
+        : undefined;
     const statusLabel =
         programPosition && programPosition.status !== 'on_track'
             ? programPosition.status === 'lapsed'
                 ? `Back after ${programPosition.daysSinceLastSession ?? 0}d`
-                : `${programPosition.behindBy} behind`
+                : programPosition.behindBy === 1
+                  ? '1 session behind'
+                  : `${programPosition.behindBy} sessions behind`
             : null;
     const unit = profile.unit;
     const routineExercises: RoutineExercise[] = useMemo(
@@ -171,6 +178,9 @@ export default function LogView() {
         } catch {
             // ignore — session may have already been completed or network failed
         }
+        // Revalidate the sessions feed so the derived program position (current
+        // week, on-track status) reflects this completion immediately.
+        refreshSessions();
         setWorkoutModeOpen(false);
         setShareSession({ session: completedSession, completedAt, exercises: snapshotExercises });
     }
@@ -319,6 +329,15 @@ export default function LogView() {
                     </div>
                     <div className="mt-3">{activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}</div>
                 </div>
+                {isRampBack && (
+                    <div className="mt-3 rounded-2xl border border-pulse-accent/30 bg-pulse-surface px-4 py-3">
+                        <p className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent">Ramp-back week</p>
+                        <p className="mt-1 font-pulse text-[0.78125rem] text-pulse-dim">
+                            Easing in{rampDaysAway ? ` after ${rampDaysAway} days off` : ''}. Reduced volume and an
+                            easier RIR before your normal progression resumes.
+                        </p>
+                    </div>
+                )}
             </div>
 
             <div
