@@ -77,6 +77,7 @@
 - Progress trends as cards — the trends grid (volume, e1RM, volume-by-muscle, streak, Best Lifts, Personal Records) is wrapped in `bg-pulse-surface` cards on a tighter gap, matching the card idiom the redesigned screens use
 - Muscle priority + gender-aware generation — persistent `priority_muscle` on `profiles` (`glutes | legs | chest | back | shoulders | arms | balanced`, nullable). The generator tilts each session's emphasis toward the priority's movement patterns (front-loading them where the session already trains that muscle, never injecting into unrelated days) via a pure `tiltEmphasis`; the Progress weekly volume targets bump for that muscle (`priorityAdjustedTargets`) so the recovery nudges stay coherent. Gender now only seeds the default (female → glutes) via `genderDefault`, applied server-side at generation when no explicit choice exists; the old female-only `recommendStyle` bias is retired. Editable as a "Training priority" setting in Profile. (Deferred: an explicit priority step inside the generation flow — the Profile control + server-side seeding cover the default.)
 - Template metadata + Templates-tab filters — `routine_templates` gain `goal` (`build_muscle | lose_fat | general_fitness`) and `gender_fit` (`any | female`) columns, seeded across the 17 templates (Full Body → general fitness, Full Body Tone → lose fat + female, Glute Focus → female, rest build-muscle / any). The Templates tab gains a shared filter model (`templateFilters.ts`, pure + unit-tested): Goal and Equipment as always-visible `FilterChips` rails, with Experience / Days-per-week / a "For you" gender-fit toggle behind a Filters expander (active-count badge); all AND-combined. "For you" keeps gender-neutral templates plus ones matching the user's gender
+- CSV data export — a pure, unit-tested `buildWorkoutCsv` produces one row per logged set (Week, Exercise, Set, Weight (kg), Reps, RIR, PR, Drop sets) with RFC-4180 escaping; weights stay in canonical kg. The export moved up to `PulseProvider` so it can resolve exercise names (honouring week-scoped swaps) and PR flags, replacing the old nameless JSON dump. Its button moved out of the mobile header into a "Data" section in Profile, reachable on every device
 
 ---
 
@@ -108,18 +109,21 @@ Differentiation opportunities:
 
 ## Near-term
 
-Promoted from Later 2026-06-04 after clearing the previous four. Same value-per-effort ordering: cheapest web-native win first, then the item that extends what we just shipped, then the higher-effort visual feature. All three serve the two current users and need no user mass or accumulated data.
+Selected 2026-06-05. CSV export is independent and small; the other three are an interrelated cluster that reshapes the 12-week program model + progression engine (periodization is the foundation, with plateau/deload and adaptive regeneration built on top) — brainstormed as a cluster, not in isolation. Progress photos moved to Later (its storage-bucket infra cost wasn't worth prioritizing over these).
+
+The remaining three are the program-engine cluster, to be brainstormed together (periodization is the foundation).
 
 | # | Feature | Notes |
 |---|---------|-------|
-| 1 | CSV data export | Export full workout history (logs + sessions + PRs) as CSV for backup or external analysis. Small, pure-compute, ownership value; no schema or storage changes. (also in: Strong, Alpha, Caliber) |
-| 2 | Progress photos | Date-stamped progress photos alongside the existing body measurements; visual progress comparison that pairs with the recomp dashboard. Needs file upload + a Supabase storage bucket (RLS) and a CSP `img-src`/`connect-src` update for the storage host. (also in: Hevy, Strong, Jefit, Fitbod) |
+| 1 | Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. The foundation the next two build on — reshapes the static 12-week phase/RIR/volume model. Bigger lift. |
+| 2 | Plateau detection + smart deload | Detect a stalled lift over N weeks and recommend a volume change / exercise swap / deload. The data-driven version of the static week-12 deload. Builds on the progression engine. (also in: Alpha, Boostcamp) |
+| 3 | Adaptive missed-workout regeneration | "You missed Lower B, here's an adjusted week" instead of restart. High adherence value; sessions infra exists. Builds on the program/progression model. (inspired by: Fitbod) |
 
 _Muscle priority selection shipped 2026-06-05 (see Shipped: muscle priority + gender-aware generation)._
 
 _Template library revision (metadata) and Templates-tab filters shipped 2026-06-05 (see Shipped: template metadata + Templates-tab filters)._
 
-_Shipped 2026-06-05: sex→gender rename, Progress dashboard re-tier, body measurement units (cm / in) + Profile Body block, recovery detail chips, Progress time window (Week/Cycle/All), clearer nav icons, Profile Body trend chips, shared PageTitle, Train/Plan/Library layout redesign + Progress card alignment, muscle priority + gender-aware generation, template metadata + Templates-tab filters (see Shipped)._
+_Shipped 2026-06-05: sex→gender rename, Progress dashboard re-tier, body measurement units (cm / in) + Profile Body block, recovery detail chips, Progress time window (Week/Cycle/All), clearer nav icons, Profile Body trend chips, shared PageTitle, Train/Plan/Library layout redesign + Progress card alignment, muscle priority + gender-aware generation, template metadata + Templates-tab filters, CSV data export (see Shipped)._
 _Shipped 2026-06-04: gender in profile, strength score, recovery-aware volume nudges, rest-timer auto-advance, mid-workout exercise swap, generation explainability, weekly per-muscle volume targets, recomp dashboard, offline-first logging (see Shipped)._
 _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions, rule-based routine generation, routine editor session grouping, routine rename, collapsible sidebar, scroll-rail muscle filter, streak hero, login + skeleton reskin (see Shipped)._
 
@@ -131,9 +135,7 @@ Same value-per-effort ordering as Near-term, continued: web-native moderate-valu
 
 | Feature | Notes |
 |---|---|
-| Adaptive missed-workout regeneration | "You missed Lower B, here's an adjusted week" instead of restart. High adherence value; sessions infra exists. Lower urgency at current scale. (inspired by: Fitbod) |
-| Periodized programs | Variable-duration (8/10/12/16 weeks); strength-calibration via test week or 1RM; week-by-week progression. Requires workout sessions infrastructure (shipped). Bigger lift. |
-| Plateau detection + smart deload | Detect a stalled lift over N weeks and recommend volume change / exercise swap / deload. Static week-12 deload exists; this is the data-driven version. Needs accumulated logs. (also in: Alpha, Boostcamp) |
+| Progress photos | Date-stamped progress photos alongside body measurements; visual comparison pairing with the recomp dashboard. Needs file upload + a Supabase storage bucket (RLS) and a CSP `img-src`/`connect-src` update. Moved here from Near-term 2026-06-05 — only outstanding item with real infra cost. (also in: Hevy, Strong, Jefit, Fitbod) |
 | Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support (shipped). Niche. |
 | Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data — badges only land well at milestones users actually reach. (also in: Jefit, Boostcamp) |
 | Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. Needs a year of data to be meaningful. (also in: Hevy, Jefit, Boostcamp) |
