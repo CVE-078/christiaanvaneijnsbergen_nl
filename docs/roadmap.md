@@ -111,9 +111,16 @@ Differentiation opportunities:
 
 ## Near-term
 
-Selected 2026-06-05. The interrelated program-engine cluster (periodized programs, then plateau/deload, then adaptive regeneration) is now fully shipped, alongside CSV export. Near-term is clear. Progress photos moved to Later (its storage-bucket infra cost wasn't worth prioritizing over these).
+Selected 2026-06-05 (round 2). The program-engine cluster shipped; these are follow-ups surfaced by real use plus a guided-screen redesign.
 
-_All Near-term items shipped 2026-06-05. Adaptive missed-workout regeneration completed the cluster (see Shipped: adaptive missed-workout regeneration)._
+| # | Feature | Notes |
+|---|---------|-------|
+| 1 | Auto-applied deload for stalled lifts | Make the plateau nudge real: a stalled lift's next target auto-deloads (~10% lighter, reps reset to the bottom of the range), derived from logs and self-limiting (deload once, then rebuild for ~3 weeks). Completes the periodization cluster's deferred deload. No new storage. |
+| 2 | Onboarding day-count fix | Selecting more day-of-week slots than the chosen days-per-week creates a session on every day instead of the recommended N-day routine. Cap generation to the chosen style's session count, leaving the rest as rest days. (bug, `generation.ts`) |
+| 3 | Program start-day selection | Let users pick the program-week start day so a mid-week start isn't flagged "behind". Likely a `program_start_dow` on the routine driving the adherence window. Fixes a rough edge in adaptive regen. |
+| 4 | WorkoutModeScreen redesign | Redesign the guided workout screen (use the frontend-design skill). |
+
+_All prior Near-term items shipped 2026-06-05 (see Shipped: adaptive missed-workout regeneration, dynamic periodized programs, etc.)._
 
 _Periodized programs + plateau detection/deload shipped 2026-06-05 (see Shipped: dynamic periodized programs)._
 
@@ -134,6 +141,7 @@ Same value-per-effort ordering as Near-term, continued: web-native moderate-valu
 | Feature | Notes |
 |---|---|
 | Progress photos | Date-stamped progress photos alongside body measurements; visual comparison pairing with the recomp dashboard. Needs file upload + a Supabase storage bucket (RLS) and a CSP `img-src`/`connect-src` update. Moved here from Near-term 2026-06-05 — only outstanding item with real infra cost. (also in: Hevy, Strong, Jefit, Fitbod) |
+| Accent colour selection | Let the user pick their accent colour from a preset set. Pulse theming uses `@theme` tokens in globals.css (`pulse-accent` etc.); a picker would persist a choice and override the token at runtime. Low-effort personalisation polish. |
 | Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support (shipped). Niche. |
 | Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data — badges only land well at milestones users actually reach. (also in: Jefit, Boostcamp) |
 | Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. Needs a year of data to be meaningful. (also in: Hevy, Jefit, Boostcamp) |
