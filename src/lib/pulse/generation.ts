@@ -9,6 +9,7 @@ import type {
     ProgramStyle,
     SessionTime,
     Gender,
+    PriorityMuscle,
     WorkoutType,
     WorkoutVariant,
 } from './types';
@@ -111,6 +112,46 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
 /** Resolve an emphasis key to its `{ bias, slots }` definition. */
 export function emphasisFor(key: EmphasisKey): Emphasis {
     return EMPHASES[key];
+}
+
+// ── Muscle priority ──────────────────────────────────────────────────────────
+// Movement patterns each priority muscle is trained through (compound first).
+// `arms` covers both biceps and triceps isolation.
+export const PRIORITY_PATTERNS: Record<PriorityMuscle, MovementPattern[]> = {
+    glutes: ['glute_iso', 'hinge'],
+    legs: ['squat', 'lunge'],
+    chest: ['horizontal_push', 'chest_iso'],
+    back: ['horizontal_pull', 'back_iso'],
+    shoulders: ['vertical_push', 'shoulder_iso'],
+    arms: ['biceps_iso', 'triceps_iso'],
+};
+
+/** Default priority seeded from gender (UI only): female → glutes, else balanced. */
+export function genderDefault(gender: Gender | null): PriorityMuscle | 'balanced' {
+    return gender === 'female' ? 'glutes' : 'balanced';
+}
+
+/** Normalize the stored profile value to an active priority, or null for none. */
+export function resolvePriority(value: PriorityMuscle | 'balanced' | null | undefined): PriorityMuscle | null {
+    return value && value !== 'balanced' ? value : null;
+}
+
+/**
+ * Tilt an emphasis toward a priority by front-loading the priority's movement
+ * patterns that already appear in the emphasis slot list. The slot filler picks
+ * front slots first and backfills in order, so this gives the prioritized muscle
+ * the first pick and earlier backfill (more volume) within the session's exercise
+ * budget. Sessions that don't already train the priority (no matching pattern)
+ * are left untouched — we never inject a glute slot into an upper day. A null
+ * priority is the identity.
+ */
+export function tiltEmphasis(emphasis: Emphasis, priority: PriorityMuscle | null): Emphasis {
+    if (!priority) return emphasis;
+    const wanted = PRIORITY_PATTERNS[priority];
+    const present = wanted.filter((p) => emphasis.slots.includes(p));
+    if (present.length === 0) return emphasis;
+    const rest = emphasis.slots.filter((s) => !present.includes(s));
+    return { bias: emphasis.bias, slots: [...present, ...rest] };
 }
 
 // ── Program style catalog ──────────────────────────────────────────────────
@@ -287,11 +328,10 @@ export const STYLES: Record<number, ProgramStyle[]> = {
  * 3 → Full Body, 4 → Classic Upper/Lower, 5 → Upper/Lower/Push/Pull/Legs.
  * For counts with a single style, returns that style's key.
  *
- * `gender === 'female'` applies a light bias toward a more lower/glute-focused
- * style when the count offers one: 4-day → `ul-aesthetic-4`, 3-day →
- * `fb-emphasis-3`. Any other count or gender keeps the default first style.
+ * Gender-agnostic: personalization now comes from the muscle priority (which
+ * tilts emphasis/volume within the chosen split), not from biasing the split.
  */
-export function recommendStyle(sessionCount: number, gender?: Gender | null): string {
+export function recommendStyle(sessionCount: number): string {
     const styles = STYLES[sessionCount];
     if (!styles || styles.length === 0) {
         // Fall back to the nearest defined count's first style.
@@ -300,11 +340,6 @@ export function recommendStyle(sessionCount: number, gender?: Gender | null): st
             .sort((a, b) => a - b);
         const nearest = counts.find((c) => c >= sessionCount) ?? counts[counts.length - 1];
         return STYLES[nearest][0].key;
-    }
-
-    if (gender === 'female') {
-        const biasKey = sessionCount === 4 ? 'ul-aesthetic-4' : sessionCount === 3 ? 'fb-emphasis-3' : null;
-        if (biasKey && styles.some((s) => s.key === biasKey)) return biasKey;
     }
 
     return styles[0].key;
@@ -531,6 +566,8 @@ export interface GenerationInput {
     sessionTime: SessionTime;
     trainingDays: number[];
     pool: ExerciseMeta[];
+    /** Active muscle priority (resolved; null = none). Tilts each session's emphasis. */
+    priority?: PriorityMuscle | null;
     /** Generates a unique superset group id. Server passes crypto.randomUUID. */
     makeGroupId?: () => string;
 }
@@ -573,7 +610,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const variant = session.variant;
         schedule.push({ day_of_week: days[i], workout_type, variant });
 
-        const emphasis = emphasisFor(session.emphasis);
+        const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const selected = selectForSession(emphasis, exCount, usable, used);
 
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.

@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { UUID_RE } from '@/lib/pulse/utils';
-import { applyTemplateVolume, buildRationale, generateRoutine, resolveStyle } from '@/lib/pulse/generation';
+import { applyTemplateVolume, buildRationale, generateRoutine, resolveStyle, resolvePriority } from '@/lib/pulse/generation';
 import type { ExerciseMeta } from '@/lib/pulse/generation';
 import {
     EXPERIENCE_LEVELS,
@@ -365,6 +365,15 @@ export async function generateAndSaveRoutine(
         .select('id, category, equipment, movement_pattern, is_compound')
         .is('user_id', null);
 
+    // The persisted muscle priority tilts each session's emphasis toward that
+    // muscle (null = none / balanced).
+    const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('priority_muscle')
+        .eq('id', user.id)
+        .maybeSingle();
+    const priority = resolvePriority(profileRow?.priority_muscle ?? null);
+
     // Exclude the user's hidden exercises so generation never surfaces them. The
     // smaller pool flows through the existing equipment filter + thin-pool
     // fallback in generateRoutine.
@@ -386,6 +395,7 @@ export async function generateAndSaveRoutine(
         sessionTime,
         trainingDays,
         pool,
+        priority,
         makeGroupId: () => crypto.randomUUID(),
     });
 

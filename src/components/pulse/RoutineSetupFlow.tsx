@@ -155,7 +155,7 @@ export default function RoutineSetupFlow({
                     answers: { equipment, experience, goal, days, gender },
                     trainingDays,
                     sessionTime,
-                    styleKey: styleKey ?? recommendStyle(trainingDays.length, gender),
+                    styleKey: styleKey ?? recommendStyle(trainingDays.length),
                     gender,
                 });
             } finally {
