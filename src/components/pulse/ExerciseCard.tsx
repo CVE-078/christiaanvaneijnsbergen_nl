@@ -8,6 +8,8 @@ import {
     computeLastSession,
     computeSuggestion,
     computeWarmupSets,
+    computeE1RMHistory,
+    computePlateau,
 } from '@/lib/pulse/utils';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
@@ -89,6 +91,8 @@ function ExerciseCard({
     const workingWeightKg =
         computeSuggestion(prevEntry0?.saved ? prevEntry0 : undefined, week) ?? re.starting_weight_kg ?? null;
     const warmupSets = workingWeightKg !== null ? computeWarmupSets(workingWeightKg, unit) : [];
+    // Quiet for new lifts: computePlateau returns false with <=3 logged weeks.
+    const stalled = computePlateau(computeE1RMHistory(logs, re.id));
 
     return (
         <>
@@ -159,6 +163,25 @@ function ExerciseCard({
 
                 {open && (
                     <div className="px-[1.125rem] pt-1 pb-4 flex flex-col gap-2.5">
+                        {stalled && (
+                            <div className="rounded-lg bg-pulse-surface-2 px-3 py-2.5">
+                                <p className="font-pulse text-[0.78125rem] font-semibold text-pulse-accent">
+                                    ⚠ Stalled — no e1RM gain in 3 weeks
+                                </p>
+                                <p className="font-pulse text-[0.75rem] text-pulse-dim mt-1">
+                                    {onSwap ? (
+                                        <button
+                                            onClick={onSwap}
+                                            className="font-semibold text-pulse-accent bg-transparent border-none p-0 cursor-pointer hover:underline">
+                                            Swap this lift
+                                        </button>
+                                    ) : (
+                                        <span className="font-semibold text-pulse-dim">Try a swap</span>
+                                    )}{' '}
+                                    or take a lighter week.
+                                </p>
+                            </div>
+                        )}
                         <div className="flex items-center gap-2 flex-wrap">
                             {display.user_id === null && (
                                 <button
