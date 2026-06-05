@@ -1,0 +1,335 @@
+import { describe, it, expect } from 'vitest';
+import {
+    dayIndex,
+    weekdayOf,
+    attributeSessions,
+    progressionInfo,
+    rampBackPrescription,
+    computeProgramPosition,
+    computeWeekAdherence,
+    computeRegenSuggestion,
+} from '../adherence';
+import type {
+    ScheduleEntry,
+    WorkoutSession,
+    WorkoutVariant,
+    WorkoutType,
+    ProgramAdjustment,
+    AdjustmentKind,
+    ProgramPosition,
+    WeekAdherence,
+} from '../types';
+
+let idc = 0;
+const entry = (day_of_week: number, workout_type: WorkoutType, variant: WorkoutVariant | null = null): ScheduleEntry => ({
+    day_of_week,
+    workout_type,
+    variant,
+});
+const sess = (completed_at: string | null, workout_type: string, variant: WorkoutVariant | null = null): WorkoutSession => ({
+    id: `s${idc++}`,
+    user_id: 'u',
+    routine_id: 'r',
+    workout_type,
+    variant,
+    started_at: completed_at ?? '2026-01-01T00:00:00Z',
+    completed_at,
+});
+const adj = (kind: AdjustmentKind, effective_week: number): ProgramAdjustment => ({
+    id: `a${idc++}`,
+    routine_id: 'r',
+    kind,
+    effective_week,
+    created_at: '2026-01-01T00:00:00Z',
+    payload: {},
+});
+
+const SCHED: ScheduleEntry[] = [
+    entry(1, 'upper', 'A'),
+    entry(2, 'lower', 'A'),
+    entry(4, 'upper', 'B'),
+    entry(5, 'lower', 'B'),
+];
+
+describe('dayIndex & weekdayOf', () => {
+    it('same UTC calendar day → same index', () => {
+        expect(dayIndex('2026-06-05T00:30:00Z', 'UTC')).toBe(dayIndex('2026-06-05T23:30:00Z', 'UTC'));
+    });
+    it('consecutive UTC days differ by 1', () => {
+        expect(dayIndex('2026-06-06T12:00:00Z', 'UTC') - dayIndex('2026-06-05T12:00:00Z', 'UTC')).toBe(1);
+    });
+    it('7 days apart differ by 7', () => {
+        expect(dayIndex('2026-06-12T12:00:00Z', 'UTC') - dayIndex('2026-06-05T12:00:00Z', 'UTC')).toBe(7);
+    });
+    it('timezone behind UTC can roll to the previous day', () => {
+        // 01:00 UTC is 18:00 the prior day in Los Angeles (UTC-7 in June).
+        expect(dayIndex('2026-06-05T01:00:00Z', 'America/Los_Angeles')).toBe(
+            dayIndex('2026-06-05T01:00:00Z', 'UTC') - 1,
+        );
+    });
+    it('late UTC evening is the next day in Tokyo', () => {
+        expect(dayIndex('2026-06-05T23:30:00Z', 'Asia/Tokyo')).toBe(dayIndex('2026-06-06T10:00:00Z', 'Asia/Tokyo'));
+    });
+    it('DST-observing tz: consecutive noon days still differ by 1', () => {
+        // US spring-forward weekend (2026-03-08).
+        expect(
+            dayIndex('2026-03-09T12:00:00Z', 'America/New_York') - dayIndex('2026-03-08T12:00:00Z', 'America/New_York'),
+        ).toBe(1);
+    });
+    it('weekdayOf: epoch day is Thursday (4)', () => {
+        expect(weekdayOf(dayIndex('1970-01-01T12:00:00Z', 'UTC'))).toBe(4);
+    });
+    it('weekdayOf: 2026-06-08 is a Monday (1)', () => {
+        expect(weekdayOf(dayIndex('2026-06-08T12:00:00Z', 'UTC'))).toBe(1);
+    });
+    it('invalid timezone falls back to UTC', () => {
+        expect(dayIndex('2026-06-05T12:00:00Z', 'Not/AZone')).toBe(dayIndex('2026-06-05T12:00:00Z', 'UTC'));
+    });
+});
+
+describe('attributeSessions', () => {
+    it('empty schedule is inert', () => {
+        const a = attributeSessions([], [sess('2026-06-01T10:00:00Z', 'upper', 'A')]);
+        expect(a.weekInteger).toBe(1);
+        expect(a.completedCount).toBe(1);
+        expect(a.nextEntry).toBeNull();
+    });
+    it('3 of 4 done → week 1, one remaining', () => {
+        const a = attributeSessions(SCHED, [
+            sess('2026-06-01T10:00:00Z', 'upper', 'A'),
+            sess('2026-06-02T10:00:00Z', 'lower', 'A'),
+            sess('2026-06-04T10:00:00Z', 'upper', 'B'),
+        ]);
+        expect(a.weekInteger).toBe(1);
+        expect(a.currentCycleDone).toHaveLength(3);
+        expect(a.currentCycleRemaining).toEqual([entry(5, 'lower', 'B')]);
+        expect(a.nextEntry).toEqual(entry(5, 'lower', 'B'));
+    });
+    it('a full cycle advances to the start of week 2', () => {
+        const a = attributeSessions(SCHED, [
+            sess('2026-06-01T10:00:00Z', 'upper', 'A'),
+            sess('2026-06-02T10:00:00Z', 'lower', 'A'),
+            sess('2026-06-04T10:00:00Z', 'upper', 'B'),
+            sess('2026-06-05T10:00:00Z', 'lower', 'B'),
+        ]);
+        expect(a.weekInteger).toBe(2);
+        expect(a.currentCycleRemaining).toHaveLength(4);
+        expect(a.nextEntry).toEqual(entry(1, 'upper', 'A'));
+    });
+    it('matches by (type,variant) regardless of completion order', () => {
+        const a = attributeSessions(SCHED, [
+            sess('2026-06-01T10:00:00Z', 'upper', 'B'),
+            sess('2026-06-02T10:00:00Z', 'lower', 'A'),
+            sess('2026-06-04T10:00:00Z', 'upper', 'A'),
+        ]);
+        expect(a.currentCycleRemaining).toEqual([entry(5, 'lower', 'B')]);
+    });
+    it('off-plan session still advances the cycle', () => {
+        const a = attributeSessions(SCHED, [sess('2026-06-01T10:00:00Z', 'legs', null)]);
+        expect(a.completedCount).toBe(1);
+        expect(a.currentCycleRemaining).toHaveLength(3);
+    });
+    it('variant-null entries match variant-null sessions', () => {
+        const s2 = [entry(1, 'full_body', null), entry(3, 'full_body', null)];
+        const a = attributeSessions(s2, [sess('2026-06-01T10:00:00Z', 'full_body', null)]);
+        expect(a.currentCycleRemaining).toHaveLength(1);
+        expect(a.weekInteger).toBe(1);
+    });
+});
+
+describe('progressionInfo', () => {
+    it('no adjustments → index equals weekInteger', () => {
+        expect(progressionInfo(5, [])).toEqual({ progressionIndex: 5, isRampBack: false });
+    });
+    it('a ramp-back week reports isRampBack', () => {
+        expect(progressionInfo(5, [adj('reentry_deload', 5)])).toEqual({ progressionIndex: 5, isRampBack: true });
+    });
+    it('weeks after a ramp-back are offset back by one', () => {
+        expect(progressionInfo(6, [adj('reentry_deload', 5)])).toEqual({ progressionIndex: 5, isRampBack: false });
+    });
+    it('two inserted deloads offset by two', () => {
+        expect(progressionInfo(9, [adj('reentry_deload', 5), adj('reentry_deload', 8)])).toEqual({
+            progressionIndex: 7,
+            isRampBack: false,
+        });
+    });
+    it('dismissed adjustments do not offset progression', () => {
+        expect(progressionInfo(6, [adj('reentry_dismissed', 5)])).toEqual({ progressionIndex: 6, isRampBack: false });
+    });
+});
+
+describe('rampBackPrescription', () => {
+    it('reduces volume to ~60% and eases RIR by 1', () => {
+        // week 5 of a 12-week block: volume 16 → round(9.6)=10, RIR 2 → 3.
+        expect(rampBackPrescription(5, 12, [adj('reentry_deload', 5)])).toEqual({ volume: 10, rir: 3 });
+    });
+});
+
+describe('computeProgramPosition', () => {
+    it('flags lapsed after a >= GAP_DAYS gap', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T08:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [
+                sess('2026-05-01T10:00:00Z', 'upper', 'A'),
+                sess('2026-06-04T10:00:00Z', 'lower', 'A'),
+            ],
+            adjustments: [],
+            tz: 'UTC',
+            now: '2026-06-15T12:00:00Z',
+        });
+        expect(pos.daysSinceLastSession).toBe(11);
+        expect(pos.status).toBe('lapsed');
+    });
+    it('is not lapsed at a 9-day gap', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T08:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [sess('2026-06-06T10:00:00Z', 'upper', 'A')],
+            adjustments: [],
+            tz: 'UTC',
+            now: '2026-06-15T12:00:00Z',
+        });
+        expect(pos.daysSinceLastSession).toBe(9);
+        expect(pos.status).not.toBe('lapsed');
+    });
+    it('daysSinceLastSession is null with no completed sessions', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-06-01T08:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [],
+            adjustments: [],
+            tz: 'UTC',
+            now: '2026-06-05T12:00:00Z',
+        });
+        expect(pos.daysSinceLastSession).toBeNull();
+        expect(pos.status).not.toBe('lapsed');
+    });
+    it('calendarWeek tracks elapsed days', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-06-01T00:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [],
+            adjustments: [],
+            tz: 'UTC',
+            now: '2026-06-09T00:00:00Z', // 8 days later
+        });
+        expect(pos.calendarWeek).toBe(2);
+    });
+    it('carries progressionIndex/isRampBack through from adjustments', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T00:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [
+                sess('2026-05-01T10:00:00Z', 'upper', 'A'),
+                sess('2026-05-02T10:00:00Z', 'lower', 'A'),
+                sess('2026-05-04T10:00:00Z', 'upper', 'B'),
+                sess('2026-05-05T10:00:00Z', 'lower', 'B'),
+            ],
+            adjustments: [adj('reentry_deload', 2)],
+            tz: 'UTC',
+            now: '2026-05-06T12:00:00Z',
+        });
+        expect(pos.weekInteger).toBe(2);
+        expect(pos.isRampBack).toBe(true);
+        expect(pos.progressionIndex).toBe(2);
+    });
+});
+
+describe('computeWeekAdherence', () => {
+    it('classifies past-not-done as missed and future as upcoming', () => {
+        const wa = computeWeekAdherence({
+            schedule: SCHED,
+            anchor: '2026-06-01T00:00:00Z',
+            tz: 'UTC',
+            now: '2026-06-05T12:00:00Z',
+            sessions: [sess('2026-06-01T10:00:00Z', 'upper', 'A'), sess('2026-06-02T10:00:00Z', 'lower', 'A')],
+        });
+        expect(wa.done).toEqual([entry(1, 'upper', 'A'), entry(2, 'lower', 'A')]);
+        expect(wa.missed).toEqual([entry(4, 'upper', 'B')]);
+        expect(wa.upcoming).toEqual([entry(5, 'lower', 'B')]);
+    });
+    it('ignores sessions outside the current week window', () => {
+        const wa = computeWeekAdherence({
+            schedule: SCHED,
+            anchor: '2026-06-01T00:00:00Z',
+            tz: 'UTC',
+            now: '2026-06-02T12:00:00Z',
+            sessions: [sess('2026-05-20T10:00:00Z', 'upper', 'A')],
+        });
+        expect(wa.done).toEqual([]);
+    });
+    it('returns empty when there is no anchor', () => {
+        const wa = computeWeekAdherence({
+            schedule: SCHED,
+            anchor: null,
+            tz: 'UTC',
+            now: '2026-06-05T12:00:00Z',
+            sessions: [],
+        });
+        expect(wa).toEqual({ missed: [], upcoming: [], done: [] });
+    });
+});
+
+describe('computeRegenSuggestion', () => {
+    const lapsed = (weekInteger = 2): ProgramPosition => ({
+        weekInteger,
+        progressionIndex: weekInteger,
+        isRampBack: false,
+        completedCount: 4,
+        calendarWeek: 4,
+        behindBy: 3,
+        daysSinceLastSession: 12,
+        status: 'lapsed',
+        nextEntry: null,
+    });
+    const noMiss: WeekAdherence = { missed: [], upcoming: [], done: [] };
+
+    it('suggests a ramp-back when lapsed and undecided', () => {
+        expect(computeRegenSuggestion(lapsed(), noMiss, [])).toEqual({
+            kind: 'reentry_deload',
+            weekInteger: 2,
+            daysAway: 12,
+        });
+    });
+    it('suppresses the ramp-back once dismissed', () => {
+        expect(computeRegenSuggestion(lapsed(), noMiss, [adj('reentry_dismissed', 2)])).toBeNull();
+    });
+    it('suppresses the ramp-back once accepted', () => {
+        expect(computeRegenSuggestion(lapsed(), noMiss, [adj('reentry_deload', 2)])).toBeNull();
+    });
+    it('suggests catch_up when behind with a missed entry', () => {
+        const pos: ProgramPosition = {
+            weekInteger: 1,
+            progressionIndex: 1,
+            isRampBack: false,
+            completedCount: 1,
+            calendarWeek: 1,
+            behindBy: 1,
+            daysSinceLastSession: 2,
+            status: 'behind',
+            nextEntry: null,
+        };
+        const wa: WeekAdherence = { missed: [entry(4, 'upper', 'B')], upcoming: [], done: [] };
+        expect(computeRegenSuggestion(pos, wa, [])).toEqual({ kind: 'catch_up', missed: [entry(4, 'upper', 'B')] });
+    });
+    it('returns null when on track with nothing missed', () => {
+        const pos: ProgramPosition = {
+            weekInteger: 1,
+            progressionIndex: 1,
+            isRampBack: false,
+            completedCount: 2,
+            calendarWeek: 1,
+            behindBy: 0,
+            daysSinceLastSession: 0,
+            status: 'on_track',
+            nextEntry: null,
+        };
+        expect(computeRegenSuggestion(pos, noMiss, [])).toBeNull();
+    });
+});
