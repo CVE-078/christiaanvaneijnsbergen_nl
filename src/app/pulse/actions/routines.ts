@@ -80,6 +80,24 @@ export async function updateRoutineProgramWeeks(id: string, weeks: number): Prom
     if (error) throw new Error('Failed to update program length');
 }
 
+// Set when the program "week 1" begins. Drives only the calendar adherence
+// overlay (calendar week / expected sessions / behind state), not completion-
+// paced progression, so it never alters logged data.
+export async function setProgramAnchor(id: string, anchorISO: string): Promise<void> {
+    assertUuid(id);
+    if (typeof anchorISO !== 'string' || isNaN(new Date(anchorISO).getTime()))
+        throw new Error('Invalid program start date');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('workout_routines')
+        .update({ program_anchor: anchorISO })
+        .eq('id', id)
+        .eq('user_id', user.id);
+    if (error) throw new Error('Failed to update program start');
+}
+
 export async function deleteRoutine(id: string): Promise<void> {
     assertUuid(id);
 
@@ -361,10 +379,7 @@ export async function generateAndSaveRoutine(
     if (!EXPERIENCE_LEVELS.includes(answers.experience)) throw new Error('Invalid data');
     if (!GOALS.includes(answers.goal)) throw new Error('Invalid data');
     if (!DAYS_PER_WEEK_OPTIONS.includes(answers.days)) throw new Error('Invalid data');
-    if (
-        !(answers.equipment instanceof Set) ||
-        ![...answers.equipment].every((e) => EQUIPMENT_KEYS.includes(e))
-    )
+    if (!(answers.equipment instanceof Set) || ![...answers.equipment].every((e) => EQUIPMENT_KEYS.includes(e)))
         throw new Error('Invalid data');
     if (!SESSION_TIMES.includes(sessionTime)) throw new Error('Invalid data');
 

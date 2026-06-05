@@ -48,6 +48,7 @@ const mockContext = {
     createRoutine: vi.fn(),
     renameRoutine: vi.fn(),
     updateRoutineProgramWeeks: vi.fn(),
+    setProgramAnchor: vi.fn(),
     deleteRoutine: vi.fn(),
     setActiveRoutine: vi.fn(),
     addExerciseToRoutine: vi.fn(),

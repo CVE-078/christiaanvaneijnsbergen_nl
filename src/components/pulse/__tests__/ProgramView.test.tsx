@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import ProgramView from '../views/ProgramView';
 
 vi.mock('@/context/PulseContext', () => ({
@@ -53,6 +53,8 @@ const baseContext = {
     logs: {},
     activeSchedule: [],
     activeRoutine: null,
+    updateRoutineProgramWeeks: vi.fn(),
+    setProgramAnchor: vi.fn(),
 };
 
 beforeEach(() => {
@@ -77,15 +79,27 @@ describe('ProgramView', () => {
         expect(screen.getByText('Pull')).toBeInTheDocument();
     });
 
+    it('lets the user set the program start date', () => {
+        const setProgramAnchor = vi.fn();
+        const routine = makeRoutine([makeRE('Bench Press', 'push')], []);
+        vi.mocked(usePulse).mockReturnValue({
+            ...baseContext,
+            activeRoutine: routine,
+            activeSchedule: [],
+            setProgramAnchor,
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<ProgramView />);
+        expect(screen.getByText(/program start/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+        expect(setProgramAnchor).toHaveBeenCalledWith('r1', expect.stringMatching(/T12:00:00\.000Z$/));
+    });
+
     it('rolls granular exercises up into a single Full Body session', () => {
-        const routine = makeRoutine(
-            [makeRE('Bench Press', 'push'), makeRE('Row', 'pull'), makeRE('Squat', 'legs')],
-            [
-                { day_of_week: 1, workout_type: 'full_body', variant: null },
-                { day_of_week: 3, workout_type: 'full_body', variant: null },
-                { day_of_week: 5, workout_type: 'full_body', variant: null },
-            ] as ScheduleEntry[],
-        );
+        const routine = makeRoutine([makeRE('Bench Press', 'push'), makeRE('Row', 'pull'), makeRE('Squat', 'legs')], [
+            { day_of_week: 1, workout_type: 'full_body', variant: null },
+            { day_of_week: 3, workout_type: 'full_body', variant: null },
+            { day_of_week: 5, workout_type: 'full_body', variant: null },
+        ] as ScheduleEntry[]);
         mockContext(routine);
         render(<ProgramView />);
         expect(screen.getByText('Full Body')).toBeInTheDocument();
@@ -132,13 +146,10 @@ describe('ProgramView', () => {
     });
 
     it('shows one section per distinct workout type for a PPL split', () => {
-        const routine = makeRoutine(
-            [makeRE('Bench Press', 'push'), makeRE('Row', 'pull')],
-            [
-                { day_of_week: 1, workout_type: 'push', variant: null },
-                { day_of_week: 3, workout_type: 'pull', variant: null },
-            ] as ScheduleEntry[],
-        );
+        const routine = makeRoutine([makeRE('Bench Press', 'push'), makeRE('Row', 'pull')], [
+            { day_of_week: 1, workout_type: 'push', variant: null },
+            { day_of_week: 3, workout_type: 'pull', variant: null },
+        ] as ScheduleEntry[]);
         mockContext(routine);
         render(<ProgramView />);
         expect(screen.getByText('Push')).toBeInTheDocument();
