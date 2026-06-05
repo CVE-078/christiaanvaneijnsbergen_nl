@@ -185,6 +185,20 @@ describe('ProfileView', () => {
         expect(screen.getByText(/80 kg/i)).toBeInTheDocument();
     });
 
+    it('shows a downward bodyweight trend chip when the two latest entries decrease', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyweightLogs: [
+                { id: 'b2', logged_at: '2026-05-15', weight_kg: 79 },
+                { id: 'b1', logged_at: '2026-05-01', weight_kg: 81 },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<ProfileView />);
+        const chip = screen.getByText(/↓\s*2\s*kg/);
+        expect(chip).toBeInTheDocument();
+        expect(chip.className).toContain('text-pulse-success');
+    });
+
     it('shows error when non-numeric weight is submitted', async () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('button', { name: /^log$/i }));

@@ -130,6 +130,17 @@ export default function ProfileView() {
 
     const latestMeasurement = bodyMeasurements[0];
 
+    const bwTrend =
+        bodyweightLogs.length >= 2
+            ? bodyweightLogs[0].weight_kg - bodyweightLogs[1].weight_kg
+            : null;
+
+    const waistPoints = bodyMeasurements.filter((m) => m.waist_cm != null);
+    const waistTrend =
+        waistPoints.length >= 2
+            ? (waistPoints[0].waist_cm as number) - (waistPoints[1].waist_cm as number)
+            : null;
+
     function fmtMeasure(value_cm: number | null | undefined): string {
         if (value_cm == null) return '—';
         return `${toLengthDisplay(value_cm, lengthUnit)} ${lengthUnit}`;
@@ -315,6 +326,9 @@ export default function ProfileView() {
                 <div>
                     <div className="flex justify-between items-center mb-1">
                         <SectionLabel>Body</SectionLabel>
+                        <span className="font-pulse text-[0.625rem] uppercase tracking-wide text-pulse-muted border border-pulse-border rounded px-2 py-0.5">
+                            feeds Recomp
+                        </span>
                     </div>
                     <p className="font-pulse text-[0.6875rem] text-pulse-muted">
                         Everything Progress reads for the recomp verdict, logged in one place.
@@ -323,7 +337,17 @@ export default function ProfileView() {
 
                 {/* Body weight */}
                 <div>
-                    <SectionLabel className="mb-3">Body Weight</SectionLabel>
+                    <div className="flex justify-between items-center mb-3 gap-2">
+                        <SectionLabel>Body Weight</SectionLabel>
+                        {bwTrend != null && (
+                            <span
+                                className={`font-pulse text-[0.6875rem] font-medium tabular-nums rounded px-2 py-0.5 bg-pulse-surface-2 ${
+                                    bwTrend < 0 ? 'text-pulse-success' : 'text-pulse-dim'
+                                }`}>
+                                {bwTrend < 0 ? '↓' : '↑'} {toDisplay(Math.abs(bwTrend), unit)} {unit}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex gap-2 items-start mb-[0.875rem]">
                         <div className="flex-1">
                             <div className="flex gap-2 items-center flex-wrap">
@@ -452,7 +476,18 @@ export default function ProfileView() {
                 {/* Body Measurements */}
                 <section className={SECTION + ' border-t border-pulse-border pt-4'}>
                     <div className="flex justify-between items-center mb-3 gap-2">
-                        <SectionLabel>Measurements</SectionLabel>
+                        <div className="flex items-center gap-2 min-w-0">
+                            <SectionLabel>Measurements</SectionLabel>
+                            {waistTrend != null && (
+                                <span
+                                    className={`font-pulse text-[0.6875rem] font-medium tabular-nums rounded px-2 py-0.5 bg-pulse-surface-2 shrink-0 ${
+                                        waistTrend < 0 ? 'text-pulse-success' : 'text-pulse-dim'
+                                    }`}>
+                                    {waistTrend < 0 ? '↓' : '↑'} {toLengthDisplay(Math.abs(waistTrend), lengthUnit)}{' '}
+                                    {lengthUnit} waist
+                                </span>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2">
                             <div
                                 className="inline-flex bg-pulse-surface-2 rounded-lg p-0.5 gap-0.5"
