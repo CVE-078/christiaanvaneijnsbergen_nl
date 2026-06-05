@@ -117,7 +117,13 @@ Differentiation opportunities:
 
 ## Near-term
 
-_Nothing currently selected — the 2026-06-05 round-2 queue shipped: WorkoutModeScreen redesign and Train header + day-strip redesign (see Shipped)._
+Selected 2026-06-05 (round 3) — live-review follow-up on the guided screen.
+
+| # | Feature | Notes |
+|---|---------|-------|
+| 1 | Guided set-row polish (Editorial draft C) | The WorkoutModeScreen redesign shipped and the shell is on-design, but the guided **set rows** don't yet match the approved Editorial draft (`docs/superpowers/designs/2026-06-05-workout-mode-set-rows{,-desktop}.html`). Three gaps seen in live review: **(a) single-active focus** — show only the *next* unsaved set as the active field-box row and render the remaining sets as dimmed "Set N — not started · target RIR" idle rows; today the `editorial` `SetLogger` variant renders every unsaved set as a full input form, so a 3-set exercise stacks three forms instead of one focal active set + idle previews. This is a guided-mode behavioural change (SetLogger has no "idle/preview" state today — Train must keep showing all inputs, so gate it behind the `editorial` variant or lift the active-set choice into `WorkoutModeScreen`/`StepBody`). **(b) field-box sizing** — the Weight box is `flex-1` and balloons full-width on desktop with a large gap before Save; make Weight/Reps compact fixed-width boxes grouped with the Save button and an inline target hint, matching draft C proportions on both mobile and desktop. **(c) logged-row declutter** — the editorial logged row crams RIR · PR · plate · Edit · ✕ · ✓ on the right; keep value · PR · RIR · ✓ visible and move Edit/delete behind a hover affordance or overflow menu. Files: `SetLogger.tsx` (editorial variant) + `WorkoutModeScreen.tsx`. Keep the Train `card` variant untouched and the behavioural-contract tests green. |
+
+_Nothing else currently selected — the 2026-06-05 round-2 queue shipped: WorkoutModeScreen redesign and Train header + day-strip redesign (see Shipped)._
 
 _Auto-applied deload, onboarding day-count fix, program start-day selection, and accent colour picker shipped 2026-06-05 (see Shipped)._
 _All prior Near-term items shipped 2026-06-05 (see Shipped: adaptive missed-workout regeneration, dynamic periodized programs, etc.)._
