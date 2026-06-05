@@ -72,6 +72,27 @@ describe('ExerciseCard', () => {
         expect(screen.getAllByLabelText(/all sets done/i).length).toBeGreaterThan(0);
     });
 
+    it('shows the deload card copy when a stalled lift auto-deloads', async () => {
+        // computeE1RMHistory parses log keys with parseLogKey, which requires a
+        // real UUID in the middle segment, so this test uses a valid-UUID lift.
+        const ID = 'a1b2c3d4-e5f6-47a8-9b0c-1a2b3c4d5e6f';
+        const re = { ...routineExercise, id: ID };
+        // e1RM peaks at week 3 then sets no new high → stalled, with no recent
+        // drop → auto-deload. (reps constant, so kg ordering drives e1RM.)
+        const mk = (kg: number) => ({ kg, reps: 8, rir: 1, saved: true });
+        const logs: Record<string, { kg: number; reps: number; rir: number; saved: boolean }> = {
+            [`1-${ID}-0`]: mk(100),
+            [`2-${ID}-0`]: mk(105),
+            [`3-${ID}-0`]: mk(110),
+            [`4-${ID}-0`]: mk(108),
+            [`5-${ID}-0`]: mk(109),
+            [`6-${ID}-0`]: mk(110),
+        };
+        render(<ExerciseCard {...defaultProps} routineExercise={re} week={7} logs={logs} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        expect(screen.getByText(/deloading this week to break the stall/i)).toBeInTheDocument();
+    });
+
     it('renders the exercise name', () => {
         render(<ExerciseCard {...defaultProps} />);
         expect(screen.getByText('Dumbbell Bench Press')).toBeInTheDocument();

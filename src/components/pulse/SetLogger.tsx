@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getRIR, computeProgression, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
+import { getRIR, computeProgression, deloadTarget, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { DUMBBELL_HANDLE_KG } from '@/lib/pulse/constants';
 import PlateCalculator from './PlateCalculator';
@@ -15,6 +15,10 @@ interface Props {
     repsRange?: string;
     isPR?: boolean;
     unit: Unit;
+    // When set, this lift is stalled and auto-deloading: the prefilled target
+    // drops to ~90% of the previous weight with reps reset to the bottom of the
+    // range, instead of the normal progression. Decided per-exercise in ExerciseCard.
+    deload?: boolean;
     onSave: (entry: LogEntry) => void;
     onDelete?: () => void;
 }
@@ -39,20 +43,24 @@ export default function SetLogger({
     repsRange,
     isPR,
     unit,
+    deload,
     onSave,
     onDelete,
 }: Props) {
     const progression = computeProgression(previousEntry, repsRange ?? '', week);
+    // A deload overrides the normal progression target when the lift is stalled.
+    const deloadTgt = deload && previousEntry && week > 1 ? deloadTarget(previousEntry, repsRange ?? '') : null;
+    const target = deloadTgt ?? progression;
 
     function initKg() {
         if (entry?.kg !== undefined) return String(toDisplay(entry.kg, unit));
-        if (progression) return String(toDisplay(progression.kg, unit));
+        if (target) return String(toDisplay(target.kg, unit));
         return '';
     }
 
     function initReps() {
         if (entry?.reps !== undefined) return String(entry.reps);
-        if (progression) return String(progression.reps);
+        if (target) return String(target.reps);
         return '';
     }
 
@@ -77,9 +85,9 @@ export default function SetLogger({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!saved || editing) {
-            const baseKg = entry?.kg ?? progression?.kg ?? null;
+            const baseKg = entry?.kg ?? target?.kg ?? null;
             if (baseKg !== null) setKg(String(toDisplay(baseKg, unit)));
-            const baseReps = entry?.reps ?? progression?.reps ?? null;
+            const baseReps = entry?.reps ?? target?.reps ?? null;
             if (baseReps !== null) setReps(String(baseReps));
             setDrops(
                 entry?.drops?.map((d) => ({
@@ -232,11 +240,12 @@ export default function SetLogger({
                                     → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
                                 </span>
                             )}
-                            {progression && (
+                            {target && (
                                 <span
-                                    aria-label="Auto-progression target"
+                                    aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
                                     className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
-                                    ↑ target {toDisplay(progression.kg, unit)} {unit} × {progression.reps}
+                                    {deloadTgt ? '↓ deload target' : '↑ target'} {toDisplay(target.kg, unit)} {unit} ×{' '}
+                                    {target.reps}
                                 </span>
                             )}
                             {inputError && (

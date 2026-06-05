@@ -10,6 +10,7 @@ import {
     computeWarmupSets,
     computeE1RMHistory,
     computePlateau,
+    shouldDeload,
 } from '@/lib/pulse/utils';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
@@ -92,7 +93,11 @@ function ExerciseCard({
         computeSuggestion(prevEntry0?.saved ? prevEntry0 : undefined, week) ?? re.starting_weight_kg ?? null;
     const warmupSets = workingWeightKg !== null ? computeWarmupSets(workingWeightKg, unit) : [];
     // Quiet for new lifts: computePlateau returns false with <=3 logged weeks.
-    const stalled = computePlateau(computeE1RMHistory(logs, re.id));
+    // When stalled and not already rebuilding from a recent deload, the set
+    // targets below auto-deload (see SetLogger). `deload` implies `stalled`.
+    const e1rmHistory = computeE1RMHistory(logs, re.id);
+    const stalled = computePlateau(e1rmHistory);
+    const deload = shouldDeload(e1rmHistory);
 
     return (
         <>
@@ -166,19 +171,41 @@ function ExerciseCard({
                         {stalled && (
                             <div className="rounded-lg bg-pulse-surface-2 px-3 py-2.5">
                                 <p className="font-pulse text-[0.78125rem] font-semibold text-pulse-accent">
-                                    ⚠ Stalled — no e1RM gain in 3 weeks
+                                    {deload
+                                        ? '↓ Deloading this week to break the stall'
+                                        : '⚠ Stalled — no e1RM gain in 3 weeks'}
                                 </p>
                                 <p className="font-pulse text-[0.75rem] text-pulse-dim mt-1">
-                                    {onSwap ? (
-                                        <button
-                                            onClick={onSwap}
-                                            className="font-semibold text-pulse-accent bg-transparent border-none p-0 cursor-pointer hover:underline">
-                                            Swap this lift
-                                        </button>
+                                    {deload ? (
+                                        <>
+                                            Lighter targets below — clear the easier sets, then build back up.
+                                            {onSwap && (
+                                                <>
+                                                    {' '}
+                                                    Or{' '}
+                                                    <button
+                                                        onClick={onSwap}
+                                                        className="font-semibold text-pulse-accent bg-transparent border-none p-0 cursor-pointer hover:underline">
+                                                        swap this lift
+                                                    </button>
+                                                    .
+                                                </>
+                                            )}
+                                        </>
                                     ) : (
-                                        <span className="font-semibold text-pulse-dim">Try a swap</span>
-                                    )}{' '}
-                                    or take a lighter week.
+                                        <>
+                                            {onSwap ? (
+                                                <button
+                                                    onClick={onSwap}
+                                                    className="font-semibold text-pulse-accent bg-transparent border-none p-0 cursor-pointer hover:underline">
+                                                    Swap this lift
+                                                </button>
+                                            ) : (
+                                                <span className="font-semibold text-pulse-dim">Try a swap</span>
+                                            )}{' '}
+                                            or take a lighter week.
+                                        </>
+                                    )}
                                 </p>
                             </div>
                         )}
@@ -264,6 +291,7 @@ function ExerciseCard({
                                     repsRange={re.reps}
                                     isPR={isPR}
                                     unit={unit}
+                                    deload={deload}
                                     onSave={(e) => handleSetSave(key, e)}
                                     onDelete={() => onDelete(key)}
                                 />
