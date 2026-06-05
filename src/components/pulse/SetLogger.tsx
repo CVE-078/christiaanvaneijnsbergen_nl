@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getRIR, computeProgression, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
+import { usePulse } from '@/context/PulseContext';
 import { DUMBBELL_HANDLE_KG } from '@/lib/pulse/constants';
 import PlateCalculator from './PlateCalculator';
 import type { LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
@@ -65,7 +66,11 @@ export default function SetLogger({
     const [editing, setEditing] = useState(false);
     const [inputError, setInputError] = useState<string | null>(null);
     const [platesOpen, setPlatesOpen] = useState(false);
-    const targetRIR = getRIR(week);
+    // SetLogger always renders inside the Pulse provider (Train and guided mode),
+    // so the active routine's block length drives the RIR target; the program
+    // repeats past the block, so getRIR wraps. Defaults to a 12-week block.
+    const { activeRoutine } = usePulse();
+    const targetRIR = getRIR(week, activeRoutine?.program_weeks ?? 12);
     const saved = entry?.saved ?? false;
 
     // Intentionally only [unit]: re-syncs display value when unit changes.

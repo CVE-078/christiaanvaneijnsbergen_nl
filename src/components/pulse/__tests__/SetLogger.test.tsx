@@ -4,6 +4,13 @@ import userEvent from '@testing-library/user-event';
 import SetLogger from '../SetLogger';
 import type { LogEntry } from '@/lib/pulse/types';
 
+// SetLogger reads the active routine's block length from the Pulse provider to
+// pick the RIR target. It always renders inside the provider in the app, so the
+// standalone unit test stubs usePulse with a default 12-week routine.
+vi.mock('@/context/PulseContext', () => ({
+    usePulse: () => ({ activeRoutine: { program_weeks: 12 } }),
+}));
+
 const defaultProps = {
     exIdx: 0,
     setIdx: 0,

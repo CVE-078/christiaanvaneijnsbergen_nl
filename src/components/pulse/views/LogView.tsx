@@ -65,8 +65,9 @@ export default function LogView() {
         exercises: RoutineExercise[];
     } | null>(null);
 
-    const rir = getRIR(activeWeek);
-    const phase = getPhase(activeWeek);
+    const programWeeks = activeRoutine?.program_weeks ?? 12;
+    const rir = getRIR(activeWeek, programWeeks);
+    const phase = getPhase(activeWeek, programWeeks);
     const unit = profile.unit;
     const routineExercises: RoutineExercise[] = useMemo(
         () => routineExercisesByTabKey[activeTab] ?? [],
@@ -268,8 +269,7 @@ export default function LogView() {
                                     Wk {activeWeek}
                                 </span>
                                 <button
-                                    onClick={() => setActiveWeek(Math.min(12, activeWeek + 1))}
-                                    disabled={activeWeek >= 12}
+                                    onClick={() => setActiveWeek(activeWeek + 1)}
                                     aria-label="Next week"
                                     className="font-pulse text-sm text-pulse-dim bg-transparent border-none rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:text-pulse-text">
                                     ›
