@@ -81,12 +81,13 @@ export default function ExercisesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Unified toolbar — filters scroll (flex-1), Hidden + Add stay pinned right. */}
-            <div className="flex items-center gap-2">
-                {/* Filter rail — single non-wrapping scroll line; each chip shows its count,
-                    a fade edge on the right signals there is more to scroll. */}
-                <div className="relative flex-1 min-w-0">
-                    <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Unified toolbar — filter chips wrap (so every category stays reachable on
+                desktop, where a horizontal scroll rail can't be panned with a mouse);
+                Hidden + Add stay pinned to the right, top-aligned when the filters wrap. */}
+            <div className="flex items-start gap-2">
+                {/* Filter chips — wrap onto as many lines as needed; each shows its count. */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap gap-1.5">
                         {(['all', ...EXERCISE_CATEGORIES] as const).map((f) => {
                             const active = filter === f;
                             const count = f === 'all' ? exercises.length : (categoryCounts.get(f) ?? 0);
@@ -112,7 +113,6 @@ export default function ExercisesTab() {
                             );
                         })}
                     </div>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-l from-pulse-bg to-transparent" />
                 </div>
 
                 {/* Show-hidden toggle — only when the user has hidden something. */}

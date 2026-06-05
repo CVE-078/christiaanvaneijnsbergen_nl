@@ -106,8 +106,8 @@ export default function ProgramView() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* left: weekly schedule + weekly volume */}
+            <div className="flex flex-col gap-4">
+                {/* weekly schedule + weekly volume */}
                 <div className="bg-pulse-surface rounded-2xl p-4">
                     <SectionLabel className="mb-3">Weekly Schedule</SectionLabel>
                     {activeSchedule.length > 0 ? (
@@ -139,9 +139,14 @@ export default function ProgramView() {
                     <SectionLabel className="mt-5 mb-2">Weekly Volume · 12 weeks</SectionLabel>
                     <div className="flex items-end gap-[3px] h-20">
                         {VOLUME.map(({ week, sets }) => (
-                            <div
+                            <button
                                 key={week}
-                                className={`flex-1 rounded-t-sm transition-colors duration-150 ${activeWeek === week ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}
+                                type="button"
+                                onClick={() => handleSelectWeek(week)}
+                                aria-label={`Jump to week ${week} (${sets} sets)`}
+                                aria-pressed={activeWeek === week}
+                                title={`Week ${week} · ${sets} sets`}
+                                className={`flex-1 self-end rounded-t-sm border-none cursor-pointer transition-colors duration-150 hover:opacity-80 ${activeWeek === week ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}
                                 /* height is a runtime ratio — must stay inline */
                                 style={{ height: `${(sets / maxSets) * BAR_MAX_HEIGHT_PX}px` }}
                             />
