@@ -20,6 +20,7 @@ export default function ProgramView() {
         setActiveWeek,
         activeSchedule,
         activeRoutine,
+        profile,
         updateRoutineProgramWeeks,
         setProgramAnchor,
         loading,
@@ -33,17 +34,18 @@ export default function ProgramView() {
     const inBlockWeek = weekInBlock(activeWeek, programWeeks);
 
     // Program start date (the calendar anchor) as a YYYY-MM-DD value for the date
-    // input, and a setter that anchors to noon UTC of the chosen day so the date
-    // resolves consistently across timezones.
-    const anchorDate = activeRoutine?.program_anchor ? activeRoutine.program_anchor.slice(0, 10) : '';
+    // input. Resolved in the user's timezone so the displayed day matches how the
+    // adherence engine reads the anchor (dayIndex uses the same tz). We store noon
+    // UTC of the chosen day, which lands on that day for all but the ±12h-fringe
+    // timezones (a re-pick corrects those). en-CA formats as YYYY-MM-DD.
+    const tz = profile?.timezone || 'UTC';
+    const ymdInTz = (d: Date) =>
+        new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    const anchorDate = activeRoutine?.program_anchor ? ymdInTz(new Date(activeRoutine.program_anchor)) : '';
     const setStart = (ymd: string) => {
         if (activeRoutine && ymd) setProgramAnchor(activeRoutine.id, `${ymd}T12:00:00.000Z`);
     };
-    const todayYmd = () => {
-        const n = new Date();
-        const p = (x: number) => String(x).padStart(2, '0');
-        return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
-    };
+    const todayYmd = () => ymdInTz(new Date());
 
     function handleSelectWeek(w: number) {
         setActiveWeek(w);
