@@ -1,5 +1,14 @@
 import { buildProgram } from './data';
-import { BARBELL_KG, DUMBBELL_HANDLE_KG, PLATES_KG, WORKOUT_TYPE_ORDER, workoutTypeLabelLong } from './constants';
+import {
+    BARBELL_KG,
+    DUMBBELL_HANDLE_KG,
+    PLATES_KG,
+    WORKOUT_TYPE_ORDER,
+    workoutTypeLabelLong,
+    DELOAD_FACTOR,
+    DELOAD_REBUILD_WEEKS,
+    DELOAD_DROP_THRESHOLD,
+} from './constants';
 import type {
     Phase,
     Logs,
@@ -123,7 +132,7 @@ export function getInitials(name: string, max = 3): string {
 // Map an absolute week into its 1-based position within a repeating block of
 // `weeks` length: week 13 in a 12-week block → week 1 of block 2.
 export function weekInBlock(week: number, weeks: number): number {
-    return ((week - 1) % weeks + weeks) % weeks + 1;
+    return ((((week - 1) % weeks) + weeks) % weeks) + 1;
 }
 
 // Phase for a week, given the block length (default 12 = legacy behavior). Weeks
@@ -160,6 +169,41 @@ export function computePlateau(history: Array<{ week: number; e1rm: number }>, r
     const priorBest = Math.max(...prior.map((h) => h.e1rm));
     const recentBest = Math.max(...recent.map((h) => h.e1rm));
     return recentBest <= priorBest;
+}
+
+// True when a recent consecutive e1RM drop indicates the lift was just deloaded
+// (and is now rebuilding), so we should not deload it again yet. Looks at the
+// last `withinWeeks + 1` logged points (= `withinWeeks` consecutive pairs); a
+// drop of at least (1 - DELOAD_DROP_THRESHOLD) between two points counts.
+export function recentDrop(
+    history: Array<{ week: number; e1rm: number }>,
+    withinWeeks = DELOAD_REBUILD_WEEKS,
+): boolean {
+    const tail = [...history].sort((a, b) => a.week - b.week).slice(-(withinWeeks + 1));
+    for (let i = 1; i < tail.length; i++) {
+        if (tail[i].e1rm < tail[i - 1].e1rm * DELOAD_DROP_THRESHOLD) return true;
+    }
+    return false;
+}
+
+// A stalled lift should auto-deload only when it has plateaued AND has not just
+// deloaded (so it deloads once, then rebuilds for ~DELOAD_REBUILD_WEEKS weeks).
+export function shouldDeload(history: Array<{ week: number; e1rm: number }>): boolean {
+    return computePlateau(history) && !recentDrop(history);
+}
+
+// The deloaded target for a stalled lift's set: DELOAD_FACTOR of the previous
+// weight (rounded to the 2.5 grid the progression uses, floored at MIN_KG), with
+// reps reset to the bottom of the rep range. Null when there is no prior set.
+export function deloadTarget(
+    previousEntry: LogEntry | undefined,
+    repsRange: string,
+): { kg: number; reps: number } | null {
+    if (!previousEntry) return null;
+    const nums = (repsRange.match(/\d+/g) ?? []).map(Number);
+    const reps = nums.length ? nums[0] : previousEntry.reps;
+    const kg = Math.max(MIN_KG, Math.round((previousEntry.kg * DELOAD_FACTOR) / 2.5) * 2.5);
+    return { kg, reps };
 }
 
 export function logKey(week: number, routineExerciseId: string, setIdx: number): string {

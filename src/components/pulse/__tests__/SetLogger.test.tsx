@@ -45,6 +45,22 @@ describe('SetLogger', () => {
         expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
     });
 
+    it('prefills the normal progression target by default', () => {
+        const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
+        render(<SetLogger {...defaultProps} week={2} previousEntry={prev} repsRange="8-12" />);
+        expect(screen.getByLabelText(/auto-progression target/i)).toBeInTheDocument();
+        // rir 1 < target rir → progression deloads 2.5 kg to 97.5, not the 10% deload.
+        expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(97.5);
+    });
+
+    it('prefills a deloaded target when deload is set', () => {
+        const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
+        render(<SetLogger {...defaultProps} week={2} deload previousEntry={prev} repsRange="8-12" />);
+        expect(screen.getByLabelText(/deload target/i)).toBeInTheDocument();
+        expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(90);
+        expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
+    });
+
     it('Cancel resets inputs to saved values and hides the Cancel button', async () => {
         const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} />);

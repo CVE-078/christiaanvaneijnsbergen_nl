@@ -37,6 +37,9 @@ import {
     weekInBlock,
     volumeForWeek,
     computePlateau,
+    recentDrop,
+    shouldDeload,
+    deloadTarget,
 } from '../utils';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
@@ -54,6 +57,56 @@ describe('computePlateau', () => {
 
     it('is not a stall when a recent week beats the prior best', () => {
         expect(computePlateau(h(100, 105, 110, 108, 109, 112), 3)).toBe(false);
+    });
+});
+
+describe('auto-deload', () => {
+    const h = (...e1rms: number[]) => e1rms.map((e1rm, i) => ({ week: i + 1, e1rm }));
+    const prev = (kg: number, reps = 8) => ({ kg, reps, rir: 1, saved: true });
+
+    describe('recentDrop', () => {
+        it('detects a real (>=3%) drop within the window', () => {
+            expect(recentDrop(h(100, 105, 110, 99))).toBe(true);
+        });
+        it('ignores small fluctuations under the threshold', () => {
+            expect(recentDrop(h(100, 105, 110, 108))).toBe(false); // ~2% dip
+        });
+        it('ignores a drop that has scrolled out of the window', () => {
+            expect(recentDrop(h(100, 90, 100, 105, 110))).toBe(false); // drop was 4 weeks ago
+        });
+    });
+
+    describe('shouldDeload', () => {
+        it('deloads on a clean stall', () => {
+            expect(shouldDeload(h(100, 105, 110, 108, 109, 110))).toBe(true);
+        });
+        it('does not deload again while rebuilding from a recent deload', () => {
+            expect(shouldDeload(h(100, 105, 110, 110, 110, 99))).toBe(false);
+        });
+        it('re-arms once the deload has scrolled out of the rebuild window', () => {
+            expect(shouldDeload(h(100, 105, 110, 110, 99, 104, 108, 109))).toBe(true);
+        });
+        it('does not deload when the lift is still progressing', () => {
+            expect(shouldDeload(h(100, 105, 110, 112, 114, 116))).toBe(false);
+        });
+    });
+
+    describe('deloadTarget', () => {
+        it('drops to ~90% on the 2.5 grid and resets reps to the bottom of the range', () => {
+            expect(deloadTarget(prev(100, 8), '8-12')).toEqual({ kg: 90, reps: 8 });
+        });
+        it('rounds to the nearest 2.5 kg', () => {
+            expect(deloadTarget(prev(102.5), '10-15')).toEqual({ kg: 92.5, reps: 10 });
+        });
+        it('floors at MIN_KG', () => {
+            expect(deloadTarget(prev(1), '8-12')).toEqual({ kg: 0.5, reps: 8 });
+        });
+        it('falls back to the previous reps when the range has no number', () => {
+            expect(deloadTarget(prev(100, 6), '')).toEqual({ kg: 90, reps: 6 });
+        });
+        it('returns null without a previous entry', () => {
+            expect(deloadTarget(undefined, '8-12')).toBeNull();
+        });
     });
 });
 
@@ -96,7 +149,11 @@ describe('periodized blocks', () => {
 });
 
 describe('priorityAdjustedTargets', () => {
-    const base = { chest: [10, 16] as [number, number], biceps: [8, 14] as [number, number], legs: [12, 18] as [number, number] };
+    const base = {
+        chest: [10, 16] as [number, number],
+        biceps: [8, 14] as [number, number],
+        legs: [12, 18] as [number, number],
+    };
 
     it('is the identity for a null priority', () => {
         expect(priorityAdjustedTargets(base, null)).toEqual(base);

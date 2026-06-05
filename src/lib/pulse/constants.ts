@@ -59,6 +59,14 @@ export const GAP_DAYS = 10;
 export const RAMPBACK_VOLUME_FACTOR = 0.6;
 export const RAMPBACK_RIR_BONUS = 1;
 
+// Auto-applied deload for a stalled lift. The next target drops to DELOAD_FACTOR
+// of the previous weight; after a deload the lift gets DELOAD_REBUILD_WEEKS quiet
+// weeks to climb back before another deload can trigger. A consecutive e1RM drop
+// of at least (1 - DELOAD_DROP_THRESHOLD) counts as "already deloaded".
+export const DELOAD_FACTOR = 0.9;
+export const DELOAD_REBUILD_WEEKS = 3;
+export const DELOAD_DROP_THRESHOLD = 0.97;
+
 export const SUGGESTED_DAYS: Record<DaysPerWeek, number[]> = {
     '2-3': [1, 3],
     '4': [1, 2, 4, 5],
