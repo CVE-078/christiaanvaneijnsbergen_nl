@@ -159,45 +159,53 @@ function ExerciseCard({
 
                 {open && (
                     <div className="px-[1.125rem] pt-1 pb-4 flex flex-col gap-2.5">
-                        {display.user_id === null && (
-                            <button
-                                onClick={() => setShowInstructions(true)}
-                                aria-label={`How to perform ${display.name}`}
-                                className="self-start flex items-center gap-1.5 font-pulse text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer hover:text-pulse-accent">
-                                <svg
-                                    className="w-3.5 h-3.5"
-                                    viewBox="0 0 16 16"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth={1.5}
-                                    aria-hidden>
-                                    <circle cx="8" cy="8" r="6.5" />
-                                    <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
-                                    <circle cx="8" cy="4.75" r="0.6" fill="currentColor" stroke="none" />
-                                </svg>
-                                How to perform
-                            </button>
-                        )}
-                        {onSwap && (
-                            <div className="self-start flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {display.user_id === null && (
+                                <button
+                                    onClick={() => setShowInstructions(true)}
+                                    aria-label={`How to perform ${display.name}`}
+                                    className="inline-flex items-center gap-1.5 font-pulse text-[0.75rem] font-semibold text-pulse-dim bg-pulse-surface-2 border-none rounded-lg px-2.5 py-1.5 cursor-pointer hover:text-pulse-accent">
+                                    <svg
+                                        className="w-3.5 h-3.5"
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={1.5}
+                                        aria-hidden>
+                                        <circle cx="8" cy="8" r="6.5" />
+                                        <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
+                                        <circle cx="8" cy="4.75" r="0.6" fill="currentColor" stroke="none" />
+                                    </svg>
+                                    How to perform
+                                </button>
+                            )}
+                            {onSwap && (
                                 <button
                                     onClick={onSwap}
-                                    className="flex items-center gap-1.5 font-pulse text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer hover:text-pulse-accent">
-                                    ⇄ Swap exercise
+                                    className="inline-flex items-center gap-1.5 font-pulse text-[0.75rem] font-semibold text-pulse-dim bg-pulse-surface-2 border-none rounded-lg px-2.5 py-1.5 cursor-pointer hover:text-pulse-accent">
+                                    ⇄ Swap
                                 </button>
-                                {isSwapped && (
-                                    <span className="font-pulse text-[0.75rem] text-pulse-muted">
-                                        Swapped from {originalName}
-                                        {onRevert && (
-                                            <button
-                                                onClick={onRevert}
-                                                className="ml-1.5 text-pulse-accent bg-transparent border-none cursor-pointer">
-                                                Revert
-                                            </button>
-                                        )}
-                                    </span>
+                            )}
+                            <button
+                                onClick={() => {
+                                    setNoteDraft(note ?? '');
+                                    setNoteEditing(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 font-pulse text-[0.75rem] font-semibold text-pulse-dim bg-pulse-surface-2 border-none rounded-lg px-2.5 py-1.5 cursor-pointer hover:text-pulse-accent">
+                                + Note
+                            </button>
+                        </div>
+                        {onSwap && isSwapped && (
+                            <span className="font-pulse text-[0.75rem] text-pulse-muted">
+                                Swapped from {originalName}
+                                {onRevert && (
+                                    <button
+                                        onClick={onRevert}
+                                        className="ml-1.5 text-pulse-accent bg-transparent border-none cursor-pointer">
+                                        Revert
+                                    </button>
                                 )}
-                            </div>
+                            </span>
                         )}
                         {warmupSets.length > 0 && (
                             <div className="pb-3 border-b border-pulse-border mb-1">
@@ -238,55 +246,50 @@ function ExerciseCard({
                                 />
                             );
                         })}
-                        <div className="border-t border-pulse-border pt-3 mt-1">
-                            {noteEditing ? (
-                                <textarea
-                                    autoFocus
-                                    value={noteDraft}
-                                    onChange={(e) => setNoteDraft(e.target.value)}
-                                    onBlur={async () => {
-                                        setNoteEditing(false);
-                                        const trimmed = noteDraft.trim();
-                                        if (trimmed) {
-                                            await onSaveNote(trimmed);
-                                        } else {
-                                            await onDeleteNote();
-                                        }
-                                    }}
-                                    placeholder="Add a note for this exercise…"
-                                    maxLength={500}
-                                    className="w-full bg-pulse-bg border border-pulse-border rounded-lg text-pulse-text font-pulse text-[0.8125rem] px-3 py-2 resize-none min-h-[60px] outline-none focus:border-pulse-accent/50"
-                                />
-                            ) : note ? (
-                                <div>
-                                    <p className="font-pulse text-[0.8125rem] text-pulse-dim leading-relaxed">{note}</p>
-                                    <div className="flex gap-3 mt-1 justify-end">
-                                        <button
-                                            onClick={() => {
-                                                setNoteDraft(note);
-                                                setNoteEditing(true);
-                                            }}
-                                            className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer">
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={onDeleteNote}
-                                            className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer">
-                                            Clear
-                                        </button>
+                        {(noteEditing || note) && (
+                            <div className="border-t border-pulse-border pt-3 mt-1">
+                                {noteEditing ? (
+                                    <textarea
+                                        autoFocus
+                                        value={noteDraft}
+                                        onChange={(e) => setNoteDraft(e.target.value)}
+                                        onBlur={async () => {
+                                            setNoteEditing(false);
+                                            const trimmed = noteDraft.trim();
+                                            if (trimmed) {
+                                                await onSaveNote(trimmed);
+                                            } else {
+                                                await onDeleteNote();
+                                            }
+                                        }}
+                                        placeholder="Add a note for this exercise…"
+                                        maxLength={500}
+                                        className="w-full bg-pulse-bg border border-pulse-border rounded-lg text-pulse-text font-pulse text-[0.8125rem] px-3 py-2 resize-none min-h-[60px] outline-none focus:border-pulse-accent/50"
+                                    />
+                                ) : (
+                                    <div>
+                                        <p className="font-pulse text-[0.8125rem] text-pulse-dim leading-relaxed">
+                                            {note}
+                                        </p>
+                                        <div className="flex gap-3 mt-1 justify-end">
+                                            <button
+                                                onClick={() => {
+                                                    setNoteDraft(note ?? '');
+                                                    setNoteEditing(true);
+                                                }}
+                                                className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer">
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={onDeleteNote}
+                                                className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer">
+                                                Clear
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => {
-                                        setNoteDraft('');
-                                        setNoteEditing(true);
-                                    }}
-                                    className="w-full text-left font-pulse text-[0.8125rem] text-pulse-dim border border-dashed border-pulse-border rounded-lg px-3 py-2 cursor-pointer bg-transparent tracking-[0.02em]">
-                                    + Add note
-                                </button>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
