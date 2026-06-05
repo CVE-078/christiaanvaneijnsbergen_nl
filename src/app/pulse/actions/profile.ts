@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { assertUuid } from './_shared';
-import type { Unit, BodyweightEntry, Sex } from '@/lib/pulse/types';
+import type { Unit, BodyweightEntry, Gender } from '@/lib/pulse/types';
 
 export async function logout() {
     const supabase = await createClient();
@@ -75,15 +75,15 @@ export async function updateGoalWeight(goalWeightKg: number | null): Promise<voi
     revalidatePath('/pulse');
 }
 
-export async function updateSex(sex: Sex | null): Promise<void> {
-    if (sex !== null && sex !== 'male' && sex !== 'female') throw new Error('Invalid sex');
+export async function updateGender(gender: Gender | null): Promise<void> {
+    if (gender !== null && gender !== 'male' && gender !== 'female') throw new Error('Invalid gender');
 
     const { supabase, user } = await getUserOrThrow();
 
     const { error } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, sex, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-    if (error) throw new Error('Failed to update sex');
+        .upsert({ id: user.id, gender, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw new Error('Failed to update gender');
     revalidatePath('/pulse');
 }
 

@@ -8,7 +8,7 @@ import type {
     MovementPattern,
     ProgramStyle,
     SessionTime,
-    Sex,
+    Gender,
     WorkoutType,
     WorkoutVariant,
 } from './types';
@@ -287,11 +287,11 @@ export const STYLES: Record<number, ProgramStyle[]> = {
  * 3 → Full Body, 4 → Classic Upper/Lower, 5 → Upper/Lower/Push/Pull/Legs.
  * For counts with a single style, returns that style's key.
  *
- * `sex === 'female'` applies a light bias toward a more lower/glute-focused
+ * `gender === 'female'` applies a light bias toward a more lower/glute-focused
  * style when the count offers one: 4-day → `ul-aesthetic-4`, 3-day →
- * `fb-emphasis-3`. Any other count or sex keeps the default first style.
+ * `fb-emphasis-3`. Any other count or gender keeps the default first style.
  */
-export function recommendStyle(sessionCount: number, sex?: Sex | null): string {
+export function recommendStyle(sessionCount: number, gender?: Gender | null): string {
     const styles = STYLES[sessionCount];
     if (!styles || styles.length === 0) {
         // Fall back to the nearest defined count's first style.
@@ -302,7 +302,7 @@ export function recommendStyle(sessionCount: number, sex?: Sex | null): string {
         return STYLES[nearest][0].key;
     }
 
-    if (sex === 'female') {
+    if (gender === 'female') {
         const biasKey = sessionCount === 4 ? 'ul-aesthetic-4' : sessionCount === 3 ? 'fb-emphasis-3' : null;
         if (biasKey && styles.some((s) => s.key === biasKey)) return biasKey;
     }

@@ -1,13 +1,13 @@
-import type { Sex, StrengthScore } from './types';
+import type { Gender, StrengthScore } from './types';
 
 // The four main lifts the strength score is built from.
 export type MainLift = 'bench' | 'squat' | 'deadlift' | 'ohp';
 
-// Bodyweight-multiple thresholds per lift per sex. Five ascending values map to
+// Bodyweight-multiple thresholds per lift per gender. Five ascending values map to
 // the score anchors [0, 25, 50, 75, 100], i.e. Untrained -> Novice ->
 // Intermediate -> Advanced -> Elite. A lifter's e1RM / bodyweight ratio is
 // scored against these via scoreRatio.
-export const STRENGTH_STANDARDS: Record<Sex, Record<MainLift, number[]>> = {
+export const STRENGTH_STANDARDS: Record<Gender, Record<MainLift, number[]>> = {
     male: {
         bench: [0.5, 0.75, 1.25, 1.75, 2.0],
         squat: [0.75, 1.25, 1.5, 2.25, 2.75],
@@ -74,16 +74,16 @@ function levelFor(score: number): string {
     return 'Elite';
 }
 
-// Compute the strength score from the user's sex, bodyweight, and best lifts.
+// Compute the strength score from the user's gender, bodyweight, and best lifts.
 // Returns a null score with a reason when prerequisites are missing.
 export function computeStrengthScore(args: {
-    sex: Sex | null;
+    gender: Gender | null;
     bodyweightKg: number | null;
     lifts: Array<{ name: string; e1rm: number }>;
 }): StrengthScore {
-    const { sex, bodyweightKg, lifts } = args;
-    if (sex === null) {
-        return { score: null, level: null, reason: 'Set your sex in Profile to get a strength score.', lifts: [] };
+    const { gender, bodyweightKg, lifts } = args;
+    if (gender === null) {
+        return { score: null, level: null, reason: 'Set your gender in Profile to get a strength score.', lifts: [] };
     }
     if (bodyweightKg === null || bodyweightKg <= 0) {
         return { score: null, level: null, reason: 'Log your bodyweight to get a strength score.', lifts: [] };
@@ -112,7 +112,7 @@ export function computeStrengthScore(args: {
         .map((lift) => {
             const e1rm = bestByLift.get(lift) as number;
             const ratio = e1rm / bodyweightKg;
-            const subScore = scoreRatio(ratio, STRENGTH_STANDARDS[sex][lift]);
+            const subScore = scoreRatio(ratio, STRENGTH_STANDARDS[gender][lift]);
             return { lift, label: LIFT_LABELS[lift], subScore, ratio };
         });
 
