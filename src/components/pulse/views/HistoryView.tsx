@@ -230,7 +230,7 @@ export default function HistoryView() {
 
             {/* Recomp readout */}
             <div className="mb-12">
-                <RecompCard readout={recomp} unit={unit} />
+                <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
             </div>
 
             {/* Four data blocks - separated by tone and whitespace, two columns on wide screens */}

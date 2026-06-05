@@ -15,7 +15,7 @@ describe('RecompCard', () => {
             strengthDeltaPct: 8,
             waistDeltaCm: -1.5,
         };
-        render(<RecompCard readout={readout} unit="kg" />);
+        render(<RecompCard readout={readout} unit="kg" lengthUnit="cm" />);
 
         expect(screen.getByText(readout.verdict)).toBeInTheDocument();
         expect(screen.getByText('Strength')).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('RecompCard', () => {
             strengthDeltaPct: null,
             waistDeltaCm: null,
         };
-        render(<RecompCard readout={readout} unit="kg" />);
+        render(<RecompCard readout={readout} unit="kg" lengthUnit="cm" />);
 
         expect(screen.getByText('Keep logging to see your recomp trend.')).toBeInTheDocument();
         expect(screen.getAllByText('—')).toHaveLength(3);

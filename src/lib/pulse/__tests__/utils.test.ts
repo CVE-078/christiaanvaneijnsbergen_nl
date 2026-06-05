@@ -31,8 +31,33 @@ import {
     swapCandidates,
     computeStrengthByWeek,
     computeRecompSignal,
+    toLengthDisplay,
+    toCm,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
+
+describe('toLengthDisplay / toCm', () => {
+    it('is the identity for cm', () => {
+        expect(toLengthDisplay(81, 'cm')).toBe(81);
+        expect(toCm(81, 'cm')).toBe(81);
+    });
+
+    it('converts cm to inches for display, rounded to 0.1', () => {
+        expect(toLengthDisplay(2.54, 'in')).toBe(1);
+        expect(toLengthDisplay(81, 'in')).toBe(31.9); // 81 / 2.54 = 31.889…
+    });
+
+    it('parses an inch input back to cm, rounded to 0.01', () => {
+        expect(toCm(1, 'in')).toBe(2.54);
+        expect(toCm(31.9, 'in')).toBe(81.03);
+    });
+
+    it('round-trips within rounding tolerance', () => {
+        const cm = 99;
+        const back = toCm(toLengthDisplay(cm, 'in'), 'in');
+        expect(Math.abs(back - cm)).toBeLessThan(0.1);
+    });
+});
 
 describe('getPhase', () => {
     it('returns Phase 1 for weeks 1–3', () => {

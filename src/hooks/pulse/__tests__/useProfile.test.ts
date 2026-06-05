@@ -16,6 +16,7 @@ import type { Profile, BodyweightEntry } from '@/lib/pulse/types';
 const defaultProfile: Profile = {
     display_name: 'Test User',
     unit: 'kg',
+    length_unit: 'cm',
     active_routine_id: null,
     onboarding_completed: false,
     goal_weight_kg: null,
@@ -66,6 +67,7 @@ describe('useProfile', () => {
             {
                 display_name: 'New Name',
                 unit: 'lbs',
+                length_unit: 'cm',
                 active_routine_id: null,
                 onboarding_completed: false,
                 goal_weight_kg: null,
