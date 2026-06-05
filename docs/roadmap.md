@@ -120,6 +120,7 @@ Selected 2026-06-05 (round 2). The program-engine cluster shipped; these are fol
 |---|---------|-------|
 | 1 | Accent colour selection | Let the user pick their accent colour from a preset set; persist the choice and override the `pulse-accent` token at runtime. Low-effort personalisation polish. |
 | 2 | WorkoutModeScreen redesign | Redesign the guided workout screen (use the frontend-design skill). |
+| 3 | Train header + day-strip redesign | Redesign the `/train` program status card (the "Week NN / 16 · Phase · target RIR" line, week stepper, Start workout button) and the weekly day selector below it (`DayTabs`: per-day workout label + set count, active-day highlight). `LogView` header + `DayTabs`. Use the frontend-design skill. |
 
 _Auto-applied deload, onboarding day-count fix, and program start-day selection shipped 2026-06-05 (see Shipped)._
 _All prior Near-term items shipped 2026-06-05 (see Shipped: adaptive missed-workout regeneration, dynamic periodized programs, etc.)._
