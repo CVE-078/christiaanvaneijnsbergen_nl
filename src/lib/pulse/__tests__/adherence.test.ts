@@ -21,12 +21,20 @@ import type {
 } from '../types';
 
 let idc = 0;
-const entry = (day_of_week: number, workout_type: WorkoutType, variant: WorkoutVariant | null = null): ScheduleEntry => ({
+const entry = (
+    day_of_week: number,
+    workout_type: WorkoutType,
+    variant: WorkoutVariant | null = null,
+): ScheduleEntry => ({
     day_of_week,
     workout_type,
     variant,
 });
-const sess = (completed_at: string | null, workout_type: string, variant: WorkoutVariant | null = null): WorkoutSession => ({
+const sess = (
+    completed_at: string | null,
+    workout_type: string,
+    variant: WorkoutVariant | null = null,
+): WorkoutSession => ({
     id: `s${idc++}`,
     user_id: 'u',
     routine_id: 'r',
@@ -184,10 +192,7 @@ describe('computeProgramPosition', () => {
             anchor: '2026-05-01T08:00:00Z',
             programWeeks: 12,
             schedule: SCHED,
-            sessions: [
-                sess('2026-05-01T10:00:00Z', 'upper', 'A'),
-                sess('2026-06-04T10:00:00Z', 'lower', 'A'),
-            ],
+            sessions: [sess('2026-05-01T10:00:00Z', 'upper', 'A'), sess('2026-06-04T10:00:00Z', 'lower', 'A')],
             adjustments: [],
             tz: 'UTC',
             now: '2026-06-15T12:00:00Z',

@@ -118,8 +118,9 @@ explicit ISO inputs.
   to one date in it: `scheduledDate(entry) = winStart + ((entry.day_of_week - weekdayOf(winStart) + 7) % 7)`.
 - Sessions "this week" = completed sessions with `dayIndex(completed_at) ∈ window`,
   matched greedily to entries by `(type, variant)`.
-- Per entry: `isPast = scheduledDate <= today`, `isDone` = matched.
-  `missed = entries past & not done`; `upcoming = entries not past & not done`.
+- Per entry: `isPast = scheduledDate < today` (strict: a session due *today*
+  that is not yet logged stays `upcoming`, so we never nag mid-day), `isDone` =
+  matched. `missed = entries past & not done`; `upcoming = entries not past & not done`.
 
 **Suggestion** — `computeRegenSuggestion(position, weekAdherence, adjustments)`
 - If `status === 'lapsed'` AND no `reentry_deload`/`reentry_dismissed` exists for
@@ -171,8 +172,12 @@ explicit ISO inputs.
 - Hook `useProgramAdjustments` (SWR + optimistic, same shape as `useSwaps`/`useNotes`).
 - Actions `src/app/pulse/actions/adjustments.ts`:
   `acceptReentryDeload(routineId, weekInteger)`, `dismissReentry(routineId, weekInteger)`.
-- Profile: `updateTimezone(tz)` action + context method; `program_anchor` set at
-  routine creation going forward.
+- Profile: `updateTimezone(tz)` action + context method. `program_anchor` is set
+  lazily on the **first completed session** of a routine (the sessions PATCH
+  handler, guarded by `is null`), matching the backfill semantics — not at
+  creation. This avoids a routine showing "behind" before the user has trained
+  even once. A created-but-unstarted routine has a null anchor and reads as
+  on-track until its first session.
 - Migration `docs/migrations/2026-06-05-...-adaptive-missed-workout-regen.sql`:
   add column + field + table + RLS + indexes, and **backfill** each routine's
   anchor (first completed session date, else `created_at`).

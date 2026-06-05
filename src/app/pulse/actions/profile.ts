@@ -120,8 +120,7 @@ export async function updateGender(gender: Gender | null): Promise<void> {
 }
 
 export async function updatePriorityMuscle(priority: PriorityMuscle | 'balanced' | null): Promise<void> {
-    if (priority !== null && !PRIORITY_MUSCLE_VALUES.includes(priority))
-        throw new Error('Invalid priority muscle');
+    if (priority !== null && !PRIORITY_MUSCLE_VALUES.includes(priority)) throw new Error('Invalid priority muscle');
 
     const { supabase, user } = await getUserOrThrow();
 

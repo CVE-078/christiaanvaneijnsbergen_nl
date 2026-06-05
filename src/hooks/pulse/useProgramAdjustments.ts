@@ -26,9 +26,7 @@ export function useProgramAdjustments() {
                 created_at: new Date().toISOString(),
                 payload: {},
             };
-            const others = adjustments.filter(
-                (a) => !(a.routine_id === routineId && a.effective_week === weekInteger),
-            );
+            const others = adjustments.filter((a) => !(a.routine_id === routineId && a.effective_week === weekInteger));
             return [...others, optimistic];
         },
         [adjustments],

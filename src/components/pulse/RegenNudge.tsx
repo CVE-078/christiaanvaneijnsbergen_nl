@@ -24,8 +24,9 @@ export default function RegenNudge() {
             <div className="mb-3 rounded-2xl border border-pulse-accent/30 bg-pulse-surface px-4 py-3.5">
                 <p className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent">Welcome back</p>
                 <p className="mt-1 font-pulse text-[0.78125rem] text-pulse-dim">
-                    It&apos;s been {daysAway} days since your last session. Want a lighter ramp-back week before resuming
-                    week {weekInteger}? Reduced volume and an easier RIR, then you pick up right where you left off.
+                    It&apos;s been {daysAway} days since your last session. Want a lighter ramp-back week before
+                    resuming week {weekInteger}? Reduced volume and an easier RIR, then you pick up right where you left
+                    off.
                 </p>
                 <div className="mt-2.5 flex items-center gap-2">
                     <button

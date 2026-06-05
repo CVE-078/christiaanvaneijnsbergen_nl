@@ -67,10 +67,7 @@ export async function POST(req: NextRequest) {
         .eq('workout_type', workoutType)
         .is('completed_at', null);
     if (pinnedVariant !== null) existingQuery = existingQuery.eq('variant', pinnedVariant);
-    const { data: existing } = await existingQuery
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    const { data: existing } = await existingQuery.order('started_at', { ascending: false }).limit(1).maybeSingle();
 
     if (existing) return NextResponse.json(existing);
 

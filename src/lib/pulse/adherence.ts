@@ -279,9 +279,7 @@ export function computeRegenSuggestion(
     const { status, weekInteger, daysSinceLastSession } = position;
     if (status === 'lapsed') {
         const decided = adjustments.some(
-            (a) =>
-                a.effective_week === weekInteger &&
-                (a.kind === 'reentry_deload' || a.kind === 'reentry_dismissed'),
+            (a) => a.effective_week === weekInteger && (a.kind === 'reentry_deload' || a.kind === 'reentry_dismissed'),
         );
         if (!decided) {
             return { kind: 'reentry_deload', weekInteger, daysAway: daysSinceLastSession ?? 0 };

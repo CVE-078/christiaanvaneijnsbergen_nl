@@ -28,13 +28,7 @@ interface Props {
 export function PulseProvider({ email, navigate, children }: Props) {
     const { show: showToast } = useToast();
     const onSaveError = useCallback((msg: string) => showToast(msg, 'error'), [showToast]);
-    const {
-        logs,
-        updateLog,
-        deleteLog,
-        loading: loadingLogs,
-        error: logsError,
-    } = useWorkoutLogs(onSaveError);
+    const { logs, updateLog, deleteLog, loading: loadingLogs, error: logsError } = useWorkoutLogs(onSaveError);
     const {
         profile,
         bodyweightLogs,
@@ -469,7 +463,15 @@ export function PulseProvider({ email, navigate, children }: Props) {
             dismissReentry,
             refreshSessions,
         }),
-        [adjustments, programPosition, currentWeek, regenSuggestion, acceptReentryDeload, dismissReentry, refreshSessions],
+        [
+            adjustments,
+            programPosition,
+            currentWeek,
+            regenSuggestion,
+            acceptReentryDeload,
+            dismissReentry,
+            refreshSessions,
+        ],
     );
     const loadingValue = useMemo(() => ({ loading, errors, retry }), [loading, errors, retry]);
 
