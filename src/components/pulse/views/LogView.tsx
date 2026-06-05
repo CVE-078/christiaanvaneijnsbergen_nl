@@ -277,13 +277,18 @@ export default function LogView() {
                 <RegenNudge />
                 <div className="bg-pulse-surface rounded-2xl px-4 py-3.5">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="font-pulse text-[0.78125rem] text-pulse-muted tracking-[0.02em]">
-                                <span className="text-pulse-dim font-medium">
-                                    Week {String(activeWeek).padStart(2, '0')}
-                                </span>{' '}
-                                / {programWeeks} · {isRampBack ? 'Ramp-back' : phase.label} · target{' '}
-                                <span className="text-pulse-dim font-medium">RIR {rir}</span>
+                        <div className="flex min-w-0 flex-wrap items-center gap-3">
+                            <div className="flex items-baseline gap-2">
+                                <span className="font-pulse-display text-[2.5rem] font-extrabold leading-[0.8] tracking-[-0.01em] text-pulse-text">
+                                    {String(activeWeek).padStart(2, '0')}
+                                </span>
+                                <span className="font-pulse-display text-base font-semibold text-pulse-muted">
+                                    /{programWeeks}
+                                </span>
+                                <span className="ml-1 font-pulse-body text-[0.6875rem] text-pulse-dim">
+                                    {isRampBack ? 'Ramp-back' : phase.label} · target{' '}
+                                    <span className="font-semibold text-pulse-accent">RIR {rir}</span>
+                                </span>
                             </div>
                             <PendingSyncBadge />
                             {statusLabel && (
@@ -321,13 +326,19 @@ export default function LogView() {
                             {routineExercises.length > 0 && (
                                 <button
                                     onClick={handleStartWorkout}
-                                    className="font-pulse text-xs font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-3.5 py-1.5 cursor-pointer border-none">
+                                    className="cursor-pointer rounded-xl border-none px-4 py-2 font-pulse-display text-xs font-extrabold uppercase tracking-[0.06em] text-pulse-bg"
+                                    style={{
+                                        background:
+                                            'linear-gradient(100deg, var(--color-pulse-accent), color-mix(in srgb, var(--color-pulse-accent) 78%, #ffffff))',
+                                        boxShadow:
+                                            '0 10px 26px -12px color-mix(in srgb, var(--color-pulse-accent) 60%, transparent)',
+                                    }}>
                                     Start workout
                                 </button>
                             )}
                         </div>
                     </div>
-                    <div className="mt-3">{activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}</div>
+                    <div className="mt-4">{activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}</div>
                 </div>
                 {isRampBack && (
                     <div className="mt-3 rounded-2xl border border-pulse-accent/30 bg-pulse-surface px-4 py-3">

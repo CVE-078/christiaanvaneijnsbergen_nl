@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse · Workout Mode — HUD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Sora:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0e1113;
+    --surface:#161a1d;
+    --surface2:#1c2125;
+    --border:#262c31;
+    --dim:#aab2b7;
+    --muted:#6f787e;
+    --text:#e7ebed;
+    --accent:#ff7d66;       /* coral — user themeable */
+    --accent-dim:#b0503d;
+    --accent-glow:rgba(255,125,102,.16);
+    --pr-gold:#f2c879;
+    --grid-line:rgba(255,255,255,.028);
+    --ui:'Hanken Grotesk', sans-serif;
+    --body:'Sora', sans-serif;
+    --mono:'JetBrains Mono', monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+
+  html,body{height:100%;}
+
+  body{
+    font-family:var(--ui);
+    background:
+      radial-gradient(120% 80% at 50% -10%, #181d20 0%, var(--bg) 55%),
+      var(--bg);
+    color:var(--text);
+    display:grid;
+    place-items:center;
+    min-height:100vh;
+    padding:32px 16px;
+    /* faint engineering grid behind the phone */
+    background-attachment:fixed;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size:38px 38px;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ───────── phone frame ───────── */
+  .phone{
+    position:relative;
+    width:390px;
+    height:844px;
+    background:var(--bg);
+    border-radius:46px;
+    padding:11px;
+    box-shadow:
+      0 0 0 2px #2c3338,
+      0 0 0 11px #0a0c0d,
+      0 40px 90px -20px rgba(0,0,0,.85),
+      0 0 70px -30px var(--accent-glow);
+    z-index:1;
+  }
+  .screen{
+    position:relative;
+    width:100%;
+    height:100%;
+    background:var(--bg);
+    border-radius:36px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    /* subtle inner HUD vignette + scanline texture */
+  }
+  .screen::after{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+    mix-blend-mode:overlay;
+    pointer-events:none;
+    opacity:.5;
+    z-index:50;
+  }
+  /* corner crosshair ticks — instrument framing */
+  .screen .tick{
+    position:absolute; width:9px; height:9px; z-index:48; pointer-events:none;
+    border-color:rgba(255,255,255,.10);
+  }
+  .tick.tl{top:54px; left:14px; border-top:1px solid; border-left:1px solid;}
+  .tick.tr{top:54px; right:14px; border-top:1px solid; border-right:1px solid;}
+
+  /* ───────── status bar ───────── */
+  .statusbar{
+    height:30px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px;
+    font-family:var(--mono);
+    font-size:12px; font-weight:600;
+    letter-spacing:.5px;
+    color:var(--text);
+    flex-shrink:0;
+  }
+  .statusbar .right{display:flex; gap:6px; align-items:center; font-size:11px;}
+  .rec{
+    display:inline-flex; align-items:center; gap:5px;
+    color:var(--accent); font-weight:700; font-size:10px; letter-spacing:1px;
+  }
+  .rec .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 8px var(--accent);
+    animation:blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+  /* ───────── header ───────── */
+  header{
+    flex-shrink:0;
+    padding:6px 16px 12px;
+    position:relative;
+    z-index:30;
+  }
+  .toprow{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:8px;
+  }
+  .iconbtn{
+    width:38px; height:38px;
+    display:grid; place-items:center;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:var(--dim);
+    font-size:21px; line-height:1;
+    cursor:pointer;
+    transition:.18s ease;
+    font-family:var(--ui);
+  }
+  .iconbtn:active{transform:scale(.92); border-color:var(--accent-dim);}
+  .iconbtn.close:active{border-color:var(--accent-dim); color:var(--accent);}
+  .hlabel{
+    text-align:center;
+    flex:1;
+    display:flex; flex-direction:column; gap:3px; align-items:center;
+  }
+  .hlabel .k{
+    font-family:var(--mono);
+    font-size:11px; font-weight:600;
+    letter-spacing:1px;
+    color:var(--text);
+  }
+  .hlabel .k .sep{color:var(--muted); margin:0 4px;}
+  .hlabel .k .var{color:var(--accent);}
+  .hlabel .sub{
+    font-size:8.5px; font-weight:700; letter-spacing:2.4px;
+    text-transform:uppercase; color:var(--muted);
+  }
+
+  /* ───────── segmented progress (the 7 steps) ───────── */
+  .segwrap{
+    margin-top:14px;
+    display:flex; gap:4px;
+    align-items:center;
+  }
+  .seg{
+    flex:1;
+    height:6px;
+    border-radius:2px;
+    background:var(--surface2);
+    border:1px solid var(--border);
+    position:relative;
+    overflow:hidden;
+  }
+  .seg.done{
+    background:linear-gradient(90deg, var(--accent-dim), var(--accent));
+    border-color:transparent;
+  }
+  .seg.active{
+    background:var(--surface2);
+    border-color:var(--accent);
+    box-shadow:0 0 0 1px var(--accent-glow), 0 0 12px -2px var(--accent-glow);
+  }
+  .seg.active::after{
+    content:"";
+    position:absolute; inset:0;
+    width:50%;
+    background:linear-gradient(90deg, var(--accent-dim), var(--accent));
+    animation:pulsefill 2.4s ease-in-out infinite;
+  }
+  @keyframes pulsefill{
+    0%,100%{opacity:.55; transform:translateX(0);}
+    50%{opacity:1; transform:translateX(2px);}
+  }
+  .segmeta{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-top:8px;
+    font-family:var(--mono);
+  }
+  .segmeta .pct{
+    font-size:11px; font-weight:700; color:var(--text); letter-spacing:.5px;
+  }
+  .segmeta .pct b{color:var(--accent);}
+  .segmeta .lbl{
+    font-size:8.5px; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; color:var(--muted);
+    font-family:var(--ui);
+  }
+
+  /* ───────── scroll body ───────── */
+  .body{
+    flex:1;
+    overflow-y:auto;
+    padding:4px 16px 0;
+    scrollbar-width:none;
+    position:relative;
+    z-index:10;
+  }
+  .body::-webkit-scrollbar{display:none;}
+
+  /* ───────── exercise card head ───────── */
+  .exhead{
+    margin-top:10px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:
+      linear-gradient(180deg, var(--surface) 0%, var(--surface2) 100%);
+    padding:14px 15px 13px;
+    position:relative;
+    overflow:hidden;
+  }
+  .exhead::before{
+    /* coral edge marker */
+    content:""; position:absolute; left:0; top:10px; bottom:10px; width:3px;
+    background:var(--accent); border-radius:0 2px 2px 0;
+    box-shadow:0 0 12px -2px var(--accent);
+  }
+  .exhead .idx{
+    font-family:var(--mono);
+    font-size:9px; font-weight:700; letter-spacing:2px;
+    color:var(--muted); text-transform:uppercase;
+    display:flex; align-items:center; gap:7px;
+  }
+  .exhead .idx .chip{
+    border:1px solid var(--border); border-radius:4px;
+    padding:1px 5px; color:var(--dim); background:var(--bg);
+  }
+  .exhead h1{
+    font-family:var(--ui);
+    font-size:24px; font-weight:800; line-height:1.05;
+    letter-spacing:-.4px;
+    margin:7px 0 9px;
+    color:var(--text);
+  }
+  .exmeta{
+    display:flex; flex-wrap:wrap; gap:6px;
+  }
+  .pill{
+    font-family:var(--mono);
+    font-size:10.5px; font-weight:600;
+    letter-spacing:.2px;
+    color:var(--dim);
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:5px;
+    padding:4px 8px;
+    display:inline-flex; align-items:center; gap:5px;
+  }
+  .pill .t{color:var(--muted); font-family:var(--ui); font-size:8.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;}
+  .pill.last b{color:var(--text); font-weight:700;}
+
+  /* ───────── section label row ───────── */
+  .seclabel{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:18px 2px 9px;
+  }
+  .seclabel .t{
+    font-size:9px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase;
+    color:var(--muted);
+    display:flex; align-items:center; gap:8px;
+  }
+  .seclabel .t::before{
+    content:""; width:14px; height:1px; background:var(--accent); display:inline-block;
+  }
+  .seclabel .count{
+    font-family:var(--mono);
+    font-size:10px; font-weight:700; letter-spacing:.5px;
+    color:var(--dim);
+  }
+  .seclabel .count b{color:var(--accent);}
+
+  /* ───────── set rows ───────── */
+  .sets{display:flex; flex-direction:column; gap:7px;}
+
+  .setrow{
+    border:1px solid var(--border);
+    border-radius:9px;
+    background:var(--surface);
+    padding:11px 12px;
+    position:relative;
+    opacity:0;
+    transform:translateY(8px);
+    animation:rowin .5s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  .setrow:nth-child(1){animation-delay:.05s;}
+  .setrow:nth-child(2){animation-delay:.12s;}
+  .setrow:nth-child(3){animation-delay:.19s;}
+  .setrow:nth-child(4){animation-delay:.26s;}
+  @keyframes rowin{to{opacity:1; transform:translateY(0);}}
+
+  .setrow .rowtop{
+    display:flex; align-items:center; gap:10px;
+  }
+  .setno{
+    font-family:var(--mono);
+    font-size:11px; font-weight:700;
+    width:34px; flex-shrink:0;
+    color:var(--muted);
+    display:flex; flex-direction:column; gap:2px; align-items:flex-start;
+    line-height:1;
+  }
+  .setno .n{font-size:16px; color:var(--text); font-weight:800;}
+  .setno .l{font-size:7px; letter-spacing:1.5px; color:var(--muted); font-family:var(--ui); font-weight:700;}
+
+  /* logged */
+  .setrow.logged{
+    background:linear-gradient(180deg, var(--surface) 0%, #13171a 100%);
+  }
+  .setrow.logged .setno .n{color:var(--dim);}
+  .logvals{
+    flex:1;
+    display:flex; align-items:baseline; gap:2px;
+    font-family:var(--mono);
+  }
+  .logvals .big{font-size:22px; font-weight:700; color:var(--text); letter-spacing:-.5px;}
+  .logvals .u{font-size:11px; font-weight:600; color:var(--muted); margin-right:9px;}
+  .logvals .x{font-size:12px; color:var(--muted); margin:0 7px; font-weight:600;}
+  .rir{
+    font-family:var(--mono);
+    font-size:11px; font-weight:700;
+    color:var(--dim);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:3px 6px;
+    background:var(--bg);
+    white-space:nowrap;
+  }
+  .rir .lbl{color:var(--muted); font-weight:600;}
+  .check{
+    width:22px; height:22px; flex-shrink:0;
+    border-radius:5px;
+    background:var(--accent);
+    color:var(--bg);
+    display:grid; place-items:center;
+    font-size:13px; font-weight:900;
+    box-shadow:0 0 10px -2px var(--accent);
+  }
+  .prbadge{
+    position:absolute; top:-8px; right:10px;
+    font-family:var(--mono);
+    font-size:9px; font-weight:800; letter-spacing:1.5px;
+    color:#1a1407;
+    background:linear-gradient(180deg, #f7d894, var(--pr-gold));
+    border-radius:5px;
+    padding:3px 7px 2px;
+    display:inline-flex; align-items:center; gap:4px;
+    box-shadow:0 4px 12px -3px rgba(242,200,121,.5), inset 0 1px 0 rgba(255,255,255,.5);
+    animation:prpop .6s .35s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  @keyframes prpop{from{opacity:0; transform:scale(.6) translateY(4px);}to{opacity:1; transform:scale(1) translateY(0);}}
+  .setrow.pr{border-color:rgba(242,200,121,.35);}
+  .setrow.pr::after{
+    content:""; position:absolute; inset:0; border-radius:9px;
+    box-shadow:inset 0 0 0 1px rgba(242,200,121,.12), inset 0 0 18px -10px rgba(242,200,121,.5);
+    pointer-events:none;
+  }
+
+  /* active / to-log */
+  .setrow.active{
+    border-color:var(--accent);
+    background:linear-gradient(180deg, #1a1816 0%, var(--surface2) 100%);
+    box-shadow:0 0 0 1px var(--accent-glow), 0 12px 30px -16px var(--accent-glow);
+  }
+  .setrow.active::before{
+    content:""; position:absolute; left:-1px; top:9px; bottom:9px; width:3px;
+    background:var(--accent); border-radius:0 2px 2px 0;
+    box-shadow:0 0 12px -1px var(--accent);
+  }
+  .setrow.active .setno .n{color:var(--accent);}
+
+  .inputs{
+    flex:1;
+    display:flex; align-items:stretch; gap:8px;
+  }
+  .field{
+    flex:1;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:6px 8px 5px;
+    display:flex; flex-direction:column; gap:1px;
+    min-width:0;
+    transition:.15s ease;
+  }
+  .field:focus-within{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent-glow);}
+  .field .flab{
+    font-size:7px; font-weight:800; letter-spacing:1.8px; text-transform:uppercase;
+    color:var(--muted);
+  }
+  .field .fval{
+    display:flex; align-items:baseline; gap:3px;
+  }
+  .field input{
+    width:100%;
+    background:transparent; border:0; outline:0;
+    font-family:var(--mono);
+    font-size:21px; font-weight:700;
+    color:var(--text);
+    letter-spacing:-.5px;
+    min-width:0;
+  }
+  .field input::placeholder{color:#39414a;}
+  .field .uin{font-family:var(--mono); font-size:10px; font-weight:600; color:var(--muted);}
+  .ftimes{
+    align-self:center;
+    font-family:var(--mono); font-size:13px; color:var(--muted); font-weight:600;
+    padding-bottom:2px;
+  }
+
+  .targetrow{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    margin-top:9px;
+    padding-top:9px;
+    border-top:1px dashed var(--border);
+  }
+  .target{
+    display:flex; align-items:center; gap:7px;
+    font-family:var(--mono);
+    font-size:11px; font-weight:600;
+    color:var(--dim);
+  }
+  .target .arrow{
+    color:var(--accent); font-weight:800; font-size:13px;
+  }
+  .target .tlab{
+    font-family:var(--ui); font-size:7.5px; font-weight:800; letter-spacing:1.6px;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .target b{color:var(--text); font-weight:700;}
+  .rirtarget{
+    font-family:var(--mono);
+    font-size:10.5px; font-weight:700; color:var(--accent);
+    border:1px solid var(--accent-dim); border-radius:4px;
+    padding:2px 6px; background:var(--accent-glow);
+  }
+  .logbtn{
+    flex-shrink:0;
+    background:var(--accent); color:#160b08;
+    border:0; border-radius:7px;
+    font-family:var(--ui); font-weight:800; font-size:11px;
+    letter-spacing:1px; text-transform:uppercase;
+    padding:8px 14px;
+    cursor:pointer;
+    transition:.16s ease;
+    box-shadow:0 6px 16px -8px var(--accent);
+  }
+  .logbtn:active{transform:translateY(1px) scale(.98);}
+
+  /* not started */
+  .setrow.pending{opacity:.62;}
+  .setrow.pending .setno .n{color:var(--muted);}
+  .pendvals{
+    flex:1;
+    display:flex; align-items:center; gap:7px;
+    font-family:var(--mono);
+    font-size:13px; color:var(--muted); font-weight:600;
+  }
+  .pendvals .dash{
+    border:1px dashed var(--border); border-radius:6px;
+    padding:6px 12px; color:var(--muted); letter-spacing:1px;
+  }
+  .pendtag{
+    font-family:var(--ui); font-size:7.5px; font-weight:800; letter-spacing:1.8px;
+    text-transform:uppercase; color:var(--muted);
+    border:1px solid var(--border); border-radius:4px; padding:3px 6px;
+  }
+  /* keep pending opacity even after row-in animation */
+  .setrow.pending{animation:rowinpend .5s cubic-bezier(.2,.7,.3,1) forwards;}
+  @keyframes rowinpend{to{opacity:.62; transform:translateY(0);}}
+
+  /* ───────── rest timer (instrument readout) ───────── */
+  .rest{
+    margin-top:18px;
+    border:1px solid var(--border);
+    border-radius:11px;
+    background:
+      radial-gradient(130% 120% at 85% 0%, rgba(255,125,102,.07), transparent 60%),
+      var(--surface);
+    padding:13px 14px;
+    position:relative;
+    overflow:hidden;
+  }
+  .rest .restlab{
+    font-size:8.5px; font-weight:800; letter-spacing:2.4px; text-transform:uppercase;
+    color:var(--muted);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .rest .restlab .live{color:var(--accent); display:flex; align-items:center; gap:5px;}
+  .rest .restlab .live .d{width:5px; height:5px; border-radius:50%; background:var(--accent); animation:blink 1.6s infinite; box-shadow:0 0 7px var(--accent);}
+  .restmain{
+    display:flex; align-items:center; gap:14px; margin-top:9px;
+  }
+  .clock{
+    font-family:var(--mono);
+    font-size:42px; font-weight:800;
+    letter-spacing:-1.5px;
+    line-height:1;
+    color:var(--text);
+    font-variant-numeric:tabular-nums;
+    display:flex; align-items:baseline; gap:1px;
+  }
+  .clock .sep{color:var(--accent); animation:blink 1.05s steps(1) infinite;}
+  .clock .of{font-size:13px; color:var(--muted); font-weight:600; margin-left:7px; align-self:flex-end; padding-bottom:5px;}
+  .restbtns{margin-left:auto; display:flex; gap:7px;}
+  .rbtn{
+    font-family:var(--ui); font-weight:800; font-size:10px; letter-spacing:.6px;
+    border:1px solid var(--border); border-radius:7px;
+    background:var(--surface2); color:var(--dim);
+    padding:9px 11px; cursor:pointer; transition:.15s ease;
+    white-space:nowrap;
+  }
+  .rbtn:active{transform:scale(.95);}
+  .rbtn.skip{color:var(--text);}
+  .rbtn.add{color:var(--accent); border-color:var(--accent-dim);}
+  .restbar{
+    margin-top:11px;
+    height:5px; border-radius:3px;
+    background:var(--surface2);
+    border:1px solid var(--border);
+    overflow:hidden;
+  }
+  .restbar .fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--accent-dim), var(--accent));
+    width:62%;
+    border-radius:3px;
+    box-shadow:0 0 10px -1px var(--accent);
+    animation:drain 90s linear forwards;
+  }
+  @keyframes drain{from{width:62%;}to{width:0%;}}
+
+  /* ───────── footer ───────── */
+  footer{
+    flex-shrink:0;
+    padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, transparent, var(--bg) 28%);
+    position:relative;
+    z-index:30;
+  }
+  .nextbtn{
+    width:100%;
+    background:var(--accent);
+    color:#160b08;
+    border:0;
+    border-radius:11px;
+    font-family:var(--ui);
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:.4px;
+    padding:16px;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    box-shadow:0 12px 30px -10px var(--accent), inset 0 1px 0 rgba(255,255,255,.25);
+    transition:.16s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .nextbtn::before{
+    /* edge readout on the button */
+    content:"03 / 07";
+    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    font-family:var(--mono); font-size:10px; font-weight:700;
+    color:rgba(22,11,8,.55); letter-spacing:.5px;
+  }
+  .nextbtn:active{transform:translateY(1px) scale(.995);}
+  .nextbtn .arr{font-size:18px;}
+  .finishbtn{
+    width:100%;
+    background:transparent; border:0;
+    color:var(--muted);
+    font-family:var(--ui); font-weight:700; font-size:11px;
+    letter-spacing:1.4px; text-transform:uppercase;
+    padding:11px; margin-top:4px;
+    cursor:pointer; transition:.15s ease;
+  }
+  .finishbtn:active{color:var(--dim);}
+
+  .homebar{
+    position:absolute; bottom:7px; left:50%; transform:translateX(-50%);
+    width:128px; height:5px; border-radius:3px;
+    background:rgba(255,255,255,.22);
+    z-index:60;
+  }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="screen">
+      <span class="tick tl"></span>
+      <span class="tick tr"></span>
+
+      <!-- status bar -->
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="rec"><span class="dot"></span>REC · 32:08</span>
+        <span class="right">
+          <span>5G</span>
+          <span>87%</span>
+        </span>
+      </div>
+
+      <!-- header -->
+      <header>
+        <div class="toprow">
+          <button class="iconbtn" aria-label="Back">‹</button>
+          <div class="hlabel">
+            <span class="k">EXERCISE 02<span class="sep">/</span>07<span class="sep">·</span>VARIANT <span class="var">A</span></span>
+            <span class="sub">Push Day · Hypertrophy Block</span>
+          </div>
+          <button class="iconbtn close" aria-label="Close">✕</button>
+        </div>
+
+        <!-- segmented progress: 7 steps, step 2 active -->
+        <div class="segwrap">
+          <div class="seg done"></div>
+          <div class="seg active"></div>
+          <div class="seg"></div>
+          <div class="seg"></div>
+          <div class="seg"></div>
+          <div class="seg"></div>
+          <div class="seg"></div>
+        </div>
+        <div class="segmeta">
+          <span class="pct"><b>STEP 02</b> / 07 EXERCISES</span>
+          <span class="lbl">Session 29% complete</span>
+        </div>
+      </header>
+
+      <!-- scrollable body -->
+      <div class="body">
+
+        <!-- current exercise head -->
+        <div class="exhead">
+          <div class="idx">
+            <span class="chip">EX 02</span>
+            <span>CURRENT MOVEMENT</span>
+          </div>
+          <h1>Dumbbell Bench Press</h1>
+          <div class="exmeta">
+            <span class="pill"><span class="t">Sets</span>4</span>
+            <span class="pill"><span class="t">Reps</span>8–12</span>
+            <span class="pill last"><span class="t">Last</span><b>80 kg × 8</b></span>
+          </div>
+        </div>
+
+        <!-- set list -->
+        <div class="seclabel">
+          <span class="t">Set Log</span>
+          <span class="count"><b>2</b> / 4 LOGGED</span>
+        </div>
+
+        <div class="sets">
+
+          <!-- Set 1 — logged + PR -->
+          <div class="setrow logged pr">
+            <span class="prbadge">★ NEW PR</span>
+            <div class="rowtop">
+              <span class="setno"><span class="n">01</span><span class="l">SET</span></span>
+              <div class="logvals">
+                <span class="big">80</span><span class="u">kg</span>
+                <span class="x">×</span>
+                <span class="big">10</span><span class="u">reps</span>
+              </div>
+              <span class="rir"><span class="lbl">RIR</span> 2</span>
+              <span class="check">✓</span>
+            </div>
+          </div>
+
+          <!-- Set 2 — logged -->
+          <div class="setrow logged">
+            <div class="rowtop">
+              <span class="setno"><span class="n">02</span><span class="l">SET</span></span>
+              <div class="logvals">
+                <span class="big">82.5</span><span class="u">kg</span>
+                <span class="x">×</span>
+                <span class="big">8</span><span class="u">reps</span>
+              </div>
+              <span class="rir"><span class="lbl">RIR</span> 2</span>
+              <span class="check">✓</span>
+            </div>
+          </div>
+
+          <!-- Set 3 — active / to log -->
+          <div class="setrow active">
+            <div class="rowtop">
+              <span class="setno"><span class="n">03</span><span class="l">NOW</span></span>
+              <div class="inputs">
+                <label class="field">
+                  <span class="flab">Weight</span>
+                  <span class="fval"><input type="text" inputmode="decimal" value="82.5" aria-label="Weight" /><span class="uin">kg</span></span>
+                </label>
+                <span class="ftimes">×</span>
+                <label class="field">
+                  <span class="flab">Reps</span>
+                  <span class="fval"><input type="text" inputmode="numeric" placeholder="8" aria-label="Reps" /></span>
+                </label>
+              </div>
+            </div>
+            <div class="targetrow">
+              <span class="target">
+                <span class="tlab">Target</span>
+                <span class="arrow">↑</span>
+                <b>82.5 kg × 8</b>
+                <span class="rirtarget">RIR 2</span>
+              </span>
+              <button class="logbtn">Log</button>
+            </div>
+          </div>
+
+          <!-- Set 4 — not started -->
+          <div class="setrow pending">
+            <div class="rowtop">
+              <span class="setno"><span class="n">04</span><span class="l">SET</span></span>
+              <div class="pendvals">
+                <span class="dash">— kg × — reps</span>
+              </div>
+              <span class="pendtag">Up next</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- rest timer -->
+        <div class="rest">
+          <div class="restlab">
+            <span>Rest Timer</span>
+            <span class="live"><span class="d"></span>COUNTING DOWN</span>
+          </div>
+          <div class="restmain">
+            <div class="clock">1<span class="sep">:</span>24<span class="of">/ 1:30</span></div>
+            <div class="restbtns">
+              <button class="rbtn add">+15s</button>
+              <button class="rbtn skip">Skip</button>
+            </div>
+          </div>
+          <div class="restbar"><span class="fill"></span></div>
+        </div>
+
+        <div style="height:6px"></div>
+      </div>
+
+      <!-- footer -->
+      <footer>
+        <button class="nextbtn">
+          <span>Next exercise</span><span class="arr">→</span>
+        </button>
+        <button class="finishbtn">Finish workout early</button>
+      </footer>
+
+      <div class="homebar"></div>
+    </div>
+  </div>
+
+  <script>
+    // Tiny instrument behaviour: live rest countdown from 1:24, MM:SS readout.
+    (function(){
+      var clock = document.querySelector('.clock');
+      if(!clock) return;
+      var total = 84; // 1:24
+      function render(s){
+        var m = Math.floor(s/60), sec = String(s%60).padStart(2,'0');
+        clock.innerHTML = m + '<span class="sep">:</span>' + sec + '<span class="of">/ 1:30</span>';
+      }
+      var iv = setInterval(function(){
+        total--;
+        if(total < 0){ clearInterval(iv); total = 0; }
+        render(total);
+      }, 1000);
+
+      // +15s adds time, Skip zeroes it (demo only)
+      document.querySelector('.rbtn.add').addEventListener('click', function(){ total += 15; render(total); });
+      document.querySelector('.rbtn.skip').addEventListener('click', function(){ clearInterval(iv); total = 0; render(0); });
+    })();
+  </script>
+</body>
+</html>

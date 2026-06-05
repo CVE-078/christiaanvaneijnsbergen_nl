@@ -12,7 +12,7 @@ export default function DayTabs() {
     const scheduleByDay = Object.fromEntries(activeSchedule.map((e) => [e.day_of_week, e]));
 
     return (
-        <div role="tablist" className="flex items-stretch gap-1.5 p-4 pb-3 overflow-x-auto [scrollbar-width:none]">
+        <div role="tablist" className="grid grid-cols-7 gap-1.5">
             {WEEK_ORDER.map((dow) => {
                 const entry = scheduleByDay[dow];
                 const isTraining = entry !== undefined;
@@ -31,6 +31,7 @@ export default function DayTabs() {
                     );
                 }).length;
                 const total = exercises.length;
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
                 if (!isTraining) {
                     return (
@@ -40,11 +41,13 @@ export default function DayTabs() {
                             id={`tab-day-${dow}`}
                             aria-selected={false}
                             disabled
-                            className="flex-1 min-w-[3rem] flex flex-col items-center gap-1 py-2.5 px-1 rounded-[11px] bg-transparent text-pulse-muted opacity-55 cursor-default">
-                            <span className="font-pulse text-[0.6875rem] tracking-[0.08em] uppercase">
+                            className="flex cursor-default flex-col items-center gap-1.5 rounded-2xl border border-dashed border-pulse-border bg-transparent px-1 py-3 text-pulse-muted opacity-55">
+                            <span className="font-pulse-display text-[0.8125rem] font-bold uppercase tracking-[0.06em]">
                                 {DAY_NAMES[dow]}
                             </span>
-                            <span className="font-pulse text-[0.625rem] tracking-[0.04em] text-pulse-muted">Rest</span>
+                            <span className="font-pulse-body text-[0.625rem] tracking-[0.04em] text-pulse-muted">
+                                Rest
+                            </span>
                         </button>
                     );
                 }
@@ -57,32 +60,46 @@ export default function DayTabs() {
                         aria-selected={active}
                         aria-controls={`panel-${workoutType}`}
                         onClick={() => setActiveDay(dow)}
-                        className={`relative flex-1 min-w-[3rem] flex flex-col items-center gap-1 py-2.5 px-1 rounded-[11px] cursor-pointer transition-colors duration-200 ${
+                        className={`relative flex cursor-pointer flex-col items-center gap-1.5 rounded-2xl border px-1 py-3 transition-colors duration-200 ${
                             active
-                                ? 'bg-pulse-accent text-pulse-bg'
-                                : 'bg-transparent text-pulse-dim hover:bg-pulse-surface'
+                                ? 'border-transparent bg-pulse-accent text-pulse-bg'
+                                : 'border-transparent bg-pulse-surface-2 text-pulse-dim hover:border-pulse-border'
                         }`}>
-                        <span className="font-pulse text-[0.6875rem] tracking-[0.08em] uppercase">
+                        <span
+                            className={`font-pulse-display text-[0.8125rem] font-bold uppercase tracking-[0.06em] ${
+                                active ? 'text-pulse-bg' : 'text-pulse-dim'
+                            }`}>
                             {DAY_NAMES[dow]}
                         </span>
                         <span
-                            className={`font-pulse text-[0.625rem] tracking-[0.04em] ${
-                                active ? 'text-pulse-bg' : 'text-pulse-muted'
+                            className={`font-pulse-body text-[0.625rem] tracking-[0.04em] ${
+                                active ? 'text-pulse-bg/70' : 'text-pulse-muted'
                             }`}>
                             {WORKOUT_TYPE_LABELS[workoutType!]}
                         </span>
                         {total > 0 && (
-                            <span
-                                className={`font-pulse text-[0.625rem] font-semibold ${
-                                    active ? 'text-pulse-bg' : 'text-pulse-dim'
-                                }`}>
-                                {done}/{total}
-                            </span>
+                            <>
+                                <span
+                                    className={`mt-0.5 h-[3px] w-6 overflow-hidden rounded-full ${
+                                        active ? 'bg-pulse-bg/25' : 'bg-pulse-surface'
+                                    }`}>
+                                    <span
+                                        className={`block h-full rounded-full ${active ? 'bg-pulse-bg' : 'bg-pulse-accent'}`}
+                                        style={{ width: `${pct}%` }}
+                                    />
+                                </span>
+                                <span
+                                    className={`font-pulse-body text-[0.625rem] font-semibold tabular-nums ${
+                                        active ? 'text-pulse-bg/80' : 'text-pulse-dim'
+                                    }`}>
+                                    {done}/{total}
+                                </span>
+                            </>
                         )}
                         {isToday && !active && (
                             <span
                                 aria-label="today"
-                                className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-pulse-accent"
+                                className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-pulse-accent"
                             />
                         )}
                     </button>
