@@ -75,6 +75,7 @@
 - Plan restructure — a `PageTitle` + Generate header, then a single program-header card (phase + week notes + rationale, with an inline week stepper) replacing the separate phase card / WeekSelector / "Why this plan" blocks. Below it, a full-width column: a card holding the weekly schedule + a taller, two-label weekly-volume chart whose bars are clickable to jump to that week (`setActiveWeek`), then the per-session exercise breakdown
 - Library unification — one shared toolbar and one row-card style across the Exercises, Routines, and Templates tabs, plus a `PageTitle`, so the three tabs read as one library. Filter chips wrap (instead of a horizontal scroll rail) so every category stays clickable on desktop
 - Progress trends as cards — the trends grid (volume, e1RM, volume-by-muscle, streak, Best Lifts, Personal Records) is wrapped in `bg-pulse-surface` cards on a tighter gap, matching the card idiom the redesigned screens use
+- Muscle priority + gender-aware generation — persistent `priority_muscle` on `profiles` (`glutes | legs | chest | back | shoulders | arms | balanced`, nullable). The generator tilts each session's emphasis toward the priority's movement patterns (front-loading them where the session already trains that muscle, never injecting into unrelated days) via a pure `tiltEmphasis`; the Progress weekly volume targets bump for that muscle (`priorityAdjustedTargets`) so the recovery nudges stay coherent. Gender now only seeds the default (female → glutes) via `genderDefault`, applied server-side at generation when no explicit choice exists; the old female-only `recommendStyle` bias is retired. Editable as a "Training priority" setting in Profile. (Deferred: an explicit priority step inside the generation flow — the Profile control + server-side seeding cover the default.)
 
 ---
 
@@ -111,10 +112,13 @@ Promoted from Later 2026-06-04 after clearing the previous four. Same value-per-
 | # | Feature | Notes |
 |---|---------|-------|
 | 1 | CSV data export | Export full workout history (logs + sessions + PRs) as CSV for backup or external analysis. Small, pure-compute, ownership value; no schema or storage changes. (also in: Strong, Alpha, Caliber) |
-| 2 | Muscle priority selection | User prioritizes a muscle; the generator shifts weekly volume toward it. Builds directly on the shipped per-muscle volume targets and folds in the deferred gender/emphasis weighting (the light female style bias becomes an explicit, user-driven priority). Moderate effort, high value for both users. |
-| 3 | Progress photos | Date-stamped progress photos alongside the existing body measurements; visual progress comparison that pairs with the recomp dashboard. Biggest of the three — needs file upload + a Supabase storage bucket (RLS) and a CSP `img-src`/`connect-src` update for the storage host. (also in: Hevy, Strong, Jefit, Fitbod) |
+| 2 | Progress photos | Date-stamped progress photos alongside the existing body measurements; visual progress comparison that pairs with the recomp dashboard. Needs file upload + a Supabase storage bucket (RLS) and a CSP `img-src`/`connect-src` update for the storage host. (also in: Hevy, Strong, Jefit, Fitbod) |
 
-_Shipped 2026-06-05: sex→gender rename, Progress dashboard re-tier, body measurement units (cm / in) + Profile Body block, recovery detail chips, Progress time window (Week/Cycle/All), clearer nav icons, Profile Body trend chips, shared PageTitle, Train/Plan/Library layout redesign + Progress card alignment (see Shipped)._
+_Muscle priority selection shipped 2026-06-05 (see Shipped: muscle priority + gender-aware generation)._
+
+_Also brainstormed alongside it (separate sub-projects, not yet built): template library revision; Templates-tab filters (goal / experience / days-per-week / gender-fit)._
+
+_Shipped 2026-06-05: sex→gender rename, Progress dashboard re-tier, body measurement units (cm / in) + Profile Body block, recovery detail chips, Progress time window (Week/Cycle/All), clearer nav icons, Profile Body trend chips, shared PageTitle, Train/Plan/Library layout redesign + Progress card alignment, muscle priority + gender-aware generation (see Shipped)._
 _Shipped 2026-06-04: gender in profile, strength score, recovery-aware volume nudges, rest-timer auto-advance, mid-workout exercise swap, generation explainability, weekly per-muscle volume targets, recomp dashboard, offline-first logging (see Shipped)._
 _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume, plate calculator, rich set types, supersets, exercise instructions, rule-based routine generation, routine editor session grouping, routine rename, collapsible sidebar, scroll-rail muscle filter, streak hero, login + skeleton reskin (see Shipped)._
 
