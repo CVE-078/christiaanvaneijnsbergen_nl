@@ -33,8 +33,31 @@ import {
     computeRecompSignal,
     toLengthDisplay,
     toCm,
+    priorityAdjustedTargets,
 } from '../utils';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
+
+describe('priorityAdjustedTargets', () => {
+    const base = { chest: [10, 16] as [number, number], biceps: [8, 14] as [number, number], legs: [12, 18] as [number, number] };
+
+    it('is the identity for a null priority', () => {
+        expect(priorityAdjustedTargets(base, null)).toEqual(base);
+    });
+
+    it('bumps only the prioritized muscle band', () => {
+        const out = priorityAdjustedTargets(base, 'chest');
+        expect(out.chest).toEqual([12, 18]);
+        expect(out.legs).toEqual([12, 18]); // unchanged
+        expect(out.biceps).toEqual([8, 14]); // unchanged
+    });
+
+    it('arms bumps both biceps and triceps where present', () => {
+        const out = priorityAdjustedTargets({ ...base, triceps: [8, 14] }, 'arms');
+        expect(out.biceps).toEqual([10, 16]);
+        expect(out.triceps).toEqual([10, 16]);
+        expect(out.chest).toEqual([10, 16]); // unchanged
+    });
+});
 
 describe('toLengthDisplay / toCm', () => {
     it('is the identity for cm', () => {

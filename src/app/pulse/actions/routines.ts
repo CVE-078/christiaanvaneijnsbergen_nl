@@ -2,7 +2,14 @@
 import { revalidatePath } from 'next/cache';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { UUID_RE } from '@/lib/pulse/utils';
-import { applyTemplateVolume, buildRationale, generateRoutine, resolveStyle, resolvePriority } from '@/lib/pulse/generation';
+import {
+    applyTemplateVolume,
+    buildRationale,
+    generateRoutine,
+    resolveStyle,
+    resolvePriority,
+    genderDefault,
+} from '@/lib/pulse/generation';
 import type { ExerciseMeta } from '@/lib/pulse/generation';
 import {
     EXPERIENCE_LEVELS,
@@ -366,13 +373,15 @@ export async function generateAndSaveRoutine(
         .is('user_id', null);
 
     // The persisted muscle priority tilts each session's emphasis toward that
-    // muscle (null = none / balanced).
+    // muscle. When the user has never chosen one (null), fall back to the
+    // gender-seeded default (female → glutes) so the gender-aware behavior takes
+    // effect without requiring a visit to Profile.
     const { data: profileRow } = await supabase
         .from('profiles')
-        .select('priority_muscle')
+        .select('priority_muscle, gender')
         .eq('id', user.id)
         .maybeSingle();
-    const priority = resolvePriority(profileRow?.priority_muscle ?? null);
+    const priority = resolvePriority(profileRow?.priority_muscle ?? genderDefault(profileRow?.gender ?? null));
 
     // Exclude the user's hidden exercises so generation never surfaces them. The
     // smaller pool flows through the existing equipment filter + thin-pool
