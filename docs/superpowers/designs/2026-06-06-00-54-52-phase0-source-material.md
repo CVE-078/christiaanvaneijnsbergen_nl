@@ -34,20 +34,33 @@ Start with A.
 
 ---
 
-## 1. MovementPattern to muscle map (draft, weights ~sum 1.0)
+## 1. MovementPattern → muscle map (v1, production-ready, Pulse's real vocabulary)
 
-Use the 7 compound rows; collapse muscle names to the 10 categories. Isolation/calf/core handled per "bridge job" above.
+Canonical bridge. Keys are Pulse's actual 15 `MovementPattern`s; values are Pulse's actual 10 `ExerciseCategory`s (`legs` stays single — we are NOT splitting quads/hamstrings; see the granularity decision). Weights sum to 1.0 per pattern. Directly implementable as `PATTERN_MUSCLE_MAP` in a new `src/lib/pulse/muscleMap.ts`.
 
 ```
-horizontal_push:  chest 0.65, front_delts 0.20, triceps 0.15
-vertical_push:    shoulders 0.55, triceps 0.30, upper_chest 0.15
-horizontal_pull:  lats 0.40, mid_back 0.35, biceps 0.15, rear_delts 0.10
-vertical_pull:    lats 0.60, biceps 0.25, rear_delts 0.15
-squat:            quads 0.55, glutes 0.30, adductors 0.10, core 0.05
-hinge:            hamstrings 0.45, glutes 0.40, lower_back 0.15
-lunge:            quads 0.40, glutes 0.40, hamstrings 0.15, adductors 0.05
+horizontal_push: chest 0.55, triceps 0.25, shoulders 0.20
+vertical_push:   shoulders 0.55, triceps 0.30, chest 0.15
+horizontal_pull: back 0.70, biceps 0.20, shoulders 0.10
+vertical_pull:   back 0.65, biceps 0.25, shoulders 0.10
+squat:           legs 0.70, glutes 0.25, calves 0.05
+hinge:           legs 0.50, glutes 0.40, back 0.10
+lunge:           legs 0.60, glutes 0.35, calves 0.05
+calf:            calves 1.00
+core:            abs 1.00
+chest_iso:       chest 0.85, shoulders 0.15
+back_iso:        back 1.00
+shoulder_iso:    shoulders 1.00
+biceps_iso:      biceps 1.00
+triceps_iso:     triceps 1.00
+glute_iso:       glutes 0.85, legs 0.15
 ```
-(Draft also gave glute_dominant, calves, core_flexion/stability, rotation, isolation_push/pull, carry — superseded by Pulse's own iso/calf/core patterns; see reconciliation.)
+
+**Corrections applied to the round-2 ChatGPT draft (it drifted from Pulse's real types):**
+- It used `quads` / `hamstrings` as categories. Pulse has a single `legs` category and we decided to keep it. Both collapse into `legs`.
+- It invented movement_patterns (`incline_push`, `chest_isolation`, `lateral_raise`, `isolation_push/pull`, `glute_dominant`, `core_stability/flexion`). Pulse has a fixed, already-seeded set of 15. Do not replace them; reuse the seeded `movement_pattern`.
+- It recommended **removing the `glutes` category**. Rejected: `glutes` is a shipped category with its own `VOLUME_TARGETS`, generator emphasis, and the female-priority feature. Glutes is correctly BOTH a reporting category and a control-layer emphasis tilt.
+- `traps`, `rear_delts`, `front_delts`, `obliques`, `hip_flexors`, `adductors`, `lower_back` are not Pulse categories: traps / rear-delts / lower-back fold into `back`, front-delts into `shoulders`, the rest into `legs` / `abs`. Pulse already categorizes Rear Delt Fly and Face Pull as `back`, so the draft's "structural fixes 2-4" describe problems Pulse does not have.
 
 ## 2. Exercise metadata format (draft, ~10 of 94 shown)
 
