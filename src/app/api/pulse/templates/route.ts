@@ -7,7 +7,7 @@ export async function GET() {
     const { data } = await supabase
         .from('routine_templates')
         .select(
-            'id, name, slug, required_equipment, days_per_week, experience_level, session_time, description, schedule_pattern, default_days',
+            'id, name, slug, required_equipment, days_per_week, experience_level, session_time, description, schedule_pattern, default_days, goal, gender_fit',
         )
         .order('experience_level');
     return NextResponse.json(data ?? []);

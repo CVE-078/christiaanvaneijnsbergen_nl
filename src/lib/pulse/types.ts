@@ -351,6 +351,9 @@ export interface RoutineTemplate {
     description: string;
     schedule_pattern: WorkoutType[];
     default_days: number[];
+    // Goal union mirrors recommendation.ts `Goal` (inlined to avoid an import cycle).
+    goal: 'build_muscle' | 'lose_fat' | 'general_fitness';
+    gender_fit: 'any' | 'female';
 }
 
 export function defaultWorkoutType(cat: ExerciseCategory): WorkoutType | null {
