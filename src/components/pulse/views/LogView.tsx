@@ -231,6 +231,9 @@ export default function LogView() {
                     onClose={handleCloseWorkoutMode}
                     resolveDisplay={(re) => resolveExercise(re, activeWeek, swaps, exercisesById)}
                     onSwapExercise={(re) => setSwapTarget(re)}
+                    notes={notes}
+                    onSaveNote={(id, n) => saveNote(activeWeek, id, n)}
+                    onDeleteNote={(id) => deleteNote(activeWeek, id)}
                 />
             )}
 
@@ -277,7 +280,7 @@ export default function LogView() {
                 <RegenNudge />
                 <div className="bg-pulse-surface rounded-2xl px-4 py-3.5">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <div className="flex min-w-0 flex-wrap items-center gap-3">
+                        <div className="min-w-0">
                             <div className="flex items-baseline gap-2">
                                 <span className="font-pulse-display text-[2.5rem] font-extrabold leading-[0.8] tracking-[-0.01em] text-pulse-text">
                                     {String(activeWeek).padStart(2, '0')}
@@ -285,24 +288,26 @@ export default function LogView() {
                                 <span className="font-pulse-display text-base font-semibold text-pulse-muted">
                                     /{programWeeks}
                                 </span>
-                                <span className="ml-1 font-pulse-body text-[0.6875rem] text-pulse-dim">
+                            </div>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                <span className="font-pulse-body text-[0.6875rem] text-pulse-dim">
                                     {isRampBack ? 'Ramp-back' : phase.label} · target{' '}
                                     <span className="font-semibold text-pulse-accent">RIR {rir}</span>
                                 </span>
+                                <PendingSyncBadge />
+                                {statusLabel && (
+                                    <span className="whitespace-nowrap rounded-md bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] font-semibold text-pulse-accent">
+                                        {statusLabel}
+                                    </span>
+                                )}
+                                {currentWeek !== activeWeek && (
+                                    <button
+                                        onClick={() => setActiveWeek(currentWeek)}
+                                        className="cursor-pointer whitespace-nowrap rounded-md border-none bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] font-semibold text-pulse-accent hover:text-pulse-text">
+                                        Go to Wk {currentWeek}
+                                    </button>
+                                )}
                             </div>
-                            <PendingSyncBadge />
-                            {statusLabel && (
-                                <span className="whitespace-nowrap rounded-md bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] font-semibold text-pulse-accent">
-                                    {statusLabel}
-                                </span>
-                            )}
-                            {currentWeek !== activeWeek && (
-                                <button
-                                    onClick={() => setActiveWeek(currentWeek)}
-                                    className="cursor-pointer whitespace-nowrap rounded-md border-none bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] font-semibold text-pulse-accent hover:text-pulse-text">
-                                    Go to Wk {currentWeek}
-                                </button>
-                            )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                             <div className="inline-flex items-center bg-pulse-surface-2 rounded-lg p-[3px] gap-[3px]">
@@ -326,13 +331,7 @@ export default function LogView() {
                             {routineExercises.length > 0 && (
                                 <button
                                     onClick={handleStartWorkout}
-                                    className="cursor-pointer rounded-xl border-none px-4 py-2 font-pulse-display text-xs font-extrabold uppercase tracking-[0.06em] text-pulse-bg"
-                                    style={{
-                                        background:
-                                            'linear-gradient(100deg, var(--color-pulse-accent), color-mix(in srgb, var(--color-pulse-accent) 78%, #ffffff))',
-                                        boxShadow:
-                                            '0 10px 26px -12px color-mix(in srgb, var(--color-pulse-accent) 60%, transparent)',
-                                    }}>
+                                    className="cursor-pointer rounded-lg border-none bg-pulse-accent px-4 py-2 font-pulse text-sm font-semibold text-pulse-bg transition-opacity hover:opacity-90">
                                     Start workout
                                 </button>
                             )}

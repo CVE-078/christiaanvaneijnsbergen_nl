@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse — Workout Mode set-row drafts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#0e1113;
+    --surface:#161a1d;
+    --surface2:#1c2125;
+    --border:#262c31;
+    --dim:#aab2b7;
+    --muted:#6f787e;
+    --text:#e7ebed;
+    --accent:#ff7d66;
+    --accent-dim:#b0503d;
+    --accent-soft:rgba(255,125,102,0.14);
+    --ring-track:#23292e;
+    --display:'Big Shoulders Display', sans-serif;
+    --ui:'Hanken Grotesk', sans-serif;
+    --body:'Sora', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    background:
+      radial-gradient(1100px 700px at 50% -10%, #15191c 0%, #0a0c0d 60%, #070809 100%);
+    min-height:100vh;
+    font-family:var(--ui);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    padding:40px 28px 60px;
+  }
+  h1.page {
+    font-family:var(--display);
+    font-weight:800;
+    font-size:30px;
+    letter-spacing:.01em;
+    text-transform:uppercase;
+    text-align:center;
+    margin-bottom:6px;
+  }
+  p.sub {
+    text-align:center;
+    font-family:var(--body);
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:36px;
+  }
+  .row {
+    display:flex;
+    gap:28px;
+    justify-content:center;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    max-width:1280px;
+    margin:0 auto;
+  }
+  .col {
+    width:372px;
+    flex-shrink:0;
+  }
+  .col-head {
+    margin-bottom:14px;
+  }
+  .col-head .tag {
+    display:inline-block;
+    font-family:var(--body);
+    font-size:9.5px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:600;
+    margin-bottom:7px;
+  }
+  .col-head .name {
+    font-family:var(--display);
+    font-weight:700;
+    font-size:21px;
+    letter-spacing:.02em;
+    text-transform:uppercase;
+    color:var(--text);
+  }
+  .col-head .desc {
+    font-family:var(--body);
+    font-size:11px;
+    color:var(--muted);
+    margin-top:5px;
+    line-height:1.5;
+  }
+  .panel {
+    background:linear-gradient(180deg, rgba(20,24,27,.6), rgba(13,16,18,.6));
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:18px 16px;
+  }
+  .sets-head {
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .sets-head .t {
+    font-family:var(--display);
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--dim);
+  }
+  .sets-head .c {
+    font-family:var(--body);
+    font-size:10px;
+    color:var(--muted);
+  }
+  .sets-head .c b { color:var(--accent); font-weight:600; }
+
+  /* shared bits */
+  .rir-tag {
+    font-family:var(--body); font-size:10px; color:var(--dim);
+    padding:3px 8px; border-radius:7px; background:var(--surface2);
+    letter-spacing:.04em; white-space:nowrap;
+  }
+  .pr {
+    display:inline-flex; align-items:center; gap:3px;
+    font-family:var(--ui); font-weight:800; font-size:9px;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--bg);
+    background:linear-gradient(100deg, var(--accent), #ffb199);
+    padding:3px 7px; border-radius:6px; white-space:nowrap;
+  }
+  .check {
+    width:20px; height:20px; border-radius:50%;
+    background:var(--accent); color:var(--bg);
+    display:grid; place-items:center; font-size:11px; flex-shrink:0;
+  }
+  .field {
+    background:var(--bg); border:1px solid var(--border); border-radius:11px;
+    padding:6px 10px 5px; display:flex; flex-direction:column; gap:1px; flex:1;
+  }
+  .field label {
+    font-family:var(--body); font-size:8px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .field .v {
+    font-family:var(--display); font-weight:700; font-size:20px; line-height:1; color:var(--text);
+  }
+  .field .v .u { font-family:var(--ui); font-size:10px; color:var(--dim); font-weight:500; margin-left:2px; }
+  .logbtn {
+    border:none; border-radius:11px; background:var(--accent); color:var(--bg);
+    font-family:var(--ui); font-weight:700; font-size:11px; letter-spacing:.06em;
+    text-transform:uppercase; cursor:pointer; padding:0 16px; flex-shrink:0;
+  }
+  .hint {
+    font-family:var(--body); font-size:9.5px; color:var(--accent); font-weight:500; letter-spacing:.02em;
+  }
+  .sub-actions { display:flex; align-items:center; gap:10px; margin-top:7px; }
+  .sub-actions .icon {
+    color:var(--muted); display:inline-flex; align-items:center; gap:4px;
+    font-family:var(--body); font-size:9px; letter-spacing:.04em;
+  }
+  .editlink { font-family:var(--body); font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+
+  /* ============ A · Numbered ============ */
+  .a-row {
+    display:flex; align-items:center; gap:13px;
+    border-radius:15px; padding:11px 14px;
+    border:1px solid var(--border); background:var(--surface);
+    margin-bottom:8px; position:relative; overflow:hidden;
+  }
+  .a-row .idx {
+    font-family:var(--display); font-weight:700; font-size:22px; width:20px;
+    text-align:center; flex-shrink:0; line-height:1; color:var(--muted);
+  }
+  .a-row.logged .idx { color:var(--accent); }
+  .a-row .val { font-family:var(--display); font-weight:600; font-size:19px; color:var(--text); flex:1; }
+  .a-row .val .x { color:var(--muted); margin:0 3px; }
+  .a-row .val .u { font-size:11px; color:var(--dim); }
+  .a-row.active {
+    background:linear-gradient(180deg, var(--surface2), #181d21);
+    border-color:var(--accent-dim); flex-direction:column; align-items:stretch; gap:9px;
+  }
+  .a-row.active::before {
+    content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--accent); box-shadow:0 0 12px var(--accent);
+  }
+  .a-active-top { display:flex; align-items:center; gap:13px; }
+  .a-active-top .idx { color:var(--accent); }
+  .a-inputs { display:flex; align-items:stretch; gap:8px; flex:1; }
+  .a-row.idle { opacity:.5; }
+  .a-row.idle .lbl { font-family:var(--body); font-size:11px; color:var(--muted); }
+
+  /* ============ B · Spine rail ============ */
+  .b-track { position:relative; padding-left:6px; }
+  .b-track::before {
+    content:""; position:absolute; left:16px; top:14px; bottom:14px; width:2px;
+    background:linear-gradient(180deg, var(--accent) 0%, var(--accent) 42%, var(--border) 52%, var(--border) 100%);
+  }
+  .b-row { position:relative; display:flex; gap:14px; align-items:flex-start; padding:7px 0; }
+  .b-node {
+    width:22px; height:22px; border-radius:50%; flex-shrink:0; z-index:1; margin-left:5px;
+    display:grid; place-items:center; font-family:var(--display); font-weight:700; font-size:11px;
+    border:2px solid var(--border); background:var(--bg); color:var(--muted);
+  }
+  .b-row.logged .b-node { background:var(--accent); border-color:transparent; color:var(--bg); }
+  .b-row.active .b-node { background:var(--accent); border-color:transparent; color:var(--bg); box-shadow:0 0 0 5px var(--accent-soft); }
+  .b-body { flex:1; min-width:0; padding-top:1px; }
+  .b-row.logged .val { font-family:var(--display); font-weight:600; font-size:18px; color:var(--text); display:flex; align-items:center; gap:10px; }
+  .b-row.logged .val .x { color:var(--muted); margin:0 3px; }
+  .b-row.logged .val .u { font-size:11px; color:var(--dim); }
+  .b-card {
+    background:linear-gradient(180deg, var(--surface2), #181d21);
+    border:1px solid var(--accent-dim); border-radius:13px; padding:11px 12px;
+  }
+  .b-inputs { display:flex; gap:8px; align-items:stretch; }
+  .b-row.idle .lbl { font-family:var(--body); font-size:11px; color:var(--muted); }
+
+  /* ============ C · Editorial lines ============ */
+  .c-list { }
+  .c-row { padding:12px 2px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+  .c-row:last-child { border-bottom:none; }
+  .c-row .setlbl {
+    font-family:var(--body); font-size:9px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--muted); width:34px; flex-shrink:0;
+  }
+  .c-row.logged .setlbl { color:var(--accent); }
+  .c-row.active { border-bottom:1px solid var(--accent-dim); }
+  .c-row .val { font-family:var(--display); font-weight:600; font-size:19px; color:var(--text); flex:1; }
+  .c-row .val .x { color:var(--muted); margin:0 3px; }
+  .c-row .val .u { font-size:11px; color:var(--dim); }
+  .c-active-wrap { flex:1; display:flex; flex-direction:column; gap:7px; }
+  .c-inputs { display:flex; gap:8px; align-items:stretch; }
+  .c-row.idle .lbl { font-family:var(--body); font-size:11px; color:var(--muted); opacity:.6; }
+</style>
+</head>
+<body>
+  <h1 class="page">Set-row drafts</h1>
+  <p class="sub">Dumbbell Bench Press · 4 sets · same data, three treatments. All keep weight/reps fields, RIR, the ↑ progression target, plate calculator and drop sets.</p>
+
+  <div class="row">
+
+    <!-- ============ A · NUMBERED ============ -->
+    <div class="col">
+      <div class="col-head">
+        <span class="tag">Draft A</span>
+        <div class="name">Numbered</div>
+        <div class="desc">Closest to the approved Focus mockup. Big index number per set, coral left-bar on the set you're logging, dimmed "not started" rows.</div>
+      </div>
+      <div class="panel">
+        <div class="sets-head"><span class="t">Sets</span><span class="c"><b>2 logged</b> · this exercise</span></div>
+
+        <div class="a-row logged">
+          <span class="idx">1</span>
+          <span class="val">80<span class="u"> kg</span><span class="x">×</span>10</span>
+          <span class="pr">⚡PR</span>
+          <span class="rir-tag">RIR 2</span>
+          <span class="check">✓</span>
+        </div>
+
+        <div class="a-row logged">
+          <span class="idx">2</span>
+          <span class="val">82.5<span class="u"> kg</span><span class="x">×</span>8</span>
+          <span class="rir-tag">RIR 2</span>
+          <span class="check">✓</span>
+        </div>
+
+        <div class="a-row active">
+          <div class="a-active-top">
+            <span class="idx">3</span>
+            <div class="a-inputs">
+              <div class="field"><label>Weight</label><div class="v">82.5<span class="u">kg</span></div></div>
+              <div class="field"><label>Reps</label><div class="v">8</div></div>
+            </div>
+            <button class="logbtn">Log</button>
+          </div>
+          <div class="sub-actions">
+            <span class="hint">↑ target 82.5 kg × 8 · RIR 2</span>
+            <span class="icon" style="margin-left:auto;">▤ plates</span>
+            <span class="icon">+ drop</span>
+          </div>
+        </div>
+
+        <div class="a-row idle">
+          <span class="idx">4</span>
+          <span class="lbl">Set 4 — not started · target RIR 2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ B · SPINE RAIL ============ -->
+    <div class="col">
+      <div class="col-head">
+        <span class="tag">Draft B</span>
+        <div class="name">Spine rail</div>
+        <div class="desc">Sets hang off a connecting rail with numbered nodes — echoes the desktop session track, so the whole guided screen reads as one progress line.</div>
+      </div>
+      <div class="panel">
+        <div class="sets-head"><span class="t">Sets</span><span class="c"><b>2 logged</b> · this exercise</span></div>
+        <div class="b-track">
+
+          <div class="b-row logged">
+            <span class="b-node">✓</span>
+            <div class="b-body">
+              <div class="val">80<span class="u"> kg</span><span class="x">×</span>10 <span class="pr">⚡PR</span> <span class="rir-tag">RIR 2</span></div>
+            </div>
+          </div>
+
+          <div class="b-row logged">
+            <span class="b-node">✓</span>
+            <div class="b-body">
+              <div class="val">82.5<span class="u"> kg</span><span class="x">×</span>8 <span class="rir-tag">RIR 2</span></div>
+            </div>
+          </div>
+
+          <div class="b-row active">
+            <span class="b-node">3</span>
+            <div class="b-body">
+              <div class="b-card">
+                <div class="b-inputs">
+                  <div class="field"><label>Weight</label><div class="v">82.5<span class="u">kg</span></div></div>
+                  <div class="field"><label>Reps</label><div class="v">8</div></div>
+                  <button class="logbtn">Log</button>
+                </div>
+                <div class="sub-actions">
+                  <span class="hint">↑ target 82.5 × 8</span>
+                  <span class="icon" style="margin-left:auto;">▤ plates</span>
+                  <span class="icon">+ drop</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="b-row idle">
+            <span class="b-node">4</span>
+            <div class="b-body"><span class="lbl" style="line-height:22px;">Not started · target RIR 2</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ C · EDITORIAL LINES ============ -->
+    <div class="col">
+      <div class="col-head">
+        <span class="tag">Draft C</span>
+        <div class="name">Editorial lines</div>
+        <div class="desc">Restrained — no big numerals or cards, just clean hairline-separated rows with a small "SET n" label. Quietest, most app-native.</div>
+      </div>
+      <div class="panel">
+        <div class="sets-head"><span class="t">Sets</span><span class="c"><b>2 logged</b> · this exercise</span></div>
+        <div class="c-list">
+
+          <div class="c-row logged">
+            <span class="setlbl">Set 1</span>
+            <span class="val">80<span class="u"> kg</span><span class="x">×</span>10</span>
+            <span class="pr">⚡PR</span>
+            <span class="rir-tag">RIR 2</span>
+            <span class="check">✓</span>
+          </div>
+
+          <div class="c-row logged">
+            <span class="setlbl">Set 2</span>
+            <span class="val">82.5<span class="u"> kg</span><span class="x">×</span>8</span>
+            <span class="rir-tag">RIR 2</span>
+            <span class="check">✓</span>
+          </div>
+
+          <div class="c-row active">
+            <span class="setlbl" style="color:var(--accent);">Set 3</span>
+            <div class="c-active-wrap">
+              <div class="c-inputs">
+                <div class="field"><label>Weight</label><div class="v">82.5<span class="u">kg</span></div></div>
+                <div class="field"><label>Reps</label><div class="v">8</div></div>
+                <button class="logbtn">Log</button>
+              </div>
+              <div class="sub-actions">
+                <span class="hint">↑ target 82.5 × 8 · RIR 2</span>
+                <span class="icon" style="margin-left:auto;">▤ plates</span>
+                <span class="icon">+ drop</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="c-row idle">
+            <span class="setlbl">Set 4</span>
+            <span class="lbl">Not started · target RIR 2</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

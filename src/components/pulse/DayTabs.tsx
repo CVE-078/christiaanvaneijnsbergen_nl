@@ -42,10 +42,10 @@ export default function DayTabs() {
                             aria-selected={false}
                             disabled
                             className="flex cursor-default flex-col items-center gap-1.5 rounded-2xl border border-dashed border-pulse-border bg-transparent px-1 py-3 text-pulse-muted opacity-55">
-                            <span className="font-pulse-display text-[0.8125rem] font-bold uppercase tracking-[0.06em]">
+                            <span className="font-pulse-display text-[0.9375rem] font-bold uppercase tracking-[0.06em]">
                                 {DAY_NAMES[dow]}
                             </span>
-                            <span className="font-pulse-body text-[0.625rem] tracking-[0.04em] text-pulse-muted">
+                            <span className="font-pulse-body text-[0.6875rem] tracking-[0.04em] text-pulse-muted">
                                 Rest
                             </span>
                         </button>
@@ -66,13 +66,13 @@ export default function DayTabs() {
                                 : 'border-transparent bg-pulse-surface-2 text-pulse-dim hover:border-pulse-border'
                         }`}>
                         <span
-                            className={`font-pulse-display text-[0.8125rem] font-bold uppercase tracking-[0.06em] ${
+                            className={`font-pulse-display text-[0.9375rem] font-bold uppercase tracking-[0.06em] ${
                                 active ? 'text-pulse-bg' : 'text-pulse-dim'
                             }`}>
                             {DAY_NAMES[dow]}
                         </span>
                         <span
-                            className={`font-pulse-body text-[0.625rem] tracking-[0.04em] ${
+                            className={`font-pulse-body text-[0.6875rem] tracking-[0.04em] ${
                                 active ? 'text-pulse-bg/70' : 'text-pulse-muted'
                             }`}>
                             {WORKOUT_TYPE_LABELS[workoutType!]}
@@ -89,7 +89,7 @@ export default function DayTabs() {
                                     />
                                 </span>
                                 <span
-                                    className={`font-pulse-body text-[0.625rem] font-semibold tabular-nums ${
+                                    className={`font-pulse-body text-[0.75rem] font-semibold tabular-nums ${
                                         active ? 'text-pulse-bg/80' : 'text-pulse-dim'
                                     }`}>
                                     {done}/{total}

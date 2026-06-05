@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse — Workout Mode set-row drafts (desktop)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#0e1113; --surface:#161a1d; --surface2:#1c2125; --border:#262c31;
+    --dim:#aab2b7; --muted:#6f787e; --text:#e7ebed;
+    --accent:#ff7d66; --accent-dim:#b0503d; --accent-soft:rgba(255,125,102,0.14);
+    --ring-track:#23292e;
+    --display:'Big Shoulders Display', sans-serif; --ui:'Hanken Grotesk', sans-serif; --body:'Sora', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    background:radial-gradient(1200px 760px at 30% -8%, #15191c 0%, #0a0c0d 60%, #070809 100%);
+    min-height:100vh; font-family:var(--ui); color:var(--text); -webkit-font-smoothing:antialiased;
+    padding:44px 40px 80px;
+  }
+  h1.page { font-family:var(--display); font-weight:800; font-size:32px; text-transform:uppercase; text-align:center; }
+  p.sub { text-align:center; font-family:var(--body); font-size:12.5px; color:var(--muted); margin:7px 0 40px; }
+  .wrap { max-width:880px; margin:0 auto; display:flex; flex-direction:column; gap:46px; }
+  .block .head { margin-bottom:16px; }
+  .block .tag {
+    display:inline-block; font-family:var(--body); font-size:10px; letter-spacing:.2em;
+    text-transform:uppercase; color:var(--accent); font-weight:600; margin-bottom:7px;
+  }
+  .block .name { font-family:var(--display); font-weight:700; font-size:26px; letter-spacing:.02em; text-transform:uppercase; }
+  .block .desc { font-family:var(--body); font-size:12px; color:var(--muted); margin-top:6px; line-height:1.55; max-width:680px; }
+
+  .sets-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .sets-head .t { font-family:var(--display); font-weight:600; font-size:16px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+  .sets-head .c { font-family:var(--body); font-size:12px; color:var(--muted); }
+  .sets-head .c b { color:var(--accent); font-weight:600; }
+
+  /* shared */
+  .rir-tag { font-family:var(--body); font-size:11px; color:var(--dim); padding:5px 12px; border-radius:8px; background:var(--surface2); letter-spacing:.04em; white-space:nowrap; }
+  .pr { display:inline-flex; align-items:center; gap:5px; font-family:var(--ui); font-weight:800; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--bg); background:linear-gradient(100deg, var(--accent), #ffb199); padding:5px 11px; border-radius:8px; white-space:nowrap; }
+  .check { width:26px; height:26px; border-radius:50%; background:var(--accent); color:var(--bg); display:grid; place-items:center; font-size:14px; flex-shrink:0; }
+  .field { background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:9px 16px 8px; display:flex; flex-direction:column; gap:2px; width:170px; }
+  .field label { font-family:var(--body); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+  .field .v { font-family:var(--display); font-weight:700; font-size:32px; line-height:1; color:var(--text); }
+  .field .v .u { font-family:var(--ui); font-size:13px; color:var(--dim); font-weight:500; margin-left:3px; }
+  .logbtn { border:none; border-radius:14px; background:var(--accent); color:var(--bg); font-family:var(--ui); font-weight:700; font-size:14px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; padding:0 30px; }
+  .hint { font-family:var(--body); font-size:11.5px; color:var(--accent); font-weight:500; }
+  .sub-actions { display:flex; align-items:center; gap:16px; }
+  .icon { color:var(--muted); font-family:var(--body); font-size:11px; letter-spacing:.04em; display:inline-flex; align-items:center; gap:5px; }
+
+  /* ===== A · Numbered ===== */
+  .a-row { display:flex; align-items:center; gap:20px; border-radius:20px; padding:18px 24px; border:1px solid var(--border); background:var(--surface); margin-bottom:11px; position:relative; overflow:hidden; }
+  .a-row .idx { font-family:var(--display); font-weight:700; font-size:32px; width:30px; text-align:center; flex-shrink:0; line-height:1; color:var(--muted); }
+  .a-row.logged .idx { color:var(--accent); }
+  .a-row .val { font-family:var(--display); font-weight:600; font-size:30px; color:var(--text); flex:1; }
+  .a-row .val .x { color:var(--muted); margin:0 5px; } .a-row .val .u { font-size:14px; color:var(--dim); }
+  .a-row.active { background:linear-gradient(180deg, var(--surface2), #181d21); border-color:var(--accent-dim); flex-direction:column; align-items:stretch; gap:14px; }
+  .a-row.active::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent); box-shadow:0 0 14px var(--accent); }
+  .a-top { display:flex; align-items:center; gap:20px; }
+  .a-top .idx { color:var(--accent); align-self:flex-start; margin-top:6px; }
+  .a-inputs { display:flex; gap:14px; flex:1; }
+  .a-row.idle { opacity:.55; }
+  .a-row.idle .lbl { font-family:var(--body); font-size:14px; color:var(--muted); }
+
+  /* ===== B · Spine rail ===== */
+  .b-track { position:relative; padding-left:8px; }
+  .b-track::before { content:""; position:absolute; left:22px; top:20px; bottom:20px; width:2px; background:linear-gradient(180deg, var(--accent) 0%, var(--accent) 42%, var(--border) 52%, var(--border) 100%); }
+  .b-row { position:relative; display:flex; gap:20px; align-items:flex-start; padding:10px 0; }
+  .b-node { width:28px; height:28px; border-radius:50%; flex-shrink:0; z-index:1; margin-left:8px; display:grid; place-items:center; font-family:var(--display); font-weight:700; font-size:14px; border:2px solid var(--border); background:var(--bg); color:var(--muted); }
+  .b-row.logged .b-node { background:var(--accent); border-color:transparent; color:var(--bg); }
+  .b-row.active .b-node { background:var(--accent); border-color:transparent; color:var(--bg); box-shadow:0 0 0 6px var(--accent-soft); margin-top:2px; }
+  .b-body { flex:1; min-width:0; padding-top:3px; }
+  .b-row.logged .val { font-family:var(--display); font-weight:600; font-size:26px; color:var(--text); display:flex; align-items:center; gap:14px; }
+  .b-row.logged .val .x { color:var(--muted); margin:0 4px; } .b-row.logged .val .u { font-size:13px; color:var(--dim); }
+  .b-card { background:linear-gradient(180deg, var(--surface2), #181d21); border:1px solid var(--accent-dim); border-radius:16px; padding:16px 18px; }
+  .b-inputs { display:flex; gap:14px; align-items:stretch; }
+  .b-foot { display:flex; align-items:center; gap:16px; margin-top:10px; }
+  .b-row.idle .lbl { font-family:var(--body); font-size:14px; color:var(--muted); line-height:28px; }
+
+  /* ===== C · Editorial lines ===== */
+  .c-row { padding:18px 4px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:22px; }
+  .c-row:last-child { border-bottom:none; }
+  .c-row .setlbl { font-family:var(--body); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); width:54px; flex-shrink:0; }
+  .c-row.logged .setlbl { color:var(--accent); }
+  .c-row.active { border-bottom:1px solid var(--accent-dim); }
+  .c-row .val { font-family:var(--display); font-weight:600; font-size:30px; color:var(--text); flex:1; }
+  .c-row .val .x { color:var(--muted); margin:0 5px; } .c-row .val .u { font-size:14px; color:var(--dim); }
+  .c-wrap { flex:1; display:flex; flex-direction:column; gap:11px; }
+  .c-inputs { display:flex; gap:14px; align-items:stretch; }
+  .c-row.idle .lbl { font-family:var(--body); font-size:14px; color:var(--muted); opacity:.7; }
+</style>
+</head>
+<body>
+  <h1 class="page">Set-row drafts · desktop</h1>
+  <p class="sub">Left main pane width. Same three treatments at desktop scale — each keeps weight/reps fields, RIR, the ↑ target, plate calculator and drop sets.</p>
+
+  <div class="wrap">
+
+    <!-- A -->
+    <div class="block">
+      <div class="head"><span class="tag">Draft A</span><div class="name">Numbered</div><div class="desc">Bold index numerals, the active set lifts into a coral-bordered card with a left bar and large 32px input values. Matches the approved Focus mockup most directly.</div></div>
+      <div class="sets-head"><span class="t">Sets</span><span class="c"><b>2 sets logged</b> · this exercise</span></div>
+
+      <div class="a-row logged"><span class="idx">1</span><span class="val">80<span class="u"> kg</span><span class="x">×</span>10</span><span class="pr">⚡PR</span><span class="rir-tag">RIR 2</span><span class="check">✓</span></div>
+      <div class="a-row logged"><span class="idx">2</span><span class="val">82.5<span class="u"> kg</span><span class="x">×</span>8</span><span class="rir-tag">RIR 2</span><span class="check">✓</span></div>
+      <div class="a-row active">
+        <div class="a-top">
+          <span class="idx">3</span>
+          <div class="a-inputs">
+            <div class="field"><label>Weight</label><div class="v">82.5<span class="u">kg</span></div></div>
+            <div class="field"><label>Reps</label><div class="v">8</div></div>
+          </div>
+          <button class="logbtn">Log set</button>
+        </div>
+        <div class="sub-actions"><span class="hint">↑ target 82.5 kg × 8 · RIR 2</span><span class="icon" style="margin-left:auto;">▤ plate calculator</span><span class="icon">+ drop set</span></div>
+      </div>
+      <div class="a-row idle"><span class="idx">4</span><span class="lbl">Set 4 — not started · target RIR 2 · 8–12 reps</span></div>
+    </div>
+
+    <!-- B -->
+    <div class="block">
+      <div class="head"><span class="tag">Draft B</span><div class="name">Spine rail</div><div class="desc">A connecting rail with numbered nodes runs through the sets, mirroring the right-hand session track — the whole screen becomes one continuous progress line. The active node opens a card.</div></div>
+      <div class="sets-head"><span class="t">Sets</span><span class="c"><b>2 sets logged</b> · this exercise</span></div>
+      <div class="b-track">
+        <div class="b-row logged"><span class="b-node">✓</span><div class="b-body"><div class="val">80<span class="u"> kg</span><span class="x">×</span>10 <span class="pr">⚡PR</span> <span class="rir-tag">RIR 2</span></div></div></div>
+        <div class="b-row logged"><span class="b-node">✓</span><div class="b-body"><div class="val">82.5<span class="u"> kg</span><span class="x">×</span>8 <span class="rir-tag">RIR 2</span></div></div></div>
+        <div class="b-row active">
+          <span class="b-node">3</span>
+          <div class="b-body"><div class="b-card">
+            <div class="b-inputs">
+              <div class="field"><label>Weight</label><div class="v">82.5<span class="u">kg</span></div></div>
+              <div class="field"><label>Reps</label><div class="v">8</div></div>
+              <button class="logbtn">Log set</button>
+            </div>
+            <div class="b-foot"><span class="hint">↑ target 82.5 kg × 8 · RIR 2</span><span class="icon" style="margin-left:auto;">▤ plate calculator</span><span class="icon">+ drop set</span></div>
+          </div></div>
+        </div>
+        <div class="b-row idle"><span class="b-node">4</span><div class="b-body"><span class="lbl">Not started · target RIR 2 · 8–12 reps</span></div></div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="block">
+      <div class="head"><span class="tag">Draft C</span><div class="name">Editorial lines</div><div class="desc">Hairline-separated rows, a small "SET n" label, large display values, the active row's fields inline. Quiet and wide — leans into the desktop's horizontal space without heavy chrome. (Pairs with Editorial on mobile.)</div></div>
+      <div class="sets-head"><span class="t">Sets</span><span class="c"><b>2 sets logged</b> · this exercise</span></div>
+
+      <div class="c-row logged"><span class="setlbl">Set 1</span><span class="val">80<span class="u"> kg</span><span class="x">×</span>10</span><span class="pr">⚡PR</span><span class="rir-tag">RIR 2</span><span class="check">✓</span></div>
+      <div class="c-row logged"><span class="setlbl">Set 2</span><span class="val">82.5<span class="u"> kg</span><span class="x">×</span>8</span><span class="rir-tag">RIR 2</span><span class="check">✓</span></div>
+      <div class="c-row active">
+        <span class="setlbl" style="color:var(--accent);">Set 3</span>
+        <div class="c-wrap">
+          <div class="c-inputs">
+            <div class="field"><label>Weight</label><div class="v">82.5<span class="u">kg</span></div></div>
+            <div class="field"><label>Reps</label><div class="v">8</div></div>
+            <button class="logbtn">Log set</button>
+          </div>
+          <div class="sub-actions"><span class="hint">↑ target 82.5 kg × 8 · RIR 2</span><span class="icon" style="margin-left:auto;">▤ plate calculator</span><span class="icon">+ drop set</span></div>
+        </div>
+      </div>
+      <div class="c-row idle"><span class="setlbl">Set 4</span><span class="lbl">Not started · target RIR 2 · 8–12 reps</span></div>
+    </div>
+
+  </div>
+</body>
+</html>

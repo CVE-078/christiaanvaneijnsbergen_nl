@@ -5,8 +5,10 @@ import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
+import { BTN_PRIMARY_BLOCK } from './ui';
 import SetLogger from './SetLogger';
 import RestTimer from './RestTimer';
+import ExerciseInstructionModal from './ExerciseInstructionModal';
 import type {
     RoutineExercise,
     Logs,
@@ -16,6 +18,7 @@ import type {
     ExerciseItem,
     PRMap,
     DbExercise,
+    Notes,
 } from '@/lib/pulse/types';
 
 interface Props {
@@ -31,6 +34,9 @@ interface Props {
     onClose: () => void;
     resolveDisplay?: (re: RoutineExercise) => DbExercise;
     onSwapExercise?: (re: RoutineExercise) => void;
+    notes?: Notes;
+    onSaveNote?: (routineExerciseId: string, note: string) => Promise<void>;
+    onDeleteNote?: (routineExerciseId: string) => Promise<void>;
 }
 
 // Pure decision for guided-mode auto-advance: only jump to the next step when the
@@ -53,17 +59,39 @@ function doneSetsForStep(step: ExerciseItem, week: number, logs: Logs): number {
         : savedSetsForExercise(step, week, logs);
 }
 
-// Shared visual tokens for the bold "Focus" treatment. The gradient and glow are
-// derived from the (themeable) accent via color-mix, so the accent picker cascades.
-const CTA_GRADIENT: React.CSSProperties = {
-    background:
-        'linear-gradient(100deg, var(--color-pulse-accent), color-mix(in srgb, var(--color-pulse-accent) 78%, #ffffff))',
-    boxShadow: '0 14px 34px -12px color-mix(in srgb, var(--color-pulse-accent) 60%, transparent)',
-};
-const CTA_CLASS =
-    'flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl border-none px-4 py-4 font-pulse-display text-lg font-extrabold uppercase tracking-[0.06em] text-pulse-bg transition-[transform,filter] duration-150 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50';
 const ICON_BTN =
-    'grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-xl border border-pulse-border bg-white/[0.02] text-xl leading-none text-pulse-dim transition-colors hover:border-pulse-muted hover:text-pulse-text disabled:cursor-default disabled:opacity-30';
+    'grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-xl border border-pulse-border bg-white/[0.02] text-pulse-dim transition-colors hover:border-pulse-muted hover:text-pulse-text disabled:cursor-default disabled:opacity-30';
+
+function ChevronLeftIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+            aria-hidden>
+            <path d="M15 6l-6 6 6 6" />
+        </svg>
+    );
+}
+function CloseIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-[1.05rem] w-[1.05rem]"
+            aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+    );
+}
 
 // Set-progress ring — the focal anchor of both layouts.
 function ProgressRing({
@@ -121,7 +149,8 @@ function ProgressRing({
     );
 }
 
-// Per-step progress pips: filled when fully logged, a partial glow on the current step.
+// Per-step progress pips: each fills to its own done/total, with a glow on the
+// current step so a half-finished exercise reads as half-finished.
 function PipTrack({
     steps,
     currentIdx,
@@ -137,18 +166,17 @@ function PipTrack({
         <div className="flex gap-[5px]">
             {steps.map((st, i) => {
                 const total = totalSetsForStep(st);
-                const done = total > 0 && doneSetsForStep(st, week, logs) === total;
+                const pct = total > 0 ? (doneSetsForStep(st, week, logs) / total) * 100 : 0;
                 const current = i === currentIdx;
                 return (
-                    <span
-                        key={i}
-                        className={`relative h-[4px] flex-1 overflow-hidden rounded-full ${done ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}>
-                        {current && !done && (
-                            <span
-                                className="absolute inset-y-0 left-0 w-3/5 rounded-full bg-pulse-accent"
-                                style={{ boxShadow: '0 0 10px var(--color-pulse-accent)' }}
-                            />
-                        )}
+                    <span key={i} className="relative h-[4px] flex-1 overflow-hidden rounded-full bg-pulse-surface-2">
+                        <span
+                            className="absolute inset-y-0 left-0 rounded-full bg-pulse-accent transition-[width] duration-300"
+                            style={{
+                                width: `${pct}%`,
+                                boxShadow: current && pct > 0 ? '0 0 10px var(--color-pulse-accent)' : undefined,
+                            }}
+                        />
                     </span>
                 );
             })}
@@ -156,8 +184,118 @@ function PipTrack({
     );
 }
 
+// Per-exercise actions (how-to / swap / note) — guided-mode parity with the Train
+// card. Mirrors ExerciseCard: instructions modal gated to global exercises, and a
+// per-exercise note editor that saves on blur.
+function ExerciseActions({
+    display,
+    onSwap,
+    note,
+    onSaveNote,
+    onDeleteNote,
+}: {
+    display: DbExercise;
+    onSwap?: () => void;
+    note?: string;
+    onSaveNote?: (note: string) => Promise<void>;
+    onDeleteNote?: () => Promise<void>;
+}) {
+    const [showInstructions, setShowInstructions] = useState(false);
+    const [noteEditing, setNoteEditing] = useState(false);
+    const [noteDraft, setNoteDraft] = useState('');
+    const chip =
+        'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-none bg-pulse-surface-2 px-2.5 py-1.5 font-pulse text-[0.75rem] font-semibold text-pulse-dim hover:text-pulse-accent';
+    return (
+        <>
+            <div className="flex flex-wrap items-center gap-2">
+                {display.user_id === null && (
+                    <button
+                        onClick={() => setShowInstructions(true)}
+                        aria-label={`How to perform ${display.name}`}
+                        className={chip}>
+                        <svg
+                            className="h-3.5 w-3.5"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                            aria-hidden>
+                            <circle cx="8" cy="8" r="6.5" />
+                            <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
+                            <circle cx="8" cy="4.75" r="0.6" fill="currentColor" stroke="none" />
+                        </svg>
+                        How to perform
+                    </button>
+                )}
+                {onSwap && (
+                    <button onClick={onSwap} aria-label="swap exercise" className={chip}>
+                        <span aria-hidden>⇄</span> Swap
+                    </button>
+                )}
+                {onSaveNote && (
+                    <button
+                        onClick={() => {
+                            setNoteDraft(note ?? '');
+                            setNoteEditing(true);
+                        }}
+                        className={chip}>
+                        + Note
+                    </button>
+                )}
+            </div>
+            {onSaveNote && (noteEditing || note) && (
+                <div>
+                    {noteEditing ? (
+                        <textarea
+                            autoFocus
+                            value={noteDraft}
+                            onChange={(e) => setNoteDraft(e.target.value)}
+                            onBlur={async () => {
+                                setNoteEditing(false);
+                                const trimmed = noteDraft.trim();
+                                if (trimmed) await onSaveNote(trimmed);
+                                else await onDeleteNote?.();
+                            }}
+                            placeholder="Add a note for this exercise…"
+                            maxLength={500}
+                            className="min-h-[60px] w-full resize-none rounded-lg border border-pulse-border bg-pulse-bg px-3 py-2 font-pulse text-[0.8125rem] text-pulse-text outline-none focus:border-pulse-accent/50"
+                        />
+                    ) : (
+                        <div>
+                            <p className="font-pulse text-[0.8125rem] leading-relaxed text-pulse-dim">{note}</p>
+                            <div className="mt-1 flex justify-end gap-3">
+                                <button
+                                    onClick={() => {
+                                        setNoteDraft(note ?? '');
+                                        setNoteEditing(true);
+                                    }}
+                                    className="cursor-pointer border-none bg-transparent font-pulse text-[0.6875rem] uppercase tracking-[0.06em] text-pulse-dim">
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={() => onDeleteNote?.()}
+                                    className="cursor-pointer border-none bg-transparent font-pulse text-[0.6875rem] uppercase tracking-[0.06em] text-pulse-dim">
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+            {showInstructions && (
+                <ExerciseInstructionModal
+                    exerciseId={display.id}
+                    exerciseName={display.name}
+                    onClose={() => setShowInstructions(false)}
+                />
+            )}
+        </>
+    );
+}
+
 // The set-logger rows for a single exercise. SetLogger owns all logging logic
-// (progression target, drop sets, plate calc, validation, edit/delete, PR tag).
+// (progression target, drop sets, plate calc, validation, edit/delete, PR tag);
+// the 'editorial' variant gives it the guided-mode hairline / "Set N" treatment.
 function ExerciseSetRows({
     re,
     week,
@@ -177,7 +315,7 @@ function ExerciseSetRows({
 }) {
     const maxSets = parseMaxSets(re.sets);
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col">
             {Array.from({ length: maxSets }, (_, s) => {
                 const key = logKey(week, re.id, s);
                 const prevKey = logKey(week - 1, re.id, s);
@@ -194,6 +332,7 @@ function ExerciseSetRows({
                         repsRange={re.reps}
                         unit={unit}
                         isPR={isPR}
+                        variant="editorial"
                         onSave={(e) => onSave(key, e)}
                         onDelete={() => onDelete(key)}
                     />
@@ -203,15 +342,19 @@ function ExerciseSetRows({
     );
 }
 
-// The current step's logger rows. A superset renders both exercises, each under
-// its own name so the pair reads clearly; the hero shows "Superset" above.
+// The current step's logger rows. Each exercise carries its own actions (how-to /
+// swap / note); a superset renders both exercises under their names.
 function StepBody({
     step,
     week,
     logs,
     unit,
     prMap,
-    nameOf,
+    displayOf,
+    onSwapExercise,
+    notes,
+    onSaveNote,
+    onDeleteNote,
     onSave,
     onDelete,
 }: {
@@ -220,16 +363,32 @@ function StepBody({
     logs: Logs;
     unit: Unit;
     prMap: PRMap;
-    nameOf: (re: RoutineExercise) => string;
+    displayOf: (re: RoutineExercise) => DbExercise;
+    onSwapExercise?: (re: RoutineExercise) => void;
+    notes?: Notes;
+    onSaveNote?: (routineExerciseId: string, note: string) => Promise<void>;
+    onDeleteNote?: (routineExerciseId: string) => Promise<void>;
     onSave: (key: string, entry: LogEntry) => void;
     onDelete: (key: string) => void;
 }) {
-    if (Array.isArray(step)) {
-        return (
-            <div className="flex flex-col gap-5">
-                {step.map((re) => (
-                    <div key={re.id} className="flex flex-col gap-2">
-                        <h3 className="font-pulse text-sm font-semibold text-pulse-text">{nameOf(re)}</h3>
+    const members = Array.isArray(step) ? step : [step];
+    const isPairStep = Array.isArray(step);
+    return (
+        <div className="flex flex-col gap-6">
+            {members.map((re) => {
+                const display = displayOf(re);
+                return (
+                    <div key={re.id} className="flex flex-col gap-2.5">
+                        {isPairStep && (
+                            <h3 className="font-pulse text-sm font-semibold text-pulse-text">{display.name}</h3>
+                        )}
+                        <ExerciseActions
+                            display={display}
+                            onSwap={onSwapExercise ? () => onSwapExercise(re) : undefined}
+                            note={notes?.[`${week}-${re.id}`]}
+                            onSaveNote={onSaveNote ? (n) => onSaveNote(re.id, n) : undefined}
+                            onDeleteNote={onDeleteNote ? () => onDeleteNote(re.id) : undefined}
+                        />
                         <ExerciseSetRows
                             re={re}
                             week={week}
@@ -240,20 +399,9 @@ function StepBody({
                             onDelete={onDelete}
                         />
                     </div>
-                ))}
-            </div>
-        );
-    }
-    return (
-        <ExerciseSetRows
-            re={step}
-            week={week}
-            logs={logs}
-            unit={unit}
-            prMap={prMap}
-            onSave={onSave}
-            onDelete={onDelete}
-        />
+                );
+            })}
+        </div>
     );
 }
 
@@ -289,6 +437,9 @@ export default function WorkoutModeScreen({
     onClose,
     resolveDisplay,
     onSwapExercise,
+    notes,
+    onSaveNote,
+    onDeleteNote,
 }: Props) {
     const { prMap, autoAdvance, timerTrigger, timerDuration } = usePulse();
     const { show: showToast } = useToast();
@@ -308,6 +459,7 @@ export default function WorkoutModeScreen({
     if (!step) return null;
 
     const nameOf = (re: RoutineExercise) => (resolveDisplay?.(re) ?? re.exercise).name;
+    const displayOf = (re: RoutineExercise) => resolveDisplay?.(re) ?? re.exercise;
     const single = Array.isArray(step) ? null : step;
     const pair = Array.isArray(step) ? step : null;
     const lastSession = single ? computeLastSession(logs, single.id, week) : null;
@@ -379,7 +531,11 @@ export default function WorkoutModeScreen({
             logs={logs}
             unit={unit}
             prMap={prMap}
-            nameOf={nameOf}
+            displayOf={displayOf}
+            onSwapExercise={onSwapExercise}
+            notes={notes}
+            onSaveNote={onSaveNote}
+            onDeleteNote={onDeleteNote}
             onSave={handleSetSave}
             onDelete={onDelete}
         />
@@ -405,24 +561,16 @@ export default function WorkoutModeScreen({
             aria-label="next exercise"
             onClick={() => setStepIdx((i) => i + 1)}
             disabled={!canAdvance}
-            className={CTA_CLASS}
-            style={CTA_GRADIENT}>
-            Next exercise <span aria-hidden>→</span>
+            className={BTN_PRIMARY_BLOCK}>
+            Next exercise
         </button>
     ) : (
         <button
             aria-label="finish workout"
             onClick={handleFinish}
             disabled={completing || sessionId === null}
-            className={CTA_CLASS}
-            style={CTA_GRADIENT}>
-            {completing ? (
-                'Finishing…'
-            ) : (
-                <>
-                    Finish workout <span aria-hidden>✓</span>
-                </>
-            )}
+            className={BTN_PRIMARY_BLOCK}>
+            {completing ? 'Finishing…' : 'Finish workout'}
         </button>
     );
     const earlyFinish = !isLast ? (
@@ -460,7 +608,7 @@ export default function WorkoutModeScreen({
                             onClick={() => setStepIdx((i) => i - 1)}
                             disabled={isFirst}
                             className={ICON_BTN}>
-                            ‹
+                            <ChevronLeftIcon />
                         </button>
                         <div className="text-center leading-tight">
                             <div className="font-pulse-display text-[0.8125rem] font-bold uppercase tracking-[0.16em] text-pulse-text">
@@ -473,7 +621,7 @@ export default function WorkoutModeScreen({
                             )}
                         </div>
                         <button aria-label="close" onClick={onClose} className={ICON_BTN}>
-                            ✕
+                            <CloseIcon />
                         </button>
                     </div>
 
@@ -516,14 +664,6 @@ export default function WorkoutModeScreen({
                                     )
                                 )}
                             </div>
-                            {single && onSwapExercise && (
-                                <button
-                                    aria-label="swap exercise"
-                                    onClick={() => onSwapExercise(single)}
-                                    className="mt-2 cursor-pointer border-none bg-transparent p-0 font-pulse-body text-[0.71875rem] text-pulse-dim hover:text-pulse-accent">
-                                    <span aria-hidden>⇄</span> Swap exercise
-                                </button>
-                            )}
                         </div>
                         <ProgressRing
                             done={currentDone}
@@ -537,7 +677,7 @@ export default function WorkoutModeScreen({
                     </div>
 
                     {/* Sets */}
-                    <div className="mt-5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto">
+                    <div className="mt-5 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
                         <div className="flex flex-shrink-0 items-baseline justify-between">
                             <span className="font-pulse-display text-[0.8125rem] font-semibold uppercase tracking-[0.14em] text-pulse-dim">
                                 Sets
@@ -587,7 +727,7 @@ export default function WorkoutModeScreen({
                             onClick={() => setStepIdx((i) => i - 1)}
                             disabled={isFirst}
                             className={ICON_BTN}>
-                            ‹
+                            <ChevronLeftIcon />
                         </button>
                         <div>
                             <div className="font-pulse-display text-[0.9375rem] font-bold uppercase tracking-[0.16em] text-pulse-text">
@@ -633,14 +773,6 @@ export default function WorkoutModeScreen({
                             ) : (
                                 pair && <HeroChip b={String(pair.length)} k="exercises" />
                             )}
-                            {single && onSwapExercise && (
-                                <button
-                                    aria-label="swap exercise"
-                                    onClick={() => onSwapExercise(single)}
-                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-pulse-border bg-white/[0.015] px-3.5 py-1.5 font-pulse-body text-[0.84375rem] text-pulse-dim transition-colors hover:border-pulse-muted hover:text-pulse-accent">
-                                    <span aria-hidden>⇄</span> Swap
-                                </button>
-                            )}
                         </div>
                     </div>
                     <ProgressRing
@@ -684,7 +816,7 @@ export default function WorkoutModeScreen({
                             </div>
                         </div>
                         <button aria-label="close" onClick={onClose} className={ICON_BTN}>
-                            ✕
+                            <CloseIcon />
                         </button>
                     </div>
                     <div className="mt-4">

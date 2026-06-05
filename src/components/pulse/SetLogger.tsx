@@ -19,6 +19,9 @@ interface Props {
     // drops to ~90% of the previous weight with reps reset to the bottom of the
     // range, instead of the normal progression. Decided per-exercise in ExerciseCard.
     deload?: boolean;
+    // 'editorial' is the guided-mode look: hairline rows with a "Set N" label and
+    // a big display value, vs the surface card used on the Train screen ('card').
+    variant?: 'card' | 'editorial';
     onSave: (entry: LogEntry) => void;
     onDelete?: () => void;
 }
@@ -44,6 +47,7 @@ export default function SetLogger({
     isPR,
     unit,
     deload,
+    variant = 'card',
     onSave,
     onDelete,
 }: Props) {
@@ -155,6 +159,7 @@ export default function SetLogger({
     }
 
     const showInputs = !saved || editing;
+    const editorial = variant === 'editorial';
 
     // Target weight (kg) for the plate calculator: the editable input while
     // logging, otherwise the saved weight. The affordance is hidden when this
@@ -166,32 +171,45 @@ export default function SetLogger({
     return (
         <div className="flex flex-col">
             <div
-                className={`flex items-center gap-3 px-3.5 py-[0.6875rem] rounded-[11px] transition-colors duration-200 ${
-                    showInputs
-                        ? 'bg-transparent shadow-[inset_0_0_0_1px_var(--color-pulse-border)]'
-                        : 'bg-pulse-surface'
-                }`}>
-                {/* check / pending indicator */}
-                <span
-                    className={`w-[22px] h-[22px] rounded-full grid place-items-center shrink-0 ${
-                        showInputs
-                            ? 'shadow-[inset_0_0_0_1.5px_var(--color-pulse-border)]'
-                            : 'bg-pulse-accent text-pulse-bg'
-                    }`}>
-                    {!showInputs && (
-                        <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={3.2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-3 h-3"
-                            aria-hidden>
-                            <path d="M5 13l4 4L19 7" />
-                        </svg>
-                    )}
-                </span>
+                className={
+                    editorial
+                        ? 'flex items-center gap-3.5 border-b border-pulse-border py-3 transition-colors duration-200'
+                        : `flex items-center gap-3 rounded-[11px] px-3.5 py-[0.6875rem] transition-colors duration-200 ${
+                              showInputs
+                                  ? 'bg-transparent shadow-[inset_0_0_0_1px_var(--color-pulse-border)]'
+                                  : 'bg-pulse-surface'
+                          }`
+                }>
+                {editorial ? (
+                    <span
+                        className={`w-[3.25rem] shrink-0 font-pulse-body text-[0.625rem] uppercase tracking-[0.16em] ${
+                            saved ? 'text-pulse-accent' : 'text-pulse-muted'
+                        }`}>
+                        Set {setIdx + 1}
+                    </span>
+                ) : (
+                    /* check / pending indicator */
+                    <span
+                        className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full ${
+                            showInputs
+                                ? 'shadow-[inset_0_0_0_1.5px_var(--color-pulse-border)]'
+                                : 'bg-pulse-accent text-pulse-bg'
+                        }`}>
+                        {!showInputs && (
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={3.2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-3 w-3"
+                                aria-hidden>
+                                <path d="M5 13l4 4L19 7" />
+                            </svg>
+                        )}
+                    </span>
+                )}
 
                 {showInputs ? (
                     <>
@@ -343,13 +361,27 @@ export default function SetLogger({
                     </>
                 ) : (
                     <>
-                        <span className="font-pulse text-[0.90625rem] text-pulse-text tracking-[0.01em]">
-                            {toDisplay(entry!.kg, unit)} {unit}
-                            <span className="text-pulse-muted mx-[5px]">×</span>
-                            {entry!.reps}
-                            <span className="text-pulse-dim ml-1.5">@ RIR {entry!.rir}</span>
-                        </span>
+                        {editorial ? (
+                            <span className="font-pulse-display text-xl font-semibold leading-none text-pulse-text">
+                                {toDisplay(entry!.kg, unit)}
+                                <span className="font-pulse text-[0.8125rem] font-medium text-pulse-dim"> {unit}</span>
+                                <span className="mx-1.5 text-pulse-muted">×</span>
+                                {entry!.reps}
+                            </span>
+                        ) : (
+                            <span className="font-pulse text-[0.90625rem] text-pulse-text tracking-[0.01em]">
+                                {toDisplay(entry!.kg, unit)} {unit}
+                                <span className="text-pulse-muted mx-[5px]">×</span>
+                                {entry!.reps}
+                                <span className="text-pulse-dim ml-1.5">@ RIR {entry!.rir}</span>
+                            </span>
+                        )}
                         <div className="ml-auto flex items-center gap-3 shrink-0">
+                            {editorial && (
+                                <span className="rounded-md bg-pulse-surface-2 px-2 py-0.5 font-pulse-body text-[0.625rem] tracking-[0.04em] text-pulse-dim">
+                                    RIR {entry!.rir}
+                                </span>
+                            )}
                             {entry?.rir === 0 && (
                                 <span
                                     className="font-pulse text-[0.625rem] uppercase tracking-[0.08em] text-pulse-accent"
@@ -397,6 +429,21 @@ export default function SetLogger({
                                     className="font-pulse text-[0.75rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0">
                                     ✕
                                 </button>
+                            )}
+                            {editorial && (
+                                <span className="grid h-[1.375rem] w-[1.375rem] place-items-center rounded-full bg-pulse-accent text-pulse-bg">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={3.2}
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="h-3 w-3"
+                                        aria-hidden>
+                                        <path d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </span>
                             )}
                         </div>
                     </>
