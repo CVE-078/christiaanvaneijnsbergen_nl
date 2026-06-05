@@ -5,7 +5,7 @@ import { usePulse } from '@/context/PulseContext';
 import { sessionTypeFor } from '@/lib/pulse/utils';
 import type { RoutineExercise, WorkoutType, WorkoutVariant } from '@/lib/pulse/types';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
-import { INPUT, BTN_PRIMARY, CARD } from '@/components/pulse/ui';
+import { INPUT, BTN_PRIMARY, BTN_GHOST, CARD } from '@/components/pulse/ui';
 import GenerateRoutineButton from '@/components/pulse/GenerateRoutineButton';
 import RoutineExerciseRow from './RoutineExerciseRow';
 import AddRoutineExerciseForm from './AddRoutineExerciseForm';
@@ -257,26 +257,22 @@ export default function RoutinesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            <GenerateRoutineButton label="Generate routine" className={`${BTN_PRIMARY} self-start`} />
-
-            {/* Create routine */}
-            <div className={`${CARD} flex flex-col gap-3`}>
-                <div className={SECTION_LABEL}>Create routine</div>
-                <div className="flex gap-2">
-                    <input
-                        aria-label="Routine name"
-                        placeholder="Routine name"
-                        value={routineName}
-                        onChange={(e) => setRoutineName(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleCreateRoutine();
-                        }}
-                        className={`${INPUT} flex-1`}
-                    />
-                    <button onClick={handleCreateRoutine} className={BTN_PRIMARY}>
-                        Create
-                    </button>
-                </div>
+            {/* Unified toolbar — Generate + Create routine actions in one row. */}
+            <div className="flex items-center gap-2">
+                <input
+                    aria-label="Routine name"
+                    placeholder="Routine name"
+                    value={routineName}
+                    onChange={(e) => setRoutineName(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCreateRoutine();
+                    }}
+                    className={`${INPUT} flex-1 min-w-0`}
+                />
+                <button onClick={handleCreateRoutine} className={`${BTN_PRIMARY} shrink-0`}>
+                    Create
+                </button>
+                <GenerateRoutineButton label="Generate" className={`${BTN_GHOST} shrink-0`} />
             </div>
 
             {/* Routine list */}
@@ -291,7 +287,7 @@ export default function RoutinesTab() {
                         return (
                             <div
                                 key={r.id}
-                                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
+                                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${
                                     isActive ? 'bg-pulse-surface ring-1 ring-pulse-accent/40' : 'bg-pulse-surface'
                                 }`}>
                                 {renamingId === r.id ? (

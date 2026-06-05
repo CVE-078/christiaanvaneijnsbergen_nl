@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { usePulse } from '@/context/PulseContext';
+import PageTitle from '@/components/pulse/PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import TemplatesTab from './TemplatesTab';
 import ExercisesTab from './library/ExercisesTab';
@@ -16,6 +17,8 @@ export default function LibraryView() {
 
     return (
         <div className="pt-5 px-4 pb-12 max-w-[600px] lg:max-w-[820px] mx-auto flex flex-col gap-5">
+            <PageTitle>Library</PageTitle>
+
             {/* Tab switcher */}
             <div className="flex gap-2" role="tablist" aria-label="Library sections">
                 {(['exercises', 'routines', 'templates'] as const).map((t) => {

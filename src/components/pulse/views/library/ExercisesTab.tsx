@@ -81,50 +81,59 @@ export default function ExercisesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Filter rail — single non-wrapping scroll line; each chip shows its count,
-                a fade edge on the right signals there is more to scroll. */}
-            <div className="relative -mx-1">
-                <div className="flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {(['all', ...EXERCISE_CATEGORIES] as const).map((f) => {
-                        const active = filter === f;
-                        const count = f === 'all' ? exercises.length : (categoryCounts.get(f) ?? 0);
-                        return (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                aria-label={f}
-                                aria-pressed={active}
-                                className={`font-pulse text-xs tracking-[0.02em] capitalize rounded-full px-3 py-1.5 cursor-pointer border-none shrink-0 inline-flex items-center gap-1.5 transition-colors ${
-                                    active
-                                        ? 'bg-pulse-accent text-pulse-bg font-semibold'
-                                        : 'bg-pulse-surface-2 text-pulse-dim'
-                                }`}>
-                                {f}
-                                <span
-                                    className={`font-pulse text-[0.625rem] font-semibold tabular-nums rounded px-1 ${
-                                        active ? 'bg-pulse-bg/20 text-pulse-bg' : 'bg-white/5 text-pulse-muted'
+            {/* Unified toolbar — filters scroll (flex-1), Hidden + Add stay pinned right. */}
+            <div className="flex items-center gap-2">
+                {/* Filter rail — single non-wrapping scroll line; each chip shows its count,
+                    a fade edge on the right signals there is more to scroll. */}
+                <div className="relative flex-1 min-w-0">
+                    <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {(['all', ...EXERCISE_CATEGORIES] as const).map((f) => {
+                            const active = filter === f;
+                            const count = f === 'all' ? exercises.length : (categoryCounts.get(f) ?? 0);
+                            return (
+                                <button
+                                    key={f}
+                                    onClick={() => setFilter(f)}
+                                    aria-label={f}
+                                    aria-pressed={active}
+                                    className={`font-pulse text-xs tracking-[0.02em] capitalize rounded-full px-3 py-1.5 cursor-pointer border-none shrink-0 inline-flex items-center gap-1.5 transition-colors ${
+                                        active
+                                            ? 'bg-pulse-accent text-pulse-bg font-semibold'
+                                            : 'bg-pulse-surface-2 text-pulse-dim'
                                     }`}>
-                                    {count}
-                                </span>
-                            </button>
-                        );
-                    })}
+                                    {f}
+                                    <span
+                                        className={`font-pulse text-[0.625rem] font-semibold tabular-nums rounded px-1 ${
+                                            active ? 'bg-pulse-bg/20 text-pulse-bg' : 'bg-white/5 text-pulse-muted'
+                                        }`}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-l from-pulse-bg to-transparent" />
                 </div>
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-l from-pulse-bg to-transparent" />
+
+                {/* Show-hidden toggle — only when the user has hidden something. */}
+                {hiddenCount > 0 && (
+                    <button
+                        onClick={() => setShowHidden((v) => !v)}
+                        aria-pressed={showHidden}
+                        className={`${BTN_GHOST} shrink-0`}>
+                        {showHidden ? `Hide hidden (${hiddenCount})` : `Show hidden (${hiddenCount})`}
+                    </button>
+                )}
+
+                {!adding && (
+                    <button onClick={() => setAdding(true)} className={`${BTN_GHOST} shrink-0`}>
+                        + Add
+                    </button>
+                )}
             </div>
 
-            {/* Show-hidden toggle — only when the user has hidden something. */}
-            {hiddenCount > 0 && (
-                <button
-                    onClick={() => setShowHidden((v) => !v)}
-                    aria-pressed={showHidden}
-                    className="self-start font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer">
-                    {showHidden ? `Hide hidden (${hiddenCount})` : `Show hidden (${hiddenCount})`}
-                </button>
-            )}
-
             {/* Add form */}
-            {adding ? (
+            {adding && (
                 <div className={`${CARD} flex flex-col gap-3`}>
                     <div className={SECTION_LABEL}>New exercise</div>
                     <input
@@ -179,10 +188,6 @@ export default function ExercisesTab() {
                         </button>
                     </div>
                 </div>
-            ) : (
-                <button onClick={() => setAdding(true)} className={`${BTN_GHOST} self-start`}>
-                    + Add
-                </button>
             )}
 
             {/* Exercise list */}
@@ -199,7 +204,7 @@ export default function ExercisesTab() {
                         return (
                             <div
                                 key={ex.id}
-                                className={`flex items-center gap-3 bg-pulse-surface rounded-lg px-3 py-2.5 ${
+                                className={`flex items-center gap-3 bg-pulse-surface rounded-xl px-3 py-2.5 ${
                                     isHidden ? 'opacity-50' : ''
                                 }`}>
                                 {isEditing ? (

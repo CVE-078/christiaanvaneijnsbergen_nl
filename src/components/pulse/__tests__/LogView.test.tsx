@@ -110,27 +110,19 @@ describe('LogView', () => {
         expect(screen.queryByText(/tap an exercise/i)).not.toBeInTheDocument();
     });
 
-    it('marks only weeks with saved data in the 12-week strip', () => {
+    it('steps the active week and disables Previous at week 1', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const setActiveWeek = vi.fn();
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            logs: {
-                '1-re-test-uuid-0': { kg: 60, reps: 10, rir: 3, saved: true },
-                '3-re-test-uuid-0': { kg: 60, reps: 10, rir: 3, saved: false },
-            },
+            activeWeek: 1,
+            setActiveWeek,
         } as unknown as ReturnType<typeof usePulse>);
-        const { container } = renderWithToast(<LogView />);
-        const weekButtons = Array.from(container.querySelectorAll('button')).filter((b) =>
-            /^\d+$/.test(b.textContent ?? ''),
-        );
-        const week1 = weekButtons.find((b) => b.textContent === '1');
-        const week2 = weekButtons.find((b) => b.textContent === '2');
-        const week3 = weekButtons.find((b) => b.textContent === '3');
-        // Week 1 has a saved entry -> accent dot.
-        expect(week1?.querySelector('.bg-pulse-accent')).toBeTruthy();
-        // Week 2 has no entry -> transparent dot.
-        expect(week2?.querySelector('.bg-pulse-accent')).toBeFalsy();
-        // Week 3 entry is not saved -> transparent dot.
-        expect(week3?.querySelector('.bg-pulse-accent')).toBeFalsy();
+        renderWithToast(<LogView />);
+        // At week 1, Previous is disabled; Next advances to week 2.
+        expect(screen.getByRole('button', { name: /previous week/i })).toBeDisabled();
+        await userEvent.click(screen.getByRole('button', { name: /next week/i }));
+        expect(setActiveWeek).toHaveBeenCalledWith(2);
     });
 
     it('opens guided mode by setting workoutModeOpen when Start workout is clicked', async () => {
@@ -234,7 +226,7 @@ describe('LogView', () => {
         renderWithToast(<LogView />);
         // Expand the card, then click the swap control.
         await userEvent.click(screen.getByRole('button', { name: /expand bench press/i }));
-        await userEvent.click(screen.getByRole('button', { name: /swap exercise/i }));
+        await userEvent.click(screen.getByRole('button', { name: /⇄ swap/i }));
         expect(screen.getByRole('dialog', { name: /swap bench press/i })).toBeInTheDocument();
         expect(screen.getByText('Dumbbell Press')).toBeInTheDocument();
     });

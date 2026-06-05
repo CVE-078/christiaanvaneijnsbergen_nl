@@ -5,6 +5,7 @@ import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import type { BodyweightEntry, Gender, LengthUnit } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
+import PageTitle from '../PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import { INPUT, BTN_PRIMARY } from '../ui';
 import { updateGoalWeight, logBodyMeasurement, logBodyWeight as logBodyWeightAction } from '@/app/pulse/actions';
@@ -228,8 +229,10 @@ export default function ProfileView() {
     if (loading?.profile || loading?.bodyweight) return <PageSkeleton rows={3} />;
 
     return (
-        <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto flex flex-col gap-7 lg:flex-row lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12 lg:gap-10">
-            <div className="flex flex-col gap-7 lg:w-[280px] lg:shrink-0">
+        <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12">
+            <PageTitle>Profile</PageTitle>
+            <div className="mt-6 flex flex-col gap-7 lg:flex-row lg:gap-10">
+                <div className="flex flex-col gap-7 lg:w-[280px] lg:shrink-0">
                 {/* Identity */}
                 <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-xl shrink-0 bg-pulse-accent flex items-center justify-center font-pulse text-xl font-semibold text-pulse-bg tracking-[-0.02em]">
@@ -578,6 +581,7 @@ export default function ProfileView() {
                         </div>
                     )}
                 </section>
+            </div>
             </div>
         </div>
     );

@@ -7,7 +7,6 @@ import {
     parseLogKey,
     parseMaxSets,
     groupExercises,
-    computeWeeksWithData,
     computeLastSessionMap,
     baseWorkoutType,
     resolveExercise,
@@ -80,10 +79,6 @@ export default function LogView() {
         [routineExercises, activeWeek, swaps, exercisesById],
     );
     const [swapTarget, setSwapTarget] = useState<RoutineExercise | null>(null);
-
-    // Set of weeks with saved data, computed once per logs change so the 12-week
-    // strip can do O(1) lookups instead of scanning all logs 12 times.
-    const weeksWithData = useMemo(() => computeWeeksWithData(logs), [logs]);
 
     // Last session per exercise in one pass, so each card reads its own instead of
     // scanning the whole log set. Depends only on weeks before the current one.
@@ -247,46 +242,50 @@ export default function LogView() {
                     );
                 })()}
 
-            <div className="px-4 pt-6 pb-1 flex items-center justify-between gap-3">
-                <div className="font-pulse text-[0.78125rem] text-pulse-muted tracking-[0.02em]">
-                    <span className="text-pulse-dim font-medium">Week {String(activeWeek).padStart(2, '0')}</span> / 12
-                    · {phase.label} · target <span className="text-pulse-dim font-medium">RIR {rir}</span>
+            <div className="px-4 pt-6 pb-3 max-w-[600px] lg:max-w-[820px] mx-auto">
+                <div className="bg-pulse-surface rounded-2xl px-4 py-3.5">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="font-pulse text-[0.78125rem] text-pulse-muted tracking-[0.02em]">
+                                <span className="text-pulse-dim font-medium">
+                                    Week {String(activeWeek).padStart(2, '0')}
+                                </span>{' '}
+                                / 12 · {phase.label} · target{' '}
+                                <span className="text-pulse-dim font-medium">RIR {rir}</span>
+                            </div>
+                            <PendingSyncBadge />
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="inline-flex items-center bg-pulse-surface-2 rounded-lg p-[3px] gap-[3px]">
+                                <button
+                                    onClick={() => setActiveWeek(Math.max(1, activeWeek - 1))}
+                                    disabled={activeWeek <= 1}
+                                    aria-label="Previous week"
+                                    className="font-pulse text-sm text-pulse-dim bg-transparent border-none rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:text-pulse-text">
+                                    ‹
+                                </button>
+                                <span className="font-pulse text-xs font-semibold text-pulse-text tabular-nums px-1.5 min-w-[2.5rem] text-center">
+                                    Wk {activeWeek}
+                                </span>
+                                <button
+                                    onClick={() => setActiveWeek(Math.min(12, activeWeek + 1))}
+                                    disabled={activeWeek >= 12}
+                                    aria-label="Next week"
+                                    className="font-pulse text-sm text-pulse-dim bg-transparent border-none rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:text-pulse-text">
+                                    ›
+                                </button>
+                            </div>
+                            {routineExercises.length > 0 && (
+                                <button
+                                    onClick={handleStartWorkout}
+                                    className="font-pulse text-xs font-semibold bg-pulse-accent text-pulse-bg rounded-lg px-3.5 py-1.5 cursor-pointer border-none">
+                                    Start workout
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    <div className="mt-3">{activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}</div>
                 </div>
-                <PendingSyncBadge />
-            </div>
-
-            {activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}
-
-            <div className="flex px-4 gap-1 overflow-x-auto [scrollbar-width:none] pb-3">
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => {
-                    const active = w === activeWeek;
-                    const hasWeekData = weeksWithData.has(w);
-                    return (
-                        <button
-                            key={w}
-                            onClick={() => setActiveWeek(w)}
-                            className={`font-pulse text-sm min-w-[2.25rem] h-8 flex flex-col items-center justify-center rounded-full cursor-pointer shrink-0 transition-colors duration-150 ${
-                                active
-                                    ? 'font-semibold text-pulse-bg bg-pulse-accent'
-                                    : 'font-normal text-pulse-dim bg-transparent hover:bg-pulse-surface'
-                            }`}>
-                            {w}
-                            <span
-                                className={`block w-1 h-1 rounded-full -mt-0.5 ${hasWeekData ? 'bg-pulse-accent' : 'bg-transparent'}`}
-                            />
-                        </button>
-                    );
-                })}
-            </div>
-
-            <div className="flex items-center justify-end gap-3 px-4 pb-3">
-                {routineExercises.length > 0 && (
-                    <button
-                        onClick={handleStartWorkout}
-                        className="font-pulse text-xs font-semibold bg-pulse-accent text-pulse-bg rounded-full px-3.5 py-1.5 cursor-pointer border-none">
-                        Start workout
-                    </button>
-                )}
             </div>
 
             <div

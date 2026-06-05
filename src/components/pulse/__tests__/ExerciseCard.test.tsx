@@ -91,10 +91,10 @@ describe('ExerciseCard', () => {
         expect(onSave).toHaveBeenCalledWith(`1-${RE_ID}-0`, expect.objectContaining({ kg: 60, reps: 10, saved: true }));
     });
 
-    it('shows "+ Add note" button when card is expanded and no note exists', async () => {
+    it('shows "+ Note" button when card is expanded and no note exists', async () => {
         render(<ExerciseCard {...defaultProps} />);
         await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
-        expect(screen.getByRole('button', { name: /\+ add note/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /\+ note/i })).toBeInTheDocument();
     });
 
     it('shows the note text when a note is provided and card is expanded', async () => {

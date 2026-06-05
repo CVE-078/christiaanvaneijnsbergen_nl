@@ -20,6 +20,7 @@ import MuscleVolumeBars from '@/components/pulse/MuscleVolumeBars';
 import RecompCard from '@/components/pulse/RecompCard';
 import RecoveryCard from '@/components/pulse/RecoveryCard';
 import StrengthScoreCard from '@/components/pulse/StrengthScoreCard';
+import PageTitle from '@/components/pulse/PageTitle';
 import { computeStrengthScore } from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
@@ -264,9 +265,7 @@ export default function HistoryView() {
         <div className="p-4 sm:p-8 max-w-[960px] mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
-                <h1 className="font-pulse text-[1.75rem] sm:text-[2.25rem] font-medium tracking-[-0.018em] text-pulse-text">
-                    Progress
-                </h1>
+                <PageTitle>Progress</PageTitle>
                 <div className="flex items-center gap-3">
                     <span className="font-pulse-body text-[0.8125rem] text-pulse-muted tracking-[0.03em]">
                         {streak === 0 ? 'No streak yet' : `${streak}-week streak`}
@@ -300,9 +299,9 @@ export default function HistoryView() {
             </div>
 
             {/* TIER 3: training trends */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Weekly Volume */}
-                <div>
+                <div className="bg-pulse-surface rounded-2xl p-5">
                     <SectionHeader>Sets per week</SectionHeader>
                     {hasData ? (
                         <VolumeChart volByWeek={volByWeek} currentWeek={activeWeek} />
@@ -314,7 +313,7 @@ export default function HistoryView() {
                 </div>
 
                 {/* e1RM Progression */}
-                <div>
+                <div className="bg-pulse-surface rounded-2xl p-5">
                     <div className="flex items-center gap-2">
                         <SectionHeader>e1RM Progression</SectionHeader>
                         {allRoutineExercises.length > 0 && (
@@ -322,7 +321,7 @@ export default function HistoryView() {
                                 aria-label="Exercise"
                                 value={exerciseId ?? ''}
                                 onChange={(e) => setSelectedExerciseId(e.target.value || null)}
-                                className="font-pulse text-[0.6875rem] bg-pulse-surface rounded px-2 py-[3px] text-pulse-dim ml-auto -mt-3 mb-5">
+                                className="font-pulse text-[0.6875rem] bg-pulse-surface-2 rounded px-2 py-[3px] text-pulse-dim ml-auto -mt-3 mb-5">
                                 {allRoutineExercises.map((re) => (
                                     <option key={re.id} value={re.id}>
                                         {re.exercise.name}
@@ -335,13 +334,13 @@ export default function HistoryView() {
                 </div>
 
                 {/* Per-muscle volume this week */}
-                <div>
+                <div className="bg-pulse-surface rounded-2xl p-5">
                     <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
                     <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} />
                 </div>
 
                 {/* Streak */}
-                <div>
+                <div className="bg-pulse-surface rounded-2xl p-5">
                     <SectionHeader>Weekly streak - 12 weeks</SectionHeader>
                     <StreakCalendar logs={logs} currentWeek={activeWeek} />
                     <p className="sr-only">
@@ -352,13 +351,13 @@ export default function HistoryView() {
                 </div>
 
                 {/* Best Lifts */}
-                <div>
+                <div className="bg-pulse-surface rounded-2xl p-5">
                     <SectionHeader>Best Lifts</SectionHeader>
                     <BestLifts allRoutineExercises={allRoutineExercises} bestSets={bestSets} unit={unit} />
                 </div>
 
                 {/* Personal Records - pulled over from Profile */}
-                <div>
+                <div className="bg-pulse-surface rounded-2xl p-5">
                     <SectionHeader>Personal Records</SectionHeader>
                     {prRecords.length === 0 ? (
                         <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">
