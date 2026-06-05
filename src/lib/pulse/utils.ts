@@ -7,6 +7,7 @@ import type {
     LogEntry,
     Unit,
     LengthUnit,
+    PriorityMuscle,
     RoutineExercise,
     WorkoutType,
     TabKey,
@@ -523,6 +524,35 @@ export function computePerMuscleVolume(
         const cat = catById.get(parsed.routineExerciseId);
         if (!cat) continue;
         out[cat] = (out[cat] ?? 0) + 1;
+    }
+    return out;
+}
+
+// The exercise categories a muscle priority bumps. 'arms' covers biceps + triceps.
+const PRIORITY_TARGET_CATEGORIES: Record<PriorityMuscle, ExerciseCategory[]> = {
+    glutes: ['glutes'],
+    legs: ['legs'],
+    chest: ['chest'],
+    back: ['back'],
+    shoulders: ['shoulders'],
+    arms: ['biceps', 'triceps'],
+};
+
+const PRIORITY_TARGET_BUMP = 2;
+
+// Raise the weekly set target band for the prioritized muscle so the Progress
+// recovery/volume nudges stay coherent with a routine generated under that
+// priority. Identity for a null priority; only bumps categories already in the
+// base targets.
+export function priorityAdjustedTargets(
+    base: Partial<Record<ExerciseCategory, [number, number]>>,
+    priority: PriorityMuscle | null,
+): Partial<Record<ExerciseCategory, [number, number]>> {
+    if (!priority) return base;
+    const out: Partial<Record<ExerciseCategory, [number, number]>> = { ...base };
+    for (const cat of PRIORITY_TARGET_CATEGORIES[priority]) {
+        const range = base[cat];
+        if (range) out[cat] = [range[0] + PRIORITY_TARGET_BUMP, range[1] + PRIORITY_TARGET_BUMP];
     }
     return out;
 }

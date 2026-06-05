@@ -23,6 +23,7 @@ const mockUpdateGender = vi.fn().mockResolvedValue(undefined);
 const mockLogBodyWeight = vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 });
 const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
 const mockUpdateLengthUnit = vi.fn().mockResolvedValue(undefined);
+const mockUpdatePriorityMuscle = vi.fn().mockResolvedValue(undefined);
 
 const defaultContext = {
     email: 'test@example.com',
@@ -34,6 +35,7 @@ const defaultContext = {
         goal_weight_kg: null,
         gender: null,
         length_unit: 'cm' as const,
+        priority_muscle: null,
     },
     bodyweightLogs: [],
     bodyMeasurements: [],
@@ -41,6 +43,7 @@ const defaultContext = {
     updateProfile: mockUpdateProfile,
     updateGender: mockUpdateGender,
     updateLengthUnit: mockUpdateLengthUnit,
+    updatePriorityMuscle: mockUpdatePriorityMuscle,
     autoAdvance: false,
     setAutoAdvance: vi.fn(),
     logBodyWeight: mockLogBodyWeight,
@@ -68,6 +71,7 @@ beforeEach(() => {
     mockLogBodyWeight.mockClear();
     mockDeleteBodyWeight.mockClear();
     mockUpdateLengthUnit.mockClear();
+    mockUpdatePriorityMuscle.mockClear();
     vi.mocked(updateGoalWeight).mockClear();
 });
 
@@ -152,6 +156,12 @@ describe('ProfileView', () => {
         await userEvent.click(screen.getByRole('button', { name: /^female$/i }));
         expect(mockUpdateGender).toHaveBeenCalledWith('female');
         await waitFor(() => expect(screen.getByText(/gender updated/i)).toBeInTheDocument());
+    });
+
+    it('changing the training priority calls updatePriorityMuscle', async () => {
+        renderWithToast(<ProfileView />);
+        await userEvent.selectOptions(screen.getByRole('combobox', { name: /training priority/i }), 'glutes');
+        expect(mockUpdatePriorityMuscle).toHaveBeenCalledWith('glutes');
     });
 
     it('renders the auto-advance toggle reflecting the stored value', () => {

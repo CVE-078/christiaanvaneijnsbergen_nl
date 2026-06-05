@@ -9,6 +9,9 @@ import {
     generateRoutine,
     applyTemplateVolume,
     buildRationale,
+    genderDefault,
+    resolvePriority,
+    tiltEmphasis,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle } from '@/lib/pulse/types';
@@ -55,16 +58,45 @@ describe('recommendStyle / resolveStyle', () => {
         expect(resolveStyle('ppl-3', 3).key).toBe('ppl-3');
         expect(resolveStyle('does-not-exist', 3).key).toBe('fb-3');
     });
-    it('biases female toward a lower/glute-focused style where one exists', () => {
-        expect(recommendStyle(4, 'female')).toBe('ul-aesthetic-4');
-        expect(recommendStyle(4, undefined)).toBe('ul-classic-4');
-        expect(recommendStyle(3, 'female')).toBe('fb-emphasis-3');
-        expect(recommendStyle(3, undefined)).toBe('fb-3');
+    it('is gender-agnostic — the default no longer depends on gender', () => {
+        expect(recommendStyle(4)).toBe('ul-classic-4');
+        expect(recommendStyle(3)).toBe('fb-3');
+        expect(recommendStyle(5)).toBe('ulppl-5');
     });
-    it('keeps the default for male and for counts without a bias option', () => {
-        expect(recommendStyle(4, 'male')).toBe('ul-classic-4');
-        expect(recommendStyle(5, 'female')).toBe('ulppl-5');
-        expect(recommendStyle(2, 'female')).toBe('fb-2');
+});
+
+describe('muscle priority', () => {
+    it('genderDefault seeds glutes for female, balanced otherwise', () => {
+        expect(genderDefault('female')).toBe('glutes');
+        expect(genderDefault('male')).toBe('balanced');
+        expect(genderDefault(null)).toBe('balanced');
+    });
+
+    it('resolvePriority maps balanced/null to no priority', () => {
+        expect(resolvePriority('balanced')).toBeNull();
+        expect(resolvePriority(null)).toBeNull();
+        expect(resolvePriority(undefined)).toBeNull();
+        expect(resolvePriority('glutes')).toBe('glutes');
+    });
+
+    it('tiltEmphasis front-loads a priority pattern already in the slots', () => {
+        const lower = EMPHASES.lower_quad; // slots: squat, lunge, hinge, glute_iso, calf, core
+        const tilted = tiltEmphasis(lower, 'glutes');
+        // glute_iso + hinge (the glutes patterns present) move to the front, in
+        // PRIORITY_PATTERNS order, preserving the rest.
+        expect(tilted.slots.slice(0, 2)).toEqual(['glute_iso', 'hinge']);
+        expect(tilted.slots).toHaveLength(lower.slots.length);
+        expect(new Set(tilted.slots)).toEqual(new Set(lower.slots));
+        expect(tilted.bias).toBe(lower.bias);
+    });
+
+    it('tiltEmphasis is the identity when the priority does not train this session', () => {
+        const push = EMPHASES.push; // no glute/hinge patterns
+        expect(tiltEmphasis(push, 'glutes')).toBe(push);
+    });
+
+    it('tiltEmphasis is the identity for a null priority', () => {
+        expect(tiltEmphasis(EMPHASES.lower_quad, null)).toBe(EMPHASES.lower_quad);
     });
 });
 

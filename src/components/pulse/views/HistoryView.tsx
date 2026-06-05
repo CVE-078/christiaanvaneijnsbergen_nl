@@ -9,7 +9,9 @@ import {
     computeStrengthByWeek,
     computeRecompSignal,
     computeRecoveryFlags,
+    priorityAdjustedTargets,
 } from '@/lib/pulse/utils';
+import { resolvePriority } from '@/lib/pulse/generation';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
 import { usePulse } from '@/context/PulseContext';
 import VolumeChart from '@/components/pulse/VolumeChart';
@@ -192,11 +194,18 @@ export default function HistoryView() {
         [windowedLogs, allRoutineExercises, activeRoutineExercises, activeWeek],
     );
 
+    // Weekly volume targets, tilted toward the user's muscle priority so the
+    // recovery/volume nudges match a routine generated under that priority.
+    const targets = useMemo(
+        () => priorityAdjustedTargets(VOLUME_TARGETS, resolvePriority(profile.priority_muscle)),
+        [profile.priority_muscle],
+    );
+
     // Same routine-exercise list and week that produce muscleVolume above, so
     // recovery flags align 1:1 with the volume rows.
     const recovery = useMemo(
-        () => computeRecoveryFlags(logs, activeRoutineExercises, activeWeek, VOLUME_TARGETS),
-        [logs, activeRoutineExercises, activeWeek],
+        () => computeRecoveryFlags(logs, activeRoutineExercises, activeWeek, targets),
+        [logs, activeRoutineExercises, activeWeek, targets],
     );
 
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -336,7 +345,7 @@ export default function HistoryView() {
                 {/* Per-muscle volume this week */}
                 <div className="bg-pulse-surface rounded-2xl p-5">
                     <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
-                    <MuscleVolumeBars volume={muscleVolume} targets={VOLUME_TARGETS} />
+                    <MuscleVolumeBars volume={muscleVolume} targets={targets} />
                 </div>
 
                 {/* Streak */}

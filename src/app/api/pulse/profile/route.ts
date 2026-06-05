@@ -15,6 +15,7 @@ export async function GET() {
         onboarding_completed: false,
         goal_weight_kg: null,
         gender: null,
+        priority_muscle: null,
     };
     try {
         profile = await loadProfile(supabase, user.id);

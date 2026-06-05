@@ -13,6 +13,7 @@ import type {
     LengthUnit,
     LogEntry,
     Gender,
+    PriorityMuscle,
     View,
     PRMap,
     DbExercise,
@@ -49,6 +50,7 @@ export interface PulseContextValue {
     updateProfile: (displayName: string | null, unit: Unit) => Promise<void>;
     updateGender: (gender: Gender | null) => Promise<void>;
     updateLengthUnit: (lengthUnit: LengthUnit) => Promise<void>;
+    updatePriorityMuscle: (priority: PriorityMuscle | 'balanced' | null) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;

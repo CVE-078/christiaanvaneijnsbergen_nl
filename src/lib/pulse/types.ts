@@ -40,6 +40,12 @@ export type LengthUnit = 'cm' | 'in';
 
 export type Gender = 'male' | 'female';
 
+// User-chosen muscle to emphasize in generation. 'arms' expands to biceps +
+// triceps wherever muscles are enumerated. On the profile this is stored as
+// PriorityMuscle | 'balanced' | null (null = never chosen → seed from gender;
+// 'balanced' = explicit no-priority).
+export type PriorityMuscle = 'glutes' | 'legs' | 'chest' | 'back' | 'shoulders' | 'arms';
+
 export interface Profile {
     display_name: string | null;
     unit: Unit;
@@ -48,6 +54,7 @@ export interface Profile {
     onboarding_completed: boolean;
     goal_weight_kg: number | null;
     gender: Gender | null;
+    priority_muscle: PriorityMuscle | 'balanced' | null;
 }
 
 export interface BodyMeasurement {

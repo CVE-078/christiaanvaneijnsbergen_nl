@@ -4,11 +4,20 @@ import {
     updateProfile as serverUpdateProfile,
     updateGender as serverUpdateGender,
     updateLengthUnit as serverUpdateLengthUnit,
+    updatePriorityMuscle as serverUpdatePriorityMuscle,
     logBodyWeight as serverLogBodyWeight,
     deleteBodyWeight as serverDeleteBodyWeight,
 } from '@/app/pulse/actions';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
-import type { Profile, BodyweightEntry, BodyMeasurement, Unit, LengthUnit, Gender } from '@/lib/pulse/types';
+import type {
+    Profile,
+    BodyweightEntry,
+    BodyMeasurement,
+    Unit,
+    LengthUnit,
+    Gender,
+    PriorityMuscle,
+} from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
 const BODYWEIGHT_KEY = '/api/pulse/bodyweight';
@@ -27,6 +36,7 @@ const DEFAULT_PROFILE: Profile = {
     onboarding_completed: false,
     goal_weight_kg: null,
     gender: null,
+    priority_muscle: null,
 };
 
 export function useProfile() {
@@ -93,6 +103,18 @@ export function useProfile() {
         [mutateProfile, profile],
     );
 
+    const updatePriorityMuscle = useCallback(
+        async (priority: PriorityMuscle | 'balanced' | null): Promise<void> => {
+            mutateProfile({ ...profile, priority_muscle: priority }, false);
+            try {
+                await serverUpdatePriorityMuscle(priority);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
     const logBodyWeight = useCallback(
         async (weightKg: number): Promise<BodyweightEntry> => {
             const entry = await serverLogBodyWeight(weightKg);
@@ -125,6 +147,7 @@ export function useProfile() {
         updateProfile,
         updateGender,
         updateLengthUnit,
+        updatePriorityMuscle,
         logBodyWeight,
         deleteBodyWeight,
         loadingProfile,

@@ -82,13 +82,14 @@ describe('loadProfile', () => {
                 onboarding_completed: true,
                 goal_weight_kg: '80',
                 gender: 'female',
+                priority_muscle: 'glutes',
             },
             error: null,
         });
         const profile = await loadProfile(client, UID);
         expect(calls.table).toBe('profiles');
         expect(calls.select).toBe(
-            'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender',
+            'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle',
         );
         expect(profile).toEqual({
             display_name: 'Sam',
@@ -98,6 +99,7 @@ describe('loadProfile', () => {
             onboarding_completed: true,
             goal_weight_kg: 80,
             gender: 'female',
+            priority_muscle: 'glutes',
         });
     });
 
@@ -111,6 +113,7 @@ describe('loadProfile', () => {
             onboarding_completed: false,
             goal_weight_kg: null,
             gender: null,
+            priority_muscle: null,
         });
     });
 

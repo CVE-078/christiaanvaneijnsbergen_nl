@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import { UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { assertUuid } from './_shared';
-import type { Unit, LengthUnit, BodyweightEntry, Gender } from '@/lib/pulse/types';
+import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle } from '@/lib/pulse/types';
+
+const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'] as const;
 
 export async function logout() {
     const supabase = await createClient();
@@ -96,6 +98,19 @@ export async function updateGender(gender: Gender | null): Promise<void> {
         .from('profiles')
         .upsert({ id: user.id, gender, updated_at: new Date().toISOString() }, { onConflict: 'id' });
     if (error) throw new Error('Failed to update gender');
+    revalidatePath('/pulse');
+}
+
+export async function updatePriorityMuscle(priority: PriorityMuscle | 'balanced' | null): Promise<void> {
+    if (priority !== null && !PRIORITY_MUSCLE_VALUES.includes(priority))
+        throw new Error('Invalid priority muscle');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, priority_muscle: priority, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw new Error('Failed to update priority muscle');
     revalidatePath('/pulse');
 }
 

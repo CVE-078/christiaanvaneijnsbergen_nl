@@ -16,13 +16,12 @@ export default function OnboardingModal() {
             completeLabel="Create my routine"
             collectGender={!hasGender}
             onComplete={async ({ answers, trainingDays, sessionTime, styleKey, gender }) => {
-                const effectiveGender = gender ?? profile.gender;
                 if (gender) await updateGender(gender);
                 await generateRoutine(
                     answers,
                     trainingDays,
                     sessionTime,
-                    styleKey ?? recommendStyle(trainingDays.length, effectiveGender),
+                    styleKey ?? recommendStyle(trainingDays.length),
                 );
                 await completeOnboarding();
                 navigate('train');
