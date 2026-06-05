@@ -15,6 +15,7 @@ const mockContext = {
     logs: {},
     profile: {
         unit: 'kg' as const,
+        length_unit: 'cm' as const,
         display_name: null,
         active_routine_id: null,
         onboarding_completed: false,
@@ -33,6 +34,7 @@ const mockContext = {
     email: 'test@example.com',
     updateProfile: vi.fn(),
     updateGender: vi.fn(),
+    updateLengthUnit: vi.fn(),
     logBodyWeight: vi.fn(),
     deleteBodyWeight: vi.fn(),
     isLoading: false,

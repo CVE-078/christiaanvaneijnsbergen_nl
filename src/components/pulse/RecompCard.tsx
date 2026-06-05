@@ -1,10 +1,18 @@
 'use client';
-import type { RecompReadout, Unit } from '@/lib/pulse/types';
-import { toDisplay } from '@/lib/pulse/utils';
+import type { RecompReadout, Unit, LengthUnit } from '@/lib/pulse/types';
+import { toDisplay, toLengthDisplay } from '@/lib/pulse/utils';
 
 const ARROW: Record<string, string> = { up: '↑', down: '↓', flat: '→', none: '·' };
 
-export default function RecompCard({ readout, unit }: { readout: RecompReadout; unit: Unit }) {
+export default function RecompCard({
+    readout,
+    unit,
+    lengthUnit,
+}: {
+    readout: RecompReadout;
+    unit: Unit;
+    lengthUnit: LengthUnit;
+}) {
     const rows: Array<{ label: string; trend: string; detail: string }> = [
         {
             label: 'Strength',
@@ -28,7 +36,7 @@ export default function RecompCard({ readout, unit }: { readout: RecompReadout; 
             detail:
                 readout.waistDeltaCm == null
                     ? '—'
-                    : `${readout.waistDeltaCm >= 0 ? '+' : ''}${readout.waistDeltaCm.toFixed(1)} cm`,
+                    : `${readout.waistDeltaCm >= 0 ? '+' : ''}${toLengthDisplay(readout.waistDeltaCm, lengthUnit).toFixed(1)} ${lengthUnit}`,
         },
     ];
     return (

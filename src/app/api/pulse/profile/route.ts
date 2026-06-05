@@ -10,6 +10,7 @@ export async function GET() {
     let profile: Profile = {
         display_name: null,
         unit: 'kg',
+        length_unit: 'cm',
         active_routine_id: null,
         onboarding_completed: false,
         goal_weight_kg: null,

@@ -1,9 +1,9 @@
 'use client';
 import { useTransition, useState } from 'react';
-import { toDisplay, toKg, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
+import { toDisplay, toKg, toLengthDisplay, toCm, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
-import type { BodyweightEntry, Gender } from '@/lib/pulse/types';
+import type { BodyweightEntry, Gender, LengthUnit } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import { INPUT, BTN_PRIMARY } from '../ui';
@@ -100,18 +100,17 @@ export default function ProfileView() {
         setAutoAdvance,
         logBodyWeight,
         deleteBodyWeight,
+        bodyMeasurements,
         refreshMeasurements,
+        updateLengthUnit,
         triggerOnboarding,
-        streak,
-        prMap,
-        routines,
         loading,
         errors,
         retry,
     } = usePulse();
     const toast = useToast();
 
-    const { display_name: displayName, unit, gender } = profile;
+    const { display_name: displayName, unit, gender, length_unit: lengthUnit } = profile;
 
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
@@ -129,15 +128,17 @@ export default function ProfileView() {
 
     const initials = displayName ? getInitials(displayName, 2) : (email[0]?.toUpperCase() ?? '?');
 
-    // prMap keys are routineExerciseIds; resolve names via routine exercises
-    const reNameMap = new Map(routines.flatMap((r) => r.exercises).map((re) => [re.id, re.exercise.name]));
-    const topPRs = Object.entries(prMap)
-        .map(([reId, e1rm]) => ({
-            name: reNameMap.get(reId) ?? reId,
-            e1rm,
-        }))
-        .sort((a, b) => b.e1rm - a.e1rm)
-        .slice(0, 5);
+    const latestMeasurement = bodyMeasurements[0];
+
+    function fmtMeasure(value_cm: number | null | undefined): string {
+        if (value_cm == null) return '—';
+        return `${toLengthDisplay(value_cm, lengthUnit)} ${lengthUnit}`;
+    }
+
+    function handleLengthUnitChange(newUnit: LengthUnit) {
+        if (newUnit === lengthUnit) return;
+        void updateLengthUnit(newUnit);
+    }
 
     function handleUnitChange(newUnit: 'kg' | 'lbs') {
         if (newUnit === unit || isPending) return;
@@ -300,21 +301,6 @@ export default function ProfileView() {
                     </div>
                 </div>
 
-                {/* Streak — hero stat */}
-                <section className={SECTION}>
-                    <SectionLabel className="mb-2">Streak</SectionLabel>
-                    <div className="flex items-baseline gap-3">
-                        <span className="font-pulse text-6xl font-bold leading-none tracking-[-0.03em] text-pulse-accent tabular-nums">
-                            {streak}
-                        </span>
-                        <span className="font-pulse text-sm text-pulse-dim leading-tight">
-                            consecutive
-                            <br />
-                            {streak === 1 ? 'week' : 'weeks'} trained
-                        </span>
-                    </div>
-                </section>
-
                 {/* Routine quiz */}
                 <div>
                     <SectionLabel className="mb-2">Routine</SectionLabel>
@@ -325,29 +311,15 @@ export default function ProfileView() {
                     </button>
                 </div>
             </div>
-            <div className="lg:flex-1 lg:min-w-0 flex flex-col gap-7">
-                {/* Personal Records */}
-                <section className={SECTION}>
-                    <SectionLabel className="mb-2">Personal Records</SectionLabel>
-                    {topPRs.length === 0 ? (
-                        <p className="font-pulse text-xs text-pulse-muted">No records yet — start logging sets.</p>
-                    ) : (
-                        <div className="flex flex-col">
-                            {topPRs.map((pr) => (
-                                <div
-                                    key={pr.name}
-                                    className="flex justify-between items-baseline py-[0.8125rem] border-b border-pulse-border last:border-b-0">
-                                    <span className="font-pulse-body text-[0.9375rem] text-pulse-text">{pr.name}</span>
-                                    <span className="font-pulse text-base text-pulse-accent font-medium tracking-[-0.005em]">
-                                        {unit === 'lbs'
-                                            ? `${toDisplay(pr.e1rm, 'lbs').toFixed(1)} lbs`
-                                            : `${pr.e1rm.toFixed(1)} kg`}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </section>
+            <div className="lg:flex-1 lg:min-w-0 rounded-2xl bg-pulse-surface p-5 flex flex-col gap-6">
+                <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <SectionLabel>Body</SectionLabel>
+                    </div>
+                    <p className="font-pulse text-[0.6875rem] text-pulse-muted">
+                        Everything Progress reads for the recomp verdict, logged in one place.
+                    </p>
+                </div>
 
                 {/* Body weight */}
                 <div>
@@ -478,15 +450,46 @@ export default function ProfileView() {
                 </section>
 
                 {/* Body Measurements */}
-                <section className={SECTION}>
-                    <div className="flex justify-between items-center mb-2">
-                        <SectionLabel>Body Measurements</SectionLabel>
-                        <button
-                            onClick={() => setShowMeasurements(!showMeasurements)}
-                            className="font-pulse text-xs text-pulse-accent cursor-pointer bg-transparent border-none">
-                            {showMeasurements ? 'Cancel' : '+ Log'}
-                        </button>
+                <section className={SECTION + ' border-t border-pulse-border pt-4'}>
+                    <div className="flex justify-between items-center mb-3 gap-2">
+                        <SectionLabel>Measurements</SectionLabel>
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="inline-flex bg-pulse-surface-2 rounded-lg p-0.5 gap-0.5"
+                                role="group"
+                                aria-label="Measurement unit">
+                                {(['cm', 'in'] as const).map((u) => (
+                                    <button
+                                        key={u}
+                                        onClick={() => handleLengthUnitChange(u)}
+                                        aria-pressed={lengthUnit === u}
+                                        className={`font-pulse text-[0.6875rem] font-semibold tracking-[0.04em] uppercase py-1 px-2.5 rounded-md cursor-pointer border-none ${lengthUnit === u ? 'bg-pulse-accent text-pulse-bg' : 'bg-transparent text-pulse-dim'}`}>
+                                        {u}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setShowMeasurements(!showMeasurements)}
+                                className="font-pulse text-xs text-pulse-accent cursor-pointer bg-transparent border-none">
+                                {showMeasurements ? 'Cancel' : '+ Log'}
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Latest measurement readout */}
+                    <div className="grid grid-cols-4 gap-2">
+                        {(['waist', 'hips', 'chest', 'arms'] as const).map((field) => (
+                            <div
+                                key={field}
+                                className="bg-pulse-bg rounded-xl py-2.5 px-1.5 text-center">
+                                <div className="font-pulse text-[0.625rem] text-pulse-muted capitalize">{field}</div>
+                                <div className="font-pulse text-sm font-medium text-pulse-text mt-0.5 tabular-nums">
+                                    {fmtMeasure(latestMeasurement?.[`${field}_cm`])}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
                     {showMeasurements && (
                         <div className="flex flex-col gap-2 mt-2">
                             <input
@@ -502,7 +505,8 @@ export default function ProfileView() {
                                     <input
                                         type="number"
                                         step="0.1"
-                                        placeholder="cm"
+                                        placeholder={lengthUnit}
+                                        aria-label={`${field} in ${lengthUnit}`}
                                         value={measurements[field]}
                                         onChange={(e) =>
                                             setMeasurements((prev) => ({ ...prev, [field]: e.target.value }))
@@ -515,10 +519,18 @@ export default function ProfileView() {
                                 onClick={async () => {
                                     await logBodyMeasurement({
                                         measured_at: measureDate,
-                                        waist_cm: measurements.waist ? Number(measurements.waist) : undefined,
-                                        hips_cm: measurements.hips ? Number(measurements.hips) : undefined,
-                                        chest_cm: measurements.chest ? Number(measurements.chest) : undefined,
-                                        arms_cm: measurements.arms ? Number(measurements.arms) : undefined,
+                                        waist_cm: measurements.waist
+                                            ? toCm(Number(measurements.waist), lengthUnit)
+                                            : undefined,
+                                        hips_cm: measurements.hips
+                                            ? toCm(Number(measurements.hips), lengthUnit)
+                                            : undefined,
+                                        chest_cm: measurements.chest
+                                            ? toCm(Number(measurements.chest), lengthUnit)
+                                            : undefined,
+                                        arms_cm: measurements.arms
+                                            ? toCm(Number(measurements.arms), lengthUnit)
+                                            : undefined,
                                     });
                                     refreshMeasurements();
                                     setShowMeasurements(false);

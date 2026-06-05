@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import ProfileView from '../views/ProfileView';
 import { ToastProvider } from '@/lib/pulse/toast';
 import ToastContainer from '../ToastContainer';
-import type { RoutineWithExercises } from '@/lib/pulse/types';
 
 vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
@@ -23,6 +22,7 @@ const mockUpdateProfile = vi.fn().mockResolvedValue(undefined);
 const mockUpdateGender = vi.fn().mockResolvedValue(undefined);
 const mockLogBodyWeight = vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 });
 const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
+const mockUpdateLengthUnit = vi.fn().mockResolvedValue(undefined);
 
 const defaultContext = {
     email: 'test@example.com',
@@ -33,12 +33,14 @@ const defaultContext = {
         onboarding_completed: false,
         goal_weight_kg: null,
         gender: null,
+        length_unit: 'cm' as const,
     },
     bodyweightLogs: [],
     bodyMeasurements: [],
     refreshMeasurements: vi.fn(),
     updateProfile: mockUpdateProfile,
     updateGender: mockUpdateGender,
+    updateLengthUnit: mockUpdateLengthUnit,
     autoAdvance: false,
     setAutoAdvance: vi.fn(),
     logBodyWeight: mockLogBodyWeight,
@@ -46,7 +48,7 @@ const defaultContext = {
     streak: 0,
     prMap: {},
     exercises: [],
-    routines: [] as RoutineWithExercises[],
+    routines: [],
     triggerOnboarding: vi.fn(),
 };
 
@@ -65,6 +67,7 @@ beforeEach(() => {
     mockUpdateGender.mockClear();
     mockLogBodyWeight.mockClear();
     mockDeleteBodyWeight.mockClear();
+    mockUpdateLengthUnit.mockClear();
     vi.mocked(updateGoalWeight).mockClear();
 });
 
@@ -207,44 +210,50 @@ describe('ProfileView', () => {
         expect(vi.mocked(updateGoalWeight)).toHaveBeenCalledWith(81.65);
     });
 
-    it('shows exercise name instead of UUID in Personal Records', () => {
-        const RE_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
-        const routine: RoutineWithExercises = {
-            id: 'r1',
-            user_id: 'u1',
-            name: 'PPL',
-            created_at: '',
-            schedule: [],
-            exercises: [
-                {
-                    id: RE_ID,
-                    routine_id: 'r1',
-                    exercise_id: 'ex-1',
-                    workout_type: 'push',
-                    variant: null,
-                    order: 0,
-                    sets: '3',
-                    reps: '8',
-                    starting_weight_kg: null,
-                    superset_group_id: null,
-                    exercise: {
-                        id: 'ex-1',
-                        name: 'Bench Press',
-                        category: 'chest',
-                        default_sets: '3',
-                        default_reps: '8',
-                        user_id: null,
-                    },
-                },
-            ],
-        };
+    it('calls updateLengthUnit when the in measurement-unit toggle is clicked', async () => {
+        renderWithToast(<ProfileView />);
+        await userEvent.click(screen.getByRole('button', { name: /^in$/i }));
+        expect(mockUpdateLengthUnit).toHaveBeenCalledWith('in');
+    });
+
+    it('renders the latest measurement readout and converts it when unit is in', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            prMap: { [RE_ID]: 126.67 },
-            routines: [routine],
+            profile: { ...defaultContext.profile, length_unit: 'in' as const },
+            bodyMeasurements: [
+                {
+                    id: 'm1',
+                    measured_at: '2026-06-01',
+                    waist_cm: 81,
+                    hips_cm: 99,
+                    chest_cm: 106,
+                    arms_cm: 39,
+                },
+            ],
         } as unknown as ReturnType<typeof usePulse>);
         renderWithToast(<ProfileView />);
-        expect(screen.getByText('Bench Press')).toBeInTheDocument();
-        expect(screen.queryByText(RE_ID)).not.toBeInTheDocument();
+        // 81 cm -> 31.9 in
+        expect(screen.getByText(/31\.9 in/)).toBeInTheDocument();
+        // 99 cm -> 39 in (39.0 rounds to 39)
+        expect(screen.getByText(/^39 in$/)).toBeInTheDocument();
+    });
+
+    it('renders measurement readout in cm with em-dash for missing values', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyMeasurements: [
+                {
+                    id: 'm1',
+                    measured_at: '2026-06-01',
+                    waist_cm: 81,
+                    hips_cm: null,
+                    chest_cm: null,
+                    arms_cm: null,
+                },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<ProfileView />);
+        expect(screen.getByText(/81 cm/)).toBeInTheDocument();
+        expect(screen.getAllByText('—').length).toBe(3);
     });
 });

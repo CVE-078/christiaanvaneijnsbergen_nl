@@ -10,6 +10,7 @@ import type {
     WorkoutVariant,
     TabKey,
     Unit,
+    LengthUnit,
     LogEntry,
     Gender,
     View,
@@ -47,6 +48,7 @@ export interface PulseContextValue {
     // Profile mutations
     updateProfile: (displayName: string | null, unit: Unit) => Promise<void>;
     updateGender: (gender: Gender | null) => Promise<void>;
+    updateLengthUnit: (lengthUnit: LengthUnit) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;

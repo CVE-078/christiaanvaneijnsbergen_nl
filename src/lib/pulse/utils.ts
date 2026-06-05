@@ -6,6 +6,7 @@ import type {
     HistorySession,
     LogEntry,
     Unit,
+    LengthUnit,
     RoutineExercise,
     WorkoutType,
     TabKey,
@@ -82,6 +83,7 @@ export function sessionTypeFor(type: WorkoutType, sessionTypes: WorkoutType[]): 
 export const MIN_KG = 0.5;
 export const MAX_KG = 500;
 export const KG_TO_LBS = 2.20462;
+export const CM_TO_IN = 1 / 2.54;
 
 export function toDisplay(kg: number, unit: Unit): number {
     if (unit === 'lbs') return Math.round(kg * KG_TO_LBS * 10) / 10;
@@ -90,6 +92,19 @@ export function toDisplay(kg: number, unit: Unit): number {
 
 export function toKg(value: number, unit: Unit): number {
     if (unit === 'lbs') return Math.round((value / KG_TO_LBS) * 100) / 100;
+    return value;
+}
+
+// Length conversion, mirroring toDisplay/toKg for weight. Measurements are
+// stored canonically in cm; these convert for display ('in') and back to cm on
+// input. A 'cm' unit is the identity so existing data needs no migration.
+export function toLengthDisplay(cm: number, unit: LengthUnit): number {
+    if (unit === 'in') return Math.round(cm * CM_TO_IN * 10) / 10;
+    return cm;
+}
+
+export function toCm(value: number, unit: LengthUnit): number {
+    if (unit === 'in') return Math.round((value / CM_TO_IN) * 100) / 100;
     return value;
 }
 
