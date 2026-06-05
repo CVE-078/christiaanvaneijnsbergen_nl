@@ -46,44 +46,56 @@ export default function TemplatesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex gap-2 flex-wrap">
-                {(['all', 'dumbbells', 'home', 'gym'] as EquipmentFilter[]).map((f) => (
-                    <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`font-pulse text-xs tracking-[0.04em] capitalize rounded-full px-3 py-1.5 border cursor-pointer ${
-                            filter === f
-                                ? 'bg-pulse-accent text-pulse-bg border-pulse-accent font-semibold'
-                                : 'bg-transparent text-pulse-dim border-pulse-border'
-                        }`}>
-                        {FILTER_LABELS[f]}
-                    </button>
+            {/* Unified toolbar — equipment filter chips, matching the other tabs. */}
+            <div className="flex items-center gap-2">
+                <div className="relative flex-1 min-w-0">
+                    <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {(['all', 'dumbbells', 'home', 'gym'] as EquipmentFilter[]).map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={`font-pulse text-xs tracking-[0.04em] capitalize rounded-full px-3 py-1.5 border cursor-pointer shrink-0 ${
+                                    filter === f
+                                        ? 'bg-pulse-accent text-pulse-bg border-pulse-accent font-semibold'
+                                        : 'bg-transparent text-pulse-dim border-pulse-border'
+                                }`}>
+                                {FILTER_LABELS[f]}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-l from-pulse-bg to-transparent" />
+                </div>
+            </div>
+
+            {/* Template list — unified row card. */}
+            <div className="flex flex-col gap-2">
+                {visible.map((t) => (
+                    <div
+                        key={t.slug}
+                        className="bg-pulse-surface rounded-xl px-3 py-2.5 flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                            <span className="font-pulse text-sm font-semibold text-pulse-text flex-1 min-w-0 truncate">
+                                {t.name}
+                            </span>
+                            <button
+                                onClick={() => setSetupTemplate(t)}
+                                className="font-pulse text-xs font-semibold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/20 rounded-lg px-3 py-1.5 shrink-0 cursor-pointer">
+                                Use this
+                            </button>
+                        </div>
+                        <div className="flex gap-2 flex-wrap items-center">
+                            <span
+                                className={`font-pulse text-[0.625rem] tracking-[0.08em] uppercase ${LEVEL_CLASS[t.experience_level]}`}>
+                                {t.experience_level}
+                            </span>
+                            <span className="font-pulse text-[0.625rem] text-pulse-dim">
+                                {t.days_per_week}×/week · {t.session_time}
+                            </span>
+                        </div>
+                        <p className="font-pulse text-xs text-pulse-muted">{t.description}</p>
+                    </div>
                 ))}
             </div>
-            {visible.map((t) => (
-                <div
-                    key={t.slug}
-                    className="bg-pulse-surface border border-pulse-border rounded-xl p-4 flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-3">
-                        <span className="font-pulse text-sm font-semibold text-pulse-text">{t.name}</span>
-                        <button
-                            onClick={() => setSetupTemplate(t)}
-                            className="font-pulse text-xs font-semibold text-pulse-accent bg-pulse-accent/10 border border-pulse-accent/20 rounded-lg px-3 py-1.5 shrink-0 cursor-pointer">
-                            Use this
-                        </button>
-                    </div>
-                    <div className="flex gap-2 flex-wrap items-center">
-                        <span
-                            className={`font-pulse text-[0.625rem] tracking-[0.08em] uppercase ${LEVEL_CLASS[t.experience_level]}`}>
-                            {t.experience_level}
-                        </span>
-                        <span className="font-pulse text-[0.625rem] text-pulse-dim">
-                            {t.days_per_week}×/week · {t.session_time}
-                        </span>
-                    </div>
-                    <p className="font-pulse text-xs text-pulse-muted">{t.description}</p>
-                </div>
-            ))}
 
             {setupTemplate && (
                 <RoutineSetupFlow
