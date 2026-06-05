@@ -5,6 +5,7 @@ import {
     toDisplay,
     computeE1RMHistory,
     swapKey,
+    parseLogKey,
     computeStrengthByWeek,
     computeRecompSignal,
     computeRecoveryFlags,
@@ -22,7 +23,15 @@ import StrengthScoreCard from '@/components/pulse/StrengthScoreCard';
 import { computeStrengthScore } from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
-import type { Unit } from '@/lib/pulse/types';
+import type { Unit, Logs } from '@/lib/pulse/types';
+
+// Dashboard time window. 'cycle' is the current 12-week program (default), 'all'
+// is every logged week (distinct once data spans multiple cycles), 'week' zooms
+// the period-based widgets to the active week. Strength Score and Personal
+// Records stay all-time regardless — they are lifetime records, not trends.
+type ProgressWindow = 'week' | 'cycle' | 'all';
+
+const WINDOW_LABELS: Record<ProgressWindow, string> = { week: 'Week', cycle: 'Cycle', all: 'All' };
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
     return (
@@ -122,14 +131,30 @@ export default function HistoryView() {
     } = usePulse();
     const unit = profile.unit;
 
+    // Time window for the period-based widgets (volume, e1RM, recomp trend,
+    // session history). 'cycle' (weeks 1-12) is the default and matches the
+    // prior behaviour; 'week' zooms to the active week; 'all' is every week.
+    const [progressWindow, setProgressWindow] = useState<ProgressWindow>('cycle');
+    const windowedLogs = useMemo<Logs>(() => {
+        if (progressWindow === 'all') return logs;
+        const out: Logs = {};
+        for (const [key, val] of Object.entries(logs)) {
+            const parsed = parseLogKey(key);
+            if (!parsed) continue;
+            const inWindow = progressWindow === 'week' ? parsed.week === activeWeek : parsed.week >= 1 && parsed.week <= 12;
+            if (inWindow) out[key] = val;
+        }
+        return out;
+    }, [logs, progressWindow, activeWeek]);
+
     const recomp = useMemo(
         () =>
             computeRecompSignal({
                 bodyweight: bodyweightLogs,
                 measurements: bodyMeasurements,
-                strengthByWeek: computeStrengthByWeek(logs),
+                strengthByWeek: computeStrengthByWeek(windowedLogs),
             }),
-        [bodyweightLogs, bodyMeasurements, logs],
+        [bodyweightLogs, bodyMeasurements, windowedLogs],
     );
 
     const allRoutineExercises = useMemo(() => routines.flatMap((r) => r.exercises), [routines]);
@@ -162,8 +187,8 @@ export default function HistoryView() {
     // (buildHistory, computeVolumeByTypeAndWeek, computeBestSets,
     // computePerMuscleVolume, default-exercise scan).
     const { sessions, volByWeek, bestSets, muscleVolume, defaultExerciseId } = useMemo(
-        () => computeHistoryBundle(logs, allRoutineExercises, activeRoutineExercises, activeWeek),
-        [logs, allRoutineExercises, activeRoutineExercises, activeWeek],
+        () => computeHistoryBundle(windowedLogs, allRoutineExercises, activeRoutineExercises, activeWeek),
+        [windowedLogs, allRoutineExercises, activeRoutineExercises, activeWeek],
     );
 
     // Same routine-exercise list and week that produce muscleVolume above, so
@@ -176,7 +201,10 @@ export default function HistoryView() {
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     const exerciseId = selectedExerciseId ?? defaultExerciseId;
 
-    const e1rmHistory = useMemo(() => (exerciseId ? computeE1RMHistory(logs, exerciseId) : []), [logs, exerciseId]);
+    const e1rmHistory = useMemo(
+        () => (exerciseId ? computeE1RMHistory(windowedLogs, exerciseId) : []),
+        [windowedLogs, exerciseId],
+    );
 
     // Precompute the per-set PR flag and resolved exercise name once per
     // logs/prMap/nameMap change, so the render map does not call calcE1RM
@@ -235,13 +263,29 @@ export default function HistoryView() {
     return (
         <div className="p-4 sm:p-8 max-w-[960px] mx-auto">
             {/* Header */}
-            <div className="flex items-baseline justify-between gap-3 mb-8">
+            <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
                 <h1 className="font-pulse text-[1.75rem] sm:text-[2.25rem] font-medium tracking-[-0.018em] text-pulse-text">
                     Progress
                 </h1>
-                <span className="font-pulse-body text-[0.8125rem] text-pulse-muted tracking-[0.03em]">
-                    {streak === 0 ? 'No streak yet' : `${streak}-week streak`}
-                </span>
+                <div className="flex items-center gap-3">
+                    <span className="font-pulse-body text-[0.8125rem] text-pulse-muted tracking-[0.03em]">
+                        {streak === 0 ? 'No streak yet' : `${streak}-week streak`}
+                    </span>
+                    <div
+                        className="inline-flex bg-pulse-surface-2 rounded-lg p-0.5 gap-0.5"
+                        role="group"
+                        aria-label="Time window">
+                        {(['week', 'cycle', 'all'] as const).map((w) => (
+                            <button
+                                key={w}
+                                onClick={() => setProgressWindow(w)}
+                                aria-pressed={progressWindow === w}
+                                className={`font-pulse text-[0.6875rem] font-semibold tracking-[0.04em] py-1 px-2.5 rounded-md cursor-pointer border-none ${progressWindow === w ? 'bg-pulse-accent text-pulse-bg' : 'bg-transparent text-pulse-dim'}`}>
+                                {WINDOW_LABELS[w]}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* TIER 1: headline + recovery coaching */}
