@@ -37,6 +37,7 @@ const DEFAULT_PROFILE: Profile = {
     goal_weight_kg: null,
     gender: null,
     priority_muscle: null,
+    timezone: 'UTC',
 };
 
 export function useProfile() {

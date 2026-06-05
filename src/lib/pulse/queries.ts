@@ -20,7 +20,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 // routes should both call the loaders below rather than duplicating queries.
 const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops';
 const PROFILE_SELECT =
-    'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle';
+    'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle, timezone';
 const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'];
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
 const MEASUREMENTS_SELECT = 'id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm';
@@ -68,6 +68,7 @@ export async function loadProfile(supabase: SupabaseServerClient, userId: string
             data && (PRIORITY_MUSCLE_VALUES as readonly string[]).includes(data.priority_muscle as string)
                 ? (data.priority_muscle as Profile['priority_muscle'])
                 : null,
+        timezone: typeof data?.timezone === 'string' && data.timezone ? data.timezone : 'UTC',
     };
 }
 
