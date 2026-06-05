@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserOrUnauthorized } from '@/lib/pulse/auth';
 import { nextVariant } from '@/lib/pulse/sessions';
+import { loadSessions } from '@/lib/pulse/queries';
 import { UUID_RE } from '@/lib/pulse/utils';
 import { WORKOUT_TYPES } from '@/lib/pulse/types';
-import type { WorkoutType, WorkoutVariant } from '@/lib/pulse/types';
+import type { WorkoutType, WorkoutVariant, WorkoutSession } from '@/lib/pulse/types';
+
+// All of the user's sessions, oldest first. Feeds the client-side adherence
+// engine (completion-paced position + calendar adherence).
+export async function GET() {
+    const { supabase, user, response } = await getUserOrUnauthorized();
+    if (!user) return response;
+
+    let sessions: WorkoutSession[] = [];
+    try {
+        sessions = await loadSessions(supabase, user.id);
+    } catch {
+        sessions = [];
+    }
+    return NextResponse.json(sessions);
+}
 
 export async function POST(req: NextRequest) {
     const { supabase, user, response } = await getUserOrUnauthorized();
