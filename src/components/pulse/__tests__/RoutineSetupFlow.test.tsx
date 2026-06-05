@@ -60,6 +60,22 @@ describe('RoutineSetupFlow', () => {
         expect(onComplete.mock.calls[0][0].styleKey).toBe('ppl-3');
     });
 
+    it('caps the day picker at the chosen days-per-week count', () => {
+        render(
+            <RoutineSetupFlow
+                initial={{ ...initial, days: '4', trainingDays: [] }}
+                onComplete={vi.fn()}
+                onClose={vi.fn()}
+            />,
+        );
+        // equipment → experience → goal → days/week (seeds the 4 recommended days) → which days
+        for (let i = 0; i < 4; i++) fireEvent.click(screen.getByText('Next'));
+        expect(screen.getByText(/which days will you train/i)).toBeInTheDocument();
+        expect(screen.getByText(/up to 4 days/i)).toBeInTheDocument();
+        // Mon, Tue, Thu, Fri are seeded (4 = the cap), so a 5th day (Wed) is disabled.
+        expect(screen.getByRole('button', { name: 'Wed' })).toBeDisabled();
+    });
+
     it('hides the style step when only one style exists for the count', async () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] }; // 2 days → one style (fb-2)

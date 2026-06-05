@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { DAY_NAMES, SUGGESTED_DAYS } from '@/lib/pulse/constants';
+import { DAY_NAMES, SUGGESTED_DAYS, MAX_TRAINING_DAYS } from '@/lib/pulse/constants';
 import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { BTN_PRIMARY_BLOCK } from './ui';
 import type { EquipmentKey, SessionTime, Gender } from '@/lib/pulse/types';
@@ -127,6 +127,16 @@ export default function RoutineSetupFlow({
     const [trainingDays, setTrainingDays] = useState<number[]>(initial?.trainingDays ?? []);
     const [styleKey, setStyleKey] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+
+    // The days-per-week answer caps how many days can be picked, so the chosen
+    // frequency (not the raw day selection) drives the routine's session count.
+    const maxDays = days ? MAX_TRAINING_DAYS[days] : 7;
+    const chooseDays = (d: DaysPerWeek) => {
+        setDays(d);
+        // Trim any prior over-selection to the new cap (e.g. when stepping back
+        // from "5–6 days" to "4 days").
+        setTrainingDays((prev) => prev.slice(0, MAX_TRAINING_DAYS[d]));
+    };
 
     // Program styles for the chosen number of training days. The style step is
     // only shown when there is more than one to pick from.
@@ -320,9 +330,9 @@ export default function RoutineSetupFlow({
                     <Header stepNum={4 + genderOffset} total={total} onBack={() => setStep(3)} />
                     <p className={Q}>How many days per week can you train?</p>
                     <div className="flex flex-col gap-2">
-                        <OptionRow label="2–3 days" active={days === '2-3'} onClick={() => setDays('2-3')} />
-                        <OptionRow label="4 days" active={days === '4'} onClick={() => setDays('4')} />
-                        <OptionRow label="5–6 days" active={days === '5-6'} onClick={() => setDays('5-6')} />
+                        <OptionRow label="2–3 days" active={days === '2-3'} onClick={() => chooseDays('2-3')} />
+                        <OptionRow label="4 days" active={days === '4'} onClick={() => chooseDays('4')} />
+                        <OptionRow label="5–6 days" active={days === '5-6'} onClick={() => chooseDays('5-6')} />
                     </div>
                     <button
                         onClick={() => {
@@ -343,23 +353,33 @@ export default function RoutineSetupFlow({
                 <div className={CARD}>
                     <Header stepNum={5 + genderOffset} total={total} onBack={() => setStep(4)} />
                     <p className={Q}>Which days will you train?</p>
+                    <p className="font-pulse text-[0.8125rem] text-pulse-dim -mt-3">
+                        Pick up to {maxDays} day{maxDays === 1 ? '' : 's'}.
+                    </p>
                     <div className="flex gap-2 flex-wrap">
-                        {[1, 2, 3, 4, 5, 6, 0].map((d) => (
-                            <button
-                                key={d}
-                                onClick={() =>
-                                    setTrainingDays((prev) =>
-                                        prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
-                                    )
-                                }
-                                className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border-none cursor-pointer transition-colors ${
-                                    trainingDays.includes(d)
-                                        ? 'bg-pulse-accent text-pulse-bg'
-                                        : 'bg-pulse-surface-2 text-pulse-dim'
-                                }`}>
-                                {DAY_NAMES[d]}
-                            </button>
-                        ))}
+                        {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                            const selected = trainingDays.includes(d);
+                            const atCap = !selected && trainingDays.length >= maxDays;
+                            return (
+                                <button
+                                    key={d}
+                                    disabled={atCap}
+                                    onClick={() =>
+                                        setTrainingDays((prev) =>
+                                            prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+                                        )
+                                    }
+                                    className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border-none transition-colors ${
+                                        selected
+                                            ? 'bg-pulse-accent text-pulse-bg cursor-pointer'
+                                            : atCap
+                                              ? 'bg-pulse-surface-2 text-pulse-muted opacity-40 cursor-not-allowed'
+                                              : 'bg-pulse-surface-2 text-pulse-dim cursor-pointer'
+                                    }`}>
+                                    {DAY_NAMES[d]}
+                                </button>
+                            );
+                        })}
                     </div>
                     <button
                         onClick={() => {

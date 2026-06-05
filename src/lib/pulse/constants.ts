@@ -73,6 +73,15 @@ export const SUGGESTED_DAYS: Record<DaysPerWeek, number[]> = {
     '5-6': [1, 2, 3, 4, 5],
 };
 
+// Upper bound on selectable training days for each days-per-week answer. The
+// onboarding day picker caps selection here so the chosen frequency drives the
+// routine's session count (e.g. "4 days" can't become a 6-session routine).
+export const MAX_TRAINING_DAYS: Record<DaysPerWeek, number> = {
+    '2-3': 3,
+    '4': 4,
+    '5-6': 6,
+};
+
 export const EXPERIENCE_LEVEL_COLOR: Record<ExperienceLevel, string> = {
     beginner: 'text-emerald-400',
     intermediate: 'text-amber-400',
