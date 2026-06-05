@@ -124,3 +124,67 @@ Each adaptive action answers what changed / why / what next.
 - Core: "A strength coach that adapts to you, not a static program." Device: "Works anywhere, your program follows you not your device." Home gym: "Built for real setups, dumbbells / machines / full gym, Pulse adapts."
 - Market pattern (Hevy/Strong = weak programming; Fitbod = random/opaque): users want "tell me what to do AND adapt it as I improve or fail," not just logging.
 - Monetization if public: free = logging + basic routines + basic stats; paid = adaptive programming, progression, ramp-back/deload, full analytics, customization. Indie pricing ~EUR 5-10/mo or 40-70/yr. Do not put logging behind a paywall, no ads, no social-feed monetization.
+
+---
+
+## 9. DecisionEvent taxonomy (Phase 0 schema content + Phase 2 timeline)
+
+Nine draft event types, each with `type` / `trigger` / `change` / `why` / `next_action`. Reconciled to what Pulse already has:
+
+| type | trigger (draft) | Pulse status |
+|---|---|---|
+| ramp_back | inactivity > 7-14d, missed > 50% | Shipped (`program_adjustments`, `GAP_DAYS=10`) |
+| deload | plateau 2-4 wks, fatigue | Computed (`shouldDeload`/`deloadTarget`) but NOT persisted — the gap to close |
+| progression | targets hit, RIR >= target | Shipped logic (`computeProgression`), not logged as an event |
+| swap_exercise | override / failure / equipment | Shipped (`exercise_swaps`) |
+| volume_bump | adaptation phase, gains | Not present — periodization volume is table-driven (`volumeForWeek`); adaptive bump is Phase 4 |
+| block_transition | block week completion | Blocks wrap (`buildProgram`), not logged as an event |
+| missed_session | scheduled not logged | Derived (`adherence.ts`), not an event |
+| return_from_gap | inactivity > 14d | Same path as ramp_back |
+| PR_event | new e1RM | Shipped (`isSetPR`/`computePRMap`), not logged as an event |
+
+The `DecisionEvent` log unifies these through one schema. Ramp-back already persists; the cheap wins are persisting **deload, progression, block_transition, and PR** as events through the same shape. `volume_bump` is aspirational (Phase 4). Each event carries the change + why + next_action copy (see section 7 for the strings).
+
+## 10. Substitution-equivalence classes (for the `substitution_class` metadata field)
+
+```
+horizontal_press: bench / DB bench / machine press / push-up
+vertical_press:   OHP / DB shoulder press / machine shoulder press
+lateral_raise:    cable / DB lateral raise
+vertical_pull:    pull-up / lat pulldown
+horizontal_pull:  barbell row / cable row / DB row
+squat_pattern:    back squat / leg press / goblet squat
+hinge_pattern:    deadlift / RDL / good morning
+unilateral_leg:   walking lunge / split squat / step-up
+glute_pattern:    hip thrust / glute bridge
+core_stability:   plank / dead bug
+core_flexion:     cable crunch / sit-up
+biceps_isolation / triceps_isolation / rear_delt_isolation
+```
+A swap should stay within the class. Powers smart substitution v2 + the contraindication subs.
+
+## 11. Golden test cases (acceptance oracles for the deterministic engine)
+
+Encode as engine tests so future changes (training style, restrictions, volume-first) can't regress.
+
+1. **4d, DB + bench, female, glute priority, 45-60 min:** 2x lower emphasis; glute ~16-24 sets/wk (higher than Pulse's current glutes target 10-16 — tie to the `VOLUME_TARGETS` tune); hinge + hip thrust dominant; reduced-load squat; unilateral leg work present.
+2. **3d beginner male full body:** full-body each session; low volume ~8-12 sets/muscle/wk; machine + dumbbell bias.
+3. **Advanced 6d PPL, full gym:** high volume 18-26 sets/muscle/wk; fatigue-managed hinge volume.
+
+## 12. Coaching edge-case rules (mostly align with the completion-paced design)
+
+- **Double sessions in a week:** do NOT auto-double volume; treat the extra as optional accessory work; cap weekly per-muscle at MRV; no forced progression next day.
+- **Train out of order:** allow freely; progression is completion-tied, not sequence-tied (already true in `adherence.ts`).
+- **Huge PR jump:** validate — a single-session anomaly is ignored, a sustained jump updates the baseline; do not inflate volume off one spike.
+- **1 of 3 sessions done:** no penalty, shift the week forward, reduce weekly accumulation (already the adherence behavior).
+- **Multi-week miss:** auto ramp_back, reduce volume + intensity, rebuild the baseline (already the `GAP_DAYS` path).
+
+The out-of-order and partial-completion rules already match Pulse's completion-paced engine. The genuinely new rules to add are the **MRV cap on double sessions** and the **PR-spike validation**.
+
+## Metadata reconciliation + next step
+
+The draft metadata schema is confirmed (`primary`, `secondary[]`, `unilateral`, `fatigue` 1-5, `joint_stress`, `difficulty`, `substitution_class`). Two reconciliation points:
+
+- Its `movement_pattern` values (`isolation_push/pull`, `glute_dominant`, `core_stability/flexion`) must remap to Pulse's real 15 (`shoulder_iso`, `biceps_iso`, `triceps_iso`, `back_iso`, `glute_iso`, `core`). **Do NOT take the draft's patterns — every Pulse exercise already has a correct, seeded `movement_pattern`.**
+- So the only NEW fields to seed are `secondary_muscles`, `unilateral`, `fatigue`, `joint_stress`, `difficulty`, `substitution_class`. `primary` collapses to the existing `category`; `movement_pattern`, `equipment`, and `is_compound` already exist.
+- Next step: extract Pulse's actual ~94 exercise names + their existing `movement_pattern`s from the seed migrations, feed that exact list to ChatGPT for the six new fields only (so it can't re-derive patterns wrongly), then a script writes the seed migration.
