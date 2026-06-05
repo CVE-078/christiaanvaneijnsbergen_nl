@@ -1,7 +1,7 @@
 ﻿'use client';
 import { useMemo } from 'react';
-import { VOLUME, WEEK_NOTES } from '@/lib/pulse/data';
-import { getPhase, sessionTypeFor } from '@/lib/pulse/utils';
+import { WEEK_NOTES, buildProgram, PROGRAM_LENGTHS } from '@/lib/pulse/data';
+import { getPhase, sessionTypeFor, weekInBlock } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import type { WorkoutType, WorkoutVariant, RoutineExercise } from '@/lib/pulse/types';
@@ -15,11 +15,13 @@ type Section = { type: WorkoutType; variant: WorkoutVariant | null; exercises: R
 const BAR_MAX_HEIGHT_PX = 64;
 
 export default function ProgramView() {
-    const { activeWeek, setActiveWeek, activeSchedule, activeRoutine, loading, errors, retry } = usePulse();
-    const phase = getPhase(activeWeek);
-    const maxSets = Math.max(...VOLUME.map((v) => v.sets));
-    const minWeek = VOLUME[0].week;
-    const maxWeek = VOLUME[VOLUME.length - 1].week;
+    const { activeWeek, setActiveWeek, activeSchedule, activeRoutine, updateRoutineProgramWeeks, loading, errors, retry } =
+        usePulse();
+    const programWeeks = activeRoutine?.program_weeks ?? 12;
+    const phase = getPhase(activeWeek, programWeeks);
+    const volume = useMemo(() => buildProgram(programWeeks).volume, [programWeeks]);
+    const maxSets = Math.max(...volume.map((v) => v.sets));
+    const inBlockWeek = weekInBlock(activeWeek, programWeeks);
 
     function handleSelectWeek(w: number) {
         setActiveWeek(w);
@@ -86,8 +88,8 @@ export default function ProgramView() {
                         <button
                             type="button"
                             aria-label="Previous week"
-                            disabled={activeWeek <= minWeek}
-                            onClick={() => handleSelectWeek(Math.max(minWeek, activeWeek - 1))}
+                            disabled={activeWeek <= 1}
+                            onClick={() => handleSelectWeek(Math.max(1, activeWeek - 1))}
                             className="rounded-md px-2 py-1 font-pulse text-sm font-semibold text-pulse-dim cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed">
                             ‹
                         </button>
@@ -97,13 +99,32 @@ export default function ProgramView() {
                         <button
                             type="button"
                             aria-label="Next week"
-                            disabled={activeWeek >= maxWeek}
-                            onClick={() => handleSelectWeek(Math.min(maxWeek, activeWeek + 1))}
+                            onClick={() => handleSelectWeek(activeWeek + 1)}
                             className="rounded-md px-2 py-1 font-pulse text-sm font-semibold text-pulse-dim cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed">
                             ›
                         </button>
                     </div>
                 </div>
+
+                {activeRoutine && (
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-pulse-border pt-3">
+                        <span className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-muted font-medium">
+                            Program length
+                        </span>
+                        <div className="flex shrink-0 items-center gap-1 rounded-lg bg-pulse-surface-2 p-[3px]">
+                            {PROGRAM_LENGTHS.map((n) => (
+                                <button
+                                    key={n}
+                                    type="button"
+                                    aria-pressed={programWeeks === n}
+                                    onClick={() => updateRoutineProgramWeeks(activeRoutine.id, n)}
+                                    className={`rounded-md px-2.5 py-1 font-pulse text-xs font-semibold cursor-pointer border-none transition-colors duration-150 ${programWeeks === n ? 'bg-pulse-accent text-pulse-bg' : 'text-pulse-dim'}`}>
+                                    {n}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="flex flex-col gap-4">
@@ -136,25 +157,25 @@ export default function ProgramView() {
                         </p>
                     )}
 
-                    <SectionLabel className="mt-5 mb-2">Weekly Volume · 12 weeks</SectionLabel>
+                    <SectionLabel className="mt-5 mb-2">Weekly Volume · {programWeeks} weeks</SectionLabel>
                     <div className="flex items-end gap-[3px] h-20">
-                        {VOLUME.map(({ week, sets }) => (
+                        {volume.map(({ week, sets }) => (
                             <button
                                 key={week}
                                 type="button"
-                                onClick={() => handleSelectWeek(week)}
+                                onClick={() => handleSelectWeek(activeWeek - inBlockWeek + week)}
                                 aria-label={`Jump to week ${week} (${sets} sets)`}
-                                aria-pressed={activeWeek === week}
+                                aria-pressed={inBlockWeek === week}
                                 title={`Week ${week} · ${sets} sets`}
-                                className={`flex-1 self-end rounded-t-sm border-none cursor-pointer transition-colors duration-150 hover:opacity-80 ${activeWeek === week ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}
+                                className={`flex-1 self-end rounded-t-sm border-none cursor-pointer transition-colors duration-150 hover:opacity-80 ${inBlockWeek === week ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}
                                 /* height is a runtime ratio — must stay inline */
                                 style={{ height: `${(sets / maxSets) * BAR_MAX_HEIGHT_PX}px` }}
                             />
                         ))}
                     </div>
                     <div className="flex justify-between mt-[5px] font-pulse text-pulse-muted text-[0.625rem]">
-                        <span>Wk {minWeek}</span>
-                        <span>Wk {maxWeek}</span>
+                        <span>Wk 1</span>
+                        <span>Wk {programWeeks}</span>
                     </div>
                 </div>
 

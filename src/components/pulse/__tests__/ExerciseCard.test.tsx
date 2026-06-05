@@ -7,6 +7,11 @@ const showToast = vi.fn();
 vi.mock('@/lib/pulse/toast', () => ({
     useToast: () => ({ show: showToast }),
 }));
+// ExerciseCard renders SetLogger, which reads the active routine's program length
+// from context; stub usePulse so the card can be rendered without a full provider.
+vi.mock('@/context/PulseContext', () => ({
+    usePulse: () => ({ activeRoutine: { program_weeks: 12 } }),
+}));
 
 import ExerciseCard from '../ExerciseCard';
 

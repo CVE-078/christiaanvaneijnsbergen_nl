@@ -64,6 +64,22 @@ export async function renameRoutine(id: string, name: string): Promise<void> {
     if (error) throw new Error('Failed to rename routine');
 }
 
+const PROGRAM_LENGTHS = [8, 10, 12, 16];
+
+export async function updateRoutineProgramWeeks(id: string, weeks: number): Promise<void> {
+    assertUuid(id);
+    if (!PROGRAM_LENGTHS.includes(weeks)) throw new Error('Invalid program length');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('workout_routines')
+        .update({ program_weeks: weeks })
+        .eq('id', id)
+        .eq('user_id', user.id);
+    if (error) throw new Error('Failed to update program length');
+}
+
 export async function deleteRoutine(id: string): Promise<void> {
     assertUuid(id);
 

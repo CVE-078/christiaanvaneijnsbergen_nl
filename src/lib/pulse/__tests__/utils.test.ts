@@ -36,9 +36,26 @@ import {
     priorityAdjustedTargets,
     weekInBlock,
     volumeForWeek,
+    computePlateau,
 } from '../utils';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
+
+describe('computePlateau', () => {
+    const h = (...e1rms: number[]) => e1rms.map((e1rm, i) => ({ week: i + 1, e1rm }));
+
+    it('needs more than recentWeeks of history', () => {
+        expect(computePlateau(h(100, 100, 100), 3)).toBe(false); // only 3 points
+    });
+
+    it('flags a stall when the last 3 weeks set no new high', () => {
+        expect(computePlateau(h(100, 105, 110, 108, 109, 110), 3)).toBe(true);
+    });
+
+    it('is not a stall when a recent week beats the prior best', () => {
+        expect(computePlateau(h(100, 105, 110, 108, 109, 112), 3)).toBe(false);
+    });
+});
 
 describe('periodized blocks', () => {
     it('buildProgram(12) is the canonical 4-phase / 12-week block', () => {
