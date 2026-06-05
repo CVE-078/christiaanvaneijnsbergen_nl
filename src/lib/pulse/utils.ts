@@ -148,6 +148,20 @@ export function volumeForWeek(week: number, weeks = 12): number {
     return volume.find((v) => v.week === w)?.sets ?? volume[0]?.sets ?? 0;
 }
 
+// A lift is plateaued when its best e1RM has not improved across the last
+// `recentWeeks` logged weeks (no new high vs everything before them). Takes the
+// e1RM history (from computeE1RMHistory) to stay decoupled and pure. Needs more
+// than `recentWeeks` of history before it can call a stall.
+export function computePlateau(history: Array<{ week: number; e1rm: number }>, recentWeeks = 3): boolean {
+    if (history.length < recentWeeks + 1) return false;
+    const sorted = [...history].sort((a, b) => a.week - b.week);
+    const recent = sorted.slice(-recentWeeks);
+    const prior = sorted.slice(0, -recentWeeks);
+    const priorBest = Math.max(...prior.map((h) => h.e1rm));
+    const recentBest = Math.max(...recent.map((h) => h.e1rm));
+    return recentBest <= priorBest;
+}
+
 export function logKey(week: number, routineExerciseId: string, setIdx: number): string {
     return `${week}-${routineExerciseId}-${setIdx}`;
 }

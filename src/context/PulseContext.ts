@@ -119,6 +119,7 @@ export interface PulseContextValue {
     // Routine mutations
     createRoutine: (name: string) => Promise<WorkoutRoutine>;
     renameRoutine: (id: string, name: string) => Promise<void>;
+    updateRoutineProgramWeeks: (id: string, weeks: number) => Promise<void>;
     deleteRoutine: (id: string) => Promise<void>;
     setActiveRoutine: (routineId: string | null) => Promise<void>;
     addExerciseToRoutine: (

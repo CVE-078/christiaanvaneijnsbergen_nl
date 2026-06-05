@@ -3,6 +3,7 @@ import useSWR, { useSWRConfig } from 'swr';
 import {
     createRoutine as serverCreateRoutine,
     renameRoutine as serverRenameRoutine,
+    updateRoutineProgramWeeks as serverUpdateRoutineProgramWeeks,
     deleteRoutine as serverDeleteRoutine,
     setActiveRoutine as serverSetActiveRoutine,
     addExerciseToRoutine as serverAddExerciseToRoutine,
@@ -84,6 +85,19 @@ export function useRoutines(activeRoutineId: string | null = null) {
                 false,
             );
             await serverRenameRoutine(id, name);
+            await mutateRoutines();
+        },
+        [mutateRoutines],
+    );
+
+    const updateRoutineProgramWeeks = useCallback(
+        async (id: string, weeks: number): Promise<void> => {
+            await mutateRoutines(
+                (prev?: RoutineWithExercises[]) =>
+                    prev?.map((r) => (r.id === id ? { ...r, program_weeks: weeks } : r)),
+                false,
+            );
+            await serverUpdateRoutineProgramWeeks(id, weeks);
             await mutateRoutines();
         },
         [mutateRoutines],
@@ -238,6 +252,7 @@ export function useRoutines(activeRoutineId: string | null = null) {
         routinesError,
         createRoutine,
         renameRoutine,
+        updateRoutineProgramWeeks,
         deleteRoutine,
         setActiveRoutine,
         addExerciseToRoutine,
