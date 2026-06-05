@@ -192,7 +192,10 @@ export function computeProgramPosition(args: {
     }
     const daysSinceLastSession = lastIdx === null ? null : Math.max(0, today - lastIdx);
 
-    const expectedSessions = schedule.reduce((sum, e) => sum + countWeekdayInRange(start, today, e.day_of_week), 0);
+    // Count only days strictly before today as expected: a session due today is
+    // not "overdue" until its day has fully passed (matches computeWeekAdherence's
+    // strict `< today`), so a mid-week start never reads as "behind" on day one.
+    const expectedSessions = schedule.reduce((sum, e) => sum + countWeekdayInRange(start, today - 1, e.day_of_week), 0);
     const behindBy = Math.max(0, expectedSessions - completedCount);
 
     let status: AdherenceStatus;

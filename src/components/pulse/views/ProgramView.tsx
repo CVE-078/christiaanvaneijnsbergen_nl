@@ -15,13 +15,35 @@ type Section = { type: WorkoutType; variant: WorkoutVariant | null; exercises: R
 const BAR_MAX_HEIGHT_PX = 64;
 
 export default function ProgramView() {
-    const { activeWeek, setActiveWeek, activeSchedule, activeRoutine, updateRoutineProgramWeeks, loading, errors, retry } =
-        usePulse();
+    const {
+        activeWeek,
+        setActiveWeek,
+        activeSchedule,
+        activeRoutine,
+        updateRoutineProgramWeeks,
+        setProgramAnchor,
+        loading,
+        errors,
+        retry,
+    } = usePulse();
     const programWeeks = activeRoutine?.program_weeks ?? 12;
     const phase = getPhase(activeWeek, programWeeks);
     const volume = useMemo(() => buildProgram(programWeeks).volume, [programWeeks]);
     const maxSets = Math.max(...volume.map((v) => v.sets));
     const inBlockWeek = weekInBlock(activeWeek, programWeeks);
+
+    // Program start date (the calendar anchor) as a YYYY-MM-DD value for the date
+    // input, and a setter that anchors to noon UTC of the chosen day so the date
+    // resolves consistently across timezones.
+    const anchorDate = activeRoutine?.program_anchor ? activeRoutine.program_anchor.slice(0, 10) : '';
+    const setStart = (ymd: string) => {
+        if (activeRoutine && ymd) setProgramAnchor(activeRoutine.id, `${ymd}T12:00:00.000Z`);
+    };
+    const todayYmd = () => {
+        const n = new Date();
+        const p = (x: number) => String(x).padStart(2, '0');
+        return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
+    };
 
     function handleSelectWeek(w: number) {
         setActiveWeek(w);
@@ -122,6 +144,34 @@ export default function ProgramView() {
                                     {n}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {activeRoutine && (
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-pulse-border pt-3">
+                        <div className="min-w-0">
+                            <span className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-muted font-medium">
+                                Program start
+                            </span>
+                            <p className="font-pulse text-[0.6875rem] text-pulse-muted mt-0.5 leading-[1.5]">
+                                When week 1 begins. Only re-aligns your schedule, not logged progress.
+                            </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                            <input
+                                type="date"
+                                aria-label="Program start date"
+                                value={anchorDate}
+                                onChange={(e) => setStart(e.target.value)}
+                                className="font-pulse text-xs font-semibold text-pulse-text bg-pulse-surface-2 rounded-md px-2 py-1 border-none cursor-pointer [color-scheme:dark]"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setStart(todayYmd())}
+                                className="rounded-md bg-pulse-surface-2 px-2.5 py-1 font-pulse text-xs font-semibold text-pulse-dim cursor-pointer border-none hover:text-pulse-text">
+                                Today
+                            </button>
                         </div>
                     </div>
                 )}

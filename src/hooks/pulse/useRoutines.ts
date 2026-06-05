@@ -4,6 +4,7 @@ import {
     createRoutine as serverCreateRoutine,
     renameRoutine as serverRenameRoutine,
     updateRoutineProgramWeeks as serverUpdateRoutineProgramWeeks,
+    setProgramAnchor as serverSetProgramAnchor,
     deleteRoutine as serverDeleteRoutine,
     setActiveRoutine as serverSetActiveRoutine,
     addExerciseToRoutine as serverAddExerciseToRoutine,
@@ -93,11 +94,23 @@ export function useRoutines(activeRoutineId: string | null = null) {
     const updateRoutineProgramWeeks = useCallback(
         async (id: string, weeks: number): Promise<void> => {
             await mutateRoutines(
-                (prev?: RoutineWithExercises[]) =>
-                    prev?.map((r) => (r.id === id ? { ...r, program_weeks: weeks } : r)),
+                (prev?: RoutineWithExercises[]) => prev?.map((r) => (r.id === id ? { ...r, program_weeks: weeks } : r)),
                 false,
             );
             await serverUpdateRoutineProgramWeeks(id, weeks);
+            await mutateRoutines();
+        },
+        [mutateRoutines],
+    );
+
+    const setProgramAnchor = useCallback(
+        async (id: string, anchorISO: string): Promise<void> => {
+            await mutateRoutines(
+                (prev?: RoutineWithExercises[]) =>
+                    prev?.map((r) => (r.id === id ? { ...r, program_anchor: anchorISO } : r)),
+                false,
+            );
+            await serverSetProgramAnchor(id, anchorISO);
             await mutateRoutines();
         },
         [mutateRoutines],
@@ -253,6 +266,7 @@ export function useRoutines(activeRoutineId: string | null = null) {
         createRoutine,
         renameRoutine,
         updateRoutineProgramWeeks,
+        setProgramAnchor,
         deleteRoutine,
         setActiveRoutine,
         addExerciseToRoutine,

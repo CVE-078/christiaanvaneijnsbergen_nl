@@ -238,6 +238,32 @@ describe('computeProgramPosition', () => {
         });
         expect(pos.calendarWeek).toBe(2);
     });
+    it('does not count a session due today as behind', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-06-05T12:00:00Z', // Friday = day 1 of the program
+            programWeeks: 12,
+            schedule: [entry(5, 'upper', 'A')], // scheduled this Friday
+            sessions: [],
+            adjustments: [],
+            tz: 'UTC',
+            now: '2026-06-05T18:00:00Z', // same Friday, not trained yet
+        });
+        expect(pos.behindBy).toBe(0);
+        expect(pos.status).toBe('on_track');
+    });
+    it('counts a scheduled session whose day has fully passed as behind', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-06-01T12:00:00Z', // Monday
+            programWeeks: 12,
+            schedule: [entry(1, 'upper', 'A')], // scheduled Monday
+            sessions: [],
+            adjustments: [],
+            tz: 'UTC',
+            now: '2026-06-03T12:00:00Z', // Wednesday — Monday passed undone
+        });
+        expect(pos.behindBy).toBe(1);
+        expect(pos.status).toBe('behind');
+    });
     it('carries progressionIndex/isRampBack through from adjustments', () => {
         const pos = computeProgramPosition({
             anchor: '2026-05-01T00:00:00Z',
