@@ -20,8 +20,7 @@ export function AppShell({
     navigate: (v: View) => void;
     children: React.ReactNode;
 }) {
-    const { activeWeek, streak, handleExport, timerTrigger, timerDuration, showOnboarding, workoutModeOpen } =
-        usePulse();
+    const { activeWeek, streak, timerTrigger, timerDuration, showOnboarding, workoutModeOpen } = usePulse();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -65,12 +64,6 @@ export function AppShell({
                     </span>
                 )}
                 <div className="ml-auto flex gap-3 items-center">
-                    <button
-                        onClick={handleExport}
-                        aria-label="Export workout logs as JSON"
-                        className="font-pulse-body text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer tracking-[0.02em]">
-                        Export
-                    </button>
                     <form action={logout} className="inline">
                         <button
                             type="submit"

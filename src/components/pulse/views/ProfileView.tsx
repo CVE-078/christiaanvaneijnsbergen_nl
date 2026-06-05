@@ -107,6 +107,7 @@ export default function ProfileView() {
         updateLengthUnit,
         updatePriorityMuscle,
         triggerOnboarding,
+        handleExport,
         loading,
         errors,
         retry,
@@ -365,6 +366,30 @@ export default function ProfileView() {
                         className="font-pulse text-xs text-pulse-accent bg-transparent border-none cursor-pointer underline">
                         Retake quiz
                     </button>
+                </div>
+
+                {/* Data — export full history as CSV */}
+                <div>
+                    <SectionLabel className="mb-2">Data</SectionLabel>
+                    <button
+                        onClick={handleExport}
+                        className="font-pulse text-sm font-medium text-pulse-dim bg-pulse-surface-2 rounded-lg py-2 px-4 cursor-pointer border-none inline-flex items-center gap-2">
+                        <svg
+                            className="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1.8}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden>
+                            <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                        </svg>
+                        Export CSV
+                    </button>
+                    <p className="font-pulse text-[0.6875rem] text-pulse-muted mt-1.5">
+                        Download your full logged history as a spreadsheet.
+                    </p>
                 </div>
             </div>
             <div className="lg:flex-1 lg:min-w-0 rounded-2xl bg-pulse-surface p-5 flex flex-col gap-6">
