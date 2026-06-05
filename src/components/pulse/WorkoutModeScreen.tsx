@@ -229,7 +229,7 @@ function StepBody({
             <div className="flex flex-col gap-5">
                 {step.map((re) => (
                     <div key={re.id} className="flex flex-col gap-2">
-                        <div className="font-pulse text-sm font-semibold text-pulse-text">{nameOf(re)}</div>
+                        <h3 className="font-pulse text-sm font-semibold text-pulse-text">{nameOf(re)}</h3>
                         <ExerciseSetRows
                             re={re}
                             week={week}
@@ -271,7 +271,7 @@ function SessionStat({ v, k }: { v: number; k: string }) {
     return (
         <div className="flex-1 rounded-2xl border border-pulse-border bg-white/[0.015] px-4 py-3">
             <div className="font-pulse-display text-3xl font-extrabold leading-none text-pulse-text">{v}</div>
-            <div className="mt-2 font-pulse-body text-[0.625rem] uppercase tracking-[0.14em] text-pulse-muted">{k}</div>
+            <div className="mt-2 font-pulse-body text-[0.625rem] uppercase tracking-[0.14em] text-pulse-dim">{k}</div>
         </div>
     );
 }
@@ -309,6 +309,7 @@ export default function WorkoutModeScreen({
 
     const nameOf = (re: RoutineExercise) => (resolveDisplay?.(re) ?? re.exercise).name;
     const single = Array.isArray(step) ? null : step;
+    const pair = Array.isArray(step) ? step : null;
     const lastSession = single ? computeLastSession(logs, single.id, week) : null;
 
     // Fire a quiet success toast only on the save transition into a PR.
@@ -333,7 +334,7 @@ export default function WorkoutModeScreen({
 
     // Per the spec, a superset step can only advance after a completed round:
     // at least one saved set from each exercise in the pair. Singles are unchanged.
-    const canAdvance = !Array.isArray(step) ? true : step.every((re) => savedSetsForExercise(re, week, logs) >= 1);
+    const canAdvance = pair ? pair.every((re) => savedSetsForExercise(re, week, logs) >= 1) : true;
 
     // Step is fully logged: every set of every exercise in the step is saved.
     const stepComplete = currentTotal > 0 && currentDone === currentTotal;
@@ -367,6 +368,8 @@ export default function WorkoutModeScreen({
     const stepLabel = isPair ? `Step ${safeIdx + 1} of ${steps.length}` : `Exercise ${safeIdx + 1} of ${steps.length}`;
     const sessionType = (Array.isArray(steps[0]) ? steps[0][0] : steps[0])?.workout_type;
     const sessionSubtitle = `${sessionType ? WORKOUT_TYPE_LABELS[sessionType] : 'Workout'}${variant ? ` ${variant}` : ''} · ${exercises.length} ${exercises.length === 1 ? 'exercise' : 'exercises'}`;
+    // Desktop track spine fill: accent up to the current step, then border.
+    const spineFill = steps.length > 1 ? (safeIdx / (steps.length - 1)) * 100 : 0;
 
     // Shared elements (each rendered in exactly one of the two layout branches).
     const stepBody = (
@@ -390,9 +393,9 @@ export default function WorkoutModeScreen({
         </span>
     );
     const pipsMeta = (
-        <div className="mt-2 flex justify-between font-pulse-body text-[0.65625rem] tracking-[0.04em] text-pulse-muted">
+        <div className="mt-2 flex justify-between font-pulse-body text-[0.65625rem] tracking-[0.04em] text-pulse-dim">
             <span>
-                <b className="font-semibold text-pulse-dim">{stepsDone}</b> done
+                <b className="font-semibold text-pulse-text">{stepsDone}</b> done
             </span>
             <span>{steps.length - stepsDone} to go</span>
         </div>
@@ -435,7 +438,7 @@ export default function WorkoutModeScreen({
     // ---------------------------------------------------------------- MOBILE (Focus)
     if (!isDesktop) {
         return (
-            <div className="fixed inset-0 z-50 flex flex-col bg-pulse-bg">
+            <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-pulse-bg">
                 <div
                     aria-hidden
                     className="pointer-events-none absolute left-1/2 top-0 z-0 h-[420px] w-[520px] -translate-x-1/2"
@@ -486,8 +489,8 @@ export default function WorkoutModeScreen({
                             <div className="font-pulse-body text-[0.65625rem] font-semibold uppercase tracking-[0.22em] text-pulse-accent">
                                 Now lifting
                             </div>
-                            <h2 className="mt-1.5 text-balance font-pulse-display text-[2.5rem] font-bold uppercase leading-[0.92] tracking-[-0.01em] text-pulse-text">
-                                {isPair ? 'Superset' : nameOf(single!)}
+                            <h2 className="mt-1.5 break-words text-balance font-pulse-display text-[2.5rem] font-bold uppercase leading-[0.92] tracking-[-0.01em] text-pulse-text">
+                                {single ? nameOf(single) : 'Superset'}
                             </h2>
                             <div className="mt-2.5 font-pulse-body text-[0.71875rem] leading-relaxed text-pulse-dim">
                                 {single ? (
@@ -505,17 +508,20 @@ export default function WorkoutModeScreen({
                                         )}
                                     </>
                                 ) : (
-                                    <>
-                                        {(step as RoutineExercise[]).length} exercises{' '}
-                                        <span className="text-pulse-muted">·</span> alternate sets
-                                    </>
+                                    pair && (
+                                        <>
+                                            {pair.length} exercises <span className="text-pulse-muted">·</span>{' '}
+                                            alternate sets
+                                        </>
+                                    )
                                 )}
                             </div>
                             {single && onSwapExercise && (
                                 <button
+                                    aria-label="swap exercise"
                                     onClick={() => onSwapExercise(single)}
                                     className="mt-2 cursor-pointer border-none bg-transparent p-0 font-pulse-body text-[0.71875rem] text-pulse-dim hover:text-pulse-accent">
-                                    ⇄ Swap exercise
+                                    <span aria-hidden>⇄</span> Swap exercise
                                 </button>
                             )}
                         </div>
@@ -562,7 +568,7 @@ export default function WorkoutModeScreen({
 
     // --------------------------------------------------------------- DESKTOP (two-pane)
     return (
-        <div className="fixed inset-0 z-50 flex bg-pulse-bg">
+        <div className="fixed inset-0 z-50 flex overflow-hidden bg-pulse-bg">
             <div
                 aria-hidden
                 className="pointer-events-none absolute left-[18%] top-[-260px] z-0 h-[640px] w-[780px]"
@@ -608,8 +614,8 @@ export default function WorkoutModeScreen({
                         <div className="font-pulse-body text-[0.6875rem] font-semibold uppercase tracking-[0.24em] text-pulse-accent">
                             {isPair ? 'Current set' : 'Current exercise'}
                         </div>
-                        <h2 className="mt-3 font-pulse-display text-[5.25rem] font-bold uppercase leading-[0.88] tracking-[-0.015em] text-pulse-text">
-                            {isPair ? 'Superset' : nameOf(single!)}
+                        <h2 className="mt-3 break-words font-pulse-display text-[5.25rem] font-bold uppercase leading-[0.88] tracking-[-0.015em] text-pulse-text">
+                            {single ? nameOf(single) : 'Superset'}
                         </h2>
                         <div className="mt-5 flex flex-wrap items-center gap-2.5 font-pulse-body text-[0.84375rem] text-pulse-dim">
                             {single ? (
@@ -625,13 +631,14 @@ export default function WorkoutModeScreen({
                                     )}
                                 </>
                             ) : (
-                                <HeroChip b={String((step as RoutineExercise[]).length)} k="exercises" />
+                                pair && <HeroChip b={String(pair.length)} k="exercises" />
                             )}
                             {single && onSwapExercise && (
                                 <button
+                                    aria-label="swap exercise"
                                     onClick={() => onSwapExercise(single)}
                                     className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-pulse-border bg-white/[0.015] px-3.5 py-1.5 font-pulse-body text-[0.84375rem] text-pulse-dim transition-colors hover:border-pulse-muted hover:text-pulse-accent">
-                                    ⇄ Swap
+                                    <span aria-hidden>⇄</span> Swap
                                 </button>
                             )}
                         </div>
@@ -672,7 +679,7 @@ export default function WorkoutModeScreen({
                             <div className="font-pulse-display text-[1.0625rem] font-bold uppercase tracking-[0.16em] text-pulse-text">
                                 This session
                             </div>
-                            <div className="mt-1.5 font-pulse-body text-[0.6875rem] tracking-[0.04em] text-pulse-muted">
+                            <div className="mt-1.5 font-pulse-body text-[0.6875rem] tracking-[0.04em] text-pulse-dim">
                                 {sessionSubtitle}
                             </div>
                         </div>
@@ -687,7 +694,16 @@ export default function WorkoutModeScreen({
                 </div>
 
                 {/* Whole-session track — click any step to jump */}
-                <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2.5 pt-1.5">
+                <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-2.5 pt-1.5">
+                    {steps.length > 1 && (
+                        <div
+                            aria-hidden
+                            className="pointer-events-none absolute bottom-[2.125rem] left-[2.4375rem] top-[1.875rem] z-0 w-0.5"
+                            style={{
+                                background: `linear-gradient(180deg, var(--color-pulse-accent) 0%, var(--color-pulse-accent) ${spineFill}%, var(--color-pulse-border) ${spineFill}%)`,
+                            }}
+                        />
+                    )}
                     {steps.map((st, i) => {
                         const total = totalSetsForStep(st);
                         const d = doneSetsForStep(st, week, logs);
@@ -700,12 +716,13 @@ export default function WorkoutModeScreen({
                                 key={Array.isArray(st) ? st[0].id : st.id}
                                 onClick={() => setStepIdx(i)}
                                 aria-current={current ? 'step' : undefined}
-                                className={`flex w-full items-center gap-3.5 rounded-xl px-2 py-3 text-left transition-colors ${
+                                className={`relative z-10 flex w-full items-center gap-3.5 rounded-xl px-2 py-3 text-left transition-colors ${
                                     current
                                         ? 'border border-pulse-accent/25 bg-pulse-accent/10'
                                         : 'border border-transparent hover:bg-pulse-surface/60'
                                 }`}>
                                 <span
+                                    aria-hidden
                                     className={`grid h-6 w-6 shrink-0 place-items-center rounded-full font-pulse-display text-[0.8125rem] font-bold ${
                                         done
                                             ? 'bg-pulse-accent/15 text-pulse-accent'
@@ -726,13 +743,13 @@ export default function WorkoutModeScreen({
                                 <span className="min-w-0 flex-1">
                                     <span
                                         className={`block truncate font-pulse text-sm font-semibold ${
-                                            current ? 'text-pulse-text' : done ? 'text-pulse-muted' : 'text-pulse-dim'
+                                            current ? 'text-pulse-text' : 'text-pulse-dim'
                                         }`}>
                                         {rowName}
                                     </span>
                                     <span
                                         className={`mt-0.5 block font-pulse-body text-[0.65625rem] tracking-[0.02em] ${
-                                            current ? 'text-pulse-accent' : 'text-pulse-muted'
+                                            current ? 'text-pulse-accent' : 'text-pulse-dim'
                                         }`}>
                                         {detail}
                                         {done ? ' · done' : current ? ' · in progress' : ''}
@@ -744,8 +761,9 @@ export default function WorkoutModeScreen({
                                     </span>
                                 ) : (
                                     <span
+                                        aria-hidden
                                         className={`shrink-0 font-pulse-display text-[0.8125rem] font-semibold tracking-[0.04em] ${
-                                            done ? 'text-pulse-accent' : 'text-pulse-muted'
+                                            done ? 'text-pulse-accent' : 'text-pulse-dim'
                                         }`}>
                                         {d}/{total}
                                     </span>
