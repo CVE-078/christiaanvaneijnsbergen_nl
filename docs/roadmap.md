@@ -162,8 +162,10 @@ Ordered to deepen the adaptive-coach moat. Tier 1 is cheap and makes existing in
 | # | Feature | Notes |
 |---|---------|-------|
 | 4 | Training-style + variety preferences | New generation inputs layered on the existing slot engine: training style (general fitness / bodybuilding / strength / powerbuilding), variety preference (stable / moderate / high rotation), and a loading lean (barbell / dumbbell / machine / cable). They bias `EMPHASES`, rep ranges, and the avoid-set; no engine rewrite. Both reviews rank this the single biggest quality lever before any AI. |
-| 5 | Multi-priority (ranked) + movement restrictions | Extend the single `priority_muscle` to up to 3 ranked priorities; add restriction flags (knees / lower back / shoulders / wrists) that exclude contraindicated patterns and substitute. Needs a contraindication tag on exercises. Materially widens the addressable audience. |
+| 5 | Movement restrictions | Restriction flags (knees / lower back / shoulders / wrists) that exclude contraindicated patterns and substitute — a clean pool filter like `hasEquipment`. Needs a contraindication tag on exercises (generation Phase 0). Materially widens the addressable audience. **Ranked multi-priority is deferred to generation Phase 3** — the audit showed it needs the volume-first allocator, and a single `priority_muscle` already covers ~80% of users. |
 | 6 | Equipment profiles | Save multiple equipment sets (Home / Gym / Travel), switch and regenerate. Equipment is captured per-generation today, not stored as reusable profiles. The concrete home-gym / cross-device feature. |
+
+**Foundations first:** the 2026-06-06 audit found generation's bottleneck is data richness, not the algorithm. The generation **Phase 0** data foundations (muscle-attribution bridge, exercise-metadata expansion, session-linked `set_logs`) precede #4 / #5. See "Routine generation v2 — engine direction" below.
 
 ### Tier 3 — then
 
@@ -175,9 +177,16 @@ Ordered to deepen the adaptive-coach moat. Tier 1 is cheap and makes existing in
 
 ### Routine generation v2 — engine direction
 
-The current engine is a sound layered pipeline that already matches the architecture both reviews proposed: profile inputs → training archetype (`STYLES` by day count) → movement-pattern slots (`EMPHASES`) → equipment-filtered exercise selection → progression rules (periodization + double progression). The right path is to **layer the missing preference inputs (Tier 2 #4 / #5) onto this slot-first engine**, not to rewrite it. Split selection is already automatic from the day count, and gender already tilts priority rather than choosing the split, so the reviews' main recommendations are in place.
+A full code-grounded architecture audit (2026-06-06; both AI reviews converged) is captured in `docs/superpowers/designs/2026-06-06-00-30-19-generation-engine-v2-audit.md`. Conclusion: **the generator is already well-architected and should not be rewritten. The next bottleneck is data richness, not the algorithm.** The shipped pipeline already is the layered model both reviews proposed: profile → training archetype (`STYLES` by day count) → movement-pattern slots (`EMPHASES`) → equipment-filtered selection → progression.
 
-One genuine architectural fork to weigh later, not now: the reviews suggest a **volume-first** model (set weekly per-muscle volume targets, then distribute sets across sessions) instead of the current **slot-first** model (fill session slots, volume emerges). Pulse already has weekly per-muscle targets on the analytics side (`VOLUME_TARGETS`, `priorityAdjustedTargets`), so the pieces exist. Volume-first is more coach-like and scales to heavy specialization, but it is a larger rewrite and risks over-engineering at current scale. Decision: stay slot-first, add the preference inputs, and revisit volume-first only if specialization needs outgrow what priority-tilt can express.
+Single most important finding: generation is purely **slot-first** (fill session slots, weekly volume emerges). `VOLUME_TARGETS` / `priorityAdjustedTargets` exist but feed only the Progress / recovery analytics, never generation, and the two systems speak different vocabularies (15 `MovementPattern`s vs 10 `ExerciseCategory`s) with no bridge. That missing bridge is the foundation everything else depends on.
+
+Phased plan (do in order, foundations before features):
+
+- **Phase 0 — data foundations (highest leverage, no visible feature):** build the weighted MovementPattern ↔ muscle-group bridge (e.g. horizontal_push → chest 0.7 / front delts 0.2 / triceps 0.1); expand exercise metadata (promote primary/secondary muscles into the generation path + backfill, add `fatigue_cost`, `unilateral`, `difficulty`); add `session_id` + a workout date to `set_logs` so skip detection / adherence / behavior learning become trustworthy. **(Done 2026-06-06: raised the `exercise_swaps.week` cap 12 → 52 to match loggable weeks.)**
+- **Phase 1 — personalization (= Tier 2 generation work; biggest gain per onboarding question, all clean slot-first hooks):** training style (general / bodybuilding / strength / powerbuilding) → session `bias` + `repRange`; injury restrictions → pool filter; equipment preference (prefer barbell / dumbbell / machine, distinct from owned) → `byPattern` secondary sort; variety preference → avoid-set strictness.
+- **Phase 2 — behavior learning:** trustworthy skip tracking (needs Phase 0 session linkage), behavior-driven adaptation (= Tier 3 #7), smarter substitution.
+- **Phase 3 — advanced programming (only when ranked specialization genuinely demands it):** ranked multi-priority + the volume-first planner, built on the Phase 0 bridge. A single `priority_muscle` already covers ~80% of users, so this is deliberately last.
 
 ---
 
