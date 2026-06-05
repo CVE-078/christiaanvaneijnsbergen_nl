@@ -46,10 +46,10 @@ export default function TemplatesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Unified toolbar — equipment filter chips, matching the other tabs. */}
-            <div className="flex items-center gap-2">
-                <div className="relative flex-1 min-w-0">
-                    <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Unified toolbar — equipment filter chips wrap, matching the other tabs. */}
+            <div className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap gap-1.5">
                         {(['all', 'dumbbells', 'home', 'gym'] as EquipmentFilter[]).map((f) => (
                             <button
                                 key={f}
@@ -63,7 +63,6 @@ export default function TemplatesTab() {
                             </button>
                         ))}
                     </div>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-l from-pulse-bg to-transparent" />
                 </div>
             </div>
 
