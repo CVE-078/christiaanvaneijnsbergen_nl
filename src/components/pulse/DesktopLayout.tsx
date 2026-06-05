@@ -15,7 +15,7 @@ const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
         label: 'Train',
         icon: (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
-                <path d="M3 12l9-8 9 8M5 10v10h14V10" />
+                <path d="M4 9.5v5M7 7v10M17 7v10M20 9.5v5M7 12h10" />
             </svg>
         ),
     },
@@ -24,7 +24,7 @@ const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
         label: 'Plan',
         icon: (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
-                <path d="M4 6h16M4 12h16M4 18h10" />
+                <rect x="3.5" y="5" width="17" height="15.5" rx="2" /><path d="M3.5 9.5h17M8 3.2v3.6M16 3.2v3.6" />
             </svg>
         ),
     },
@@ -52,8 +52,7 @@ const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
         label: 'Library',
         icon: (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.2-3.2" />
+                <rect x="4" y="4.5" width="5" height="15" rx="1" /><rect x="10" y="4.5" width="5" height="15" rx="1" /><path d="M16.6 6l3.6 1-3 14-3.6-1z" />
             </svg>
         ),
     },

@@ -183,6 +183,18 @@ export interface VolumeTargetRow {
 
 export type RecoveryStatus = 'under' | 'optimal' | 'high_fatigue' | 'overreaching';
 
+// Per-muscle recovery classification plus the numbers the UI chips surface:
+// avgRir (null when no sets logged), the week's set count, the target band, and
+// sets still needed to reach the floor.
+export interface RecoveryDetail {
+    status: RecoveryStatus;
+    sets: number;
+    avgRir: number | null;
+    min: number;
+    max: number;
+    toGo: number;
+}
+
 export interface DbExercise {
     id: string;
     name: string;

@@ -17,6 +17,7 @@ import type {
     ExerciseCategory,
     VolumeTargetRow,
     RecoveryStatus,
+    RecoveryDetail,
     ExerciseItem,
     LastSession,
     DbExercise,
@@ -553,7 +554,7 @@ export function computeRecoveryFlags(
     routineExercises: RoutineExercise[],
     week: number,
     targets: Partial<Record<ExerciseCategory, [number, number]>>,
-): Partial<Record<ExerciseCategory, RecoveryStatus>> {
+): Partial<Record<ExerciseCategory, RecoveryDetail>> {
     const catById = new Map<string, ExerciseCategory>();
     for (const re of routineExercises) {
         if (re.exercise?.category) catById.set(re.id, re.exercise.category);
@@ -570,18 +571,20 @@ export function computeRecoveryFlags(
         rirSum[cat] = (rirSum[cat] ?? 0) + val.rir;
     }
 
-    const out: Partial<Record<ExerciseCategory, RecoveryStatus>> = {};
+    const out: Partial<Record<ExerciseCategory, RecoveryDetail>> = {};
     for (const [category, range] of Object.entries(targets) as Array<[ExerciseCategory, [number, number]]>) {
         const [min, max] = range;
         const count = sets[category] ?? 0;
+        const avgRir = count > 0 ? (rirSum[category] ?? 0) / count : null;
+        let status: RecoveryStatus;
         if (count < min) {
-            out[category] = 'under';
+            status = 'under';
         } else if (count > max) {
-            out[category] = 'overreaching';
+            status = 'overreaching';
         } else {
-            const avgRir = (rirSum[category] ?? 0) / count;
-            out[category] = avgRir <= 0.5 ? 'high_fatigue' : 'optimal';
+            status = avgRir !== null && avgRir <= 0.5 ? 'high_fatigue' : 'optimal';
         }
+        out[category] = { status, sets: count, avgRir, min, max, toGo: Math.max(0, min - count) };
     }
     return out;
 }
