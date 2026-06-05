@@ -16,6 +16,7 @@ import { useOfflineSync } from '@/hooks/pulse/useOfflineSync';
 import { useToast } from '@/lib/pulse/toast';
 import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType, swapKey } from '@/lib/pulse/utils';
 import { computeProgramPosition, computeWeekAdherence, computeRegenSuggestion } from '@/lib/pulse/adherence';
+import { accentPreset } from '@/lib/pulse/constants';
 import { buildWorkoutCsv } from '@/lib/pulse/csv';
 import type { RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View, ProgramPosition } from '@/lib/pulse/types';
 
@@ -39,6 +40,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
         updateLengthUnit,
         updatePriorityMuscle,
         updateTimezone,
+        updateAccentColor,
         logBodyWeight,
         deleteBodyWeight,
         loadingProfile,
@@ -258,6 +260,15 @@ export function PulseProvider({ email, navigate, children }: Props) {
         }
     }, [loadingProfile, profile.timezone, updateTimezone]);
 
+    // Apply the chosen accent colour by overriding the pulse-accent CSS tokens at
+    // the document root (cascades to every pulse-accent class and var usage).
+    useEffect(() => {
+        const preset = accentPreset(profile.accent_color);
+        const root = document.documentElement;
+        root.style.setProperty('--color-pulse-accent', preset.accent);
+        root.style.setProperty('--color-pulse-accent-dim', preset.dim);
+    }, [profile.accent_color]);
+
     // Make activeWeek default to, and then follow, the completion-paced current
     // week — without yanking the user while they browse. On the first sync for a
     // routine we snap to current; afterwards we only advance when currentWeek
@@ -343,6 +354,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             updateLengthUnit,
             updatePriorityMuscle,
             updateTimezone,
+            updateAccentColor,
             logBodyWeight,
             deleteBodyWeight,
             refreshMeasurements,
@@ -356,6 +368,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             updateLengthUnit,
             updatePriorityMuscle,
             updateTimezone,
+            updateAccentColor,
             logBodyWeight,
             deleteBodyWeight,
             refreshMeasurements,

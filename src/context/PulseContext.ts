@@ -55,6 +55,7 @@ export interface PulseContextValue {
     updateLengthUnit: (lengthUnit: LengthUnit) => Promise<void>;
     updatePriorityMuscle: (priority: PriorityMuscle | 'balanced' | null) => Promise<void>;
     updateTimezone: (timezone: string) => Promise<void>;
+    updateAccentColor: (accentColor: string) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;

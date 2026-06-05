@@ -58,6 +58,9 @@ export interface Profile {
     // IANA timezone (e.g. 'Europe/Amsterdam'); used to resolve "today"/weekday
     // for calendar adherence. Defaults to 'UTC' until the browser reports one.
     timezone: string;
+    // Chosen accent preset key (see ACCENT_PRESETS in constants.ts); null/absent
+    // = the default coral. Applied by overriding the pulse-accent CSS vars.
+    accent_color?: string | null;
 }
 
 export interface BodyMeasurement {

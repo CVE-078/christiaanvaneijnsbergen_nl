@@ -24,6 +24,7 @@ const mockLogBodyWeight = vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-
 const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
 const mockUpdateLengthUnit = vi.fn().mockResolvedValue(undefined);
 const mockUpdatePriorityMuscle = vi.fn().mockResolvedValue(undefined);
+const mockUpdateAccentColor = vi.fn().mockResolvedValue(undefined);
 
 const defaultContext = {
     email: 'test@example.com',
@@ -44,6 +45,7 @@ const defaultContext = {
     updateGender: mockUpdateGender,
     updateLengthUnit: mockUpdateLengthUnit,
     updatePriorityMuscle: mockUpdatePriorityMuscle,
+    updateAccentColor: mockUpdateAccentColor,
     autoAdvance: false,
     setAutoAdvance: vi.fn(),
     logBodyWeight: mockLogBodyWeight,
@@ -72,6 +74,7 @@ beforeEach(() => {
     mockDeleteBodyWeight.mockClear();
     mockUpdateLengthUnit.mockClear();
     mockUpdatePriorityMuscle.mockClear();
+    mockUpdateAccentColor.mockClear();
     vi.mocked(updateGoalWeight).mockClear();
 });
 
@@ -86,6 +89,12 @@ describe('ProfileView', () => {
         await waitFor(() => {
             expect(screen.getByText(/saved/i)).toBeInTheDocument();
         });
+    });
+
+    it('sets the accent colour when a swatch is clicked', async () => {
+        renderWithToast(<ProfileView />);
+        await userEvent.click(screen.getByRole('button', { name: 'Emerald' }));
+        expect(mockUpdateAccentColor).toHaveBeenCalledWith('emerald');
     });
 
     it('renders a date picker for body weight with today as the default', () => {
