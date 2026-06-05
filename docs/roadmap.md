@@ -1,5 +1,23 @@
 # Pulse — Product Roadmap
 
+## Product vision & positioning
+
+**Pulse is an adaptive strength coach that works on any device.** Build a plan, track your lifts, and it adapts when life gets in the way so you keep progressing for years, not weeks. The periodization, adherence, ramp-back, and deload logic are the mechanism behind that promise, not the pitch.
+
+**The moat:**
+- Completion-paced programs (you advance by finishing cycles, not by the calendar).
+- Ramp-back weeks after a layoff, auto-deload on stalled lifts, adherence awareness (on-track / behind / lapsed).
+- Deterministic, equipment-aware generation that is genuinely strong for home-gym, dumbbell-only, and travel setups.
+- Cross-device and offline-first (any browser, no ecosystem lock-in), the gap Apple-only apps like Liftin cannot fill.
+
+**Target user:** the training-first lifter (strength and hypertrophy), at home or in a gym, who wants structure without a spreadsheet. Not a social network, not a running / CrossFit / rehab app, not an AI chatbot. Expand to adjacent users (for example movement restrictions) through the generation engine, never by diluting the core.
+
+**Design principle:** simple surface, ignorable intelligence. The app carries a lot of smarts; the UI stays calm and lets users ignore most of it until it matters.
+
+**Not building** (focus guards, all evaluated): AI chatbot, LLM-generated workouts, social feed / followers / leaderboards, public profiles, achievements (for now), heavy fatigue modeling, goal prediction, native apps and wearables until real traction.
+
+---
+
 ## Shipped
 
 - Fast workout logging (ExerciseCard, set logger, RIR)
@@ -115,9 +133,75 @@ Differentiation opportunities:
 
 ---
 
-## Near-term
+## Strategic review (2026-06-06)
 
-_Nothing currently selected — the 2026-06-05 round-2 queue shipped: WorkoutModeScreen redesign and Train header + day-strip redesign (see Shipped)._
+Two external product reviews (ChatGPT), cross-checked against the code. Net: the engine and feature depth are already competitive. The next work is deepening the adaptive and personalization moat and sharpening positioning, not adding generic tracker features.
+
+**Validated direction:** completion-paced progression, ramp-back, auto-deload, adherence awareness, and staying private/fast are the right bets. The reviews' "do not build" lists (AI chatbot, social, leaderboards, wearables, native, fatigue modeling, goal prediction) match the Deprioritized / Later sections.
+
+**Already shipped (reviews listed these as "future" — do not rebuild):** exercise dislikes / hide (`user_exercise_preferences`, generation filters them out); same-movement-pattern swap with weight carryover; generation `rationale` ("why this plan"); gender-agnostic split selection with a `priority_muscle` tilt (the reviews' "use priorities, not gender" mistake is the exact thing Pulse already fixed); schedule-to-split mapping by day count (`STYLES`, `recommendStyle`); movement-pattern slots filled by equipment (`EMPHASES`). One review explicitly called the movement-pattern-slot design a strength.
+
+**Taken into the plan:** lead with the one-line promise + cross-device / home-gym wedge; close the personalization gap in generation (training style, variety, multi-priority, restrictions); surface the adaptation decisions; build behavior-driven adaptation as the pre-AI personalization step.
+
+---
+
+## Roadmap (re-tiered 2026-06-06)
+
+Ordered to deepen the adaptive-coach moat. Tier 1 is cheap and makes existing intelligence visible; Tier 2 is the real personalization differentiation; Tier 3 builds on it.
+
+### Tier 1 — now (cheap, high-trust, on-vision)
+
+| # | Feature | Notes |
+|---|---------|-------|
+| 1 | Surface adaptation decisions (+ fill the desktop right rail) | The smartest features (ramp-back, auto-deload, priority-tilt) compute their reasons but never explain them. Add plain-language "why" lines: "Volume eased this week after your 11-day break", "Deload on bench, 3 weeks without a PR", "More chest this block, your selected priority". Reuses already-computed state (`programPosition`, `shouldDeload`, `priority_muscle`); no new data. **Absorbs the old "desktop right context rail, fill it out" item** — the sparse `/train` right rail is the natural home for glanceable adherence + adaptation + per-muscle volume. Files: Train / guided surfaces, `DesktopLayout.tsx`. |
+| 2 | Guided set-row polish (Editorial draft C) | Carried from the prior Near-term queue (full live-review spec kept below under "Carried implementation detail"). Single-active focus, compact field boxes grouped with Save, decluttered logged row mirroring the clean Train `card` row. Files: `SetLogger.tsx` (editorial variant) + `WorkoutModeScreen.tsx`. Keep the behavioural-contract tests green. |
+| 3 | Positioning copy | Lead onboarding + the marketing hero with the one-line promise and the cross-device / home-gym framing. Copy + light UI, no engine work. |
+
+### Tier 2 — next (the moat: personalization in generation)
+
+| # | Feature | Notes |
+|---|---------|-------|
+| 4 | Training-style + variety preferences | New generation inputs layered on the existing slot engine: training style (general fitness / bodybuilding / strength / powerbuilding), variety preference (stable / moderate / high rotation), and a loading lean (barbell / dumbbell / machine / cable). They bias `EMPHASES`, rep ranges, and the avoid-set; no engine rewrite. Both reviews rank this the single biggest quality lever before any AI. |
+| 5 | Movement restrictions | Restriction flags (knees / lower back / shoulders / wrists) that exclude contraindicated patterns and substitute — a clean pool filter like `hasEquipment`. Needs a contraindication tag on exercises (generation Phase 0). Materially widens the addressable audience. **Ranked multi-priority is deferred to generation Phase 3** — the audit showed it needs the volume-first allocator, and a single `priority_muscle` already covers ~80% of users. |
+| 6 | Equipment profiles | Save multiple equipment sets (Home / Gym / Travel), switch and regenerate. Equipment is captured per-generation today, not stored as reusable profiles. The concrete home-gym / cross-device feature. |
+
+**Foundations first:** the 2026-06-06 audit found generation's bottleneck is data richness, not the algorithm. The generation **Phase 0** data foundations (muscle-attribution bridge, exercise-metadata expansion, session-linked `set_logs`) precede #4 / #5. See "Routine generation v2 — engine direction" below.
+
+### Tier 3 — then
+
+| # | Feature | Notes |
+|---|---------|-------|
+| 7 | Behavior-driven adaptation (v1.5) | Learn from logged behavior (repeated swaps, skips, added / cut volume) and bias future blocks' avoid-set + emphasis. The pre-AI alternative to "AI generation v2" — build this first. Foundation already exists: `exercise_swaps` + `set_logs` + the routine-wide avoid-set. |
+| 8 | Smart substitution v2 | Reason-tagged swaps (pain / no equipment / crowded) offering 2-3 ranked same-stimulus suggestions, on top of the existing swap. Small enhancement to a shipped feature. |
+| 9 | Progress photos | (Promoted from Later.) Date-stamped photos alongside measurements, paired with the recomp dashboard. Outcomes beat metrics for most users. Needs file upload + a Supabase storage bucket (RLS) + a CSP `img-src` / `connect-src` update. Only item here with real infra cost. |
+
+### Routine generation v2 — engine direction
+
+A full code-grounded architecture audit (2026-06-06; both AI reviews converged) is captured in `docs/superpowers/designs/2026-06-06-00-30-19-generation-engine-v2-audit.md`. Conclusion: **the generator is already well-architected and should not be rewritten. The next bottleneck is data richness, not the algorithm.** The shipped pipeline already is the layered model both reviews proposed: profile → training archetype (`STYLES` by day count) → movement-pattern slots (`EMPHASES`) → equipment-filtered selection → progression.
+
+Single most important finding: generation is purely **slot-first** (fill session slots, weekly volume emerges). `VOLUME_TARGETS` / `priorityAdjustedTargets` exist but feed only the Progress / recovery analytics, never generation, and the two systems speak different vocabularies (15 `MovementPattern`s vs 10 `ExerciseCategory`s) with no bridge. That missing bridge is the foundation everything else depends on.
+
+Phased plan (do in order, foundations before features):
+
+- **Phase 0 — data foundations (highest leverage, no visible feature):** build the weighted MovementPattern ↔ muscle-group bridge (e.g. horizontal_push → chest 0.7 / front delts 0.2 / triceps 0.1); expand exercise metadata (promote primary/secondary muscles into the generation path + backfill, add `fatigue_cost`, `unilateral`, `difficulty`); add `session_id` + a workout date to `set_logs` so skip detection / adherence / behavior learning become trustworthy. **(Done 2026-06-06: raised the `exercise_swaps.week` cap 12 → 52 to match loggable weeks.)**
+- **Phase 1 — personalization (= Tier 2 generation work; biggest gain per onboarding question, all clean slot-first hooks):** training style (general / bodybuilding / strength / powerbuilding) → session `bias` + `repRange`; injury restrictions → pool filter; equipment preference (prefer barbell / dumbbell / machine, distinct from owned) → `byPattern` secondary sort; variety preference → avoid-set strictness.
+- **Phase 2 — behavior learning:** trustworthy skip tracking (needs Phase 0 session linkage), behavior-driven adaptation (= Tier 3 #7), smarter substitution.
+- **Phase 3 — advanced programming (only when ranked specialization genuinely demands it):** ranked multi-priority + the volume-first planner, built on the Phase 0 bridge. A single `priority_muscle` already covers ~80% of users, so this is deliberately last.
+
+---
+
+## Carried implementation detail (round 3, 2026-06-05)
+
+These two items are folded into the re-tiered roadmap above (desktop right rail → Tier 1 #1; guided set-row polish → Tier 1 #2). The detailed live-review spec is kept below for whoever implements them.
+
+Selected 2026-06-05 (round 3) — live-review follow-up on the guided screen.
+
+| # | Feature | Notes |
+|---|---------|-------|
+| 1 | Guided set-row polish (Editorial draft C) | The WorkoutModeScreen redesign shipped and the shell is on-design, but the guided **set rows** don't yet match the approved Editorial draft (`docs/superpowers/designs/2026-06-05-workout-mode-set-rows{,-desktop}.html`). Three gaps seen in live review: **(a) single-active focus** — show only the *next* unsaved set as the active field-box row and render the remaining sets as dimmed "Set N — not started · target RIR" idle rows; today the `editorial` `SetLogger` variant renders every unsaved set as a full input form, so a 3-set exercise stacks three forms instead of one focal active set + idle previews. This is a guided-mode behavioural change (SetLogger has no "idle/preview" state today — Train must keep showing all inputs, so gate it behind the `editorial` variant or lift the active-set choice into `WorkoutModeScreen`/`StepBody`). **(b) field-box sizing** — the Weight box is `flex-1` and balloons full-width on desktop with a large gap before Save; make Weight/Reps compact fixed-width boxes grouped with the Save button and an inline target hint, matching draft C proportions on both mobile and desktop. **(c) logged-row declutter** — the editorial logged row crams RIR · PR · plate · Edit · ✕ · ✓ on the right; keep value · PR · RIR · ✓ visible and move Edit/delete behind a hover affordance or overflow menu. Files: `SetLogger.tsx` (editorial variant) + `WorkoutModeScreen.tsx`. **Direction (live review):** the Train `card` *logged* row is the clean look to keep — mirror that for the guided logged row (this is really what (c) is about) and don't over-decorate logged/done rows; the **unlogged/input** row is where the design effort goes. Open scope question for next session: keep the reworked unlogged-row design guided-only (`editorial` variant) or also give the Train `card` unlogged rows the cleaner treatment — the user likes the Train logged row but feels its unlogged row needs work too. Whatever the choice, keep the behavioural-contract tests green. |
+| 2 | Desktop right context rail — fill it out | The `/train` desktop right rail (`DesktopLayout`, the "TODAY" panel: sets done / total, session-in-progress, streak, session volume, target intensity, pinned rest timer, phase line) reads sparse with a lot of empty space below the content — counter to the dense-layout preference. Revise it to carry useful, glanceable context instead of padding. Candidates (pick a coherent subset): this-week adherence / per-day completion, **per-muscle weekly volume** (Pulse has the 10-category taxonomy + RIR data — also a standing competitive-analysis gap), this week's PRs, an "up next" / upcoming-session preview, or a small volume-trend sparkline. File: `DesktopLayout.tsx`. |
+
+_Nothing else currently selected — the 2026-06-05 round-2 queue shipped: WorkoutModeScreen redesign and Train header + day-strip redesign (see Shipped)._
 
 _Auto-applied deload, onboarding day-count fix, program start-day selection, and accent colour picker shipped 2026-06-05 (see Shipped)._
 _All prior Near-term items shipped 2026-06-05 (see Shipped: adaptive missed-workout regeneration, dynamic periodized programs, etc.)._
@@ -136,15 +220,14 @@ _Shipped 2026-06-03: Slate redesign, live PR detection, per-muscle weekly volume
 
 ## Later
 
-Same value-per-effort ordering as Near-term, continued: web-native moderate-value items first, then bigger or data-gated work, then native-platform and scale-gated items last. (Progress photos, CSV export, and Muscle priority were promoted to Near-term 2026-06-04.)
+The Hold bucket from the re-tiered roadmap, in detail. Web-native moderate-value items first, then data-gated work, then native-platform and scale-gated items last. (Progress photos was promoted to Tier 3 #9 on 2026-06-06; CSV export and Muscle priority shipped earlier.)
 
 | Feature | Notes |
 |---|---|
-| Progress photos | Date-stamped progress photos alongside body measurements; visual comparison pairing with the recomp dashboard. Needs file upload + a Supabase storage bucket (RLS) and a CSP `img-src`/`connect-src` update. Moved here from Near-term 2026-06-05 — only outstanding item with real infra cost. (also in: Hevy, Strong, Jefit, Fitbod) |
 | Supersets (advanced) | Tri-sets, giant sets, AMRAP tracking. After basic superset support (shipped). Niche. |
 | Achievements + gamification | Milestones: first set, full week, PR, full 12-week cycle, streak records. Implement after real usage data — badges only land well at milestones users actually reach. (also in: Jefit, Boostcamp) |
 | Year / period in review | Shareable annual and monthly recap of volume, PRs, streaks, and milestones. Retention and organic reach. Needs a year of data to be meaningful. (also in: Hevy, Jefit, Boostcamp) |
-| AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. Needs months of logged data to not feel random — premature at current scale. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
+| AI workout generation (v2) | Rule-based generation from onboarding is shipped. v2 adapts split, volume, and exercise selection based on actual logged performance. Needs months of logged data to not feel random — premature at current scale. Superseded for now by Tier 3 #7 (behavior-driven adaptation), which gets most of the benefit without the data requirement or the black-box feel. (also in: Fitbod, Jefit, Boostcamp, Alpha, Setgraph) |
 | ExerciseCard memo effectiveness | `ExerciseCard` is wrapped in `React.memo`, but the save path still passes the whole `logs`/`prMap` objects (new refs on every save) so all cards re-render anyway. Slice per-card data upstream in `LogView` (own set entries + savedCount + per-exercise PR) so unchanged cards keep stable props and a save touches one card. Refactor of the hottest screen — defer until it actually hurts at scale. |
 | Apple Health / Google Fit sync | Import bodyweight / activity from wearables and calorie trackers; export workouts. Native-gated — HealthKit is iOS-native (no web API) and Google has been moving Fit to Android-native Health Connect, so this means going off the web (Capacitor/native). Low ROI at two users. (also in: Hevy, Strong, Fitbod, Jefit, Caliber) |
 | Wearable integration | Garmin, Apple Watch, Whoop. Heart rate during sets, auto rest timer from HRV. Native-platform integration — same off-the-web cost as Health/Fit sync; far off. |
@@ -160,6 +243,8 @@ Ordered by revisit-likelihood: small/standalone ideas first, then those gated on
 
 | Feature | Why not |
 |---|---|
+| 4-week program block | Too short to hold an accumulation → intensification → deload arc; it is a different program *type* (minicut / travel / peak), not a periodization length. Serve later as a short-block template if needed, not via `buildProgram`. |
+| 24-week program block | Redundant with the repeating-block design: running the 12-week block twice yields two deloads (better spacing than one long ramp), and most users never finish a 24-week monolith. Program lengths stay at 8 / 10 / 12 / 16, default 12; each is already a distinct phase table (not a stretched copy). |
 | Recovery warnings (e.g. legs Mon+Tue) | Schedule is user-chosen and small; low value. Smallest standalone rule if ever revisited. |
 | Program coherence score (X/100) | Decorative for a deterministic generator that's already correct by construction (slot-based, equipment-filtered, volume floors). It can't emit an incoherent program. Only earns its keep guarding a fuzzy v2 adaptive engine. |
 | Dynamic volume management | Needs the v2 adaptive engine + logged data. Bundle with v2 if pursued. |
