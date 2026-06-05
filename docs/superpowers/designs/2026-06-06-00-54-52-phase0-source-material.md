@@ -62,6 +62,12 @@ glute_iso:       glutes 0.85, legs 0.15
 - It recommended **removing the `glutes` category**. Rejected: `glutes` is a shipped category with its own `VOLUME_TARGETS`, generator emphasis, and the female-priority feature. Glutes is correctly BOTH a reporting category and a control-layer emphasis tilt.
 - `traps`, `rear_delts`, `front_delts`, `obliques`, `hip_flexors`, `adductors`, `lower_back` are not Pulse categories: traps / rear-delts / lower-back fold into `back`, front-delts into `shoulders`, the rest into `legs` / `abs`. Pulse already categorizes Rear Delt Fly and Face Pull as `back`, so the draft's "structural fixes 2-4" describe problems Pulse does not have.
 
+### How to use the weights (interpretation, decide at implementation)
+
+- Treat the weights as **contribution signals, not a probability distribution**. Do NOT re-normalize per exercise or per session — that destroys volume interpretability.
+- Open decision for `aggregateMuscleVolume`: the v1 weights sum to 1.0 (proportional split, so a bench set contributes 0.55 chest). For comparing weekly volume against the MEV/MAV/MRV landmarks (which assume ~1 working set per target muscle), a **fractional-set** interpretation is usually better — count the primary muscle as ~1.0 and secondaries as a fraction, so totals per set exceed 1.0. The v1 ratios stay the same either way; only the scaling of the primary changes. Pick one when wiring volume aggregation and keep it consistent with how `VOLUME_TARGETS` is tuned.
+- The `legs` bucket cannot express quad-vs-hamstring bias (the accepted cost of keeping 10 categories). The functional difference between squat and hinge is still preserved through their **glute proportion** (squat glutes 0.25 vs hinge glutes 0.40). True quad/ham precision needs the deferred taxonomy expansion.
+
 ## 2. Exercise metadata format (draft, ~10 of 94 shown)
 
 Proposed per-exercise fields beyond what exists today: `primary`, `secondary[]`, `unilateral`, `fatigue` (1-5), `difficulty`, plus ChatGPT's suggested `joint_stress` (low/med/high) for injury logic. (`movement_pattern` and `equipment` already exist on `exercises`.)
