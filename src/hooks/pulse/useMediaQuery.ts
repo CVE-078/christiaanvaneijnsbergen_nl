@@ -6,11 +6,12 @@ import { useState, useEffect } from 'react';
 // back to defaultValue (false = mobile-first).
 export function useMediaQuery(query: string, defaultValue = false): boolean {
     const [matches, setMatches] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return defaultValue;
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return defaultValue;
         return window.matchMedia(query).matches;
     });
 
     useEffect(() => {
+        if (typeof window.matchMedia !== 'function') return;
         const mql = window.matchMedia(query);
         setMatches(mql.matches);
         const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
