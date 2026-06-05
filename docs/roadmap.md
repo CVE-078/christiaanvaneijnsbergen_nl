@@ -243,6 +243,8 @@ Ordered by revisit-likelihood: small/standalone ideas first, then those gated on
 
 | Feature | Why not |
 |---|---|
+| 4-week program block | Too short to hold an accumulation → intensification → deload arc; it is a different program *type* (minicut / travel / peak), not a periodization length. Serve later as a short-block template if needed, not via `buildProgram`. |
+| 24-week program block | Redundant with the repeating-block design: running the 12-week block twice yields two deloads (better spacing than one long ramp), and most users never finish a 24-week monolith. Program lengths stay at 8 / 10 / 12 / 16, default 12; each is already a distinct phase table (not a stretched copy). |
 | Recovery warnings (e.g. legs Mon+Tue) | Schedule is user-chosen and small; low value. Smallest standalone rule if ever revisited. |
 | Program coherence score (X/100) | Decorative for a deterministic generator that's already correct by construction (slot-based, equipment-filtered, volume floors). It can't emit an incoherent program. Only earns its keep guarding a fuzzy v2 adaptive engine. |
 | Dynamic volume management | Needs the v2 adaptive engine + logged data. Bundle with v2 if pursued. |
