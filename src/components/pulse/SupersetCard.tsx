@@ -36,20 +36,27 @@ export default function SupersetCard({
     return (
         // Grouping conveyed by a tone shift (surface-2 tray) + whitespace, not a border.
         <div className="bg-pulse-surface-2 rounded-2xl overflow-hidden">
-            {/* Header, always visible, shows exercise names in collapsed state */}
+            {/* Header, always visible. Sized to match a normal exercise card row so a
+                superset reads as a peer, not a minor strip, and it names the
+                alternate-then-rest sequence up front. */}
             <button
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
                 aria-label={open ? 'Collapse superset' : 'Expand superset'}
-                className="w-full flex items-center gap-3 px-4 py-2.5 bg-transparent border-none cursor-pointer text-left">
-                <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase font-semibold text-pulse-dim shrink-0">
-                    Superset
-                </span>
-                <span className="font-pulse text-sm text-pulse-text flex-1 truncate">
-                    <span>{first.exercise.name}</span>
-                    <span className="text-pulse-dim"> + </span>
-                    <span>{second.exercise.name}</span>
-                </span>
+                className="w-full flex items-center gap-3.5 px-[1.125rem] py-4 bg-transparent border-none cursor-pointer text-left">
+                <div className="flex-1 min-w-0">
+                    <span className="inline-block rounded-md bg-pulse-accent/10 px-2 py-0.5 font-pulse text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-pulse-accent">
+                        Superset
+                    </span>
+                    <div className="font-pulse text-[1.1875rem] font-medium tracking-[-0.01em] truncate text-pulse-text mt-1.5">
+                        <span>{first.exercise.name}</span>
+                        <span className="text-pulse-dim"> + </span>
+                        <span>{second.exercise.name}</span>
+                    </div>
+                    <div className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-dim mt-1">
+                        One set of each, alternating, then rest after both.
+                    </div>
+                </div>
                 <svg
                     className={`w-4 h-4 text-pulse-muted shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
                     viewBox="0 0 24 24"

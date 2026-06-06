@@ -186,7 +186,8 @@ describe('WorkoutModeScreen', () => {
                 onClose={vi.fn()}
             />,
         );
-        expect(screen.getByText(/superset/i)).toBeInTheDocument();
+        // "Superset" now appears in the hero label and the alternation cue.
+        expect(screen.getAllByText(/superset/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/bench press/i)).toBeInTheDocument();
         expect(screen.getByText(/cable fly/i)).toBeInTheDocument();
     });
