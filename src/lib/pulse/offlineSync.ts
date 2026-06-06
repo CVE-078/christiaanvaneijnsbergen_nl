@@ -8,7 +8,13 @@ function nowIso(): string {
 }
 
 const ACTIONS: Record<MutationType, (args: unknown[]) => Promise<unknown>> = {
-    upsertLog: (a) => upsertLog(a[0] as string, a[1] as Parameters<typeof upsertLog>[1]),
+    upsertLog: (a) =>
+        upsertLog(
+            a[0] as string,
+            a[1] as Parameters<typeof upsertLog>[1],
+            a[2] as string | null | undefined,
+            a[3] as string | null | undefined,
+        ),
     deleteLogRow: (a) => deleteLogRow(a[0] as string),
     saveNote: (a) => saveNote(a[0] as number, a[1] as string, a[2] as string),
     deleteNote: (a) => deleteNote(a[0] as number, a[1] as string),

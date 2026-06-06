@@ -10,3 +10,4 @@ export * from './actions/notes';
 export * from './actions/session';
 export * from './actions/swaps';
 export * from './actions/adjustments';
+export * from './actions/decisions';

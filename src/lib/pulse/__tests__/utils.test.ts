@@ -40,6 +40,7 @@ import {
     recentDrop,
     shouldDeload,
     deloadTarget,
+    decisionForExercise,
 } from '../utils';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
@@ -107,6 +108,92 @@ describe('auto-deload', () => {
         it('returns null without a previous entry', () => {
             expect(deloadTarget(undefined, '8-12')).toBeNull();
         });
+    });
+});
+
+describe('decisionForExercise', () => {
+    const RE = '11111111-1111-4111-8111-111111111111';
+    const stalled = [100, 105, 110, 108, 109, 110].map((e1rm, i) => ({ week: i + 1, e1rm }));
+    const climbing = [100, 105, 110, 112, 114, 116].map((e1rm, i) => ({ week: i + 1, e1rm }));
+    const base = { routineExerciseId: RE, repsRange: '8-12' };
+
+    it('logs a deload event (plateau) when the lift is stalled', () => {
+        // getRIR is irrelevant on the deload branch; deloadTarget(100,'8-12') -> 90.
+        const d = decisionForExercise({
+            ...base,
+            week: 6,
+            e1rmHistory: stalled,
+            previousEntry: { kg: 100, reps: 8, rir: 1, saved: true },
+        });
+        expect(d).toEqual({
+            type: 'deload',
+            trigger: 'plateau',
+            affectedArea: RE,
+            week: 6,
+            magnitude: { fromKg: 100, toKg: 90 },
+            confidence: null,
+        });
+    });
+
+    it('logs a progression event (targets_hit) on a weight advance — top of range, RIR met', () => {
+        // week 5 -> getRIR(4) = 2; rir 2 >= 2 and reps 12 >= hi 12 -> +2.5 kg, reps reset to 8.
+        const d = decisionForExercise({
+            ...base,
+            week: 5,
+            e1rmHistory: climbing,
+            previousEntry: { kg: 100, reps: 12, rir: 2, saved: true },
+        });
+        expect(d).toEqual({
+            type: 'progression',
+            trigger: 'targets_hit',
+            affectedArea: RE,
+            week: 5,
+            magnitude: { fromKg: 100, toKg: 102.5, fromReps: 12, toReps: 8 },
+            confidence: null,
+        });
+    });
+
+    it('logs a progression event on a rep advance — mid-range, RIR met', () => {
+        // week 5 -> getRIR(4) = 2; rir 2 >= 2 and reps 9 < hi 12 -> same kg, +1 rep.
+        const d = decisionForExercise({
+            ...base,
+            week: 5,
+            e1rmHistory: climbing,
+            previousEntry: { kg: 100, reps: 9, rir: 2, saved: true },
+        });
+        expect(d).toEqual({
+            type: 'progression',
+            trigger: 'targets_hit',
+            affectedArea: RE,
+            week: 5,
+            magnitude: { fromKg: 100, toKg: 100, fromReps: 9, toReps: 10 },
+            confidence: null,
+        });
+    });
+
+    it('deload takes precedence over progression when the lift is both stalled and at target RIR', () => {
+        const d = decisionForExercise({
+            ...base,
+            week: 6,
+            e1rmHistory: stalled,
+            previousEntry: { kg: 100, reps: 12, rir: 3, saved: true },
+        });
+        expect(d?.type).toBe('deload');
+    });
+
+    it('logs nothing when the set was harder than planned (a back-off, not a progression)', () => {
+        // rir 0 < target 2 -> computeProgression reduces weight; not a tracked decision.
+        const d = decisionForExercise({
+            ...base,
+            week: 5,
+            e1rmHistory: climbing,
+            previousEntry: { kg: 100, reps: 8, rir: 0, saved: true },
+        });
+        expect(d).toBeNull();
+    });
+
+    it('logs nothing on week 1 (no prior session to decide from)', () => {
+        expect(decisionForExercise({ ...base, week: 1, e1rmHistory: [], previousEntry: undefined })).toBeNull();
     });
 });
 

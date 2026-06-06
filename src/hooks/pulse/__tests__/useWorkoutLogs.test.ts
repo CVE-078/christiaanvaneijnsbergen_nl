@@ -47,7 +47,19 @@ describe('useWorkoutLogs', () => {
         });
 
         expect(mockMutate).toHaveBeenCalledWith({ '1-push-0-0': entry }, false);
-        expect(upsertLog).toHaveBeenCalledWith('1-push-0-0', entry);
+        // session id / workout date default to null when the caller omits them.
+        expect(upsertLog).toHaveBeenCalledWith('1-push-0-0', entry, null, null);
+    });
+
+    it('updateLog forwards the session id and workout date when given', async () => {
+        const { result } = renderHook(() => useWorkoutLogs('user-a'));
+        const entry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
+
+        await act(async () => {
+            result.current.updateLog('1-push-0-0', entry, 'sess-1', '2026-06-06');
+        });
+
+        expect(upsertLog).toHaveBeenCalledWith('1-push-0-0', entry, 'sess-1', '2026-06-06');
     });
 
     it('deleteLog removes the key, calls mutate optimistically then deletes the single row', async () => {

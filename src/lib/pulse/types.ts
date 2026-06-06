@@ -288,6 +288,41 @@ export interface ProgramAdjustment {
     payload: { volumeFactor?: number; rirBonus?: number; daysAway?: number };
 }
 
+// ── DecisionEvent log ───────────────────────────────────────────────────────
+// The unified, append/upsert log of every adaptive decision the engine makes.
+// Ramp-back also persists in program_adjustments (its operational prescription
+// state); this is the canonical log the Coach Decision Timeline reads. deload /
+// progression are logged here for the first time (they were pure-function only).
+export type DecisionEventType = 'ramp_back' | 'deload' | 'progression' | 'swap';
+
+// Why the engine fired. 'plateau' = stalled e1RM (deload); 'targets_hit' = met
+// the prescribed reps/RIR so the lift advances (progression); 'gap' = a missed
+// stretch triggered ramp-back.
+export type DecisionTrigger = 'plateau' | 'targets_hit' | 'gap';
+
+export interface DecisionEvent {
+    type: DecisionEventType;
+    trigger: DecisionTrigger;
+    // The routine_exercise_id a per-lift decision applies to, or '' for a
+    // program-wide decision (ramp-back). Empty string (not null) so the dedupe
+    // key treats program-wide rows as one per (routine, type, week).
+    affectedArea: string;
+    // The monotonic program week this decision applies to.
+    week: number;
+    // Type-specific shape: { fromKg, toKg } for deload, { fromKg, toKg, fromReps,
+    // toReps } for progression, { volumeFactor, rirBonus } for ramp-back.
+    magnitude: Record<string, number>;
+    // 0..1, or null when the engine does not score it.
+    confidence: number | null;
+}
+
+// A DecisionEvent as stored/read back (server-assigned id + routine + timestamp).
+export interface DecisionEventRow extends DecisionEvent {
+    id: string;
+    routine_id: string;
+    created_at: string;
+}
+
 export type AdherenceStatus = 'on_track' | 'behind' | 'lapsed';
 
 // Derived program position. weekInteger is completion-paced (advances when a
