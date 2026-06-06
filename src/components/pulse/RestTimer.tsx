@@ -47,8 +47,15 @@ export default function RestTimer({ trigger, duration, onComplete }: Props) {
     const totalRef = useRef(DURATIONS[durationIdx]);
     const firedRef = useRef(false);
     const clearAtRef = useRef<number | null>(null);
+    // Only start on an actual trigger change, never on mount. The pinned timer
+    // unmounts while guided mode is open and remounts when it closes; without this
+    // guard the remount (with trigger already > 0) would fire a phantom countdown
+    // after a finished session. Same for re-entering Train after navigating away.
+    const lastTriggerRef = useRef(trigger);
 
     useEffect(() => {
+        if (trigger === lastTriggerRef.current) return;
+        lastTriggerRef.current = trigger;
         if (trigger === 0) return;
         const start = duration ?? DURATIONS[durationIdx];
         totalRef.current = start;

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { cloneElement, type ReactElement } from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { RoutineExercise, Logs, PRMap } from '@/lib/pulse/types';
@@ -241,9 +242,8 @@ describe('WorkoutModeScreen', () => {
         expect(onSwapExercise).toHaveBeenCalledWith(re);
     });
 
-    it('renders a rest timer in the guided-mode footer when a rest is running', () => {
-        timerTrigger = 1;
-        render(<WorkoutModeScreen {...defaultProps} />);
+    it('renders a rest timer in the guided-mode footer when a rest fires', () => {
+        mountWithRest(<WorkoutModeScreen {...defaultProps} />);
         expect(screen.getByText(/rest before next set/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /skip rest timer/i })).toBeInTheDocument();
     });
@@ -263,6 +263,18 @@ describe('WorkoutModeScreen', () => {
         });
     });
 
+    // Mount, then fire one rest by bumping the trigger (the RestTimer only starts on
+    // a trigger change, never on mount). Mirrors logging a set in a live session.
+    function mountWithRest(element: ReactElement) {
+        timerTrigger = 0;
+        const utils = render(element);
+        timerTrigger = 1;
+        // Clone so the rerender gets a fresh element reference; React bails out of
+        // re-rendering (and re-reading the mocked trigger) on an identical element.
+        utils.rerender(cloneElement(element));
+        return utils;
+    }
+
     // Drive the real RestTimer countdown to 0 with fake timers and assert the
     // auto-advance behavior end to end.
     function fullyLoggedLogs(reId: string, sets: number): Logs {
@@ -274,10 +286,9 @@ describe('WorkoutModeScreen', () => {
     it('auto-advances a fully-logged non-last step when autoAdvance is on and rest completes', () => {
         vi.useFakeTimers();
         autoAdvance = true;
-        timerTrigger = 1;
         timerDuration = 2; // short countdown
         const logs = fullyLoggedLogs('re1', 3);
-        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        mountWithRest(<WorkoutModeScreen {...defaultProps} logs={logs} />);
         expect(screen.getByText('Bench Press')).toBeInTheDocument();
         // Advance a second at a time so React flushes between ticks; 2s reaches 0.
         act(() => {
@@ -293,10 +304,9 @@ describe('WorkoutModeScreen', () => {
     it('does not auto-advance when autoAdvance is off even if the step is complete', () => {
         vi.useFakeTimers();
         autoAdvance = false;
-        timerTrigger = 1;
         timerDuration = 2;
         const logs = fullyLoggedLogs('re1', 3);
-        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        mountWithRest(<WorkoutModeScreen {...defaultProps} logs={logs} />);
         act(() => {
             vi.advanceTimersByTime(1000);
         });
@@ -311,10 +321,9 @@ describe('WorkoutModeScreen', () => {
     it('does not auto-advance when the step is not fully logged', () => {
         vi.useFakeTimers();
         autoAdvance = true;
-        timerTrigger = 1;
         timerDuration = 2;
         const logs: Logs = { '1-re1-0': { kg: 50, reps: 8, rir: 2, saved: true } }; // only 1 of 3 sets
-        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        mountWithRest(<WorkoutModeScreen {...defaultProps} logs={logs} />);
         act(() => {
             vi.advanceTimersByTime(1000);
         });
@@ -328,10 +337,11 @@ describe('WorkoutModeScreen', () => {
     it('does not auto-advance on the last step', () => {
         vi.useFakeTimers();
         autoAdvance = true;
-        timerTrigger = 1;
         timerDuration = 2;
         const logs = fullyLoggedLogs('re1', 3);
-        render(<WorkoutModeScreen {...defaultProps} exercises={[mockExercise('re1', 'Bench Press')]} logs={logs} />);
+        mountWithRest(
+            <WorkoutModeScreen {...defaultProps} exercises={[mockExercise('re1', 'Bench Press')]} logs={logs} />,
+        );
         act(() => {
             vi.advanceTimersByTime(1000);
         });

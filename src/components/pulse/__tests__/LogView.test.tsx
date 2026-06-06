@@ -160,6 +160,61 @@ describe('LogView', () => {
         expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
     });
 
+    // mockRE has 3 sets; logging all three completes the day.
+    const fullDayLogs = {
+        '1-re-test-uuid-0': { kg: 60, reps: 10, rir: 3, saved: true },
+        '1-re-test-uuid-1': { kg: 60, reps: 10, rir: 3, saved: true },
+        '1-re-test-uuid-2': { kg: 60, reps: 10, rir: 3, saved: true },
+    };
+
+    it('shows the Workout complete done-state and hides Start workout when the day is fully logged', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            logs: fullDayLogs,
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<LogView />);
+        expect(screen.getByText(/workout complete/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /re-open/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /clear day/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /start workout/i })).not.toBeInTheDocument();
+    });
+
+    it('Re-open opens guided mode without starting a new session', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const setWorkoutModeOpen = vi.fn();
+        const startSession = vi.fn();
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            setWorkoutModeOpen,
+            logs: fullDayLogs,
+        } as unknown as ReturnType<typeof usePulse>);
+        vi.mocked(useWorkoutSession).mockReturnValue({
+            session: null,
+            startSession,
+            completeSession: vi.fn(),
+            clearSession: vi.fn(),
+        } as unknown as ReturnType<typeof useWorkoutSession>);
+        renderWithToast(<LogView />);
+        await userEvent.click(screen.getByRole('button', { name: /re-open/i }));
+        expect(setWorkoutModeOpen).toHaveBeenCalledWith(true);
+        expect(startSession).not.toHaveBeenCalled();
+    });
+
+    it('Clear day arms a confirm, then clears every logged set for the day', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        const deleteLog = vi.fn();
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            deleteLog,
+            logs: fullDayLogs,
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<LogView />);
+        await userEvent.click(screen.getByRole('button', { name: /clear day/i }));
+        expect(deleteLog).not.toHaveBeenCalled(); // first click only arms the confirm
+        await userEvent.click(screen.getByRole('button', { name: /confirm clear/i }));
+        expect(deleteLog).toHaveBeenCalledTimes(3);
+    });
+
     it('renders a SupersetCard when two exercises share a superset_group_id', async () => {
         const reA: RoutineExercise = {
             ...mockRE,

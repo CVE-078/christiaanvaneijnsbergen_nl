@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     logKey,
     getPhase,
@@ -112,6 +112,8 @@ export default function LogView() {
         [routineExercises, activeWeek, swaps, exercisesById],
     );
     const [swapTarget, setSwapTarget] = useState<RoutineExercise | null>(null);
+    // Two-step confirm for the destructive "Clear day" in the finished state.
+    const [clearConfirm, setClearConfirm] = useState(false);
 
     // Last session per exercise in one pass, so each card reads its own instead of
     // scanning the whole log set. Depends only on weeks before the current one.
@@ -122,6 +124,20 @@ export default function LogView() {
             (k) => logs[k]?.saved,
         ),
     );
+
+    // Every set key for the active day/tab + week, and whether they're all logged.
+    // Drives the finished state (Workout complete + Re-open / Clear day) and the
+    // no-rest-on-the-last-set suppression.
+    const daySetKeys = useMemo(
+        () =>
+            routineExercises.flatMap((re) =>
+                Array.from({ length: parseMaxSets(re.sets) }, (_, s) => logKey(activeWeek, re.id, s)),
+            ),
+        [routineExercises, activeWeek],
+    );
+    const dayComplete = daySetKeys.length > 0 && daySetKeys.every((k) => logs[k]?.saved);
+    // Disarm the clear-day confirm when the viewed day or week changes.
+    useEffect(() => setClearConfirm(false), [activeTab, activeWeek]);
 
     // Exercises for workout mode: filter by session variant if present
     const workoutExercises: RoutineExercise[] = (() => {
@@ -143,6 +159,13 @@ export default function LogView() {
         // the rest timer would never fire.
         const exercise = workoutExercises.find((r) => r.id === rid);
         if (!exercise) return;
+
+        // No rest after the set that finishes the whole session, there's nothing
+        // left to rest for. `logs` is the pre-save snapshot, so treat this key as saved.
+        const sessionKeys = workoutExercises.flatMap((re) =>
+            Array.from({ length: parseMaxSets(re.sets) }, (_, s) => logKey(activeWeek, re.id, s)),
+        );
+        if (entry.saved && sessionKeys.every((k) => k === key || logs[k]?.saved)) return;
 
         if (exercise.superset_group_id) {
             const partner = workoutExercises.find(
@@ -177,25 +200,45 @@ export default function LogView() {
     }
 
     async function handleCompleteWorkout() {
-        if (!session) return;
         const completedAt = new Date().toISOString();
         const completedSession = session;
         const snapshotExercises = workoutExercises;
-        try {
-            await completeSession(completedSession.id);
-        } catch {
-            // ignore, session may have already been completed or network failed
+        if (completedSession) {
+            try {
+                await completeSession(completedSession.id);
+            } catch {
+                // ignore, session may have already been completed or network failed
+            }
+            // Revalidate the sessions feed so the derived program position (current
+            // week, on-track status) reflects this completion immediately.
+            refreshSessions();
         }
-        // Revalidate the sessions feed so the derived program position (current
-        // week, on-track status) reflects this completion immediately.
-        refreshSessions();
         setWorkoutModeOpen(false);
-        setShareSession({ session: completedSession, completedAt, exercises: snapshotExercises });
+        // Only surface the share card for a freshly completed session, not a re-open
+        // (which carries no session and just lets the user add or edit sets).
+        if (completedSession) {
+            setShareSession({ session: completedSession, completedAt, exercises: snapshotExercises });
+        }
     }
 
     function handleCloseWorkoutMode() {
         clearSession();
         setWorkoutModeOpen(false);
+    }
+
+    // Re-open the finished day in guided mode to add or edit sets. No new session is
+    // started, so adherence isn't double-counted; new sets link to no session.
+    function handleReopenWorkout() {
+        setWorkoutModeOpen(true);
+    }
+
+    // Wipe the active day's logged sets so the user can re-do. Per-row optimistic
+    // deletes (offline-queued); the completed session row is left as a record.
+    function handleClearDay() {
+        daySetKeys.forEach((k) => {
+            if (logs[k]?.saved) deleteLog(k);
+        });
+        setClearConfirm(false);
     }
 
     if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
@@ -340,13 +383,49 @@ export default function LogView() {
                                     ›
                                 </button>
                             </div>
-                            {routineExercises.length > 0 && (
-                                <button
-                                    onClick={handleStartWorkout}
-                                    className="cursor-pointer rounded-lg border-none bg-pulse-accent px-4 py-2 font-pulse text-sm font-semibold text-pulse-bg transition-opacity hover:opacity-90">
-                                    Start workout
-                                </button>
-                            )}
+                            {routineExercises.length > 0 &&
+                                (dayComplete ? (
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-pulse-success/15 px-3 py-2 font-pulse text-sm font-semibold text-pulse-success">
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth={3}
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                className="h-4 w-4"
+                                                aria-hidden>
+                                                <path d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Workout complete
+                                        </span>
+                                        <button
+                                            onClick={handleReopenWorkout}
+                                            className="cursor-pointer rounded-lg border border-pulse-border bg-transparent px-3 py-2 font-pulse text-sm font-medium text-pulse-dim transition-colors hover:border-pulse-accent/40 hover:text-pulse-text">
+                                            Re-open
+                                        </button>
+                                        {clearConfirm ? (
+                                            <button
+                                                onClick={handleClearDay}
+                                                className="cursor-pointer rounded-lg border border-[#f43f5e]/50 bg-transparent px-3 py-2 font-pulse text-sm font-semibold text-[#f43f5e] transition-colors hover:bg-[#f43f5e]/10">
+                                                Confirm clear
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => setClearConfirm(true)}
+                                                className="cursor-pointer rounded-lg border border-pulse-border bg-transparent px-3 py-2 font-pulse text-sm font-medium text-pulse-dim transition-colors hover:text-pulse-text">
+                                                Clear day
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleStartWorkout}
+                                        className="cursor-pointer rounded-lg border-none bg-pulse-accent px-4 py-2 font-pulse text-sm font-semibold text-pulse-bg transition-opacity hover:opacity-90">
+                                        Start workout
+                                    </button>
+                                ))}
                         </div>
                     </div>
                     <div className="mt-4">{activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}</div>
