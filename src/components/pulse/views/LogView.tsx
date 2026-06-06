@@ -358,8 +358,8 @@ export default function LogView() {
                         </p>
                         <p className="mt-1 font-pulse text-[0.78125rem] text-pulse-dim">
                             {isManualLighten
-                                ? 'You chose to go easier this week. Reduced volume and an easier RIR; your progression continues normally.'
-                                : `Easing in${rampDaysAway ? ` after ${rampDaysAway} days off` : ''}. Reduced volume and an easier RIR before your normal progression resumes.`}
+                                ? 'You chose to go easier this week. An easier RIR target this week; your progression continues normally.'
+                                : `Easing in${rampDaysAway ? ` after ${rampDaysAway} days off` : ''}. An easier RIR target before your normal progression resumes.`}
                         </p>
                     </div>
                 ) : (

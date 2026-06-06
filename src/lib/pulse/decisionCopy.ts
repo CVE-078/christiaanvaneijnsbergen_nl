@@ -56,7 +56,7 @@ export function decisionCopy(event: DecisionEventRow, exerciseName: string | nul
                     kind: 'ramp_back',
                     headline: 'Lighter week',
                     why: 'You chose to go easier this week.',
-                    next: 'Reduced volume and an easier RIR; your progression continues normally.',
+                    next: 'An easier RIR target this week; your progression continues normally.',
                 };
             }
             const daysAway = event.magnitude.daysAway;
@@ -68,7 +68,7 @@ export function decisionCopy(event: DecisionEventRow, exerciseName: string | nul
                 kind: 'ramp_back',
                 headline: 'Ramp-back week added',
                 why,
-                next: 'Reduced volume and an easier RIR this week, then back to the plan.',
+                next: 'An easier RIR target this week, then back to the plan.',
             };
         }
 

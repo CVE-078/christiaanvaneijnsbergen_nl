@@ -76,7 +76,10 @@ describe('decisionCopy', () => {
         expect(c.kind).toBe('ramp_back');
         expect(c.headline).toBe('Ramp-back week added');
         expect(c.why).toContain('11 days');
-        expect(c.next).toMatch(/reduced volume/i);
+        // The ease is RIR-only today (the volume cut is not yet wired, Tier 2 #7),
+        // so the copy must not promise reduced volume.
+        expect(c.next).toMatch(/easier RIR/i);
+        expect(c.next).not.toMatch(/volume/i);
     });
 
     it('describes a manual lighten distinctly from a gap-driven ramp-back', () => {
