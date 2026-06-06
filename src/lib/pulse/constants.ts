@@ -53,8 +53,11 @@ export const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
 
 // Adaptive missed-workout regeneration. Under ~a week off there is no real
 // detraining, so a gap only triggers a ramp-back suggestion at GAP_DAYS or more.
-// A ramp-back week runs reduced volume at an easier RIR before normal progression
-// resumes.
+// A ramp-back week eases the prescribed RIR before normal progression resumes.
+// NOTE: RAMPBACK_VOLUME_FACTOR is recorded (in the adjustment payload + decision
+// event) but not yet enforced anywhere, so today the only felt ease is the RIR
+// bonus. Wiring the volume cut into set rendering is tracked as Tier 2 #7; the
+// user-facing copy deliberately promises only an easier RIR until then.
 export const GAP_DAYS = 10;
 export const RAMPBACK_VOLUME_FACTOR = 0.6;
 export const RAMPBACK_RIR_BONUS = 1;

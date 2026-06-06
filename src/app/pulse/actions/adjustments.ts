@@ -69,7 +69,8 @@ async function recordDecision(
     }
 }
 
-// Accept a ramp-back: week `weekInteger` becomes a reduced-volume re-entry week.
+// Accept a ramp-back: week `weekInteger` becomes an eased re-entry week (easier
+// RIR; the volume cut is recorded but not yet enforced, see Tier 2 #7).
 export async function acceptReentryDeload(routineId: string, weekInteger: number, daysAway?: number): Promise<void> {
     await recordDecision(routineId, weekInteger, 'reentry_deload', daysAway);
 }
