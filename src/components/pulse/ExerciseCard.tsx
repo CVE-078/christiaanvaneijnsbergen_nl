@@ -12,6 +12,7 @@ import {
     computePlateau,
     shouldDeload,
     isBodyweight,
+    isPlateLoaded,
 } from '@/lib/pulse/utils';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
@@ -99,6 +100,7 @@ function ExerciseCard({
     // Bodyweight lifts have a 0 e1RM by construction, so the plateau / deload
     // detectors (which read e1RM history) would false-flag them; skip both.
     const bodyweight = isBodyweight(display.equipment);
+    const plateLoaded = isPlateLoaded(display.equipment);
     const e1rmHistory = computeE1RMHistory(logs, re.id);
     const stalled = !bodyweight && computePlateau(e1rmHistory);
     const deload = !bodyweight && shouldDeload(e1rmHistory);
@@ -297,6 +299,7 @@ function ExerciseCard({
                                     unit={unit}
                                     deload={deload}
                                     bodyweight={bodyweight}
+                                    plateLoaded={plateLoaded}
                                     onSave={(e) => handleSetSave(key, e)}
                                     onDelete={() => onDelete(key)}
                                 />

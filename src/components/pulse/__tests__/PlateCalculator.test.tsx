@@ -1,25 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PlateCalculator from '../PlateCalculator';
 
 describe('PlateCalculator', () => {
-    it('renders per-side plate chips for the default barbell', () => {
+    it('renders the per-side plate breakdown for the barbell', () => {
         // 100 kg barbell -> 40 per side -> [25, 15]
         render(<PlateCalculator targetKg={100} unit="kg" />);
-        expect(screen.getByText(/per side/i)).toBeInTheDocument();
         expect(screen.getByText(/25 kg/)).toBeInTheDocument();
         expect(screen.getByText(/15 kg/)).toBeInTheDocument();
-    });
-
-    it('switches to dumbbell with the toggle and recomputes', async () => {
-        // 12.5 kg dumbbell on a 2.5 handle -> 5 per side -> [5]
-        render(<PlateCalculator targetKg={12.5} unit="kg" />);
-        // Below the 20 kg bar, so barbell shows the empty-bar note.
-        expect(screen.getByText(/below the empty bar/i)).toBeInTheDocument();
-        await userEvent.click(screen.getByRole('button', { name: /dumbbell/i }));
-        expect(screen.getByText(/per side/i)).toBeInTheDocument();
-        expect(screen.getByText(/^5 kg$/)).toBeInTheDocument();
+        expect(screen.getByText(/40 kg per side/)).toBeInTheDocument();
     });
 
     it('shows a remainder note when the target is not loadable', () => {
@@ -31,5 +21,12 @@ describe('PlateCalculator', () => {
     it('marks the target as below the empty bar', () => {
         render(<PlateCalculator targetKg={10} unit="kg" />);
         expect(screen.getByText(/below the empty bar/i)).toBeInTheDocument();
+    });
+
+    it('calls onClose from the Close button', async () => {
+        const onClose = vi.fn();
+        render(<PlateCalculator targetKg={100} unit="kg" onClose={onClose} />);
+        await userEvent.click(screen.getByRole('button', { name: /close/i }));
+        expect(onClose).toHaveBeenCalledTimes(1);
     });
 });

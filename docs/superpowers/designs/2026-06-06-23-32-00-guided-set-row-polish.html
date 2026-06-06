@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guided set-row polish, draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600&family=Big+Shoulders+Display:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --accent: #ff7d66;
+    --bg: #0e1113;
+    --surface: #161a1d;
+    --surface-2: #1c2125;
+    --border: #262c31;
+    --dim: #aab2b7;
+    --muted: #6f787e;
+    --text: #e7ebed;
+    --pulse: 'Hanken Grotesk', sans-serif;
+    --body: 'Sora', sans-serif;
+    --display: 'Big Shoulders Display', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #07090a;
+    color: var(--text);
+    font-family: var(--pulse);
+    padding: 40px 16px 80px;
+    line-height: 1.5;
+  }
+  .page { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .lede { color: var(--dim); font-family: var(--body); font-size: 13px; max-width: 70ch; margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 22px; }
+  .panel { }
+  .panel > .cap {
+    font-family: var(--body);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0 0 4px;
+    font-weight: 600;
+  }
+  .panel > .note { color: var(--muted); font-family: var(--body); font-size: 12px; margin: 0 0 12px; }
+  /* The guided sheet, single-column mobile width */
+  .sheet {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    width: 100%;
+  }
+  .ex-name { font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: 0.01em; margin: 0 0 2px; }
+  .ex-sub { color: var(--muted); font-family: var(--body); font-size: 12px; margin: 0 0 14px; }
+
+  /* set row */
+  .row { display: flex; gap: 14px; align-items: flex-start; border-bottom: 1px solid var(--border); padding: 14px 0; }
+  .row:last-child { border-bottom: 0; }
+  .setlabel {
+    width: 64px; flex: none;
+    font-family: var(--body); font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--muted); padding-top: 4px;
+  }
+  .setlabel.active { color: var(--accent); }
+  .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+
+  .inputs { display: flex; gap: 10px; align-items: stretch; }
+  .field {
+    flex: 1; min-width: 0;
+    border: 1px solid var(--border); background: var(--bg);
+    border-radius: 12px; padding: 6px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .field.focus { border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+  .field .lbl { font-family: var(--body); font-size: 9px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); }
+  .field .val { display: flex; align-items: baseline; gap: 4px; }
+  .field .num { font-family: var(--display); font-size: 26px; font-weight: 700; line-height: 1; color: var(--text); }
+  .field .num.ph { color: var(--muted); }
+  .field .unit { font-size: 11px; font-weight: 500; color: var(--dim); }
+  .save {
+    flex: none; align-self: stretch; border: 0; border-radius: 12px;
+    background: var(--accent); color: var(--bg);
+    font-family: var(--pulse); font-size: 14px; font-weight: 600; padding: 0 18px; cursor: pointer;
+  }
+
+  /* prescription chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip {
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 7px; padding: 2px 8px;
+    font-family: var(--body); font-size: 10.5px; letter-spacing: 0.02em; color: var(--dim);
+  }
+  .chip.strong { color: var(--text); border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+
+  .coach { font-family: var(--body); font-size: 11px; font-weight: 500; line-height: 1.5; letter-spacing: 0.02em; color: var(--accent); }
+  .coach.muted { color: var(--muted); font-weight: 400; }
+
+  /* secondary actions row */
+  .actions { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; margin-top: 2px; }
+  .ghost {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--dim); font-family: var(--pulse); font-size: 11px; font-weight: 500;
+    padding: 4px 9px; cursor: pointer;
+  }
+  .ghost:hover { color: var(--text); border-color: var(--muted); }
+  .ghost svg { width: 13px; height: 13px; }
+  /* overflow trigger sits with the action cluster, not floated to the far edge */
+  .kebab {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer; padding: 0; width: 30px; height: 28px; font-size: 17px; line-height: 1; border-radius: 8px;
+  }
+  .kebab:hover { color: var(--text); border-color: var(--muted); }
+
+  /* overflow popover */
+  .pop {
+    margin-top: 6px; align-self: flex-start;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 5px; display: inline-flex; flex-direction: column; gap: 2px; min-width: 160px;
+  }
+  .pop button {
+    text-align: left; background: transparent; border: 0; color: var(--text);
+    font-family: var(--pulse); font-size: 12.5px; padding: 7px 9px; border-radius: 7px; cursor: pointer;
+  }
+  .pop button:hover { background: var(--bg); }
+
+  /* plate calculator, reworked: a loaded-bar visual */
+  .plates {
+    margin-top: 8px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface); padding: 12px 14px 13px;
+  }
+  .plates .ptop { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .plates .ptitle { font-family: var(--body); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--dim); }
+  .plates .pclose {
+    margin-left: auto; background: transparent; border: 1px solid var(--border); color: var(--dim);
+    cursor: pointer; font-family: var(--pulse); font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border-radius: 8px;
+  }
+  .plates .pclose:hover { color: var(--text); border-color: var(--muted); }
+
+  /* the bar: a knurled shaft, a collar, then discs from heavy (inner) to light (outer) */
+  .barviz { display: flex; align-items: center; height: 78px; margin: 6px 0 2px; }
+  .shaft { height: 7px; width: 34px; border-radius: 4px 0 0 4px;
+    background: linear-gradient(180deg, #4a525a, #2c3238); flex: none; }
+  .collar { height: 15px; width: 7px; border-radius: 2px; background: #3a4148; flex: none; margin-right: 3px; }
+  .discs { display: flex; align-items: center; gap: 3px; }
+  .disc {
+    width: 17px; border-radius: 4px; flex: none;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, white), var(--accent));
+    display: grid; place-items: center;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 60%, black);
+  }
+  .disc span { font-family: var(--display); font-size: 11px; font-weight: 700; color: #2a1411;
+    writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 0.02em; }
+  .plates .sum { font-family: var(--body); font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+  .plates .sum b { color: var(--text); font-weight: 600; }
+  .plates .perside { font-family: var(--body); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 2px; }
+  .drop .rm { background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; padding: 4px; }
+
+  /* drop set draft row */
+  .drop { display: flex; gap: 8px; align-items: center; }
+  .drop .arrow { color: var(--dim); font-size: 13px; }
+  .mini { width: 64px; border: 1px solid var(--border); background: var(--bg); border-radius: 9px; padding: 6px 8px; color: var(--text); font-family: var(--pulse); font-weight: 600; text-align: center; font-size: 14px; }
+
+  /* logged row */
+  .logged { display: flex; align-items: center; gap: 12px; width: 100%; }
+  .logged .big { font-family: var(--display); font-size: 21px; font-weight: 600; line-height: 1; color: var(--text); }
+  .logged .big .unit { font-family: var(--pulse); font-size: 13px; font-weight: 500; color: var(--dim); }
+  .logged .big .x { color: var(--muted); margin: 0 6px; }
+  .logged .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .ririchip { border-radius: 7px; background: var(--surface-2); padding: 2px 8px; font-family: var(--body); font-size: 10px; letter-spacing: 0.04em; color: var(--dim); }
+  .editlinks { display: flex; gap: 12px; opacity: 0.6; }
+  .editlinks button { background: transparent; border: 0; color: var(--dim); font-family: var(--pulse); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; padding: 0; }
+  .tick { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; background: var(--accent); color: var(--bg); }
+  .tick svg { width: 12px; height: 12px; }
+
+  .callout {
+    margin-top: 14px; border-left: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    padding: 2px 0 2px 12px; color: var(--dim); font-family: var(--body); font-size: 12px; line-height: 1.55;
+  }
+  .callout b { color: var(--text); font-weight: 600; }
+  .tag { display:inline-block; font-family: var(--body); font-size: 10px; color: var(--muted); border: 1px dashed var(--border); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Guided set-row polish</h1>
+  <p class="lede">
+    Draft of the reworked guided (editorial) set row. Five changes, all in the input state, the logged row stays clean.
+    Pick what you want; I will build it in clean diffs. Copy is placeholder, not final.
+  </p>
+
+  <div class="grid">
+
+    <!-- 1: active, with history -->
+    <div class="panel">
+      <p class="cap">1 · Active set, with history</p>
+      <p class="note">The common case. New: prescription chips, "Same as last", a labeled plate button, overflow for "Add drop".</p>
+      <div class="sheet">
+        <div class="ex-name">Barbell Bench Press</div>
+        <div class="ex-sub">Chest · set 2 of 3</div>
+
+        <div class="row">
+          <div class="setlabel active">Set 2</div>
+          <div class="col">
+            <div class="inputs">
+              <div class="field focus">
+                <span class="lbl">Weight</span>
+                <span class="val"><span class="num">60</span><span class="unit">kg</span></span>
+              </div>
+              <div class="field">
+                <span class="lbl">Reps</span>
+                <span class="val"><span class="num">8</span></span>
+              </div>
+              <button class="save">Save</button>
+            </div>
+            <div class="chips">
+              <span class="chip strong">8&ndash;12 reps</span>
+              <span class="chip">RIR 2</span>
+            </div>
+            <div class="coach">Last 57.5 kg &times; 8. Go for 60 kg &times; 8 and stop with about 2 reps left.</div>
+            <div class="actions">
+              <button class="ghost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                Same as last
+              </button>
+              <button class="ghost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="3" height="8" rx="1"/><rect x="18" y="8" width="3" height="8" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+                Plate calculator
+              </button>
+              <button class="kebab">&#8943;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2: plate calc open -->
+    <div class="panel">
+      <p class="cap">2 · Plate calculator, reworked</p>
+      <p class="note">Labeled (not a bare icon), opens as a titled panel below, closes on save and via the &times;. Barbell / plate-loaded only.</p>
+      <div class="sheet">
+        <div class="ex-name">Barbell Bench Press</div>
+        <div class="ex-sub">Chest · set 2 of 3</div>
+        <div class="row">
+          <div class="setlabel active">Set 2</div>
+          <div class="col">
+            <div class="inputs">
+              <div class="field"><span class="lbl">Weight</span><span class="val"><span class="num">85</span><span class="unit">kg</span></span></div>
+              <div class="field"><span class="lbl">Reps</span><span class="val"><span class="num">6</span></span></div>
+              <button class="save">Save</button>
+            </div>
+            <div class="chips"><span class="chip strong">6&ndash;8 reps</span><span class="chip">RIR 2</span></div>
+            <div class="actions">
+              <button class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Same as last</button>
+              <button class="ghost" style="color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,var(--border))"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="3" height="8" rx="1"/><rect x="18" y="8" width="3" height="8" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg>Plate calculator</button>
+              <button class="kebab">&#8943;</button>
+            </div>
+            <div class="plates">
+              <div class="ptop">
+                <span class="ptitle">Loaded bar</span>
+                <button class="pclose">Close</button>
+              </div>
+              <div class="perside">Per side</div>
+              <div class="barviz">
+                <div class="shaft"></div>
+                <div class="collar"></div>
+                <div class="discs">
+                  <div class="disc" style="height:70px"><span>20</span></div>
+                  <div class="disc" style="height:48px"><span>10</span></div>
+                  <div class="disc" style="height:30px"><span>2.5</span></div>
+                </div>
+              </div>
+              <div class="sum">20 kg bar + <b>32.5 kg per side</b> = 85 kg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3: first-time, no history -->
+    <div class="panel">
+      <p class="cap">3 · First time, no history</p>
+      <p class="note">No "Same as last". Shows the rep target and a light "start light" hint instead of an empty, silent field.</p>
+      <div class="sheet">
+        <div class="ex-name">Cable Lateral Raise</div>
+        <div class="ex-sub">Shoulders · set 1 of 3</div>
+        <div class="row">
+          <div class="setlabel active">Set 1</div>
+          <div class="col">
+            <div class="inputs">
+              <div class="field"><span class="lbl">Weight</span><span class="val"><span class="num ph">kg</span></span></div>
+              <div class="field"><span class="lbl">Reps</span><span class="val"><span class="num ph">reps</span></span></div>
+              <button class="save">Save</button>
+            </div>
+            <div class="chips"><span class="chip strong">12&ndash;15 reps</span><span class="chip">RIR 2</span></div>
+            <div class="coach muted">First time on this lift. Start light, leave 2 reps in the tank, and build from here.</div>
+            <div class="actions">
+              <!-- no Same as last (no history); no Plate calculator (cable, not plate-loaded) -->
+              <button class="kebab">&#8943;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4: overflow open + drop row -->
+    <div class="panel">
+      <p class="cap">4 · Overflow &amp; drop set</p>
+      <p class="note">"+ Add drop" moves out of every row into the &#8943; overflow (future home for per-set actions too). Tapping it adds a drop row.</p>
+      <div class="sheet">
+        <div class="ex-name">Barbell Bench Press</div>
+        <div class="ex-sub">Chest · set 3 of 3</div>
+        <div class="row">
+          <div class="setlabel active">Set 3</div>
+          <div class="col">
+            <div class="inputs">
+              <div class="field"><span class="lbl">Weight</span><span class="val"><span class="num">60</span><span class="unit">kg</span></span></div>
+              <div class="field"><span class="lbl">Reps</span><span class="val"><span class="num">7</span></span></div>
+              <button class="save">Save</button>
+            </div>
+            <div class="chips"><span class="chip strong">8&ndash;12 reps</span><span class="chip">RIR 2</span></div>
+            <div class="drop">
+              <span class="arrow">&darr;</span>
+              <input class="mini" value="45" /><span style="color:var(--muted)">&times;</span><input class="mini" value="8" />
+              <button class="rm">&times;</button>
+            </div>
+            <div class="actions">
+              <button class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="3" height="8" rx="1"/><rect x="18" y="8" width="3" height="8" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg>Plate calculator</button>
+              <button class="kebab">&#8943;</button>
+            </div>
+            <div class="pop">
+              <button>+ Add drop set</button>
+              <button style="color:var(--muted)">Swap exercise<span class="tag">later</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5: logged, unchanged -->
+    <div class="panel">
+      <p class="cap">5 · Logged set (unchanged)</p>
+      <p class="note">Stays clean. No plate toggle here, it is an input-time aid, so it just closes on save.</p>
+      <div class="sheet">
+        <div class="ex-name">Barbell Bench Press</div>
+        <div class="ex-sub">Chest · set 1 of 3</div>
+        <div class="row">
+          <div class="setlabel">Set 1</div>
+          <div class="logged">
+            <span class="big">57.5<span class="unit"> kg</span><span class="x">&times;</span>8</span>
+            <span class="right">
+              <span class="ririchip">RIR 2</span>
+              <span class="editlinks"><button>Edit</button><button>&times;</button></span>
+              <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout">
+    <b>What changes (input state only):</b><br/>
+    1. <b>Prescription chips</b> "8&ndash;12 reps" + "RIR 2" near the inputs, visible even first-time (today only the rail shows the target, and only for upcoming exercises).<br/>
+    2. <b>Same as last</b> fills weight + reps from your previous set, one tap for identical 3&ndash;4 set blocks. Shown only when there is history.<br/>
+    3. <b>Plate calculator</b> gets a real label, a titled panel, closes on save (fixes the trap), and only appears on barbell / plate-loaded lifts (never dumbbell / cable / machine).<br/>
+    4. <b>"+ Add drop"</b> moves into a &#8943; overflow so it is not on every row; the overflow is where per-set actions (swap, notes) can live later.<br/>
+    5. <b>Set N of M</b> in the subheader and label, so you know where you are in the exercise.<br/>
+    <span class="tag">deferred</span> A computed suggested starting weight (vs the plain "start light" hint shown here) needs the strength estimate, scope separately.
+  </div>
+</div>
+</body>
+</html>

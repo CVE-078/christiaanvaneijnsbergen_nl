@@ -354,6 +354,13 @@ export function isBodyweight(equipment: string[] | null | undefined): boolean {
     return (equipment?.length ?? 0) === 0;
 }
 
+// A plate-loaded exercise takes a barbell, so the plate calculator applies. Gates
+// the calc off dumbbell / cable / machine / bodyweight lifts (where it made no
+// sense and leaked onto things like a dumbbell Chest Fly).
+export function isPlateLoaded(equipment: string[] | null | undefined): boolean {
+    return (equipment ?? []).includes('barbell');
+}
+
 export function computePRMap(logs: Logs): Record<string, number> {
     const map: Record<string, number> = {};
     for (const [key, val] of Object.entries(logs)) {
