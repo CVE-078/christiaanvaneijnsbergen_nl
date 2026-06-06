@@ -38,6 +38,6 @@ describe('PendingSyncBadge', () => {
         mockOnline.mockReturnValue(false);
         mockCount.mockReturnValue(0);
         render(<PendingSyncBadge />);
-        expect(screen.getByText('Offline — changes save locally')).toBeInTheDocument();
+        expect(screen.getByText('Offline, changes save locally')).toBeInTheDocument();
     });
 });

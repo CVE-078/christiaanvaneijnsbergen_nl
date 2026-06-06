@@ -136,7 +136,7 @@ describe('decisionForExercise', () => {
         });
     });
 
-    it('logs a progression event (targets_hit) on a weight advance — top of range, RIR met', () => {
+    it('logs a progression event (targets_hit) on a weight advance, top of range, RIR met', () => {
         // week 5 -> getRIR(4) = 2; rir 2 >= 2 and reps 12 >= hi 12 -> +2.5 kg, reps reset to 8.
         const d = decisionForExercise({
             ...base,
@@ -154,7 +154,7 @@ describe('decisionForExercise', () => {
         });
     });
 
-    it('logs a progression event on a rep advance — mid-range, RIR met', () => {
+    it('logs a progression event on a rep advance, mid-range, RIR met', () => {
         // week 5 -> getRIR(4) = 2; rir 2 >= 2 and reps 9 < hi 12 -> same kg, +1 rep.
         const d = decisionForExercise({
             ...base,

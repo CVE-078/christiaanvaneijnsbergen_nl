@@ -19,7 +19,7 @@ const mockNavigate = vi.fn();
 const templates: RoutineTemplate[] = [
     {
         id: '1',
-        name: 'Full Body — Dumbbells',
+        name: 'Full Body - Dumbbells',
         slug: 'full-body-db',
         required_equipment: ['dumbbells'],
         days_per_week: '2-3',
@@ -33,7 +33,7 @@ const templates: RoutineTemplate[] = [
     },
     {
         id: '2',
-        name: 'PPL — Gym',
+        name: 'PPL - Gym',
         slug: 'ppl-gym',
         required_equipment: ['barbell', 'bench', 'cables', 'machines'],
         days_per_week: '3-6',
@@ -61,22 +61,22 @@ beforeEach(() => {
 describe('TemplatesTab', () => {
     it('renders all templates when filter is All', () => {
         render(<TemplatesTab />);
-        expect(screen.getByText('Full Body — Dumbbells')).toBeInTheDocument();
-        expect(screen.getByText('PPL — Gym')).toBeInTheDocument();
+        expect(screen.getByText('Full Body - Dumbbells')).toBeInTheDocument();
+        expect(screen.getByText('PPL - Gym')).toBeInTheDocument();
     });
 
     it('filters to dumbbells-only templates', () => {
         render(<TemplatesTab />);
         fireEvent.click(screen.getByText('Dumbbells'));
-        expect(screen.getByText('Full Body — Dumbbells')).toBeInTheDocument();
-        expect(screen.queryByText('PPL — Gym')).not.toBeInTheDocument();
+        expect(screen.getByText('Full Body - Dumbbells')).toBeInTheDocument();
+        expect(screen.queryByText('PPL - Gym')).not.toBeInTheDocument();
     });
 
     it('filters by goal', () => {
         render(<TemplatesTab />);
         fireEvent.click(screen.getByText('Build muscle'));
-        expect(screen.getByText('PPL — Gym')).toBeInTheDocument();
-        expect(screen.queryByText('Full Body — Dumbbells')).not.toBeInTheDocument();
+        expect(screen.getByText('PPL - Gym')).toBeInTheDocument();
+        expect(screen.queryByText('Full Body - Dumbbells')).not.toBeInTheDocument();
     });
 
     it('opens the setup flow on Use this, with no native prompt or confirm dialog', () => {

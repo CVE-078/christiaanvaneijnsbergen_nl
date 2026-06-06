@@ -221,7 +221,7 @@ export function deloadTarget(
 }
 
 // The adaptive decision the engine made for one lift in one week, ready to log
-// as a DecisionEvent — or null when no tracked decision applies. Pure mirror of
+// as a DecisionEvent, or null when no tracked decision applies. Pure mirror of
 // what ExerciseCard/SetLogger already compute on render: a stall auto-deloads
 // (deload wins, matching `deloadTgt ?? progression`), otherwise hitting the
 // prescribed RIR advances the lift (double progression). A set logged *harder*
@@ -442,7 +442,7 @@ export function buildHistory(logs: Logs): HistorySession[] {
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         const { week, routineExerciseId, setIdx } = parsed;
-        // Group by week only — type is no longer encoded in the key
+        // Group by week only, type is no longer encoded in the key
         const sessionKey = String(week);
         if (!sessions[sessionKey]) {
             sessions[sessionKey] = { week, sets: [] };
@@ -897,13 +897,13 @@ export function computeRecompSignal(args: {
     } else if (isRecomping) {
         verdict = `You're recomping: strength up, weight ${weight === 'down' ? 'down' : 'steady'}, waist down.`;
     } else if (strength === 'up' && weightOk && waist === 'none') {
-        verdict = 'Likely recomping — strength up and weight steady. Log your waist to confirm.';
+        verdict = 'Likely recomping, strength up and weight steady. Log your waist to confirm.';
     } else if (strength === 'up' && weight === 'up') {
         verdict = 'Gaining: strength up but weight up too. Tighten nutrition if fat loss is the goal.';
     } else if ((strength === 'flat' || strength === 'down') && weight === 'down') {
         verdict = 'Cutting: weight down but strength flat. Hold protein and keep intensity up.';
     } else if (strength === 'down' && weight === 'up') {
-        verdict = 'Strength dipping while weight rises — check recovery and nutrition.';
+        verdict = 'Strength dipping while weight rises, check recovery and nutrition.';
     } else {
         verdict = 'Keep logging to see your recomp trend.';
     }

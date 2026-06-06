@@ -38,8 +38,8 @@ export async function runMutation(type: MutationType, args: unknown[], userId: s
 
 // A queued write fails *permanently* when replaying it can never succeed: the
 // input is invalid or the target row is gone (the server actions throw
-// 'Invalid …' / '… not found' for these). Everything else — network loss, a
-// transient server error, and auth-expiry (a re-login fixes it) — is *transient*
+// 'Invalid …' / '… not found' for these). Everything else, network loss, a
+// transient server error, and auth-expiry (a re-login fixes it), is *transient*
 // and retried later. Auth-expiry ('Unauthorized') is deliberately transient: the
 // queue only ever holds the current user's own writes (flushQueue scopes by
 // userId), so an ownership 'Unauthorized' on replay is effectively impossible,
@@ -53,7 +53,7 @@ export function isPermanentFailure(err: unknown): boolean {
 // Replay the given user's queued mutations FIFO. A *transient* failure stops the
 // pass and leaves the rest queued for the next flush (online/focus). A *permanent*
 // failure is dead-lettered and skipped so one poison write can't stall every write
-// behind it (head-of-line blocking) — the failure mode that otherwise drives a
+// behind it (head-of-line blocking), the failure mode that otherwise drives a
 // user to reinstall and lose all unsynced data. Writes owned by a different user
 // are left untouched: never replayed (the server stamps auth.uid() at write time,
 // so they'd land in the wrong account) and never dropped (that would lose their

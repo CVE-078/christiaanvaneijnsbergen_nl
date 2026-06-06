@@ -30,7 +30,7 @@ export function AppShell({
         try {
             await flushQueue(userId);
         } catch {
-            // offline or failed — writes stay queued (scoped to this user) and sync on next sign-in
+            // offline or failed, writes stay queued (scoped to this user) and sync on next sign-in
         }
         clearAllSWRCache();
         await logout();
@@ -64,7 +64,7 @@ export function AppShell({
 
     return (
         <div className="min-h-screen bg-pulse-bg text-pulse-text pb-16">
-            {/* Simplified topbar — navigation handled by BottomNav */}
+            {/* Simplified topbar, navigation handled by BottomNav */}
             <div className="sticky top-0 z-10 bg-pulse-bg h-[52px] flex items-center gap-3 px-4">
                 <span className="font-pulse font-medium text-[1.375rem] tracking-[-0.01em] text-pulse-text shrink-0">
                     Pulse<span className="text-pulse-accent">.</span>
@@ -91,7 +91,7 @@ export function AppShell({
             {/* Page content comes from routing */}
             <div className="pb-16">{children}</div>
 
-            {/* Rest timer fixed above bottom nav — avoids layout shift in LogView.
+            {/* Rest timer fixed above bottom nav, avoids layout shift in LogView.
                 Suppressed while guided mode is open; WorkoutModeScreen runs its own
                 timer so only one counts down (no double beep). */}
             {!workoutModeOpen && (

@@ -6,7 +6,7 @@ import type { Logs, RoutineExercise } from '../types';
 // historyBundle.muscleVolume is the REAL production path for the Progress bars
 // (computePerMuscleVolume in utils is the tested twin). This guards that the inline
 // fractional attribution here stays aligned with the shared bucketing rule.
-describe('computeHistoryBundle — muscleVolume fractional attribution', () => {
+describe('computeHistoryBundle, muscleVolume fractional attribution', () => {
     const UUID = '550e8400-e29b-41d4-a716-446655440000';
     const re = [
         { id: UUID, workout_type: 'push', exercise: { category: 'chest', movement_pattern: 'horizontal_push' } },

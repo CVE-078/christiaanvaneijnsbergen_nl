@@ -32,7 +32,7 @@ import type { Unit, Logs } from '@/lib/pulse/types';
 // Dashboard time window. 'cycle' is the current 12-week program (default), 'all'
 // is every logged week (distinct once data spans multiple cycles), 'week' zooms
 // the period-based widgets to the active week. Strength Score and Personal
-// Records stay all-time regardless — they are lifetime records, not trends.
+// Records stay all-time regardless, they are lifetime records, not trends.
 type ProgressWindow = 'week' | 'cycle' | 'all';
 
 const WINDOW_LABELS: Record<ProgressWindow, string> = { week: 'Week', cycle: 'Cycle', all: 'All' };
@@ -376,7 +376,7 @@ export default function HistoryView() {
                     <SectionHeader>Personal Records</SectionHeader>
                     {prRecords.length === 0 ? (
                         <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">
-                            No records yet — start logging sets.
+                            No records yet, start logging sets.
                         </p>
                     ) : (
                         <ul className="flex flex-col gap-2.5">

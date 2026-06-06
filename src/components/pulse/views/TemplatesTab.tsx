@@ -28,7 +28,7 @@ const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
 
 export default function TemplatesTab() {
     const { cloneTemplate, navigate, profile } = usePulse();
-    // Templates are static per session — dedupe aggressively and don't refetch on focus.
+    // Templates are static per session, dedupe aggressively and don't refetch on focus.
     const { data: templates = [] } = useSWR<RoutineTemplate[]>('/api/pulse/templates', fetcher, {
         ...SWR_READ_OPTS,
         dedupingInterval: 600000,
@@ -70,7 +70,7 @@ export default function TemplatesTab() {
                 </button>
             </div>
 
-            {/* Equipment rail — the second always-visible dimension. */}
+            {/* Equipment rail, the second always-visible dimension. */}
             <FilterChips
                 items={(['all', 'dumbbells', 'home', 'gym'] as EquipmentFilter[]).map((f) => ({
                     key: f,
@@ -130,7 +130,7 @@ export default function TemplatesTab() {
                 <p className="font-pulse text-xs text-pulse-muted py-2">No templates match these filters.</p>
             )}
 
-            {/* Template list — unified row card. */}
+            {/* Template list, unified row card. */}
             <div className="flex flex-col gap-2">
                 {visible.map((t) => (
                     <div

@@ -105,7 +105,7 @@ function ExerciseCard({
                 <button
                     onClick={() => setOpen((o) => !o)}
                     aria-expanded={open}
-                    aria-label={`${open ? 'Collapse' : 'Expand'} ${display.name}${complete ? ' — all sets done' : ''}`}
+                    aria-label={`${open ? 'Collapse' : 'Expand'} ${display.name}${complete ? ', all sets done' : ''}`}
                     className="w-full py-4 px-[1.125rem] bg-transparent border-none cursor-pointer flex items-center gap-3.5 text-left">
                     <div className="flex-1 min-w-0">
                         <div className="font-pulse text-[1.1875rem] font-medium tracking-[-0.01em] truncate text-pulse-text">
@@ -173,12 +173,12 @@ function ExerciseCard({
                                 <p className="font-pulse text-[0.78125rem] font-semibold text-pulse-accent">
                                     {deload
                                         ? '↓ Deloading this week to break the stall'
-                                        : '⚠ Stalled — no e1RM gain in 3 weeks'}
+                                        : '⚠ Stalled, no e1RM gain in 3 weeks'}
                                 </p>
                                 <p className="font-pulse text-[0.75rem] text-pulse-dim mt-1">
                                     {deload ? (
                                         <>
-                                            Lighter targets below — clear the easier sets, then build back up.
+                                            Lighter targets below, clear the easier sets, then build back up.
                                             {onSwap && (
                                                 <>
                                                     {' '}

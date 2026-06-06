@@ -68,7 +68,7 @@ export async function updateSession(request: NextRequest) {
         },
     );
 
-    // Refresh session — must be called before any redirect logic
+    // Refresh session, must be called before any redirect logic
     const {
         data: { user },
     } = await supabase.auth.getUser();

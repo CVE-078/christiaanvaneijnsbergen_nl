@@ -11,7 +11,7 @@ export default function PendingSyncBadge() {
     const label =
         count > 0
             ? `${count} ${count === 1 ? 'change' : 'changes'} pending sync`
-            : 'Offline — changes save locally';
+            : 'Offline, changes save locally';
 
     return (
         <span className="font-pulse text-[0.6875rem] bg-pulse-surface-2 text-pulse-dim rounded-full px-2.5 py-1">

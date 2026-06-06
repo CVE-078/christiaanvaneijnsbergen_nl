@@ -17,8 +17,8 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // which is treated as null. workoutDate is the user-local calendar day, computed
 // client-side at save time so an offline write keeps the day it happened rather
 // than the day it flushes. The session_id is validated for shape only (not
-// ownership): a forged value can at worst mislabel the caller's own log — it
-// cannot read or alter another user's data — so the extra hot-path query isn't
+// ownership): a forged value can at worst mislabel the caller's own log, it
+// cannot read or alter another user's data, so the extra hot-path query isn't
 // worth it.
 export async function upsertLog(
     key: string,

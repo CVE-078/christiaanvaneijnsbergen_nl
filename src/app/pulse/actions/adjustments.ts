@@ -7,8 +7,8 @@ import type { AdjustmentKind } from '@/lib/pulse/types';
 
 // One ramp-back decision per (routine, week). A single upsert on the
 // (user_id, routine_id, effective_week) unique constraint keeps this atomic and
-// idempotent — re-accepting is a no-op, and a dismissal can flip to an
-// acceptance — with no delete-then-insert race or duplicate rows.
+// idempotent, re-accepting is a no-op, and a dismissal can flip to an
+// acceptance, with no delete-then-insert race or duplicate rows.
 async function recordDecision(
     routineId: string,
     weekInteger: number,
@@ -82,7 +82,7 @@ export async function dismissReentry(routineId: string, weekInteger: number): Pr
 
 // User-initiated "go easier this week": apply the ramp-back ease to the current
 // week on demand. Unlike a re-entry it does not insert/offset the program (see
-// progressionInfo) — it just lightens this one week.
+// progressionInfo), it just lightens this one week.
 export async function lightenThisWeek(routineId: string, weekInteger: number): Promise<void> {
     await recordDecision(routineId, weekInteger, 'manual_deload');
 }

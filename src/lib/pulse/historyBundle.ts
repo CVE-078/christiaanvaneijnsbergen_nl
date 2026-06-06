@@ -86,7 +86,7 @@ export function computeHistoryBundle(
             };
         }
 
-        // computePerMuscleVolume (active week only) — fractional: primary 1.0 plus the
+        // computePerMuscleVolume (active week only), fractional: primary 1.0 plus the
         // pattern's bucketed secondaries, byte-aligned with utils.accumulatePerMuscle.
         if (week === activeWeek) {
             const cat = catById.get(routineExerciseId);
