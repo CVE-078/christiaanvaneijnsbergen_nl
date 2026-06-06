@@ -1,4 +1,30 @@
-import type { Logs, LogEntry } from './types';
+import type { Logs, LogEntry, DecisionEvent } from './types';
+
+const DECISION_TYPES = ['ramp_back', 'deload', 'progression', 'swap'];
+const DECISION_TRIGGERS = ['plateau', 'targets_hit', 'gap'];
+
+// Validate a DecisionEvent crossing the trust boundary into recordDecisionEvent.
+// type/trigger are closed enums, week mirrors the log-key bounds (1–52), magnitude
+// must be a flat record of finite numbers (it lands in a jsonb column), and
+// confidence is null or a 0–1 score. affectedArea is any string ('' = program-wide).
+export function validateDecisionEvent(value: unknown): value is DecisionEvent {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+    const { type, trigger, affectedArea, week, magnitude, confidence } = value as Record<string, unknown>;
+    if (typeof type !== 'string' || !DECISION_TYPES.includes(type)) return false;
+    if (typeof trigger !== 'string' || !DECISION_TRIGGERS.includes(trigger)) return false;
+    if (typeof affectedArea !== 'string') return false;
+    if (typeof week !== 'number' || !Number.isInteger(week) || week < 1 || week > 52) return false;
+    if (typeof magnitude !== 'object' || magnitude === null || Array.isArray(magnitude)) return false;
+    for (const v of Object.values(magnitude as Record<string, unknown>)) {
+        if (typeof v !== 'number' || !Number.isFinite(v)) return false;
+    }
+    if (confidence !== null) {
+        if (typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
+            return false;
+        }
+    }
+    return true;
+}
 
 // Format: "<week>-<routineExerciseId (UUID v4)>-<setIdx>"
 // Weeks 1–52, set indices 0–9

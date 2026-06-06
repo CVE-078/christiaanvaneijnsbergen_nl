@@ -127,7 +127,10 @@ export default function LogView() {
     })();
 
     function handleSave(key: string, entry: LogEntry) {
-        updateLog(key, entry);
+        // Link the set to the active guided session (null when logging from the
+        // Train list outside guided mode). The provider stamps the workout date
+        // and logs any deload/progression decision from here.
+        updateLog(key, entry, session?.id ?? null);
         const rid = parseLogKey(key)?.routineExerciseId;
         // Resolve against the variant-aware list shown in the active context.
         // In an A/B variant workout the rendered rows live under the variant

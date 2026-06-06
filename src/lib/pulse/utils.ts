@@ -38,6 +38,7 @@ import type {
     RecompReadout,
     BodyweightEntry,
     BodyMeasurement,
+    DecisionEvent,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -217,6 +218,63 @@ export function deloadTarget(
     const reps = nums.length ? nums[0] : previousEntry.reps;
     const kg = Math.max(MIN_KG, Math.round((previousEntry.kg * DELOAD_FACTOR) / 2.5) * 2.5);
     return { kg, reps };
+}
+
+// The adaptive decision the engine made for one lift in one week, ready to log
+// as a DecisionEvent — or null when no tracked decision applies. Pure mirror of
+// what ExerciseCard/SetLogger already compute on render: a stall auto-deloads
+// (deload wins, matching `deloadTgt ?? progression`), otherwise hitting the
+// prescribed RIR advances the lift (double progression). A set logged *harder*
+// than planned backs the weight off but is autoregulation, not a tracked
+// decision, so it returns null. Inputs are passed in (e1RM history, the prior
+// week's set) to keep this decoupled and unit-testable.
+export function decisionForExercise(args: {
+    routineExerciseId: string;
+    week: number;
+    e1rmHistory: Array<{ week: number; e1rm: number }>;
+    previousEntry: LogEntry | undefined;
+    repsRange: string;
+}): DecisionEvent | null {
+    const { routineExerciseId, week, e1rmHistory, previousEntry, repsRange } = args;
+    if (!previousEntry || week <= 1) return null;
+
+    if (shouldDeload(e1rmHistory)) {
+        const tgt = deloadTarget(previousEntry, repsRange);
+        if (tgt) {
+            return {
+                type: 'deload',
+                trigger: 'plateau',
+                affectedArea: routineExerciseId,
+                week,
+                magnitude: { fromKg: previousEntry.kg, toKg: tgt.kg },
+                confidence: null,
+            };
+        }
+    }
+
+    // Progression fires only when the prior set met or beat its prescribed RIR
+    // (the same condition that separates an advance from a back-off inside
+    // computeProgression). Otherwise the engine is reducing load, not progressing.
+    if (previousEntry.rir >= getRIR(week - 1)) {
+        const prog = computeProgression(previousEntry, repsRange, week);
+        if (prog) {
+            return {
+                type: 'progression',
+                trigger: 'targets_hit',
+                affectedArea: routineExerciseId,
+                week,
+                magnitude: {
+                    fromKg: previousEntry.kg,
+                    toKg: prog.kg,
+                    fromReps: previousEntry.reps,
+                    toReps: prog.reps,
+                },
+                confidence: null,
+            };
+        }
+    }
+
+    return null;
 }
 
 export function logKey(week: number, routineExerciseId: string, setIdx: number): string {

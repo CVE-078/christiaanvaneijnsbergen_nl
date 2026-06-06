@@ -41,6 +41,28 @@ async function recordDecision(
         { onConflict: 'user_id,routine_id,effective_week' },
     );
     if (error) throw new Error('Failed to save adjustment');
+
+    // Mirror an accepted ramp-back into the unified decision_events log so the
+    // Coach Decision Timeline reads one table. program_adjustments stays the
+    // operational prescription state; this is the canonical log. Best-effort and
+    // idempotent (same per-week key) — a failure here must not fail the accept,
+    // and the event is re-derivable from the adjustment row. A dismissal records
+    // nothing: it is the user declining an action, not an engine action.
+    if (kind === 'reentry_deload') {
+        await supabase.from('decision_events').upsert(
+            {
+                user_id: user.id,
+                routine_id: routineId,
+                type: 'ramp_back',
+                trigger: 'gap',
+                affected_area: '',
+                week: weekInteger,
+                magnitude: { volumeFactor: RAMPBACK_VOLUME_FACTOR, rirBonus: RAMPBACK_RIR_BONUS },
+                confidence: null,
+            },
+            { onConflict: 'user_id,routine_id,type,affected_area,week' },
+        );
+    }
 }
 
 // Accept a ramp-back: week `weekInteger` becomes a reduced-volume re-entry week.

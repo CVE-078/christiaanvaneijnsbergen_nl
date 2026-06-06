@@ -14,11 +14,42 @@ import { useSessions } from '@/hooks/pulse/useSessions';
 import { useProgramAdjustments } from '@/hooks/pulse/useProgramAdjustments';
 import { useOfflineSync } from '@/hooks/pulse/useOfflineSync';
 import { useToast } from '@/lib/pulse/toast';
-import { computeStreak, computePRMap, orderTabKeys, baseWorkoutType, swapKey } from '@/lib/pulse/utils';
+import {
+    computeStreak,
+    computePRMap,
+    orderTabKeys,
+    baseWorkoutType,
+    swapKey,
+    parseLogKey,
+    logKey,
+    computeE1RMHistory,
+    decisionForExercise,
+} from '@/lib/pulse/utils';
+import { recordDecisionEvent } from '@/app/pulse/actions';
 import { computeProgramPosition, computeWeekAdherence, computeRegenSuggestion } from '@/lib/pulse/adherence';
 import { accentPreset } from '@/lib/pulse/constants';
 import { buildWorkoutCsv } from '@/lib/pulse/csv';
-import type { RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View, ProgramPosition } from '@/lib/pulse/types';
+import type {
+    RoutineExercise,
+    WorkoutType,
+    TabKey,
+    ScheduleEntry,
+    View,
+    ProgramPosition,
+    LogEntry,
+} from '@/lib/pulse/types';
+
+// User-local calendar day (YYYY-MM-DD) for right now. en-CA formats as ISO-ordered
+// y-m-d; this is the workout_date stamped on each set so skip detection reads the
+// day a set actually happened, not the abstract program week. Falls back to the UTC
+// date if the stored timezone is somehow invalid (Intl throws on a bad zone).
+function localDateString(tz: string): string {
+    try {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+    } catch {
+        return new Date().toISOString().slice(0, 10);
+    }
+}
 
 interface Props {
     userId: string;
@@ -30,7 +61,13 @@ interface Props {
 export function PulseProvider({ userId, email, navigate, children }: Props) {
     const { show: showToast } = useToast();
     const onSaveError = useCallback((msg: string) => showToast(msg, 'error'), [showToast]);
-    const { logs, updateLog, deleteLog, loading: loadingLogs, error: logsError } = useWorkoutLogs(userId, onSaveError);
+    const {
+        logs,
+        updateLog: persistLog,
+        deleteLog,
+        loading: loadingLogs,
+        error: logsError,
+    } = useWorkoutLogs(userId, onSaveError);
     const {
         profile,
         bodyweightLogs,
@@ -179,6 +216,43 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }, [logs, routines, exercises, swaps, prMap]);
+
+    // DecisionEvent keys (`type:lift:week`) already logged this page session. We
+    // fire each at most once and only mark it captured on success, so an offline
+    // failure simply retries on the next save — the event is re-derivable from the
+    // logs, so it is fired best-effort rather than through the durable write queue.
+    const capturedDecisions = useRef<Set<string>>(new Set());
+
+    // The single set-save choke point exposed to the UI as `updateLog`. Persists
+    // the set (stamping the user-local workout date + the guided session id so skip
+    // detection / behavior learning are trustworthy), then logs the deload /
+    // progression DecisionEvent the save implies — derived purely from the logs the
+    // provider already holds, so the components stay untouched.
+    const logSet = useCallback(
+        (key: string, entry: LogEntry, sessionId?: string | null) => {
+            persistLog(key, entry, sessionId ?? null, localDateString(profile.timezone));
+
+            if (!activeRoutine) return;
+            const parsed = parseLogKey(key);
+            if (!parsed) return;
+            const re = activeRoutine.exercises.find((x) => x.id === parsed.routineExerciseId);
+            if (!re) return;
+            const decision = decisionForExercise({
+                routineExerciseId: re.id,
+                week: parsed.week,
+                e1rmHistory: computeE1RMHistory(logs, re.id),
+                previousEntry: parsed.week > 1 ? logs[logKey(parsed.week - 1, re.id, 0)] : undefined,
+                repsRange: re.reps,
+            });
+            if (!decision) return;
+            const dedupeKey = `${decision.type}:${decision.affectedArea}:${decision.week}`;
+            if (capturedDecisions.current.has(dedupeKey)) return;
+            recordDecisionEvent(activeRoutine.id, decision)
+                .then(() => capturedDecisions.current.add(dedupeKey))
+                .catch(() => {});
+        },
+        [logs, activeRoutine, profile.timezone, persistLog],
+    );
 
     const [onboardingOverride, setOnboardingOverride] = useState<boolean | null>(null);
     // Gate on loaded routines so the onboarding modal does not flash before the
@@ -343,8 +417,8 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     // object keeps its own referential stability, so the merged value only changes when one of
     // those sources changes.
     const logsValue = useMemo(
-        () => ({ logs, updateLog, deleteLog, handleExport }),
-        [logs, updateLog, deleteLog, handleExport],
+        () => ({ logs, updateLog: logSet, deleteLog, handleExport }),
+        [logs, logSet, deleteLog, handleExport],
     );
     const profileValue = useMemo(
         () => ({

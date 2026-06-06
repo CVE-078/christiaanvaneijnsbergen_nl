@@ -46,8 +46,10 @@ export interface PulseContextValue {
     /** Supabase auth user id. Scopes offline-queue writes to this session. */
     userId: string;
 
-    // Log mutations
-    updateLog: (key: string, entry: LogEntry) => void;
+    // Log mutations. sessionId links the set to its guided workout session (null
+    // when logging outside guided mode); the provider stamps the user-local
+    // workout date and logs any deload/progression DecisionEvent the save implies.
+    updateLog: (key: string, entry: LogEntry, sessionId?: string | null) => void;
     deleteLog: (key: string) => void;
     handleExport: () => void;
 

@@ -19,9 +19,9 @@ export function useWorkoutLogs(userId: string, _onError?: (msg: string) => void)
     const logs = data ?? EMPTY_LOGS;
 
     const updateLog = useCallback(
-        (key: string, entry: LogEntry) => {
+        (key: string, entry: LogEntry, sessionId?: string | null, workoutDate?: string | null) => {
             mutate({ ...logs, [key]: entry }, false);
-            runMutation('upsertLog', [key, entry], userId);
+            runMutation('upsertLog', [key, entry, sessionId ?? null, workoutDate ?? null], userId);
         },
         [logs, mutate, userId],
     );

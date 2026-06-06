@@ -34,7 +34,8 @@ vi.mock('@/lib/pulse/auth', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }));
 
-import { logBodyMeasurement, addExerciseToRoutine, updateGender } from '../actions';
+import { logBodyMeasurement, addExerciseToRoutine, updateGender, recordDecisionEvent } from '../actions';
+import type { DecisionEvent } from '@/lib/pulse/types';
 
 const VALID_UUID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const VALID_UUID_2 = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -125,5 +126,43 @@ describe('addExerciseToRoutine exercise visibility', () => {
         await expect(addExerciseToRoutine(VALID_UUID, VALID_UUID_2, '3', '8-12', null, 'push')).rejects.toThrow(
             'Invalid exercise id',
         );
+    });
+});
+
+describe('recordDecisionEvent', () => {
+    const event: DecisionEvent = {
+        type: 'deload',
+        trigger: 'plateau',
+        affectedArea: VALID_UUID_2,
+        week: 6,
+        magnitude: { fromKg: 100, toKg: 90 },
+        confidence: null,
+    };
+
+    it('upserts a valid event for an owned routine', async () => {
+        queue.push({ data: { id: VALID_UUID }, error: null }); // assertOwnsRoutine
+        queue.push({ data: null, error: null }); // upsert
+        await expect(recordDecisionEvent(VALID_UUID, event)).resolves.toBeUndefined();
+    });
+
+    it('rejects a malformed routine id before any query', async () => {
+        await expect(recordDecisionEvent('not-a-uuid', event)).rejects.toThrow('Invalid id');
+    });
+
+    it('rejects an invalid event', async () => {
+        await expect(recordDecisionEvent(VALID_UUID, { ...event, type: 'nonsense' } as never)).rejects.toThrow(
+            'Invalid decision event',
+        );
+    });
+
+    it('rejects an unowned routine', async () => {
+        queue.push({ data: null, error: null }); // assertOwnsRoutine -> not found
+        await expect(recordDecisionEvent(VALID_UUID, event)).rejects.toThrow('Routine not found');
+    });
+
+    it('throws (transient, not permanent) when the upsert fails', async () => {
+        queue.push({ data: { id: VALID_UUID }, error: null }); // assertOwnsRoutine
+        queue.push({ data: null, error: { message: 'db down' } }); // upsert error
+        await expect(recordDecisionEvent(VALID_UUID, event)).rejects.toThrow('Failed to save decision event');
     });
 });
