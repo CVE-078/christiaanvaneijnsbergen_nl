@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyLift, scoreRatio, computeStrengthScore, STRENGTH_STANDARDS } from '../strength';
+import { classifyLift, scoreRatio, computeStrengthScore, STRENGTH_STANDARDS, NEUTRAL_STANDARDS } from '../strength';
 
 describe('classifyLift', () => {
     it('matches bench', () => {
@@ -68,12 +68,29 @@ describe('STRENGTH_STANDARDS', () => {
 });
 
 describe('computeStrengthScore', () => {
-    it('returns a gender reason when gender is null', () => {
+    it('scores against a neutral (gender-midpoint) standard when gender is null, flagged approximate', () => {
+        // Gender is optional: no gate. Neutral bench thresholds are the midpoint of
+        // male [0.5,0.75,1.25,1.75,2.0] and female [0.35,0.5,0.75,1.0,1.5] =
+        // [0.425,0.625,1.0,1.375,1.75]; ratio 100/80 = 1.25 → 67 (between 50 and 75).
         const r = computeStrengthScore({ gender: null, bodyweightKg: 80, lifts: [{ name: 'Bench', e1rm: 100 }] });
-        expect(r.score).toBeNull();
-        expect(r.level).toBeNull();
-        expect(r.reason).toBe('Set your gender in Profile to get a strength score.');
-        expect(r.lifts).toEqual([]);
+        expect(r.score).toBe(67);
+        expect(r.approximate).toBe(true);
+        expect(r.reason).toBeNull();
+        expect(r.lifts).toHaveLength(1);
+    });
+    it('is exact (not approximate) when gender is set', () => {
+        const r = computeStrengthScore({
+            gender: 'male',
+            bodyweightKg: 80,
+            lifts: [{ name: 'Bench Press', e1rm: 100 }],
+        });
+        expect(r.approximate).toBeFalsy();
+    });
+    it('NEUTRAL_STANDARDS stays ascending per lift', () => {
+        for (const arr of Object.values(NEUTRAL_STANDARDS)) {
+            expect(arr).toHaveLength(5);
+            for (let i = 1; i < arr.length; i++) expect(arr[i]).toBeGreaterThan(arr[i - 1]);
+        }
     });
     it('returns a bodyweight reason when bodyweight is null or <= 0', () => {
         const a = computeStrengthScore({ gender: 'male', bodyweightKg: null, lifts: [{ name: 'Bench', e1rm: 100 }] });
@@ -93,7 +110,11 @@ describe('computeStrengthScore', () => {
     });
     it('scores a single lift and labels it', () => {
         // male bench thresholds [0.5,0.75,1.25,1.75,2.0]; ratio 1.25 -> 50
-        const r = computeStrengthScore({ gender: 'male', bodyweightKg: 80, lifts: [{ name: 'Bench Press', e1rm: 100 }] });
+        const r = computeStrengthScore({
+            gender: 'male',
+            bodyweightKg: 80,
+            lifts: [{ name: 'Bench Press', e1rm: 100 }],
+        });
         expect(r.score).toBe(50);
         expect(r.lifts).toHaveLength(1);
         expect(r.lifts[0]).toMatchObject({ lift: 'bench', label: 'Bench Press', subScore: 50, ratio: 1.25 });

@@ -41,6 +41,11 @@ export default function StrengthScoreCard({ strength }: { strength: StrengthScor
                     </div>
                 ))}
             </div>
+            {strength.approximate && (
+                <p className="mt-3 font-pulse text-[0.75rem] text-pulse-muted leading-[1.5]">
+                    Approximate, set your gender in Profile to refine it to gender-specific standards.
+                </p>
+            )}
         </div>
     );
 }

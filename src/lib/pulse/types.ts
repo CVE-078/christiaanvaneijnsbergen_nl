@@ -88,6 +88,9 @@ export interface StrengthScore {
     score: number | null;
     level: string | null;
     reason: string | null;
+    // True when scored against the neutral (gender-midpoint) standard because no
+    // gender is set, so the UI can offer to refine it. Absent/false = exact.
+    approximate?: boolean;
     lifts: Array<{ lift: MainLift; label: string; subScore: number; ratio: number }>;
 }
 
