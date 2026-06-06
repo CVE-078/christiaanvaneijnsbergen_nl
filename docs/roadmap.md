@@ -26,7 +26,7 @@
 
 **Next up, in order:**
 1. **Remaining Tier 1** : guided set-row polish (#2, carries the opportunistic a11y Q8 fix) and positioning copy (#3). Both want a visual/voice call from the user (#1 is now complete).
-2. **Validation block**, train on it with intent and run the deliberate missed-week test (skip a scheduled week to fire ramp-back), now that the `DecisionEvent` log records the adaptive events as first-class rows for the gate to query.
+2. **Validation block**, train on it with intent and run the deliberate missed-week test (skip a scheduled week to fire ramp-back), now that the `DecisionEvent` log records the adaptive events as first-class rows for the gate to query. Review query ready at `docs/queries/decision-events-review.sql` (newest-first, today-only, and ramp-back-only variants).
 3. **Then Phase 1 / Tier 2**, personalization in generation (training style, injury restrictions, equipment profiles).
 
 **Launch-readiness track (gated behind validation, not due while private validation runs):** the **auth + billing lifecycle** is the long pole, then the **a11y audit**, both in the Launch floor section below.
