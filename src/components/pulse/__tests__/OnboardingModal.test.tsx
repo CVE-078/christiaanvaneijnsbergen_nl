@@ -36,9 +36,10 @@ describe('OnboardingModal', () => {
         expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
     });
 
-    it('lets you skip the gender step', () => {
+    it('lets you skip the gender step (Next advances without a pick)', () => {
         render(<OnboardingModal />);
-        fireEvent.click(screen.getByText('Skip'));
+        expect(screen.getByText(/what's your gender/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Next'));
         expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
     });
 
@@ -51,8 +52,8 @@ describe('OnboardingModal', () => {
 
     it('Cancel dismisses onboarding without generating', () => {
         render(<OnboardingModal />);
-        // Skip past the optional gender step to reach the equipment step's Cancel.
-        fireEvent.click(screen.getByText('Skip'));
+        // Advance past the optional gender step to reach the equipment step's Cancel.
+        fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Cancel'));
         expect(dismissOnboarding).toHaveBeenCalledTimes(1);
         expect(generateRoutine).not.toHaveBeenCalled();

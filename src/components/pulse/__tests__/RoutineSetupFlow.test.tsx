@@ -148,4 +148,31 @@ describe('RoutineSetupFlow', () => {
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         expect(onComplete.mock.calls[0][0].programWeeks).toBe(16);
     });
+
+    it('the gender step is optional: Next is enabled with no pick and returns a null gender', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        const single = { ...initial, trainingDays: [1, 4] }; // no style step
+        render(<RoutineSetupFlow collectGender initial={single} onComplete={onComplete} onClose={vi.fn()} />);
+        expect(screen.getByText(/what's your gender/i)).toBeInTheDocument();
+        // No gender picked, Next still advances straight to equipment.
+        fireEvent.click(screen.getByText('Next')); // gender → equipment
+        expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
+        // gender · equipment · experience · goal · days · which days · session · length → start
+        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].gender).toBeNull();
+    });
+
+    it('the gender step offers a "Prefer not to say" choice that returns a null gender', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        const single = { ...initial, trainingDays: [1, 4] };
+        render(<RoutineSetupFlow collectGender initial={single} onComplete={onComplete} onClose={vi.fn()} />);
+        fireEvent.click(screen.getByText('Prefer not to say'));
+        fireEvent.click(screen.getByText('Next')); // gender → equipment
+        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].gender).toBeNull();
+    });
 });

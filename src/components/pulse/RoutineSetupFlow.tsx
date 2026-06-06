@@ -157,6 +157,10 @@ export default function RoutineSetupFlow({
 }: Props) {
     const [step, setStep] = useState<Step>(collectGender ? 'gender' : 1);
     const [gender, setGender] = useState<Gender | null>(null);
+    // Tracks an explicit "Prefer not to say" pick so it can highlight like the
+    // other options. gender stays null in that case (and when untouched), which
+    // is what the consumer treats as "no gender" (neutral strength standard).
+    const [genderDeclined, setGenderDeclined] = useState(false);
     const [equipment, setEquipment] = useState<Set<EquipmentKey>>(new Set(initial?.equipment ?? []));
     const [experience, setExperience] = useState<ExperienceLevel | null>(initial?.experience ?? null);
     const [goal, setGoal] = useState<Goal | null>(initial?.goal ?? null);
@@ -242,25 +246,39 @@ export default function RoutineSetupFlow({
                     {introBlock}
                     <p className={Q}>What&apos;s your gender?</p>
                     <p className="font-pulse text-xs text-pulse-dim -mt-3">
-                        Used for strength standards and a light program nudge. Optional.
+                        Used for strength standards and a light program nudge. Optional, you can skip it.
                     </p>
                     <div className="flex flex-col gap-2">
-                        <OptionRow label="Male" active={gender === 'male'} onClick={() => setGender('male')} />
-                        <OptionRow label="Female" active={gender === 'female'} onClick={() => setGender('female')} />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <button onClick={() => setStep(1)} disabled={!gender} className={BTN_PRIMARY_BLOCK}>
-                            Next
-                        </button>
-                        <button
+                        <OptionRow
+                            label="Male"
+                            active={gender === 'male'}
+                            onClick={() => {
+                                setGender('male');
+                                setGenderDeclined(false);
+                            }}
+                        />
+                        <OptionRow
+                            label="Female"
+                            active={gender === 'female'}
+                            onClick={() => {
+                                setGender('female');
+                                setGenderDeclined(false);
+                            }}
+                        />
+                        <OptionRow
+                            label="Prefer not to say"
+                            active={genderDeclined}
                             onClick={() => {
                                 setGender(null);
-                                setStep(1);
+                                setGenderDeclined(true);
                             }}
-                            className="font-pulse text-xs text-pulse-dim text-center bg-transparent border-none cursor-pointer">
-                            Skip
-                        </button>
+                        />
                     </div>
+                    {/* Next is always enabled: no gender is a valid choice, so the
+                        score and program fall back to their neutral defaults. */}
+                    <button onClick={() => setStep(1)} className={BTN_PRIMARY_BLOCK}>
+                        Next
+                    </button>
                 </div>
             </div>
         );
