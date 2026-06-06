@@ -303,6 +303,12 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         () => (activeRoutine ? adjustments.filter((a) => a.routine_id === activeRoutine.id) : []),
         [adjustments, activeRoutine],
     );
+    // The Coach feed is per active routine: a decision from another routine must
+    // not show while you're training this one (same scoping as sessions/adjustments).
+    const routineDecisions = useMemo(
+        () => (activeRoutine ? decisions.filter((d) => d.routine_id === activeRoutine.id) : []),
+        [decisions, activeRoutine],
+    );
     const programPosition = useMemo<ProgramPosition | null>(() => {
         if (!activeRoutine) return null;
         return computeProgramPosition({
@@ -558,7 +564,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             dismissReentry,
             lightenThisWeek,
             refreshSessions,
-            decisions,
+            decisions: routineDecisions,
         }),
         [
             adjustments,
@@ -569,7 +575,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             dismissReentry,
             lightenThisWeek,
             refreshSessions,
-            decisions,
+            routineDecisions,
         ],
     );
     const loadingValue = useMemo(() => ({ loading, errors, retry }), [loading, errors, retry]);
