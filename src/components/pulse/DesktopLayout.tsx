@@ -8,6 +8,7 @@ import { clearAllSWRCache } from '@/lib/pulse/swrCache';
 import { flushQueue } from '@/lib/pulse/offlineSync';
 import OnboardingModal from './OnboardingModal';
 import RestTimer from './RestTimer';
+import CoachPanel from './CoachPanel';
 import type { RoutineExercise, View } from '@/lib/pulse/types';
 
 const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
@@ -258,9 +259,12 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                     </div>
                 )}
 
+                {/* Coach decisions — the adaptive engine's calls, surfaced. */}
+                <CoachPanel variant="rail" />
+
                 {/* Phase context */}
                 <div className="mt-9 text-xs text-pulse-muted tracking-[0.02em]">
-                    {phase.label} — {phase.subtitle} · Week {String(activeWeek).padStart(2, '0')}
+                    {phase.label}, {phase.subtitle} · Week {String(activeWeek).padStart(2, '0')}
                 </div>
             </aside>
 

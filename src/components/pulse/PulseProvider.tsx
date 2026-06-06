@@ -12,6 +12,7 @@ import { useSwaps } from '@/hooks/pulse/useSwaps';
 import { usePreferences } from '@/hooks/pulse/usePreferences';
 import { useSessions } from '@/hooks/pulse/useSessions';
 import { useProgramAdjustments } from '@/hooks/pulse/useProgramAdjustments';
+import { useDecisionEvents } from '@/hooks/pulse/useDecisionEvents';
 import { useOfflineSync } from '@/hooks/pulse/useOfflineSync';
 import { useToast } from '@/lib/pulse/toast';
 import {
@@ -133,6 +134,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         loading: loadingAdjustments,
         error: adjustmentsError,
     } = useProgramAdjustments();
+    const { decisions } = useDecisionEvents();
 
     // Replay any offline-queued log/note writes on mount, reconnect, and focus.
     // Scoped to this user so a shared device never replays another account's writes.
@@ -554,6 +556,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             acceptReentryDeload,
             dismissReentry,
             refreshSessions,
+            decisions,
         }),
         [
             adjustments,
@@ -563,6 +566,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             acceptReentryDeload,
             dismissReentry,
             refreshSessions,
+            decisions,
         ],
     );
     const loadingValue = useMemo(() => ({ loading, errors, retry }), [loading, errors, retry]);

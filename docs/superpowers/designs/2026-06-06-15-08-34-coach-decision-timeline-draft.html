@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Coach Decision Timeline, design draft</title>
+<style>
+  :root {
+    --accent: #ff7d66; --accent-dim: #b0503d;
+    --bg: #0e1113; --surface: #161a1d; --surface-2: #1c2125;
+    --border: #262c31; --dim: #aab2b7; --muted: #6f787e; --text: #e7ebed;
+    --pos: #6fd09a;   /* calm green for progression, derived, not in theme yet */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; padding: 40px 24px; line-height: 1.45;
+  }
+  h1.page { font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
+  .sub { color: var(--dim); font-size: 13px; margin-bottom: 32px; max-width: 760px; }
+  .grid { display: grid; grid-template-columns: 380px 340px; gap: 40px; align-items: start; }
+  .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+  /* ── Full timeline ───────────────────────────────────────── */
+  .timeline { background: transparent; }
+  .week-head {
+    display: flex; align-items: baseline; gap: 8px; margin: 26px 0 12px;
+  }
+  .week-head:first-child { margin-top: 0; }
+  .week-head .wk { font-size: 12px; font-weight: 600; letter-spacing: .03em; color: var(--text); }
+  .week-head .phase { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+  .week-head .rule { flex: 1; height: 1px; background: var(--border); }
+
+  .event {
+    position: relative; display: flex; gap: 13px; padding: 12px 0 12px 2px;
+  }
+  /* vertical connector */
+  .event::before {
+    content: ''; position: absolute; left: 12px; top: 0; bottom: 0; width: 1px; background: var(--border);
+  }
+  .event:first-of-type::before { top: 18px; }
+  .event:last-of-type::before { bottom: calc(100% - 18px); }
+  .dot {
+    position: relative; z-index: 1; flex-shrink: 0; width: 25px; height: 25px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 12px; line-height: 1;
+  }
+  .dot.deload   { color: var(--accent); }
+  .dot.ramp     { color: var(--accent); }
+  .dot.progress { color: var(--pos); }
+  .ev-body { min-width: 0; flex: 1; }
+  .ev-head { font-size: 14px; font-weight: 500; letter-spacing: -.01em; color: var(--text); }
+  .ev-head b { font-weight: 600; }
+  .ev-why  { font-size: 12.5px; color: var(--dim); margin-top: 2px; }
+  .ev-next { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .ev-meta { font-size: 11px; color: var(--muted); margin-top: 5px; letter-spacing: .02em; }
+  .chip {
+    display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 999px; vertical-align: middle;
+  }
+  .chip.progress { color: var(--pos); background: color-mix(in srgb, var(--pos) 14%, transparent); }
+  .chip.deload   { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .chip.ramp     { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+  /* ── Compact right-rail "Coach" card ─────────────────────── */
+  .rail { background: var(--surface); border-radius: 16px; padding: 20px; }
+  .rail h2 { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .mini { display: flex; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .mini:last-of-type { border-bottom: 0; }
+  .mini .dot { width: 21px; height: 21px; font-size: 11px; }
+  .mini .m-head { font-size: 13px; font-weight: 500; color: var(--text); }
+  .mini .m-why { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .viewall { display: inline-block; margin-top: 14px; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
+
+  /* phone train surface */
+  .phone { width: 340px; margin-top: 8px; }
+  .train-card {
+    background: var(--surface); border-radius: 16px; padding: 15px 16px;
+    border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  }
+  .note { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+  .footnote { color: var(--muted); font-size: 12px; max-width: 760px; margin-top: 40px; border-top: 1px solid var(--border); padding-top: 18px; }
+  .footnote b { color: var(--dim); }
+  code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; font-size: 12px; color: var(--dim); }
+</style>
+</head>
+<body>
+  <h1 class="page">Coach Decision Timeline</h1>
+  <p class="sub">
+    Surfacing the <code>decision_events</code> log we just shipped: every adaptive call Pulse makes, in plain language:
+    what changed, why, what's next. Calm and ignorable until you look. This is the proof Pulse is a coach, not a logger.
+    Two surfaces below: the <b>full timeline</b> (the dedicated view) and the <b>compact "Coach" card</b> (right rail on desktop, inline on Train).
+  </p>
+
+  <div class="grid">
+    <!-- FULL TIMELINE -->
+    <div>
+      <div class="label">Full timeline (dedicated view)</div>
+      <div class="timeline">
+
+        <div class="week-head"><span class="wk">Week 6</span><span class="phase">· Hypertrophy</span><span class="rule"></span></div>
+
+        <div class="event">
+          <div class="dot progress">↑</div>
+          <div class="ev-body">
+            <div class="ev-head"><b>Bench Press</b> → 82.5 kg <span class="chip progress">Progression</span></div>
+            <div class="ev-why">You hit the prescribed reps at target RIR last session.</div>
+            <div class="ev-next">Heavier this week, hold the same effort, reps reset to the bottom of the range.</div>
+            <div class="ev-meta">80 → 82.5 kg · today</div>
+          </div>
+        </div>
+
+        <div class="event">
+          <div class="dot deload">↓</div>
+          <div class="ev-body">
+            <div class="ev-head"><b>Barbell Row</b> deloaded <span class="chip deload">Deload</span></div>
+            <div class="ev-why">No e1RM gain in 3 weeks, the lift stalled.</div>
+            <div class="ev-next">Lighter targets this week to break the plateau, then build back up.</div>
+            <div class="ev-meta">70 → 62.5 kg · today</div>
+          </div>
+        </div>
+
+        <div class="week-head"><span class="wk">Week 5</span><span class="phase">· Re-entry</span><span class="rule"></span></div>
+
+        <div class="event">
+          <div class="dot ramp">⟳</div>
+          <div class="ev-body">
+            <div class="ev-head">Ramp-back week added <span class="chip ramp">Ramp-back</span></div>
+            <div class="ev-why">11 days since your last session, eased you back in before resuming.</div>
+            <div class="ev-next">Reduced volume and +1 RIR for this week, then straight back to the plan.</div>
+            <div class="ev-meta">volume ×0.6 · RIR +1 · 4 days ago</div>
+          </div>
+        </div>
+
+        <div class="week-head"><span class="wk">Week 4</span><span class="phase">· Hypertrophy</span><span class="rule"></span></div>
+
+        <div class="event">
+          <div class="dot progress">↑</div>
+          <div class="ev-body">
+            <div class="ev-head"><b>Squat</b> → 100 kg <span class="chip progress">Progression</span></div>
+            <div class="ev-why">Targets met at RIR 2, time to add load.</div>
+            <div class="ev-meta">97.5 → 100 kg · 8 days ago</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- COMPACT SURFACES -->
+    <div>
+      <div class="label">Compact, desktop right rail</div>
+      <div class="rail">
+        <h2>Coach</h2>
+        <div style="margin-top:14px">
+          <div class="mini">
+            <div class="dot progress">↑</div>
+            <div><div class="m-head">Bench +2.5 kg</div><div class="m-why">Targets hit, heavier this week</div></div>
+          </div>
+          <div class="mini">
+            <div class="dot deload">↓</div>
+            <div><div class="m-head">Barbell Row deloaded</div><div class="m-why">Stalled 3 weeks, lighter to reset</div></div>
+          </div>
+          <div class="mini">
+            <div class="dot ramp">⟳</div>
+            <div><div class="m-head">Ramp-back week added</div><div class="m-why">11 days away, eased back in</div></div>
+          </div>
+        </div>
+        <span class="viewall">View all decisions →</span>
+      </div>
+
+      <div class="label" style="margin-top:32px">Compact, inline on Train (mobile)</div>
+      <div class="phone">
+        <div class="train-card">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="dot progress" style="width:20px;height:20px;font-size:11px">↑</span>
+            <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600">Coach · this week</span>
+          </div>
+          <div style="font-size:14px;font-weight:500;margin-top:9px">Bench +2.5 kg, Barbell Row eased back</div>
+          <div style="font-size:12.5px;color:var(--dim);margin-top:3px">2 progressions, 1 deload applied. Tap to see why.</div>
+        </div>
+        <p class="note">Sits where <code>RegenNudge</code> already lives, same calm, non-blocking slot, only appears when there's a decision to show.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="footnote">
+    <b>Scope I'd ship first (Tier 1 #1):</b> the read path (<code>loadDecisionEvents</code> → <code>/api/pulse/decisions</code> → <code>useDecisionEvents</code>),
+    the compact "Coach" card (right rail + Train inline), and the full list as a simple section. The exercise name is resolved from <code>routines</code> the way CSV export already does.
+    <b>Grows into Tier 3 #10</b> by layering derived events (program created, block transitions, PRs) into the same timeline later, no schema change.
+    <b>Open calls for you:</b> (1) does the full timeline get its own nav item, or live as a section under Progress / an overlay from the card? (2) progression green (<code>--pos #6fd09a</code>) is a new token, keep it, or render progressions in the accent like everything else to stay strictly on-palette?
+  </p>
+</body>
+</html>

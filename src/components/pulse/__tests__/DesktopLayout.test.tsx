@@ -86,6 +86,7 @@ const mockContext = {
     acceptReentryDeload: vi.fn().mockResolvedValue(undefined),
     dismissReentry: vi.fn().mockResolvedValue(undefined),
     refreshSessions: vi.fn(),
+    decisions: [],
     loading: {
         profile: false,
         bodyweight: false,

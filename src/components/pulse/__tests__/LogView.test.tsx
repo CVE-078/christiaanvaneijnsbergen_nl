@@ -75,6 +75,8 @@ const defaultContext = {
     programPosition: null,
     regenSuggestion: null,
     refreshSessions: vi.fn(),
+    decisions: [],
+    routines: [],
 };
 
 beforeEach(() => {

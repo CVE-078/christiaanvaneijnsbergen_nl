@@ -27,6 +27,7 @@ import type {
     ProgramAdjustment,
     ProgramPosition,
     RegenSuggestion,
+    DecisionEventRow,
 } from '@/lib/pulse/types';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 
@@ -194,6 +195,8 @@ export interface PulseContextValue {
     regenSuggestion: RegenSuggestion;
     acceptReentryDeload: (routineId: string, weekInteger: number, daysAway?: number) => Promise<void>;
     dismissReentry: (routineId: string, weekInteger: number) => Promise<void>;
+    // The unified decision log (newest first) for the Coach Decision Timeline.
+    decisions: DecisionEventRow[];
     // Revalidate the sessions feed (call after completing a workout so the
     // derived program position updates immediately rather than after SWR's dedup).
     refreshSessions: () => void;
