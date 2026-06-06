@@ -314,6 +314,11 @@ function ExerciseSetRows({
     onDelete: (key: string) => void;
 }) {
     const maxSets = parseMaxSets(re.sets);
+    // Single-active focus: the next unsaved set is the only one showing inputs; the
+    // rest render as dimmed "not started" previews. -1 when every set is logged.
+    const activeIdx = Array.from({ length: maxSets }, (_, s) => logKey(week, re.id, s)).findIndex(
+        (k) => !logs[k]?.saved,
+    );
     return (
         <div className="flex flex-col">
             {Array.from({ length: maxSets }, (_, s) => {
@@ -333,6 +338,7 @@ function ExerciseSetRows({
                         unit={unit}
                         isPR={isPR}
                         variant="editorial"
+                        active={s === activeIdx}
                         onSave={(e) => onSave(key, e)}
                         onDelete={() => onDelete(key)}
                     />
@@ -586,7 +592,11 @@ export default function WorkoutModeScreen({
     // ---------------------------------------------------------------- MOBILE (Focus)
     if (!isDesktop) {
         return (
-            <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-pulse-bg">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Guided workout"
+                className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-pulse-bg">
                 <div
                     aria-hidden
                     className="pointer-events-none absolute left-1/2 top-0 z-0 h-[420px] w-[520px] -translate-x-1/2"
@@ -708,7 +718,11 @@ export default function WorkoutModeScreen({
 
     // --------------------------------------------------------------- DESKTOP (two-pane)
     return (
-        <div className="fixed inset-0 z-50 flex overflow-hidden bg-pulse-bg">
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Guided workout"
+            className="fixed inset-0 z-50 flex overflow-hidden bg-pulse-bg">
             <div
                 aria-hidden
                 className="pointer-events-none absolute left-[18%] top-[-260px] z-0 h-[640px] w-[780px]"

@@ -63,6 +63,21 @@ describe('WorkoutModeScreen', () => {
         expect(screen.getByText(/exercise 1 of 2/i)).toBeInTheDocument();
     });
 
+    it('shows only the next unsaved set as active, the rest as idle previews', () => {
+        // 3-set exercise, nothing logged: only set 1 has an input; sets 2 and 3 are idle.
+        render(<WorkoutModeScreen {...defaultProps} logs={{}} />);
+        expect(screen.getAllByRole('spinbutton', { name: /weight in kg/i })).toHaveLength(1);
+        expect(screen.getAllByText(/not started/i)).toHaveLength(2);
+    });
+
+    it('moves the active input to the next set after one is logged', () => {
+        const logs: Logs = { '1-re1-0': { kg: 80, reps: 10, rir: 2, saved: true } };
+        render(<WorkoutModeScreen {...defaultProps} logs={logs} />);
+        // Set 1 logged, set 2 active (one input), set 3 still idle.
+        expect(screen.getAllByRole('spinbutton', { name: /weight in kg/i })).toHaveLength(1);
+        expect(screen.getAllByText(/not started/i)).toHaveLength(1);
+    });
+
     it('advances to next exercise on Next click', () => {
         render(<WorkoutModeScreen {...defaultProps} />);
         fireEvent.click(screen.getByRole('button', { name: /next exercise/i }));

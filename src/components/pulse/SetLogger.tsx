@@ -31,6 +31,11 @@ interface Props {
     // 'editorial' is the guided-mode look: hairline rows with a "Set N" label and
     // a big display value, vs the surface card used on the Train screen ('card').
     variant?: 'card' | 'editorial';
+    // Guided single-active focus (editorial only): when false, an unsaved set
+    // renders as a dimmed "not started" preview instead of a full input form, so
+    // only the next set you log shows inputs. Default true, so the Train card
+    // variant and every existing caller are unaffected.
+    active?: boolean;
     onSave: (entry: LogEntry) => void;
     onDelete?: () => void;
 }
@@ -57,6 +62,7 @@ export default function SetLogger({
     unit,
     deload,
     variant = 'card',
+    active = true,
     onSave,
     onDelete,
 }: Props) {
@@ -183,12 +189,27 @@ export default function SetLogger({
         targetRIR > 0 ? `stop with about ${targetRIR} rep${targetRIR === 1 ? '' : 's'} left` : 'push close to failure';
     const deloadTankClause = targetRIR > 0 ? ` and keep ${targetRIR} rep${targetRIR === 1 ? '' : 's'} in the tank` : '';
 
+    // Guided single-active focus: an unsaved set that is not the active one shows a
+    // dimmed "not started" preview instead of a full input form (Editorial draft C).
+    if (editorial && !saved && !editing && !active) {
+        return (
+            <div className="flex items-center gap-3.5 border-b border-pulse-border py-3 opacity-50">
+                <span className="w-[3.25rem] shrink-0 font-pulse-body text-[0.625rem] uppercase tracking-[0.16em] text-pulse-muted">
+                    Set {setIdx + 1}
+                </span>
+                <span className="font-pulse-body text-[0.8125rem] tracking-[0.02em] text-pulse-muted">
+                    Not started · target RIR {targetRIR}
+                </span>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col">
             <div
                 className={
                     editorial
-                        ? 'flex items-center gap-3.5 border-b border-pulse-border py-3 transition-colors duration-200'
+                        ? 'group flex items-center gap-3.5 border-b border-pulse-border py-3 transition-colors duration-200'
                         : `flex items-center gap-3 rounded-[11px] px-3.5 py-[0.6875rem] transition-colors duration-200 ${
                               showInputs
                                   ? 'bg-transparent shadow-[inset_0_0_0_1px_var(--color-pulse-border)]'
@@ -260,7 +281,7 @@ export default function SetLogger({
                                                 </span>
                                             </span>
                                         </label>
-                                        <label className="flex w-[4.75rem] flex-col gap-0.5 rounded-xl border border-pulse-border bg-pulse-bg px-3 py-1.5 transition-colors focus-within:border-pulse-accent/60">
+                                        <label className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-xl border border-pulse-border bg-pulse-bg px-3 py-1.5 transition-colors focus-within:border-pulse-accent/60">
                                             <span className="font-pulse-body text-[0.5625rem] uppercase tracking-[0.16em] text-pulse-muted">
                                                 Reps
                                             </span>
@@ -282,6 +303,11 @@ export default function SetLogger({
                                                 className="w-full min-w-0 bg-transparent font-pulse-display text-2xl font-bold leading-none text-pulse-text outline-none [appearance:textfield] placeholder:text-pulse-muted [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                             />
                                         </label>
+                                        <button
+                                            onClick={handleSave}
+                                            className="shrink-0 cursor-pointer self-stretch rounded-xl border-none bg-pulse-accent px-4 font-pulse text-sm font-semibold text-pulse-bg">
+                                            {editing ? 'Update' : 'Save'}
+                                        </button>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                                         <span className="rounded-md border border-pulse-border bg-pulse-surface px-2 py-0.5 font-pulse-body text-[0.625rem] tracking-[0.02em] text-pulse-dim">
@@ -456,15 +482,14 @@ export default function SetLogger({
                                     Cancel
                                 </button>
                             )}
-                            <button
-                                onClick={handleSave}
-                                className={`shrink-0 cursor-pointer border-none bg-pulse-accent font-pulse font-semibold text-pulse-bg transition-opacity duration-100 ${
-                                    editorial
-                                        ? 'h-12 rounded-xl px-5 text-sm'
-                                        : 'h-10 rounded-[6px] px-4 text-[0.75rem] uppercase tracking-[0.06em]'
-                                }`}>
-                                {editing ? 'Update' : 'Save'}
-                            </button>
+                            {/* Editorial keeps Save grouped with the inputs above; card keeps it here. */}
+                            {!editorial && (
+                                <button
+                                    onClick={handleSave}
+                                    className="h-10 shrink-0 cursor-pointer rounded-[6px] border-none bg-pulse-accent px-4 font-pulse text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-pulse-bg transition-opacity duration-100">
+                                    {editing ? 'Update' : 'Save'}
+                                </button>
+                            )}
                         </div>
                     </>
                 ) : (
@@ -502,7 +527,7 @@ export default function SetLogger({
                                     PR
                                 </span>
                             )}
-                            {showPlates && (
+                            {showPlates && !editorial && (
                                 <button
                                     type="button"
                                     aria-label="Plate calculator"
@@ -526,18 +551,27 @@ export default function SetLogger({
                                     </svg>
                                 </button>
                             )}
-                            <button
-                                onClick={handleEdit}
-                                className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer p-0">
-                                Edit
-                            </button>
-                            {onDelete && (
+                            {/* Editorial keeps the logged row clean: Edit/delete are de-emphasized
+                                and brighten on hover/focus; the Train card keeps them inline. */}
+                            <div
+                                className={
+                                    editorial
+                                        ? 'flex items-center gap-3 opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100'
+                                        : 'contents'
+                                }>
                                 <button
-                                    onClick={onDelete}
-                                    className="font-pulse text-[0.75rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0">
-                                    ✕
+                                    onClick={handleEdit}
+                                    className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer p-0">
+                                    Edit
                                 </button>
-                            )}
+                                {onDelete && (
+                                    <button
+                                        onClick={onDelete}
+                                        className="font-pulse text-[0.75rem] text-pulse-dim bg-transparent border-none cursor-pointer p-0">
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
                             {editorial && (
                                 <span className="grid h-[1.375rem] w-[1.375rem] place-items-center rounded-full bg-pulse-accent text-pulse-bg">
                                     <svg
