@@ -1,4 +1,5 @@
 import { buildProgram } from './data';
+import { secondarySets } from './muscleMap';
 import {
     BARBELL_KG,
     DUMBBELL_HANDLE_KG,
@@ -25,6 +26,7 @@ import type {
     PRMap,
     ShareStats,
     ExerciseCategory,
+    MovementPattern,
     VolumeTargetRow,
     RecoveryStatus,
     RecoveryDetail,
@@ -593,26 +595,68 @@ export function isSetPR(kg: number, reps: number, routineExerciseId: string, prM
     return calcE1RM(kg, reps) >= best;
 }
 
-// Sum saved working sets per exercise category for a single week.
-export function computePerMuscleVolume(
+// Fractional-set per-muscle accumulation for one week, shared by the volume and
+// recovery readouts so they apply the SAME attribution. Each saved set credits its
+// exercise's category 1.0 (the primary), then, when the exercise has a movement
+// pattern, the pattern's bucketed secondaries (muscleMap.secondarySets) on top, so
+// a bench press also credits triceps/shoulders. RIR is credited at full weight to
+// every touched category with a per-category count, so avgRir stays a true RIR
+// average rather than a fractional one. Exercises with no movement_pattern (user-
+// created, or an unseeded row) fall back to primary-only.
+export function accumulatePerMuscle(
     logs: Logs,
     routineExercises: RoutineExercise[],
     week: number,
-): Partial<Record<ExerciseCategory, number>> {
+): {
+    volume: Partial<Record<ExerciseCategory, number>>;
+    rirSum: Partial<Record<ExerciseCategory, number>>;
+    rirCount: Partial<Record<ExerciseCategory, number>>;
+} {
     const catById = new Map<string, ExerciseCategory>();
+    const patternById = new Map<string, MovementPattern>();
     for (const re of routineExercises) {
         if (re.exercise?.category) catById.set(re.id, re.exercise.category);
+        if (re.exercise?.movement_pattern) patternById.set(re.id, re.exercise.movement_pattern);
     }
-    const out: Partial<Record<ExerciseCategory, number>> = {};
+    const volume: Partial<Record<ExerciseCategory, number>> = {};
+    const rirSum: Partial<Record<ExerciseCategory, number>> = {};
+    const rirCount: Partial<Record<ExerciseCategory, number>> = {};
+    const credit = (cat: ExerciseCategory, sets: number, rir: number) => {
+        volume[cat] = (volume[cat] ?? 0) + sets;
+        rirSum[cat] = (rirSum[cat] ?? 0) + rir;
+        rirCount[cat] = (rirCount[cat] ?? 0) + 1;
+    };
     for (const [key, val] of Object.entries(logs)) {
         if (!val.saved) continue;
         const parsed = parseLogKey(key);
         if (!parsed || parsed.week !== week) continue;
         const cat = catById.get(parsed.routineExerciseId);
         if (!cat) continue;
-        out[cat] = (out[cat] ?? 0) + 1;
+        credit(cat, 1, val.rir);
+        const pattern = patternById.get(parsed.routineExerciseId);
+        if (pattern) {
+            for (const [secCat, frac] of Object.entries(secondarySets(pattern, cat)) as [ExerciseCategory, number][]) {
+                credit(secCat, frac, val.rir);
+            }
+        }
     }
-    return out;
+    return { volume, rirSum, rirCount };
+}
+
+// Fractional working sets per exercise category for a single week (primary 1.0 plus
+// bucketed pattern secondaries). Values are non-integer.
+export function computePerMuscleVolume(
+    logs: Logs,
+    routineExercises: RoutineExercise[],
+    week: number,
+): Partial<Record<ExerciseCategory, number>> {
+    return accumulatePerMuscle(logs, routineExercises, week).volume;
+}
+
+// Display rounding for fractional set counts: nearest 0.5. Shared by the volume
+// bars and recovery chips so the same muscle never reads two different values.
+export function roundSets(n: number): number {
+    return Math.round(n * 2) / 2;
 }
 
 // The exercise categories a muscle priority bumps. 'arms' covers biceps + triceps.
@@ -672,27 +716,13 @@ export function computeRecoveryFlags(
     week: number,
     targets: Partial<Record<ExerciseCategory, [number, number]>>,
 ): Partial<Record<ExerciseCategory, RecoveryDetail>> {
-    const catById = new Map<string, ExerciseCategory>();
-    for (const re of routineExercises) {
-        if (re.exercise?.category) catById.set(re.id, re.exercise.category);
-    }
-    const sets: Partial<Record<ExerciseCategory, number>> = {};
-    const rirSum: Partial<Record<ExerciseCategory, number>> = {};
-    for (const [key, val] of Object.entries(logs)) {
-        if (!val.saved) continue;
-        const parsed = parseLogKey(key);
-        if (!parsed || parsed.week !== week) continue;
-        const cat = catById.get(parsed.routineExerciseId);
-        if (!cat) continue;
-        sets[cat] = (sets[cat] ?? 0) + 1;
-        rirSum[cat] = (rirSum[cat] ?? 0) + val.rir;
-    }
-
+    const { volume, rirSum, rirCount } = accumulatePerMuscle(logs, routineExercises, week);
     const out: Partial<Record<ExerciseCategory, RecoveryDetail>> = {};
     for (const [category, range] of Object.entries(targets) as Array<[ExerciseCategory, [number, number]]>) {
         const [min, max] = range;
-        const count = sets[category] ?? 0;
-        const avgRir = count > 0 ? (rirSum[category] ?? 0) / count : null;
+        const count = volume[category] ?? 0;
+        const rc = rirCount[category] ?? 0;
+        const avgRir = rc > 0 ? (rirSum[category] ?? 0) / rc : null;
         let status: RecoveryStatus;
         if (count < min) {
             status = 'under';

@@ -1,6 +1,6 @@
 'use client';
 import type { ExerciseCategory, RecoveryStatus } from '@/lib/pulse/types';
-import { computeVolumeProgress } from '@/lib/pulse/utils';
+import { computeVolumeProgress, roundSets } from '@/lib/pulse/utils';
 
 interface MuscleVolumeBarsProps {
     volume: Partial<Record<ExerciseCategory, number>>;
@@ -55,8 +55,8 @@ export default function MuscleVolumeBars({ volume, targets, recovery }: MuscleVo
                             style={{ width: `${(count / max) * 100}%` }}
                         />
                     </span>
-                    <span className="font-pulse text-[0.8125rem] font-medium text-pulse-text w-5 text-right shrink-0">
-                        {count}
+                    <span className="font-pulse text-[0.8125rem] font-medium text-pulse-text w-8 text-right shrink-0">
+                        {roundSets(count)}
                     </span>
                 </li>
             ))}
@@ -80,7 +80,9 @@ function TargetMode({
             ? 'On target across the board.'
             : lagging
                   .map((row, i) =>
-                      i === 0 ? `${row.toGo} to go on ${row.category}` : `${row.toGo} on ${row.category}`,
+                      i === 0
+                          ? `${Math.ceil(row.toGo)} to go on ${row.category}`
+                          : `${Math.ceil(row.toGo)} on ${row.category}`,
                   )
                   .join(' · ');
 
@@ -113,14 +115,16 @@ function TargetMode({
                             )}
                             <span className="flex flex-col items-end shrink-0">
                                 <span className="font-pulse text-[0.8125rem] leading-tight">
-                                    <span className="font-medium text-pulse-text">{row.actual}</span>
+                                    <span className="font-medium text-pulse-text">{roundSets(row.actual)}</span>
                                     <span className="text-pulse-muted">
                                         {' '}
                                         / {row.min}-{row.max}
                                     </span>
                                 </span>
                                 {row.toGo > 0 && (
-                                    <span className="font-pulse text-[0.6875rem] text-pulse-dim">{row.toGo} to go</span>
+                                    <span className="font-pulse text-[0.6875rem] text-pulse-dim">
+                                        {Math.ceil(row.toGo)} to go
+                                    </span>
                                 )}
                             </span>
                         </li>

@@ -1,5 +1,6 @@
 'use client';
 import type { ExerciseCategory, RecoveryDetail, RecoveryStatus } from '@/lib/pulse/types';
+import { roundSets } from '@/lib/pulse/utils';
 
 // Chip text + tint per status, token-only (coral tint for fatigue, green for on
 // track, neutral for the rest). The detail string is built per row from the
@@ -16,9 +17,9 @@ function chipLabel(d: RecoveryDetail): string {
         case 'high_fatigue':
             return d.avgRir !== null ? `high fatigue · RIR ${d.avgRir.toFixed(1)}` : 'high fatigue';
         case 'under':
-            return `add volume · ${d.toGo} to go`;
+            return `add volume · ${Math.ceil(d.toGo)} to go`;
         case 'overreaching':
-            return `over target · ${d.sets} sets`;
+            return `over target · ${roundSets(d.sets)} sets`;
         case 'optimal':
             return 'on track';
     }
@@ -27,11 +28,7 @@ function chipLabel(d: RecoveryDetail): string {
 // Muscles that need attention, surfaced first and in priority order.
 const ATTENTION_ORDER: RecoveryStatus[] = ['high_fatigue', 'under', 'overreaching'];
 
-export default function RecoveryCard({
-    recovery,
-}: {
-    recovery: Partial<Record<ExerciseCategory, RecoveryDetail>>;
-}) {
+export default function RecoveryCard({ recovery }: { recovery: Partial<Record<ExerciseCategory, RecoveryDetail>> }) {
     const entries = Object.entries(recovery) as Array<[ExerciseCategory, RecoveryDetail]>;
 
     // Attention rows first (high_fatigue → under → overreaching), then on-track,
@@ -50,7 +47,9 @@ export default function RecoveryCard({
 
     return (
         <div className="rounded-2xl bg-pulse-surface p-5">
-            <div className="font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-pulse-muted mb-3">Recovery</div>
+            <div className="font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-pulse-muted mb-3">
+                Recovery
+            </div>
             {rows.length > 0 && (
                 <ul className="flex flex-col gap-2.5">
                     {rows.map(([category, detail]) => (
