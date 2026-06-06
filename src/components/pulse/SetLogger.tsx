@@ -1,6 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getRIR, computeProgression, deloadTarget, toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
+import {
+    getRIR,
+    computeProgression,
+    deloadTarget,
+    toDisplay,
+    toKg,
+    parseDecimalInput,
+    MIN_KG,
+    MAX_KG,
+} from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { DUMBBELL_HANDLE_KG } from '@/lib/pulse/constants';
 import PlateCalculator from './PlateCalculator';
@@ -108,7 +117,7 @@ export default function SetLogger({
     const displayStep = unit === 'lbs' ? 1 : 0.5;
 
     function handleSave() {
-        const displayNum = parseFloat(kg);
+        const displayNum = parseDecimalInput(kg);
         if (isNaN(displayNum) || displayNum <= 0) {
             setInputError('Enter a valid weight');
             return;
@@ -125,7 +134,7 @@ export default function SetLogger({
         }
         setInputError(null);
         const savedDrops = drops
-            .map((d) => ({ kg: toKg(parseFloat(d.kg), unit), reps: parseInt(d.reps, 10) }))
+            .map((d) => ({ kg: toKg(parseDecimalInput(d.kg), unit), reps: parseInt(d.reps, 10) }))
             .filter((d) => d.kg > 0 && d.reps > 0);
         onSave({
             kg: kgNum,
@@ -164,7 +173,7 @@ export default function SetLogger({
     // Target weight (kg) for the plate calculator: the editable input while
     // logging, otherwise the saved weight. The affordance is hidden when this
     // sits below the lightest base (a dumbbell handle), where no plates apply.
-    const parsedTarget = showInputs ? parseFloat(kg) : (entry?.kg ?? NaN);
+    const parsedTarget = showInputs ? parseDecimalInput(kg) : (entry?.kg ?? NaN);
     const targetKg = showInputs && !isNaN(parsedTarget) ? toKg(parsedTarget, unit) : parsedTarget;
     const showPlates = !isNaN(targetKg) && targetKg >= DUMBBELL_HANDLE_KG;
 
@@ -226,6 +235,7 @@ export default function SetLogger({
                                                     type="number"
                                                     aria-label={`Weight in ${unit}`}
                                                     placeholder={unit}
+                                                    inputMode="decimal"
                                                     value={kg}
                                                     min={displayMin}
                                                     max={displayMax}
@@ -252,6 +262,7 @@ export default function SetLogger({
                                                 type="number"
                                                 aria-label="Repetitions"
                                                 placeholder="reps"
+                                                inputMode="numeric"
                                                 value={reps}
                                                 min={1}
                                                 max={100}
@@ -297,6 +308,7 @@ export default function SetLogger({
                                             type="number"
                                             aria-label={`Weight in ${unit}`}
                                             placeholder={unit}
+                                            inputMode="decimal"
                                             value={kg}
                                             min={displayMin}
                                             max={displayMax}
@@ -315,6 +327,7 @@ export default function SetLogger({
                                             type="number"
                                             aria-label="Repetitions"
                                             placeholder="reps"
+                                            inputMode="numeric"
                                             value={reps}
                                             min={1}
                                             max={100}
@@ -356,6 +369,7 @@ export default function SetLogger({
                                         type="number"
                                         aria-label={`Drop ${di + 1} weight in ${unit}`}
                                         placeholder={unit}
+                                        inputMode="decimal"
                                         value={d.kg}
                                         min={displayMin}
                                         max={displayMax}
@@ -372,6 +386,7 @@ export default function SetLogger({
                                         type="number"
                                         aria-label={`Drop ${di + 1} repetitions`}
                                         placeholder="reps"
+                                        inputMode="numeric"
                                         value={d.reps}
                                         min={1}
                                         max={100}

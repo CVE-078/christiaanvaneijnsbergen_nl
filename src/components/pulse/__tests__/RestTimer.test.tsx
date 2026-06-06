@@ -45,4 +45,19 @@ describe('RestTimer', () => {
         expect(onComplete).toHaveBeenCalledTimes(1);
         vi.useRealTimers();
     });
+
+    it('recomputes remaining from the wall clock after the tab was suspended (phone lock)', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-06T00:00:00Z'));
+        render(<RestTimer trigger={1} duration={120} />);
+        expect(screen.getByText('2:00')).toBeInTheDocument();
+        // Phone locks for 90s: the wall clock advances but background timers don't fire.
+        act(() => {
+            vi.setSystemTime(new Date('2026-06-06T00:01:30Z'));
+            window.dispatchEvent(new Event('focus'));
+        });
+        // A naive per-second decrement would still read ~2:00; a wall-clock timer jumps to 0:30.
+        expect(screen.getByText('0:30')).toBeInTheDocument();
+        vi.useRealTimers();
+    });
 });

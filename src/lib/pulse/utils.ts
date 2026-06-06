@@ -119,6 +119,17 @@ export function toCm(value: number, unit: LengthUnit): number {
     return value;
 }
 
+// Parse a user-entered numeric string, accepting both '.' and ',' as the decimal
+// separator. European keyboards/locales produce "2,5", which bare parseFloat
+// truncates to 2 and silently corrupts the logged weight; we normalize the comma
+// first. Returns NaN for empty/invalid input.
+export function parseDecimalInput(s: string): number {
+    if (typeof s !== 'string') return NaN;
+    const normalized = s.trim().replace(',', '.');
+    if (normalized === '') return NaN;
+    return parseFloat(normalized);
+}
+
 export function getInitials(name: string, max = 3): string {
     return name
         .trim()
