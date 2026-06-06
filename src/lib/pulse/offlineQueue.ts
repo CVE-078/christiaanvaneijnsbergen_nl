@@ -2,6 +2,9 @@ export interface QueuedMutation {
     id?: number;
     type: 'upsertLog' | 'deleteLogRow' | 'saveNote' | 'deleteNote';
     args: unknown[];
+    // The user who enqueued this write. Used at flush time to scope replay to the
+    // current session so a shared device never lands one account's writes in another.
+    userId: string;
     enqueuedAt: string;
 }
 

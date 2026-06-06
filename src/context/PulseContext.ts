@@ -43,6 +43,8 @@ export interface PulseContextValue {
 
     // Auth
     email: string;
+    /** Supabase auth user id. Scopes offline-queue writes to this session. */
+    userId: string;
 
     // Log mutations
     updateLog: (key: string, entry: LogEntry) => void;

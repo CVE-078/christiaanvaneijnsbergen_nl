@@ -68,7 +68,7 @@ export default function PulseLayout({ userId, email, children }: Props) {
             <ServiceWorkerRegister />
             <SWRConfig value={{ provider: cacheProvider }}>
                 <ToastProvider>
-                    <PulseProvider email={email} navigate={navigate}>
+                    <PulseProvider userId={userId} email={email} navigate={navigate}>
                         <AppShell view={view} navigate={navigate}>
                             {children}
                         </AppShell>

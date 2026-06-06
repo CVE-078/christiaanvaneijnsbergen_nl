@@ -25,7 +25,7 @@ describe('useWorkoutLogs', () => {
     it('returns logs from SWR data', () => {
         const logs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
-        const { result } = renderHook(() => useWorkoutLogs());
+        const { result } = renderHook(() => useWorkoutLogs('user-a'));
         expect(result.current.logs).toEqual(logs);
     });
 
@@ -33,13 +33,13 @@ describe('useWorkoutLogs', () => {
         vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
             typeof useSWR
         >);
-        const { result } = renderHook(() => useWorkoutLogs());
+        const { result } = renderHook(() => useWorkoutLogs('user-a'));
         // With no resolved SWR data the hook reports empty (client-fetch model).
         expect(result.current.logs).toEqual({});
     });
 
     it('updateLog calls mutate optimistically then upserts the single row', async () => {
-        const { result } = renderHook(() => useWorkoutLogs());
+        const { result } = renderHook(() => useWorkoutLogs('user-a'));
         const entry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };
 
         await act(async () => {
@@ -53,7 +53,7 @@ describe('useWorkoutLogs', () => {
     it('deleteLog removes the key, calls mutate optimistically then deletes the single row', async () => {
         const logs: Logs = { '1-push-0-0': { kg: 60, reps: 10, rir: 2, saved: true } };
         vi.mocked(useSWR).mockReturnValue({ data: logs, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
-        const { result } = renderHook(() => useWorkoutLogs());
+        const { result } = renderHook(() => useWorkoutLogs('user-a'));
 
         await act(async () => {
             result.current.deleteLog('1-push-0-0');
@@ -68,7 +68,7 @@ describe('useWorkoutLogs', () => {
         // hook no longer surfaces an error or calls onError; it must simply not throw.
         vi.mocked(upsertLog).mockRejectedValueOnce(new Error('Network error'));
         const onError = vi.fn();
-        const { result } = renderHook(() => useWorkoutLogs(onError));
+        const { result } = renderHook(() => useWorkoutLogs('user-a', onError));
 
         await expect(
             act(async () => {

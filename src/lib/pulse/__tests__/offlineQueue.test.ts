@@ -6,7 +6,12 @@ import { enqueue, allQueued, remove, clear, count } from '../offlineQueue';
 describe('offlineQueue (no IndexedDB guard)', () => {
     it('enqueue resolves without throwing', async () => {
         await expect(
-            enqueue({ type: 'upsertLog', args: ['1-x-0', {}], enqueuedAt: '2026-06-04T00:00:00.000Z' }),
+            enqueue({
+                type: 'upsertLog',
+                args: ['1-x-0', {}],
+                userId: 'user-a',
+                enqueuedAt: '2026-06-04T00:00:00.000Z',
+            }),
         ).resolves.toBeUndefined();
     });
 
