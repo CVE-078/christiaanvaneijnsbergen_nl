@@ -196,4 +196,30 @@ describe('SetLogger', () => {
         // 100 kg barbell -> 40 per side -> [25, 15]
         expect(screen.getByText(/25 kg/)).toBeInTheDocument();
     });
+
+    it('card target reads as an instruction ("Go") for a normal progression', () => {
+        const prev: LogEntry = { kg: 60, reps: 12, rir: 3, saved: true };
+        render(<SetLogger {...defaultProps} week={2} previousEntry={prev} repsRange="8-12" />);
+        expect(screen.getByLabelText(/auto-progression target/i)).toHaveTextContent(/^Go /);
+    });
+
+    it('card target reads as a deliberate backoff ("Back off to") on a deload', () => {
+        const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
+        render(<SetLogger {...defaultProps} week={2} deload previousEntry={prev} repsRange="8-12" />);
+        expect(screen.getByLabelText(/deload target/i)).toHaveTextContent(/^Back off to /);
+    });
+
+    it('card previous reads "Last ..." rather than a glyph', () => {
+        const prev: LogEntry = { kg: 60, reps: 8, rir: 3, saved: true };
+        render(<SetLogger {...defaultProps} previousEntry={prev} />);
+        expect(screen.getByText(/Last 60 kg × 8/)).toBeInTheDocument();
+    });
+
+    it('guided (editorial) shows a spoken coaching sentence for the target', () => {
+        const prev: LogEntry = { kg: 90, reps: 7, rir: 2, saved: true };
+        render(<SetLogger {...defaultProps} variant="editorial" week={2} previousEntry={prev} repsRange="8-12" />);
+        const hint = screen.getByLabelText(/auto-progression target/i);
+        expect(hint).toHaveTextContent(/Last time you hit 90 kg × 7/);
+        expect(hint).toHaveTextContent(/Go for/);
+    });
 });

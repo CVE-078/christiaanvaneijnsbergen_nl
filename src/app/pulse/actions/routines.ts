@@ -394,8 +394,6 @@ export async function generateAndSaveRoutine(
         if (trimmed) routineName = trimmed;
     }
 
-    const rationale = buildRationale(answers, sessionTime, style);
-
     const { supabase, user } = await getUserOrThrow();
 
     const { data: poolData } = await supabase
@@ -413,6 +411,7 @@ export async function generateAndSaveRoutine(
         .eq('id', user.id)
         .maybeSingle();
     const priority = resolvePriority(profileRow?.priority_muscle ?? genderDefault(profileRow?.gender ?? null));
+    const rationale = buildRationale(answers, sessionTime, style, priority);
 
     // Exclude the user's hidden exercises so generation never surfaces them. The
     // smaller pool flows through the existing equipment filter + thin-pool

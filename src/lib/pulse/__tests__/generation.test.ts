@@ -417,4 +417,18 @@ describe('buildRationale', () => {
         expect(buildRationale(a('lose_fat'), '~30 min', style)).toContain('lose fat');
         expect(buildRationale(a('general_fitness'), '~30 min', style)).toContain('general fitness');
     });
+    const answers = {
+        equipment: new Set(),
+        experience: 'intermediate',
+        goal: 'build_muscle',
+        days: '4',
+    } as unknown as import('../recommendation').OnboardingAnswers;
+    it('appends a priority-tilt sentence naming the muscle when a priority is set', () => {
+        expect(buildRationale(answers, '45–60 min', style, 'chest')).toMatch(/leans? .*into chest/i);
+    });
+    it('omits the priority sentence when there is no priority', () => {
+        expect(buildRationale(answers, '45–60 min', style, null)).not.toMatch(
+            /into (chest|back|legs|glutes|shoulders|arms)/i,
+        );
+    });
 });
