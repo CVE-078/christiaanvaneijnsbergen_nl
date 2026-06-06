@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Per-muscle volume rail, design draft</title>
+<style>
+  :root {
+    --accent: #ff7d66; --pos: #4ade80;
+    --bg: #0e1113; --surface: #161a1d; --surface-2: #1c2125;
+    --border: #262c31; --dim: #aab2b7; --muted: #6f787e; --text: #e7ebed;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hanken Grotesk', system-ui, sans-serif;
+         -webkit-font-smoothing: antialiased; padding: 36px; line-height: 1.4; }
+  h1 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .sub { color: var(--dim); font-size: 13px; max-width: 820px; margin-bottom: 28px; }
+  .row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+  .caption { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+
+  /* the rail itself (340px, surface bg, like DesktopLayout) */
+  .rail { width: 340px; background: var(--surface); border-radius: 14px; padding: 26px 28px; }
+  .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .stat { font-size: 26px; font-weight: 500; letter-spacing: -.01em; margin-top: 6px; }
+  .stat small { font-size: 13px; color: var(--muted); }
+  .block { margin-top: 34px; }
+
+  /* per-muscle bars */
+  .mv-row { display: grid; grid-template-columns: 62px 1fr auto; align-items: center; gap: 10px; padding: 5px 0; }
+  .mv-name { font-size: 12px; color: var(--dim); }
+  .mv-name.lag { color: var(--text); }
+  .track { position: relative; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+  .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--accent); }
+  .fill.done { background: var(--pos); }
+  /* floor tick: where the weekly minimum sits along the bar */
+  .tick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); opacity: .6; }
+  .mv-val { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+  .mv-val b { color: var(--text); font-weight: 600; }
+  .summary { font-size: 12px; color: var(--accent); margin-top: 12px; }
+
+  .seg { height: 1px; background: var(--border); margin: 26px 0; }
+  .foot { color: var(--muted); font-size: 12px; max-width: 820px; margin-top: 30px; border-top: 1px solid var(--border); padding-top: 16px; }
+  code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; color: var(--dim); font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>Per-muscle volume, desktop right rail</h1>
+  <p class="sub">Filling the sparse space below the existing rail stats with this week's per-muscle volume against target.
+  Thin bars fill toward the weekly target ceiling, the tick marks the weekly minimum (floor), and rows sort lagging-first.
+  Half-set rounding and the target bands are the same ones the Progress view already uses. Sample data is a mid-week state.
+  Two density options below.</p>
+
+  <div class="row">
+
+    <!-- OPTION A: full list -->
+    <div>
+      <p class="caption">Option A, full list (all 9 targeted muscles, fills the rail)</p>
+      <div class="rail">
+        <div class="label">Today</div>
+        <div class="stat">12<small> / 20 sets</small></div>
+        <div class="block">
+          <div class="label" style="margin-bottom:14px">Weekly volume</div>
+
+          <!-- lagging first; fill width = actual/ceiling, tick = floor/ceiling -->
+          <div class="mv-row"><span class="mv-name lag">Calves</span>
+            <div class="track"><div class="fill" style="width:0%"></div><div class="tick" style="left:56%"></div></div>
+            <span class="mv-val"><b>0</b>/10</span></div>
+          <div class="mv-row"><span class="mv-name lag">Biceps</span>
+            <div class="track"><div class="fill" style="width:37%"></div><div class="tick" style="left:62%"></div></div>
+            <span class="mv-val"><b>6</b>/10</span></div>
+          <div class="mv-row"><span class="mv-name lag">Abs</span>
+            <div class="track"><div class="fill" style="width:33%"></div><div class="tick" style="left:50%"></div></div>
+            <span class="mv-val"><b>4</b>/6</span></div>
+          <div class="mv-row"><span class="mv-name lag">Legs</span>
+            <div class="track"><div class="fill" style="width:40%"></div><div class="tick" style="left:70%"></div></div>
+            <span class="mv-val"><b>8</b>/14</span></div>
+          <div class="mv-row"><span class="mv-name lag">Triceps</span>
+            <div class="track"><div class="fill" style="width:50%"></div><div class="tick" style="left:62%"></div></div>
+            <span class="mv-val"><b>8</b>/10</span></div>
+          <div class="mv-row"><span class="mv-name lag">Chest</span>
+            <div class="track"><div class="fill" style="width:50%"></div><div class="tick" style="left:67%"></div></div>
+            <span class="mv-val"><b>9</b>/12</span></div>
+          <div class="mv-row"><span class="mv-name lag">Shoulders</span>
+            <div class="track"><div class="fill" style="width:60%"></div><div class="tick" style="left:70%"></div></div>
+            <span class="mv-val"><b>12</b>/14</span></div>
+          <div class="mv-row"><span class="mv-name">Back</span>
+            <div class="track"><div class="fill done" style="width:64%"></div><div class="tick" style="left:64%"></div></div>
+            <span class="mv-val"><b>14</b>/14</span></div>
+          <div class="mv-row"><span class="mv-name">Glutes</span>
+            <div class="track"><div class="fill done" style="width:80%"></div><div class="tick" style="left:60%"></div></div>
+            <span class="mv-val"><b>16</b>/12</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTION B: lagging-focused -->
+    <div>
+      <p class="caption">Option B, lagging-focused (below-floor only, plus an on-track summary)</p>
+      <div class="rail">
+        <div class="label">Today</div>
+        <div class="stat">12<small> / 20 sets</small></div>
+        <div class="block">
+          <div class="label" style="margin-bottom:14px">Still to hit this week</div>
+          <div class="mv-row"><span class="mv-name lag">Calves</span>
+            <div class="track"><div class="fill" style="width:0%"></div><div class="tick" style="left:56%"></div></div>
+            <span class="mv-val"><b>0</b>/10</span></div>
+          <div class="mv-row"><span class="mv-name lag">Biceps</span>
+            <div class="track"><div class="fill" style="width:37%"></div><div class="tick" style="left:62%"></div></div>
+            <span class="mv-val"><b>6</b>/10</span></div>
+          <div class="mv-row"><span class="mv-name lag">Abs</span>
+            <div class="track"><div class="fill" style="width:33%"></div><div class="tick" style="left:50%"></div></div>
+            <span class="mv-val"><b>4</b>/6</span></div>
+          <div class="mv-row"><span class="mv-name lag">Legs</span>
+            <div class="track"><div class="fill" style="width:40%"></div><div class="tick" style="left:70%"></div></div>
+            <span class="mv-val"><b>8</b>/14</span></div>
+          <div class="mv-row"><span class="mv-name lag">Triceps</span>
+            <div class="track"><div class="fill" style="width:50%"></div><div class="tick" style="left:62%"></div></div>
+            <span class="mv-val"><b>8</b>/10</span></div>
+          <div class="mv-row"><span class="mv-name lag">Chest</span>
+            <div class="track"><div class="fill" style="width:50%"></div><div class="tick" style="left:67%"></div></div>
+            <span class="mv-val"><b>9</b>/12</span></div>
+          <div class="mv-row"><span class="mv-name lag">Shoulders</span>
+            <div class="track"><div class="fill" style="width:60%"></div><div class="tick" style="left:70%"></div></div>
+            <span class="mv-val"><b>12</b>/14</span></div>
+          <div class="summary">Back and Glutes on track</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="foot">
+    <b>Recommendation: Option A.</b> The rail's whole problem is empty space, so showing all 9 (it is only 9) fills it with
+    something glanceable and uses the bar color to do the work: coral while below the floor, green once the minimum is hit
+    (Back, Glutes here). Option B is calmer but late in the week, when most muscles are on track, it collapses to almost nothing,
+    which re-opens the empty-space problem the item exists to solve. Both reuse <code>computeVolumeProgress</code> + <code>roundSets</code>;
+    Option A is essentially the Progress <code>MuscleVolumeBars</code> target mode, slimmed for the rail.
+    <b>Open calls for you:</b> (1) A or B; (2) keep the green "floor hit" color or stay mono-accent like the rest of the rail;
+    (3) heading wording ("Weekly volume" vs "This week").
+  </p>
+</body>
+</html>

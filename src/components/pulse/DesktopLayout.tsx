@@ -9,6 +9,7 @@ import { flushQueue } from '@/lib/pulse/offlineSync';
 import OnboardingModal from './OnboardingModal';
 import RestTimer from './RestTimer';
 import CoachPanel from './CoachPanel';
+import RailMuscleVolume from './RailMuscleVolume';
 import type { RoutineExercise, View } from '@/lib/pulse/types';
 
 const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
@@ -250,6 +251,9 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                         <div className="font-pulse text-2xl font-medium mt-1.5 tracking-[-0.01em]">RIR {rir}</div>
                     </div>
                 </div>
+
+                {/* Per-muscle weekly volume vs target, fills the rail with glanceable context. */}
+                <RailMuscleVolume />
 
                 {/* Pinned rest timer. Suppressed while guided mode is open so only the
                     WorkoutModeScreen timer counts down (no double beep). */}
