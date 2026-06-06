@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                         Pulse<span className="text-pulse-accent">.</span>
                     </div>
                     <div className="font-pulse text-[0.8125rem] tracking-[0.02em] text-pulse-dim mt-1">
-                        12-week progressive overload
+                        An adaptive strength coach, on any device
                     </div>
                 </div>
 

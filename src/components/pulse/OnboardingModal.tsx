@@ -15,6 +15,7 @@ export default function OnboardingModal() {
         <RoutineSetupFlow
             completeLabel="Create my routine"
             collectGender={!hasGender}
+            intro="Pulse adapts as you train: miss a week, hit a plateau, or train somewhere new, and your plan adjusts so you keep moving forward."
             onComplete={async ({ answers, trainingDays, sessionTime, styleKey, gender }) => {
                 if (gender) await updateGender(gender);
                 await generateRoutine(

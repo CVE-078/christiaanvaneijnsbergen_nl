@@ -108,6 +108,9 @@ interface Props {
     /** When true, show an optional/skippable "Gender" step before equipment.
      *  Used by first-run onboarding so the style pick can be lightly biased. */
     collectGender?: boolean;
+    /** Optional one-line positioning lead shown above the very first step. Set
+     *  only by first-run onboarding; later routine-creation surfaces omit it. */
+    intro?: string;
 }
 
 export default function RoutineSetupFlow({
@@ -116,6 +119,7 @@ export default function RoutineSetupFlow({
     onClose,
     completeLabel = 'Create routine',
     collectGender = false,
+    intro,
 }: Props) {
     const [step, setStep] = useState<Step>(collectGender ? 'gender' : 1);
     const [gender, setGender] = useState<Gender | null>(null);
@@ -175,11 +179,17 @@ export default function RoutineSetupFlow({
         })();
     }
 
+    // One-time positioning lead, shown above the first step only (onboarding).
+    const introBlock = intro ? (
+        <p className="mb-1 font-pulse-body text-[0.8125rem] leading-relaxed text-pulse-dim">{intro}</p>
+    ) : null;
+
     if (step === 'gender')
         return (
             <div className={WRAP}>
                 <div className={CARD}>
                     <Header stepNum={1} total={total} />
+                    {introBlock}
                     <p className={Q}>What&apos;s your gender?</p>
                     <p className="font-pulse text-xs text-pulse-dim -mt-3">
                         Used for strength standards and a light program nudge. Optional.
@@ -214,6 +224,7 @@ export default function RoutineSetupFlow({
                         total={total}
                         onBack={collectGender ? () => setStep('gender') : undefined}
                     />
+                    {!collectGender && introBlock}
                     <p className={Q}>What equipment do you have access to?</p>
                     <div className="flex flex-col gap-2">
                         {EQUIPMENT_OPTIONS.map(({ key, label }) => (
