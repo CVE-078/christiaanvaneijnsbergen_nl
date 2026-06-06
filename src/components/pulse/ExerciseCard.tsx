@@ -155,8 +155,18 @@ function ExerciseCard({
                     {complete && (
                         <span
                             aria-label="All sets done"
-                            className="font-pulse text-[0.6875rem] font-semibold tracking-[0.1em] uppercase text-pulse-accent shrink-0">
-                            Done
+                            className="grid h-[1.375rem] w-[1.375rem] shrink-0 place-items-center rounded-full bg-pulse-accent text-pulse-bg">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={3.2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-3 w-3"
+                                aria-hidden>
+                                <path d="M5 13l4 4L19 7" />
+                            </svg>
                         </span>
                     )}
                     <svg
