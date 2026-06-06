@@ -22,6 +22,26 @@ export const STRENGTH_STANDARDS: Record<Gender, Record<MainLift, number[]>> = {
     },
 };
 
+// Neutral standard for when no gender is set: the midpoint of the male and female
+// thresholds per lift/level. Strength standards are genuinely sex-based, so this is
+// a reasonable "unspecified" baseline that scores everyone without gating; setting
+// gender in Profile refines it to the sex-specific table. The average of two
+// ascending sequences is itself ascending, so the bands stay valid.
+export const NEUTRAL_STANDARDS: Record<MainLift, number[]> = (
+    ['bench', 'squat', 'deadlift', 'ohp'] as MainLift[]
+).reduce(
+    (acc, lift) => {
+        acc[lift] = STRENGTH_STANDARDS.male[lift].map((m, i) => (m + STRENGTH_STANDARDS.female[lift][i]) / 2);
+        return acc;
+    },
+    {} as Record<MainLift, number[]>,
+);
+
+// Resolve the threshold table for a (possibly unset) gender. Null -> neutral.
+export function standardsFor(gender: Gender | null): Record<MainLift, number[]> {
+    return gender ? STRENGTH_STANDARDS[gender] : NEUTRAL_STANDARDS;
+}
+
 // Human title per main lift, shown in the per-lift breakdown.
 const LIFT_LABELS: Record<MainLift, string> = {
     bench: 'Bench Press',
@@ -74,17 +94,16 @@ function levelFor(score: number): string {
     return 'Elite';
 }
 
-// Compute the strength score from the user's gender, bodyweight, and best lifts.
-// Returns a null score with a reason when prerequisites are missing.
+// Compute the strength score from the user's bodyweight and best lifts. Gender is
+// optional: with it, the sex-specific standards are used; without it, a neutral
+// (sex-midpoint) standard scores anyway and the result is flagged `approximate`.
+// Returns a null score with a reason only when bodyweight or a main lift is missing.
 export function computeStrengthScore(args: {
     gender: Gender | null;
     bodyweightKg: number | null;
     lifts: Array<{ name: string; e1rm: number }>;
 }): StrengthScore {
     const { gender, bodyweightKg, lifts } = args;
-    if (gender === null) {
-        return { score: null, level: null, reason: 'Set your gender in Profile to get a strength score.', lifts: [] };
-    }
     if (bodyweightKg === null || bodyweightKg <= 0) {
         return { score: null, level: null, reason: 'Log your bodyweight to get a strength score.', lifts: [] };
     }
@@ -106,16 +125,17 @@ export function computeStrengthScore(args: {
         };
     }
 
+    const standards = standardsFor(gender);
     const order: MainLift[] = ['bench', 'squat', 'deadlift', 'ohp'];
     const breakdown = order
         .filter((lift) => bestByLift.has(lift))
         .map((lift) => {
             const e1rm = bestByLift.get(lift) as number;
             const ratio = e1rm / bodyweightKg;
-            const subScore = scoreRatio(ratio, STRENGTH_STANDARDS[gender][lift]);
+            const subScore = scoreRatio(ratio, standards[lift]);
             return { lift, label: LIFT_LABELS[lift], subScore, ratio };
         });
 
     const score = Math.round(breakdown.reduce((sum, l) => sum + l.subScore, 0) / breakdown.length);
-    return { score, level: levelFor(score), reason: null, lifts: breakdown };
+    return { score, level: levelFor(score), reason: null, approximate: gender === null, lifts: breakdown };
 }
