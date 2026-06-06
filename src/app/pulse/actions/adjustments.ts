@@ -57,7 +57,11 @@ async function recordDecision(
                 trigger: 'gap',
                 affected_area: '',
                 week: weekInteger,
-                magnitude: { volumeFactor: RAMPBACK_VOLUME_FACTOR, rirBonus: RAMPBACK_RIR_BONUS },
+                magnitude: {
+                    volumeFactor: RAMPBACK_VOLUME_FACTOR,
+                    rirBonus: RAMPBACK_RIR_BONUS,
+                    ...(typeof daysAway === 'number' && Number.isFinite(daysAway) ? { daysAway } : {}),
+                },
                 confidence: null,
             },
             { onConflict: 'user_id,routine_id,type,affected_area,week' },

@@ -18,6 +18,7 @@ import { RAMPBACK_RIR_BONUS } from '@/lib/pulse/constants';
 import { usePulse } from '@/context/PulseContext';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import RegenNudge from '../RegenNudge';
+import CoachPanel from '../CoachPanel';
 import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
@@ -281,6 +282,10 @@ export default function LogView() {
 
             <div className="px-4 pt-6 pb-3 max-w-[600px] lg:max-w-[820px] mx-auto">
                 <RegenNudge />
+                {/* Coach decisions: inline on mobile only — desktop shows it in the right rail. */}
+                <div className="lg:hidden">
+                    <CoachPanel variant="inline" />
+                </div>
                 <div className="bg-pulse-surface rounded-2xl px-4 py-3.5">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                         <div className="min-w-0">

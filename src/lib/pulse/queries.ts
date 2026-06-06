@@ -13,6 +13,9 @@ import type {
     WorkoutSession,
     ProgramAdjustment,
     AdjustmentKind,
+    DecisionEventRow,
+    DecisionEventType,
+    DecisionTrigger,
 } from '@/lib/pulse/types';
 
 // Canonical Supabase server client type. Both the layout and the GET route
@@ -34,6 +37,7 @@ const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
 const SESSIONS_SELECT = 'id, user_id, routine_id, workout_type, variant, started_at, completed_at';
 const ADJUSTMENTS_SELECT = 'id, routine_id, kind, effective_week, created_at, payload';
+const DECISION_EVENTS_SELECT = 'id, routine_id, type, trigger, affected_area, week, magnitude, confidence, created_at';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at, rationale, program_weeks, program_anchor,
             exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, is_compound ) ),
@@ -232,5 +236,28 @@ export async function loadAdjustments(supabase: SupabaseServerClient, userId: st
         effective_week: Number(r.effective_week),
         created_at: r.created_at,
         payload: (r.payload ?? {}) as ProgramAdjustment['payload'],
+    }));
+}
+
+// The unified decision log for the user, newest first (the Coach Decision Timeline
+// reads it in render order).
+export async function loadDecisionEvents(supabase: SupabaseServerClient, userId: string): Promise<DecisionEventRow[]> {
+    const { data, error } = await supabase
+        .from('decision_events')
+        .select(DECISION_EVENTS_SELECT)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    return (data ?? []).map((r) => ({
+        id: r.id,
+        routine_id: r.routine_id,
+        type: r.type as DecisionEventType,
+        trigger: r.trigger as DecisionTrigger,
+        affectedArea: r.affected_area ?? '',
+        week: Number(r.week),
+        magnitude: (r.magnitude ?? {}) as Record<string, number>,
+        confidence: r.confidence == null ? null : Number(r.confidence),
+        created_at: r.created_at,
     }));
 }
