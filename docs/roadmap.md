@@ -20,7 +20,7 @@
 
 ## Status & next session (2026-06-06)
 
-**In progress:** (none)
+**In progress:** Tier 1 quick wins — Lighten this week (#11) + priority-tilt why line (#1 remainder) · `feature/tier1-quick-wins` (spec: `docs/superpowers/specs/2026-06-06-15-43-44-tier1-lighten-week-and-priority-why.md`)
 
 **Where things stand:** Generation-engine **Phase 0 is complete** — the muscle bridge (`muscleMap.ts`), the 6-field exercise-metadata seed across 94 exercises, the movement-pattern correction, the fractional per-muscle volume wiring, and now **session-linked logging + the unified `DecisionEvent` log** (`session_id` + `workout_date` on `set_logs`; auto-deload / progression captured at set-save through the pure `decisionForExercise`; ramp-back dual-written) all shipped. The pre-public **launch floor** advanced too: offline-queue cross-user safety + poison-pill/dead-letter hardening, decimal-comma parsing, rest-timer-survives-lock, and the live RLS audit are done. A full code/security audit (2026-06-06) came back clean except two items, both now fixed. The first payoff of the decision log also shipped: the **Coach Decision Timeline** (#10 increment 1) surfaces ramp-back / deload / progression in the desktop right rail, inline on Train, and a full week-grouped overlay. Suite: typecheck clean, **759 tests**. Strategy + spec stay frozen in the two design docs (`…-00-30-19-generation-engine-v2-audit.md` and `…-00-54-52-phase0-source-material.md`).
 
