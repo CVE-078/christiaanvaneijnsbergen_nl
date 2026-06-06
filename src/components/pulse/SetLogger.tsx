@@ -177,6 +177,12 @@ export default function SetLogger({
     const targetKg = showInputs && !isNaN(parsedTarget) ? toKg(parsedTarget, unit) : parsedTarget;
     const showPlates = !isNaN(targetKg) && targetKg >= DUMBBELL_HANDLE_KG;
 
+    // Plain-language RIR clause for the guided (editorial) coaching sentence: how
+    // hard to push (reps left), with a failure cue at RIR 0 so "0 reps left" never shows.
+    const rirClause =
+        targetRIR > 0 ? `stop with about ${targetRIR} rep${targetRIR === 1 ? '' : 's'} left` : 'push close to failure';
+    const deloadTankClause = targetRIR > 0 ? ` and keep ${targetRIR} rep${targetRIR === 1 ? '' : 's'} in the tank` : '';
+
     return (
         <div className="flex flex-col">
             <div
@@ -281,18 +287,21 @@ export default function SetLogger({
                                         <span className="rounded-md border border-pulse-border bg-pulse-surface px-2 py-0.5 font-pulse-body text-[0.625rem] tracking-[0.02em] text-pulse-dim">
                                             Target RIR {targetRIR}
                                         </span>
-                                        {target && (
+                                        {target && previousEntry ? (
                                             <span
                                                 aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
-                                                className="font-pulse-body text-[0.6875rem] font-medium tracking-[0.02em] text-pulse-accent">
-                                                {deloadTgt ? '↓ deload' : '↑ target'} {toDisplay(target.kg, unit)}{' '}
-                                                {unit} × {target.reps}
+                                                className="font-pulse-body text-[0.6875rem] font-medium leading-[1.45] tracking-[0.02em] text-pulse-accent">
+                                                {deloadTgt
+                                                    ? `You stalled around ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}, so back off on purpose. Drop to ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}${deloadTankClause} to reset.`
+                                                    : `Last time you hit ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}. Go for ${toDisplay(target.kg, unit)} ${unit} × ${target.reps} and ${rirClause}.`}
                                             </span>
-                                        )}
-                                        {previousEntry && (
-                                            <span className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-muted">
-                                                Last {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
-                                            </span>
+                                        ) : (
+                                            previousEntry && (
+                                                <span className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-muted">
+                                                    Last {toDisplay(previousEntry.kg, unit)} {unit} ×{' '}
+                                                    {previousEntry.reps}
+                                                </span>
+                                            )
                                         )}
                                         {inputError && (
                                             <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">
@@ -346,15 +355,15 @@ export default function SetLogger({
                                     </div>
                                     {previousEntry && (
                                         <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
-                                            → {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
+                                            Last {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
                                         </span>
                                     )}
                                     {target && (
                                         <span
                                             aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
                                             className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
-                                            {deloadTgt ? '↓ deload target' : '↑ target'} {toDisplay(target.kg, unit)}{' '}
-                                            {unit} × {target.reps}
+                                            {deloadTgt ? 'Back off to' : 'Go'} {toDisplay(target.kg, unit)} {unit} ×{' '}
+                                            {target.reps}
                                         </span>
                                     )}
                                     {inputError && (

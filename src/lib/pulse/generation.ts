@@ -675,7 +675,14 @@ const GOAL_LABELS: Record<Goal, string> = {
 
 // Human-readable reason a routine was generated, from the onboarding inputs and
 // the chosen program style. Shown on the Plan screen and in the setup flow.
-export function buildRationale(answers: OnboardingAnswers, sessionTime: SessionTime, style: ProgramStyle): string {
+export function buildRationale(
+    answers: OnboardingAnswers,
+    sessionTime: SessionTime,
+    style: ProgramStyle,
+    priority?: PriorityMuscle | null,
+): string {
     const goal = GOAL_LABELS[answers.goal] ?? answers.goal;
-    return `${style.name} for ${answers.experience} lifters · ${answers.days} days/week · ${goal} · ${sessionTime} sessions. ${style.bestFor}`;
+    const base = `${style.name} for ${answers.experience} lifters · ${answers.days} days/week · ${goal} · ${sessionTime} sessions. ${style.bestFor}`;
+    if (!priority) return base;
+    return `${base} Every session leans a bit harder into ${priority}, the muscle you want to grow.`;
 }
