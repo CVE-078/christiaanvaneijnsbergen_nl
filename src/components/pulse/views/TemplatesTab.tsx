@@ -27,7 +27,7 @@ const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
 };
 
 export default function TemplatesTab() {
-    const { cloneTemplate, setProgramAnchor, navigate, profile } = usePulse();
+    const { cloneTemplate, setProgramAnchor, updateRoutineProgramWeeks, navigate, profile } = usePulse();
     // Templates are static per session, dedupe aggressively and don't refetch on focus.
     const { data: templates = [] } = useSWR<RoutineTemplate[]>('/api/pulse/templates', fetcher, {
         ...SWR_READ_OPTS,
@@ -165,7 +165,7 @@ export default function TemplatesTab() {
                         experience: setupTemplate.experience_level,
                     }}
                     completeLabel="Use this routine"
-                    onComplete={async ({ answers, trainingDays, sessionTime, startAnchor }) => {
+                    onComplete={async ({ answers, trainingDays, sessionTime, startAnchor, programWeeks }) => {
                         const routine = await cloneTemplate(
                             setupTemplate.slug,
                             trainingDays,
@@ -173,6 +173,8 @@ export default function TemplatesTab() {
                             answers.experience,
                         );
                         if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
+                        // New routines default to 12 weeks in the DB; only write when it differs.
+                        if (programWeeks !== 12) await updateRoutineProgramWeeks(routine.id, programWeeks);
                         navigate('train');
                     }}
                     onClose={() => setSetupTemplate(null)}
