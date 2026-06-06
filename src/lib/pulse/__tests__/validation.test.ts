@@ -52,6 +52,9 @@ describe('validateDecisionEvent', () => {
     it('accepts a program-wide event with an empty affectedArea', () => {
         expect(validateDecisionEvent({ ...evt, type: 'ramp_back', trigger: 'gap', affectedArea: '' })).toBe(true);
     });
+    it('accepts a manual trigger (user-initiated lighten)', () => {
+        expect(validateDecisionEvent({ ...evt, type: 'ramp_back', trigger: 'manual', affectedArea: '' })).toBe(true);
+    });
     it('accepts a numeric confidence in [0,1]', () => {
         expect(validateDecisionEvent({ ...evt, confidence: 0.8 })).toBe(true);
     });

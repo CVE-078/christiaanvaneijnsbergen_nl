@@ -1,7 +1,7 @@
 import type { Logs, LogEntry, DecisionEvent } from './types';
 
 const DECISION_TYPES = ['ramp_back', 'deload', 'progression', 'swap'];
-const DECISION_TRIGGERS = ['plateau', 'targets_hit', 'gap'];
+const DECISION_TRIGGERS = ['plateau', 'targets_hit', 'gap', 'manual'];
 
 // Validate a DecisionEvent crossing the trust boundary into recordDecisionEvent.
 // type/trigger are closed enums, week mirrors the log-key bounds (1–52), magnitude

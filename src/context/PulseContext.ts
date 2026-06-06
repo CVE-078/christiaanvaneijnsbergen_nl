@@ -195,6 +195,9 @@ export interface PulseContextValue {
     regenSuggestion: RegenSuggestion;
     acceptReentryDeload: (routineId: string, weekInteger: number, daysAway?: number) => Promise<void>;
     dismissReentry: (routineId: string, weekInteger: number) => Promise<void>;
+    // User-initiated "go easier this week": applies the ramp-back ease to the
+    // current week without inserting/offsetting the program.
+    lightenThisWeek: (routineId: string, weekInteger: number) => Promise<void>;
     // The unified decision log (newest first) for the Coach Decision Timeline.
     decisions: DecisionEventRow[];
     // Revalidate the sessions feed (call after completing a workout so the

@@ -276,7 +276,10 @@ export interface WorkoutSession {
 // ── Adaptive missed-workout regeneration ────────────────────────────────────
 // Persisted record of a ramp-back decision. Append-only; the engine reads these
 // back to suppress repeat prompts and to offset progression for inserted weeks.
-export type AdjustmentKind = 'reentry_deload' | 'reentry_dismissed';
+// reentry_deload / reentry_dismissed are the gap-driven ramp-back decisions;
+// manual_deload is a user-initiated "go easier this week" (same ease, but it does
+// NOT insert/offset the program the way a re-entry does).
+export type AdjustmentKind = 'reentry_deload' | 'reentry_dismissed' | 'manual_deload';
 
 export interface ProgramAdjustment {
     id: string;
@@ -297,8 +300,8 @@ export type DecisionEventType = 'ramp_back' | 'deload' | 'progression' | 'swap';
 
 // Why the engine fired. 'plateau' = stalled e1RM (deload); 'targets_hit' = met
 // the prescribed reps/RIR so the lift advances (progression); 'gap' = a missed
-// stretch triggered ramp-back.
-export type DecisionTrigger = 'plateau' | 'targets_hit' | 'gap';
+// stretch triggered ramp-back; 'manual' = the user chose to go easier this week.
+export type DecisionTrigger = 'plateau' | 'targets_hit' | 'gap' | 'manual';
 
 export interface DecisionEvent {
     type: DecisionEventType;

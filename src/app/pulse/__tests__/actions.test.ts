@@ -34,7 +34,13 @@ vi.mock('@/lib/pulse/auth', () => ({
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }));
 
-import { logBodyMeasurement, addExerciseToRoutine, updateGender, recordDecisionEvent } from '../actions';
+import {
+    logBodyMeasurement,
+    addExerciseToRoutine,
+    updateGender,
+    recordDecisionEvent,
+    lightenThisWeek,
+} from '../actions';
 import type { DecisionEvent } from '@/lib/pulse/types';
 
 const VALID_UUID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -164,5 +170,28 @@ describe('recordDecisionEvent', () => {
         queue.push({ data: { id: VALID_UUID }, error: null }); // assertOwnsRoutine
         queue.push({ data: null, error: { message: 'db down' } }); // upsert error
         await expect(recordDecisionEvent(VALID_UUID, event)).rejects.toThrow('Failed to save decision event');
+    });
+});
+
+describe('lightenThisWeek', () => {
+    it('writes a manual_deload adjustment and dual-writes a manual ramp_back event', async () => {
+        queue.push({ data: { id: VALID_UUID }, error: null }); // assertOwnsRoutine
+        queue.push({ data: null, error: null }); // program_adjustments upsert
+        queue.push({ data: null, error: null }); // decision_events dual-write
+        await expect(lightenThisWeek(VALID_UUID, 5)).resolves.toBeUndefined();
+    });
+
+    it('rejects an invalid routine id', async () => {
+        await expect(lightenThisWeek('not-a-uuid', 5)).rejects.toThrow('Invalid routine id');
+    });
+
+    it('rejects an invalid week', async () => {
+        await expect(lightenThisWeek(VALID_UUID, 0)).rejects.toThrow('Invalid week');
+    });
+
+    it('throws when the adjustment upsert fails', async () => {
+        queue.push({ data: { id: VALID_UUID }, error: null }); // assertOwnsRoutine
+        queue.push({ data: null, error: { message: 'db down' } }); // adjustment upsert error
+        await expect(lightenThisWeek(VALID_UUID, 5)).rejects.toThrow('Failed to save adjustment');
     });
 });

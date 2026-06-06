@@ -131,6 +131,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         adjustments,
         acceptReentryDeload,
         dismissReentry,
+        lightenThisWeek,
         loading: loadingAdjustments,
         error: adjustmentsError,
     } = useProgramAdjustments();
@@ -555,6 +556,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             regenSuggestion,
             acceptReentryDeload,
             dismissReentry,
+            lightenThisWeek,
             refreshSessions,
             decisions,
         }),
@@ -565,6 +567,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             regenSuggestion,
             acceptReentryDeload,
             dismissReentry,
+            lightenThisWeek,
             refreshSessions,
             decisions,
         ],

@@ -1,6 +1,10 @@
 import useSWR from 'swr';
 import { useCallback } from 'react';
-import { acceptReentryDeload as serverAccept, dismissReentry as serverDismiss } from '@/app/pulse/actions';
+import {
+    acceptReentryDeload as serverAccept,
+    dismissReentry as serverDismiss,
+    lightenThisWeek as serverLighten,
+} from '@/app/pulse/actions';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import type { ProgramAdjustment, AdjustmentKind } from '@/lib/pulse/types';
 
@@ -50,5 +54,15 @@ export function useProgramAdjustments() {
         [withDecision, mutate],
     );
 
-    return { adjustments, acceptReentryDeload, dismissReentry, loading: isLoading, error };
+    // User-initiated lighten of the current week (manual ramp-back ease).
+    const lightenThisWeek = useCallback(
+        async (routineId: string, weekInteger: number): Promise<void> => {
+            mutate(withDecision(routineId, weekInteger, 'manual_deload'), false);
+            await serverLighten(routineId, weekInteger);
+            mutate();
+        },
+        [withDecision, mutate],
+    );
+
+    return { adjustments, acceptReentryDeload, dismissReentry, lightenThisWeek, loading: isLoading, error };
 }

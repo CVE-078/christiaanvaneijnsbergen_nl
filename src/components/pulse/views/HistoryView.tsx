@@ -10,6 +10,7 @@ import {
     computeRecompSignal,
     computeRecoveryFlags,
     priorityAdjustedTargets,
+    priorityFocusLine,
 } from '@/lib/pulse/utils';
 import { resolvePriority } from '@/lib/pulse/generation';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
@@ -144,7 +145,8 @@ export default function HistoryView() {
         for (const [key, val] of Object.entries(logs)) {
             const parsed = parseLogKey(key);
             if (!parsed) continue;
-            const inWindow = progressWindow === 'week' ? parsed.week === activeWeek : parsed.week >= 1 && parsed.week <= 12;
+            const inWindow =
+                progressWindow === 'week' ? parsed.week === activeWeek : parsed.week >= 1 && parsed.week <= 12;
             if (inWindow) out[key] = val;
         }
         return out;
@@ -198,6 +200,12 @@ export default function HistoryView() {
     // recovery/volume nudges match a routine generated under that priority.
     const targets = useMemo(
         () => priorityAdjustedTargets(VOLUME_TARGETS, resolvePriority(profile.priority_muscle)),
+        [profile.priority_muscle],
+    );
+    // Plain-language caption explaining the priority tilt above the volume bars
+    // (null when the user has no priority, so nothing renders).
+    const focusLine = useMemo(
+        () => priorityFocusLine(resolvePriority(profile.priority_muscle)),
         [profile.priority_muscle],
     );
 
@@ -259,10 +267,7 @@ export default function HistoryView() {
     // Session history shows the last four by default (most recent week first),
     // with the rest revealed behind a toggle.
     const [showAllSessions, setShowAllSessions] = useState(false);
-    const sortedSessionCards = useMemo(
-        () => [...sessionCards].sort((a, b) => b.week - a.week),
-        [sessionCards],
-    );
+    const sortedSessionCards = useMemo(() => [...sessionCards].sort((a, b) => b.week - a.week), [sessionCards]);
     const visibleSessionCards = showAllSessions ? sortedSessionCards : sortedSessionCards.slice(0, 4);
 
     const hasData = sessions.length > 0;
@@ -345,6 +350,7 @@ export default function HistoryView() {
                 {/* Per-muscle volume this week */}
                 <div className="bg-pulse-surface rounded-2xl p-5">
                     <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
+                    {focusLine && <p className="-mt-1 mb-3 font-pulse text-[0.75rem] text-pulse-accent">{focusLine}</p>}
                     <MuscleVolumeBars volume={muscleVolume} targets={targets} />
                 </div>
 

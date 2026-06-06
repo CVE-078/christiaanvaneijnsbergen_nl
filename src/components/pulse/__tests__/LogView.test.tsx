@@ -74,6 +74,7 @@ const defaultContext = {
     currentWeek: 1,
     programPosition: null,
     regenSuggestion: null,
+    lightenThisWeek: vi.fn().mockResolvedValue(undefined),
     refreshSessions: vi.fn(),
     decisions: [],
     routines: [],

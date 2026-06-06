@@ -34,6 +34,7 @@ import {
     toLengthDisplay,
     toCm,
     priorityAdjustedTargets,
+    priorityFocusLine,
     weekInBlock,
     volumeForWeek,
     computePlateau,
@@ -258,6 +259,19 @@ describe('priorityAdjustedTargets', () => {
         expect(out.biceps).toEqual([10, 16]);
         expect(out.triceps).toEqual([10, 16]);
         expect(out.chest).toEqual([10, 16]); // unchanged
+    });
+});
+
+describe('priorityFocusLine', () => {
+    it('returns null when there is no priority tilt', () => {
+        expect(priorityFocusLine(null)).toBeNull();
+    });
+    it('names the prioritized muscle with a capitalized label', () => {
+        expect(priorityFocusLine('glutes')).toBe('Glutes volume raised, your training priority.');
+        expect(priorityFocusLine('back')).toBe('Back volume raised, your training priority.');
+    });
+    it('has no em dash (project copy rule)', () => {
+        expect(priorityFocusLine('chest')).not.toContain('—');
     });
 });
 
