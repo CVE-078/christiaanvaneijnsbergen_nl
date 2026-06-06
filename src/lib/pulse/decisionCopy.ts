@@ -49,6 +49,16 @@ export function decisionCopy(event: DecisionEventRow, exerciseName: string | nul
         }
 
         case 'ramp_back': {
+            // A user-initiated lighten reads differently from a gap-driven re-entry:
+            // it does not insert a week, so progression continues as normal.
+            if (event.trigger === 'manual') {
+                return {
+                    kind: 'ramp_back',
+                    headline: 'Lighter week',
+                    why: 'You chose to go easier this week.',
+                    next: 'Reduced volume and an easier RIR; your progression continues normally.',
+                };
+            }
             const daysAway = event.magnitude.daysAway;
             const why =
                 typeof daysAway === 'number' && Number.isFinite(daysAway)

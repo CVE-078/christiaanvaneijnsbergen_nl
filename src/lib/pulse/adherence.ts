@@ -142,9 +142,12 @@ export interface ProgressionInfo {
 }
 
 export function progressionInfo(weekInteger: number, adjustments: ProgramAdjustment[]): ProgressionInfo {
-    const deloads = adjustments.filter((a) => a.kind === 'reentry_deload');
-    const isRampBack = deloads.some((a) => a.effective_week === weekInteger);
-    const before = deloads.filter((a) => a.effective_week < weekInteger).length;
+    // Both kinds ease the week (lighter RIR + banner), but only a gap-driven
+    // re-entry is an *inserted* week that offsets later progression. A manual
+    // "go easier this week" leaves the program position alone.
+    const eases = (a: ProgramAdjustment) => a.kind === 'reentry_deload' || a.kind === 'manual_deload';
+    const isRampBack = adjustments.some((a) => eases(a) && a.effective_week === weekInteger);
+    const before = adjustments.filter((a) => a.kind === 'reentry_deload' && a.effective_week < weekInteger).length;
     return { progressionIndex: Math.max(1, weekInteger - before), isRampBack };
 }
 

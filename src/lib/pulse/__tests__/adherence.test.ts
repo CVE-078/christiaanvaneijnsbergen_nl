@@ -177,6 +177,21 @@ describe('progressionInfo', () => {
     it('dismissed adjustments do not offset progression', () => {
         expect(progressionInfo(6, [adj('reentry_dismissed', 5)])).toEqual({ progressionIndex: 6, isRampBack: false });
     });
+    it('a manual deload lightens the week (isRampBack) without offsetting progression', () => {
+        // A manual "go easier this week" eases the week but is not an inserted
+        // re-entry, so progression continues at the same index.
+        expect(progressionInfo(5, [adj('manual_deload', 5)])).toEqual({ progressionIndex: 5, isRampBack: true });
+    });
+    it('a manual deload does not offset later weeks', () => {
+        expect(progressionInfo(6, [adj('manual_deload', 5)])).toEqual({ progressionIndex: 6, isRampBack: false });
+    });
+    it('a reentry deload still offsets even when a manual deload also exists earlier', () => {
+        // manual deloads never insert a week, so only the reentry offsets week 9 -> 8.
+        expect(progressionInfo(9, [adj('manual_deload', 3), adj('reentry_deload', 5)])).toEqual({
+            progressionIndex: 8,
+            isRampBack: false,
+        });
+    });
 });
 
 describe('rampBackPrescription', () => {

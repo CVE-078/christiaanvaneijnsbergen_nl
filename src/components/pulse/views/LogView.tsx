@@ -45,6 +45,7 @@ export default function LogView() {
         adjustments,
         currentWeek,
         programPosition,
+        lightenThisWeek,
         refreshSessions,
         routineExercisesByTabKey,
         navigate,
@@ -88,6 +89,9 @@ export default function LogView() {
         ? routineAdjustments.find((a) => a.kind === 'reentry_deload' && a.effective_week === activeWeek)?.payload
               .daysAway
         : undefined;
+    // A manually-lightened week reads differently from a gap-driven re-entry.
+    const isManualLighten =
+        isRampBack && routineAdjustments.some((a) => a.kind === 'manual_deload' && a.effective_week === activeWeek);
     const statusLabel =
         programPosition && programPosition.status !== 'on_track'
             ? programPosition.status === 'lapsed'
@@ -299,7 +303,7 @@ export default function LogView() {
                             </div>
                             <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                 <span className="font-pulse-body text-[0.6875rem] text-pulse-dim">
-                                    {isRampBack ? 'Ramp-back' : phase.label} · target{' '}
+                                    {isRampBack ? (isManualLighten ? 'Lighter' : 'Ramp-back') : phase.label} · target{' '}
                                     <span className="font-semibold text-pulse-accent">RIR {rir}</span>
                                 </span>
                                 <PendingSyncBadge />
@@ -347,14 +351,27 @@ export default function LogView() {
                     </div>
                     <div className="mt-4">{activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}</div>
                 </div>
-                {isRampBack && (
+                {isRampBack ? (
                     <div className="mt-3 rounded-2xl border border-pulse-accent/30 bg-pulse-surface px-4 py-3">
-                        <p className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent">Ramp-back week</p>
+                        <p className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent">
+                            {isManualLighten ? 'Lighter week' : 'Ramp-back week'}
+                        </p>
                         <p className="mt-1 font-pulse text-[0.78125rem] text-pulse-dim">
-                            Easing in{rampDaysAway ? ` after ${rampDaysAway} days off` : ''}. Reduced volume and an
-                            easier RIR before your normal progression resumes.
+                            {isManualLighten
+                                ? 'You chose to go easier this week. Reduced volume and an easier RIR; your progression continues normally.'
+                                : `Easing in${rampDaysAway ? ` after ${rampDaysAway} days off` : ''}. Reduced volume and an easier RIR before your normal progression resumes.`}
                         </p>
                     </div>
+                ) : (
+                    activeRoutine &&
+                    routineExercises.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => lightenThisWeek(activeRoutine.id, activeWeek)}
+                            className="mt-3 cursor-pointer rounded-xl border border-pulse-border bg-transparent px-3.5 py-2 font-pulse text-[0.78125rem] font-medium text-pulse-dim transition-colors hover:border-pulse-accent/40 hover:text-pulse-text">
+                            Go easier this week
+                        </button>
+                    )
                 )}
             </div>
 

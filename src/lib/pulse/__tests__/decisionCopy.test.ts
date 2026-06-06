@@ -79,6 +79,23 @@ describe('decisionCopy', () => {
         expect(c.next).toMatch(/reduced volume/i);
     });
 
+    it('describes a manual lighten distinctly from a gap-driven ramp-back', () => {
+        const c = decisionCopy(
+            row({
+                type: 'ramp_back',
+                trigger: 'manual',
+                affectedArea: '',
+                magnitude: { volumeFactor: 0.6, rirBonus: 1 },
+            }),
+            null,
+        );
+        expect(c.kind).toBe('ramp_back');
+        expect(c.headline).toMatch(/lighter|easier/i);
+        expect(c.why).toMatch(/chose|you went/i);
+        expect(c.why).not.toMatch(/break|days/i);
+        expect(c.next).toMatch(/progression continues/i);
+    });
+
     it('describes a ramp-back generically when days away is absent', () => {
         const c = decisionCopy(
             row({ type: 'ramp_back', trigger: 'gap', affectedArea: '', magnitude: { volumeFactor: 0.6, rirBonus: 1 } }),

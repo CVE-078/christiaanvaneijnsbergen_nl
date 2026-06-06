@@ -746,6 +746,16 @@ export function priorityAdjustedTargets(
     return out;
 }
 
+// One-line plain-language explanation of the priority-muscle volume tilt, shown
+// next to the per-muscle volume bars. Null when there is no tilt (no priority /
+// balanced), so the caller renders nothing. Takes the already-resolved priority
+// (use resolvePriority on the raw profile value first).
+export function priorityFocusLine(priority: PriorityMuscle | null): string | null {
+    if (!priority) return null;
+    const label = priority.charAt(0).toUpperCase() + priority.slice(1);
+    return `${label} volume raised, your training priority.`;
+}
+
 // Per-muscle progress toward weekly set targets. Rows cover every targeted
 // muscle (even at 0 sets); toGo is the sets still needed to reach the floor.
 // Sorted lagging-first (highest toGo), then alphabetically for stability.

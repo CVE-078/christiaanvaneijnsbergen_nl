@@ -85,6 +85,7 @@ const mockContext = {
     regenSuggestion: null,
     acceptReentryDeload: vi.fn().mockResolvedValue(undefined),
     dismissReentry: vi.fn().mockResolvedValue(undefined),
+    lightenThisWeek: vi.fn().mockResolvedValue(undefined),
     refreshSessions: vi.fn(),
     decisions: [],
     loading: {
