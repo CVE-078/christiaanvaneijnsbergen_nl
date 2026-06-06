@@ -991,6 +991,23 @@ describe('computePerMuscleVolume', () => {
         const out = computePerMuscleVolume(logs, res, 3);
         expect(out.legs ?? 0).toBe(0);
     });
+    it('credits bucketed pattern secondaries on top of the 1.0 primary', () => {
+        const fres = [
+            { id: UUID_A, exercise: { category: 'chest', movement_pattern: 'horizontal_push' } },
+        ] as unknown as RoutineExercise[];
+        const flogs: Logs = {
+            [logKey(3, UUID_A, 0)]: { kg: 60, reps: 8, rir: 2, saved: true },
+            [logKey(3, UUID_A, 1)]: { kg: 60, reps: 8, rir: 2, saved: true },
+        };
+        const out = computePerMuscleVolume(flogs, fres, 3);
+        expect(out.chest).toBe(2); // primary 1.0 x2
+        expect(out.triceps).toBe(1); // secondary 0.5 x2
+        expect(out.shoulders).toBe(1); // secondary 0.5 x2
+    });
+    it('falls back to primary-only when the exercise has no movement_pattern', () => {
+        const out = computePerMuscleVolume(logs, res, 3);
+        expect(out.triceps ?? 0).toBe(0); // res fixtures carry no pattern
+    });
 });
 
 describe('computeVolumeProgress', () => {
@@ -1066,6 +1083,23 @@ describe('computeRecoveryFlags', () => {
         const out = computeRecoveryFlags(logs, res, 3, targets);
         // only 1 saved set this week -> below min -> under
         expect(out.chest?.status).toBe('under');
+    });
+
+    it('counts fractional secondaries and keeps avgRir a true RIR average', () => {
+        const fres = [
+            { id: UUID_A, exercise: { category: 'chest', movement_pattern: 'horizontal_push' } },
+        ] as unknown as RoutineExercise[];
+        const ftargets = { chest: [4, 8], triceps: [1, 3] } as Partial<
+            Record<import('../types').ExerciseCategory, [number, number]>
+        >;
+        const logs: Logs = {};
+        for (let i = 0; i < 4; i++) logs[logKey(3, UUID_A, i)] = { kg: 60, reps: 8, rir: 1, saved: true };
+        const out = computeRecoveryFlags(logs, fres, 3, ftargets);
+        expect(out.chest?.sets).toBe(4); // primary 1.0 x4
+        expect(out.triceps?.sets).toBe(2); // secondary 0.5 x4
+        expect(out.triceps?.status).toBe('optimal'); // 2 within [1,3]
+        // avgRir divides by the per-category RIR COUNT (4), not the fractional volume (2)
+        expect(out.triceps?.avgRir).toBe(1);
     });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PATTERN_MUSCLE_MAP, muscleContributions, primaryMuscle } from '../muscleMap';
+import { PATTERN_MUSCLE_MAP, muscleContributions, primaryMuscle, secondarySets } from '../muscleMap';
 import { MOVEMENT_PATTERNS, EXERCISE_CATEGORIES } from '../types';
 
 // Golden tests for the frozen v1 MovementPattern -> muscle bridge
@@ -71,8 +71,36 @@ describe('primaryMuscle', () => {
         expect(primaryMuscle('horizontal_push')).toBe('chest');
         expect(primaryMuscle('vertical_push')).toBe('shoulders');
         expect(primaryMuscle('vertical_pull')).toBe('back');
-        expect(primaryMuscle('hinge')).toBe('legs'); // 0.50 legs > 0.40 glutes
+        expect(primaryMuscle('hinge')).toBe('legs'); // 0.45 legs > 0.40 glutes
         expect(primaryMuscle('glute_iso')).toBe('glutes');
         expect(primaryMuscle('calf')).toBe('calves');
+    });
+});
+
+describe('secondarySets', () => {
+    it('buckets secondaries (>=0.20 -> 0.5, 0.10-0.19 -> 0.25), excluding the primary', () => {
+        expect(secondarySets('horizontal_push', 'chest')).toEqual({ triceps: 0.5, shoulders: 0.5 });
+        expect(secondarySets('vertical_push', 'shoulders')).toEqual({ triceps: 0.5, chest: 0.25 });
+        expect(secondarySets('horizontal_pull', 'back')).toEqual({ biceps: 0.5, shoulders: 0.25 });
+        expect(secondarySets('vertical_pull', 'back')).toEqual({ biceps: 0.5, shoulders: 0.25 });
+        expect(secondarySets('chest_iso', 'chest')).toEqual({ shoulders: 0.25 });
+        expect(secondarySets('glute_iso', 'glutes')).toEqual({ legs: 0.25 });
+    });
+
+    it('caps above-band secondaries (hinge/lunge glutes) at 0.5 and drops sub-0.10 (calves)', () => {
+        expect(secondarySets('hinge', 'legs')).toEqual({ glutes: 0.5, back: 0.25 });
+        expect(secondarySets('squat', 'legs')).toEqual({ glutes: 0.5 });
+        expect(secondarySets('lunge', 'legs')).toEqual({ glutes: 0.5 });
+    });
+
+    it('excludes the exercise category even when it is not the pattern primary', () => {
+        // A back-categorized deadlift on the hinge pattern: legs + glutes are secondaries.
+        expect(secondarySets('hinge', 'back')).toEqual({ legs: 0.5, glutes: 0.5 });
+    });
+
+    it('returns {} for single-primary (isolation) patterns', () => {
+        expect(secondarySets('biceps_iso', 'biceps')).toEqual({});
+        expect(secondarySets('calf', 'calves')).toEqual({});
+        expect(secondarySets('core', 'abs')).toEqual({});
     });
 });

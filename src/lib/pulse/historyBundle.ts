@@ -1,4 +1,5 @@
 import { calcE1RM, parseLogKey } from './utils';
+import { secondarySets } from './muscleMap';
 import type {
     Logs,
     HistorySession,
@@ -6,6 +7,7 @@ import type {
     RoutineExercise,
     WorkoutType,
     ExerciseCategory,
+    MovementPattern,
 } from './types';
 
 export interface HistoryBundle {
@@ -39,8 +41,10 @@ export function computeHistoryBundle(
     // Lookup maps mirroring computeVolumeByTypeAndWeek / computePerMuscleVolume.
     const typeById = new Map<string, WorkoutType>(allRoutineExercises.map((re) => [re.id, re.workout_type]));
     const catById = new Map<string, ExerciseCategory>();
+    const patternById = new Map<string, MovementPattern>();
     for (const re of activeRoutineExercises) {
         if (re.exercise?.category) catById.set(re.id, re.exercise.category);
+        if (re.exercise?.movement_pattern) patternById.set(re.id, re.exercise.movement_pattern);
     }
 
     const sessionsByWeek: Record<string, HistorySession> = {};
@@ -82,10 +86,22 @@ export function computeHistoryBundle(
             };
         }
 
-        // computePerMuscleVolume (active week only)
+        // computePerMuscleVolume (active week only) — fractional: primary 1.0 plus the
+        // pattern's bucketed secondaries, byte-aligned with utils.accumulatePerMuscle.
         if (week === activeWeek) {
             const cat = catById.get(routineExerciseId);
-            if (cat) muscleVolume[cat] = (muscleVolume[cat] ?? 0) + 1;
+            if (cat) {
+                muscleVolume[cat] = (muscleVolume[cat] ?? 0) + 1;
+                const pattern = patternById.get(routineExerciseId);
+                if (pattern) {
+                    for (const [secCat, frac] of Object.entries(secondarySets(pattern, cat)) as [
+                        ExerciseCategory,
+                        number,
+                    ][]) {
+                        muscleVolume[secCat] = (muscleVolume[secCat] ?? 0) + frac;
+                    }
+                }
+            }
         }
 
         // default-exercise scan: most-logged routine exercise id

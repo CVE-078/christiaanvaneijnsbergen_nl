@@ -44,3 +44,20 @@ export function primaryMuscle(pattern: MovementPattern): ExerciseCategory {
     const entries = Object.entries(PATTERN_MUSCLE_MAP[pattern]) as [ExerciseCategory, number][];
     return entries.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0];
 }
+
+// Bucketed secondary fractional-set contributions of a pattern, EXCLUDING the
+// exercise's own `primary` category (which is credited 1.0 separately by the set
+// itself). A contribution weight >= 0.20 counts as a 0.5 secondary set, 0.10-0.19
+// as 0.25, and below 0.10 is dropped (e.g. the 0.05 calf share of a squat). Weights
+// above the 0.20-0.30 band (hinge/lunge glutes) cap at 0.5, keeping the rule
+// monotonic. This is the single source of the fractional-set rule, shared by the
+// per-muscle volume and recovery accumulators (see the Phase 0 volume decision).
+export function secondarySets(pattern: MovementPattern, primary: ExerciseCategory): MuscleContribution {
+    const out: MuscleContribution = {};
+    for (const [cat, weight] of Object.entries(PATTERN_MUSCLE_MAP[pattern]) as [ExerciseCategory, number][]) {
+        if (cat === primary) continue;
+        const frac = weight >= 0.2 ? 0.5 : weight >= 0.1 ? 0.25 : 0;
+        if (frac > 0) out[cat] = frac;
+    }
+    return out;
+}

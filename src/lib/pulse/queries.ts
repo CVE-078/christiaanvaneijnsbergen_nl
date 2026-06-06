@@ -36,7 +36,7 @@ const SESSIONS_SELECT = 'id, user_id, routine_id, workout_type, variant, started
 const ADJUSTMENTS_SELECT = 'id, routine_id, kind, effective_week, created_at, payload';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at, rationale, program_weeks, program_anchor,
-            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id ) ),
+            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, is_compound ) ),
             schedule:routine_schedule ( day_of_week, workout_type, variant )
         `;
 

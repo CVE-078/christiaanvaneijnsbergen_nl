@@ -57,7 +57,13 @@ export const PROGRAMS: Record<ProgramLength, { phases: Phase[]; volume: VolumeEn
             { weeks: [1, 2, 3, 4], label: 'Phase 1', subtitle: 'Accumulation', rir: [3, 3, 2, 2], color: '#4ade80' },
             { weeks: [5, 6, 7, 8], label: 'Phase 2', subtitle: 'Intensification', rir: [2, 1, 1, 3], color: '#facc15' },
             { weeks: [9, 10, 11, 12], label: 'Phase 3', subtitle: 'Overreach', rir: [2, 1, 1, 0], color: '#f97316' },
-            { weeks: [13, 14, 15, 16], label: 'Phase 4', subtitle: 'Peak & Deload', rir: [1, 1, 0, 3], color: '#f43f5e' },
+            {
+                weeks: [13, 14, 15, 16],
+                label: 'Phase 4',
+                subtitle: 'Peak & Deload',
+                rir: [1, 1, 0, 3],
+                color: '#f43f5e',
+            },
         ],
         volume: toVolume([12, 14, 16, 18, 16, 18, 20, 10, 16, 18, 20, 22, 18, 20, 22, 10]),
     },
@@ -272,16 +278,20 @@ export const SCHEDULE: ScheduleDay[] = [
     { day: 'Sun', type: 'legs' },
 ];
 
-// Weekly working-set targets per muscle [min, max], hypertrophy-oriented floors.
-// Goal-agnostic v1; tune here or make goal-based later. 'other' has no target.
+// Weekly working-set targets per muscle [min, max], hypertrophy-oriented. Tuned for
+// the fractional-set attribution (each set credits its primary 1.0 plus bucketed
+// pattern secondaries), so bands sit higher than direct-only counting — arms and
+// shoulders most, since they accrue large secondary inflow from pressing/pulling.
+// Starting bands toward the MEV/MAV landmarks; tune against logged RIR. 'other' has
+// no target. Goal-agnostic v1.
 export const VOLUME_TARGETS: Partial<Record<ExerciseCategory, [number, number]>> = {
     chest: [12, 18],
-    back: [12, 18],
-    legs: [12, 18],
-    shoulders: [10, 16],
-    glutes: [10, 16],
-    biceps: [8, 14],
-    triceps: [8, 14],
-    calves: [8, 14],
+    back: [14, 22],
+    legs: [14, 20],
+    shoulders: [14, 20],
+    glutes: [12, 20],
+    biceps: [10, 16],
+    triceps: [10, 16],
+    calves: [10, 18],
     abs: [6, 12],
 };
