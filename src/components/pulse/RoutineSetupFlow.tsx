@@ -8,8 +8,20 @@ import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/li
 
 // Steps: 'gender' (only when collectGender, optional/skippable) · 1 equipment ·
 // 2 experience · 3 goal · 4 days/week · 5 which days ·
-// 6 program style (only when >1 style exists for the count) · 7 session time.
-type Step = 'gender' | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+// 6 program style (only when >1 style exists for the count) · 7 session time ·
+// 'start' when-to-start (sets program_anchor at creation).
+type Step = 'gender' | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 'start';
+type StartChoice = 'today' | 'tomorrow' | 'monday' | 'custom';
+
+// Local YYYY-MM-DD for a date (the user's calendar day). The anchor is serialized
+// at noon UTC (matching the Plan date input) so the program's day-one stays on the
+// chosen date across timezones.
+function toYmd(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
 
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
 const CARD = 'bg-pulse-surface rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
@@ -91,6 +103,9 @@ export interface RoutineSetupResult {
     styleKey?: string;
     /** Selected gender, or null if skipped / not collected. */
     gender: Gender | null;
+    /** ISO timestamp for program_anchor (the program's day one). Always set by the
+     *  start-date step (defaults to today); the consumer applies it after create. */
+    startAnchor?: string;
 }
 
 interface Props {
@@ -130,6 +145,8 @@ export default function RoutineSetupFlow({
     const [sessionTime, setSessionTime] = useState<SessionTime | null>(initial?.sessionTime ?? null);
     const [trainingDays, setTrainingDays] = useState<number[]>(initial?.trainingDays ?? []);
     const [styleKey, setStyleKey] = useState<string | null>(null);
+    const [startChoice, setStartChoice] = useState<StartChoice>('today');
+    const [customDate, setCustomDate] = useState('');
     const [loading, setLoading] = useState(false);
 
     // The days-per-week answer caps how many days can be picked, so the chosen
@@ -149,7 +166,7 @@ export default function RoutineSetupFlow({
     // The optional gender step adds one to the count and shifts the numbered steps
     // one position later in the progress display.
     const genderOffset = collectGender ? 1 : 0;
-    const total = (showStyleStep ? 7 : 6) + genderOffset;
+    const total = (showStyleStep ? 8 : 7) + genderOffset;
 
     function toggleEquipment(key: EquipmentKey) {
         setEquipment((prev) => {
@@ -158,6 +175,16 @@ export default function RoutineSetupFlow({
             else next.add(key);
             return next;
         });
+    }
+
+    // Resolve the chosen start to an ISO anchor at noon UTC (program day one).
+    // "Next Monday" lands on today when today is already Monday.
+    function startAnchorISO(): string {
+        if (startChoice === 'custom') return `${customDate}T12:00:00.000Z`;
+        const d = new Date();
+        if (startChoice === 'tomorrow') d.setDate(d.getDate() + 1);
+        else if (startChoice === 'monday') d.setDate(d.getDate() + ((1 - d.getDay() + 7) % 7));
+        return `${toYmd(d)}T12:00:00.000Z`;
     }
 
     function handleComplete() {
@@ -171,6 +198,7 @@ export default function RoutineSetupFlow({
                     sessionTime,
                     styleKey: styleKey ?? recommendStyle(trainingDays.length),
                     gender,
+                    startAnchor: startAnchorISO(),
                 });
             } finally {
                 setLoading(false);
@@ -435,8 +463,59 @@ export default function RoutineSetupFlow({
             </div>
         );
 
-    // Final step: live rationale preview built from the chosen inputs, mirroring
-    // what buildRationale persists on the routine after generation.
+    if (step === 'start')
+        return (
+            <div className={WRAP}>
+                <div className={CARD}>
+                    <Header stepNum={total} total={total} onBack={() => setStep(7)} />
+                    <p className={Q}>When do you want to start?</p>
+                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                        Sets your program&apos;s first day. You can change it later in Plan.
+                    </p>
+                    <div className="flex flex-col gap-2">
+                        <OptionRow
+                            label="Today"
+                            active={startChoice === 'today'}
+                            onClick={() => setStartChoice('today')}
+                        />
+                        <OptionRow
+                            label="Tomorrow"
+                            active={startChoice === 'tomorrow'}
+                            onClick={() => setStartChoice('tomorrow')}
+                        />
+                        <OptionRow
+                            label="Next Monday"
+                            active={startChoice === 'monday'}
+                            onClick={() => setStartChoice('monday')}
+                        />
+                        <OptionRow
+                            label="Pick a date"
+                            active={startChoice === 'custom'}
+                            onClick={() => setStartChoice('custom')}
+                        />
+                    </div>
+                    {startChoice === 'custom' && (
+                        <input
+                            type="date"
+                            aria-label="Start date"
+                            value={customDate}
+                            min={toYmd(new Date())}
+                            onChange={(e) => setCustomDate(e.target.value)}
+                            className="w-full rounded-xl border border-pulse-border bg-pulse-surface-2 px-3 py-2.5 font-pulse text-sm text-pulse-text outline-none [color-scheme:dark] focus:border-pulse-accent/50"
+                        />
+                    )}
+                    <button
+                        onClick={handleComplete}
+                        disabled={loading || (startChoice === 'custom' && !customDate)}
+                        className={BTN_PRIMARY_BLOCK}>
+                        {loading ? 'Building your routine…' : completeLabel}
+                    </button>
+                </div>
+            </div>
+        );
+
+    // Final shaping step before the start-date pick: session time + a live rationale
+    // preview built from the chosen inputs, mirroring what buildRationale persists.
     const previewStyle = resolveStyle(styleKey ?? recommendStyle(trainingDays.length), trainingDays.length);
     const rationalePreview =
         experience && goal && days && sessionTime && trainingDays.length > 0
@@ -446,7 +525,7 @@ export default function RoutineSetupFlow({
     return (
         <div className={WRAP}>
             <div className={CARD}>
-                <Header stepNum={total} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
+                <Header stepNum={total - 1} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
                 <p className={Q}>How long are your sessions?</p>
                 <div className="flex flex-col gap-2">
                     <OptionRow
@@ -476,8 +555,8 @@ export default function RoutineSetupFlow({
                         <p className="font-pulse text-sm text-pulse-dim leading-[1.55]">{rationalePreview}</p>
                     </div>
                 )}
-                <button onClick={handleComplete} disabled={!sessionTime || loading} className={BTN_PRIMARY_BLOCK}>
-                    {loading ? 'Building your routine…' : completeLabel}
+                <button onClick={() => setStep('start')} disabled={!sessionTime} className={BTN_PRIMARY_BLOCK}>
+                    Next
                 </button>
             </div>
         </div>

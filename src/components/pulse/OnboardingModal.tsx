@@ -7,7 +7,15 @@ import RoutineSetupFlow from './RoutineSetupFlow';
 // GENERATE a tailored routine (no template-match step). Replaces the old
 // recommend-a-template + clone flow.
 export default function OnboardingModal() {
-    const { profile, generateRoutine, completeOnboarding, dismissOnboarding, navigate, updateGender } = usePulse();
+    const {
+        profile,
+        generateRoutine,
+        setProgramAnchor,
+        completeOnboarding,
+        dismissOnboarding,
+        navigate,
+        updateGender,
+    } = usePulse();
     // Only ask for gender when the profile doesn't have it yet; otherwise reuse
     // the saved value for the light program nudge.
     const hasGender = Boolean(profile.gender);
@@ -16,14 +24,15 @@ export default function OnboardingModal() {
             completeLabel="Create my routine"
             collectGender={!hasGender}
             intro="Pulse adapts as you train: miss a week, hit a plateau, or train somewhere new, and your plan adjusts so you keep moving forward."
-            onComplete={async ({ answers, trainingDays, sessionTime, styleKey, gender }) => {
+            onComplete={async ({ answers, trainingDays, sessionTime, styleKey, gender, startAnchor }) => {
                 if (gender) await updateGender(gender);
-                await generateRoutine(
+                const routine = await generateRoutine(
                     answers,
                     trainingDays,
                     sessionTime,
                     styleKey ?? recommendStyle(trainingDays.length),
                 );
+                if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
                 await completeOnboarding();
                 navigate('train');
             }}

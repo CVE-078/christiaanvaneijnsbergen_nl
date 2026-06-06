@@ -27,7 +27,7 @@ const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
 };
 
 export default function TemplatesTab() {
-    const { cloneTemplate, navigate, profile } = usePulse();
+    const { cloneTemplate, setProgramAnchor, navigate, profile } = usePulse();
     // Templates are static per session, dedupe aggressively and don't refetch on focus.
     const { data: templates = [] } = useSWR<RoutineTemplate[]>('/api/pulse/templates', fetcher, {
         ...SWR_READ_OPTS,
@@ -133,9 +133,7 @@ export default function TemplatesTab() {
             {/* Template list, unified row card. */}
             <div className="flex flex-col gap-2">
                 {visible.map((t) => (
-                    <div
-                        key={t.slug}
-                        className="bg-pulse-surface rounded-xl px-3 py-2.5 flex flex-col gap-2">
+                    <div key={t.slug} className="bg-pulse-surface rounded-xl px-3 py-2.5 flex flex-col gap-2">
                         <div className="flex items-center gap-3">
                             <span className="font-pulse text-sm font-semibold text-pulse-text flex-1 min-w-0 truncate">
                                 {t.name}
@@ -167,8 +165,14 @@ export default function TemplatesTab() {
                         experience: setupTemplate.experience_level,
                     }}
                     completeLabel="Use this routine"
-                    onComplete={async ({ answers, trainingDays, sessionTime }) => {
-                        await cloneTemplate(setupTemplate.slug, trainingDays, sessionTime, answers.experience);
+                    onComplete={async ({ answers, trainingDays, sessionTime, startAnchor }) => {
+                        const routine = await cloneTemplate(
+                            setupTemplate.slug,
+                            trainingDays,
+                            sessionTime,
+                            answers.experience,
+                        );
+                        if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
                         navigate('train');
                     }}
                     onClose={() => setSetupTemplate(null)}

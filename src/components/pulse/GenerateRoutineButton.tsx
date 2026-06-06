@@ -15,7 +15,7 @@ export default function GenerateRoutineButton({
     className?: string;
     label?: string;
 }) {
-    const { generateRoutine, navigate } = usePulse();
+    const { generateRoutine, setProgramAnchor, navigate } = usePulse();
     const [open, setOpen] = useState(false);
     return (
         <>
@@ -24,13 +24,14 @@ export default function GenerateRoutineButton({
             </button>
             {open && (
                 <RoutineSetupFlow
-                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey }) => {
-                        await generateRoutine(
+                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor }) => {
+                        const routine = await generateRoutine(
                             answers,
                             trainingDays,
                             sessionTime,
                             styleKey ?? recommendStyle(trainingDays.length),
                         );
+                        if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
                         navigate('train');
                     }}
                     onClose={() => setOpen(false)}
