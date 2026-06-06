@@ -21,15 +21,16 @@ import { buildWorkoutCsv } from '@/lib/pulse/csv';
 import type { RoutineExercise, WorkoutType, TabKey, ScheduleEntry, View, ProgramPosition } from '@/lib/pulse/types';
 
 interface Props {
+    userId: string;
     email: string;
     navigate: (view: View) => void;
     children: React.ReactNode;
 }
 
-export function PulseProvider({ email, navigate, children }: Props) {
+export function PulseProvider({ userId, email, navigate, children }: Props) {
     const { show: showToast } = useToast();
     const onSaveError = useCallback((msg: string) => showToast(msg, 'error'), [showToast]);
-    const { logs, updateLog, deleteLog, loading: loadingLogs, error: logsError } = useWorkoutLogs(onSaveError);
+    const { logs, updateLog, deleteLog, loading: loadingLogs, error: logsError } = useWorkoutLogs(userId, onSaveError);
     const {
         profile,
         bodyweightLogs,
@@ -84,7 +85,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
         setWorkoutModeOpen,
     } = useUIState();
     const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
-    const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes();
+    const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes(userId);
     const { swaps, setSwap, clearSwap } = useSwaps();
     const { hiddenExerciseIds, toggleHideExercise } = usePreferences();
     const { sessions, refreshSessions, loading: loadingSessions, error: sessionsError } = useSessions();
@@ -97,7 +98,8 @@ export function PulseProvider({ email, navigate, children }: Props) {
     } = useProgramAdjustments();
 
     // Replay any offline-queued log/note writes on mount, reconnect, and focus.
-    useOfflineSync();
+    // Scoped to this user so a shared device never replays another account's writes.
+    useOfflineSync(userId);
 
     const { mutate: globalMutate } = useSWRConfig();
     const retry = useCallback(() => {
@@ -374,7 +376,7 @@ export function PulseProvider({ email, navigate, children }: Props) {
             refreshMeasurements,
         ],
     );
-    const computedValue = useMemo(() => ({ streak, prMap, email }), [streak, prMap, email]);
+    const computedValue = useMemo(() => ({ streak, prMap, email, userId }), [streak, prMap, email, userId]);
     const uiStateValue = useMemo(
         () => ({
             navigate,

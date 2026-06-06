@@ -10,7 +10,9 @@ const NOTES_KEY = '/api/pulse/notes';
 // across renders (otherwise the useCallback deps below churn every render).
 const EMPTY_NOTES: Notes = {};
 
-export function useNotes() {
+// `userId` stamps each queued write so offline notes replay only under their
+// owner's session on flush (see offlineSync.flushQueue).
+export function useNotes(userId: string) {
     const { data, mutate, isLoading, error } = useSWR<Notes>(NOTES_KEY, fetcher, SWR_READ_OPTS);
     const notes = data ?? EMPTY_NOTES;
 
@@ -18,9 +20,9 @@ export function useNotes() {
         async (week: number, routineExerciseId: string, note: string): Promise<void> => {
             const key = `${week}-${routineExerciseId}`;
             mutate({ ...notes, [key]: note }, false);
-            await runMutation('saveNote', [week, routineExerciseId, note]);
+            await runMutation('saveNote', [week, routineExerciseId, note], userId);
         },
-        [notes, mutate],
+        [notes, mutate, userId],
     );
 
     const deleteNote = useCallback(
@@ -29,9 +31,9 @@ export function useNotes() {
             const updated = { ...notes };
             delete updated[key];
             mutate(updated, false);
-            await runMutation('deleteNote', [week, routineExerciseId]);
+            await runMutation('deleteNote', [week, routineExerciseId], userId);
         },
-        [notes, mutate],
+        [notes, mutate, userId],
     );
 
     return { notes, saveNote, deleteNote, loading: isLoading, error };
