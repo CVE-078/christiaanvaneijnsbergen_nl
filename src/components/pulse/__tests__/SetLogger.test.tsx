@@ -221,5 +221,22 @@ describe('SetLogger', () => {
         const hint = screen.getByLabelText(/auto-progression target/i);
         expect(hint).toHaveTextContent(/Last time you hit 90 kg × 7/);
         expect(hint).toHaveTextContent(/Go for/);
+        expect(hint).toHaveTextContent(/(reps? left|push close to failure)/);
+    });
+
+    it('guided coaching pushes to failure when the target RIR is 0', () => {
+        const prev: LogEntry = { kg: 90, reps: 7, rir: 0, saved: true };
+        render(<SetLogger {...defaultProps} variant="editorial" week={9} previousEntry={prev} repsRange="8-12" />);
+        expect(screen.getByLabelText(/auto-progression target/i)).toHaveTextContent(/push close to failure/);
+    });
+
+    it('guided deload reads as a controlled backoff that keeps reps in the tank', () => {
+        const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
+        render(
+            <SetLogger {...defaultProps} variant="editorial" week={2} deload previousEntry={prev} repsRange="8-12" />,
+        );
+        const hint = screen.getByLabelText(/deload target/i);
+        expect(hint).toHaveTextContent(/back off on purpose/);
+        expect(hint).toHaveTextContent(/in the tank/);
     });
 });

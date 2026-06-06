@@ -177,6 +177,12 @@ export default function SetLogger({
     const targetKg = showInputs && !isNaN(parsedTarget) ? toKg(parsedTarget, unit) : parsedTarget;
     const showPlates = !isNaN(targetKg) && targetKg >= DUMBBELL_HANDLE_KG;
 
+    // Plain-language RIR clause for the guided (editorial) coaching sentence: how
+    // hard to push (reps left), with a failure cue at RIR 0 so "0 reps left" never shows.
+    const rirClause =
+        targetRIR > 0 ? `stop with about ${targetRIR} rep${targetRIR === 1 ? '' : 's'} left` : 'push close to failure';
+    const deloadTankClause = targetRIR > 0 ? ` and keep ${targetRIR} rep${targetRIR === 1 ? '' : 's'} in the tank` : '';
+
     return (
         <div className="flex flex-col">
             <div
@@ -286,8 +292,8 @@ export default function SetLogger({
                                                 aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
                                                 className="font-pulse-body text-[0.6875rem] font-medium leading-[1.45] tracking-[0.02em] text-pulse-accent">
                                                 {deloadTgt
-                                                    ? `You stalled around ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}, so back off on purpose. Drop to ${toDisplay(target.kg, unit)} ${unit} × ${target.reps} to reset.`
-                                                    : `Last time you hit ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}. Go for ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}.`}
+                                                    ? `You stalled around ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}, so back off on purpose. Drop to ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}${deloadTankClause} to reset.`
+                                                    : `Last time you hit ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}. Go for ${toDisplay(target.kg, unit)} ${unit} × ${target.reps} and ${rirClause}.`}
                                             </span>
                                         ) : (
                                             previousEntry && (
