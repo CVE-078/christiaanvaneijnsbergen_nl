@@ -111,8 +111,9 @@ describe('LibraryView', () => {
         expect(screen.getByRole('tab', { name: /routines/i })).toBeInTheDocument();
     });
 
-    it('shows the exercise list on the Exercises tab', () => {
+    it('shows the exercise list on the Exercises tab', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         expect(screen.getByText('Bench Press')).toBeInTheDocument();
         expect(screen.getByText('Cable Fly')).toBeInTheDocument();
         expect(screen.getByText('Barbell Row')).toBeInTheDocument();
@@ -120,21 +121,24 @@ describe('LibraryView', () => {
 
     it('filters exercises by category', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         await userEvent.click(screen.getByRole('button', { name: /^back$/i }));
         expect(screen.getByText('Barbell Row')).toBeInTheDocument();
         expect(screen.queryByText('Bench Press')).not.toBeInTheDocument();
     });
 
-    it('shows a per-category count badge on each filter chip', () => {
+    it('shows a per-category count badge on each filter chip', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         // Sample library: 2 chest (Bench Press, Cable Fly) + 1 back (Barbell Row) = 3 total.
         expect(within(screen.getByRole('button', { name: 'all' })).getByText('3')).toBeInTheDocument();
         expect(within(screen.getByRole('button', { name: 'chest' })).getByText('2')).toBeInTheDocument();
         expect(within(screen.getByRole('button', { name: 'back' })).getByText('1')).toBeInTheDocument();
     });
 
-    it('only shows edit/delete on user exercises', () => {
+    it('only shows edit/delete on user exercises', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         // Cable Fly is the only user exercise → its delete button exists
         expect(screen.getByRole('button', { name: /delete cable fly/i })).toBeInTheDocument();
         // Bench Press is global → no delete button
@@ -143,6 +147,7 @@ describe('LibraryView', () => {
 
     it('hides an exercise via the hide toggle', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         await userEvent.click(screen.getByRole('button', { name: /hide bench press/i }));
         expect(mocks.toggleHideExercise).toHaveBeenCalledWith('g1', true);
     });
@@ -153,6 +158,7 @@ describe('LibraryView', () => {
             hiddenExerciseIds: new Set(['g1']),
         } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         // Bench Press (g1) is hidden → not listed by default
         expect(screen.queryByText('Bench Press')).not.toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: /show hidden/i }));
@@ -163,6 +169,7 @@ describe('LibraryView', () => {
 
     it('submits the add exercise form correctly', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         await userEvent.click(screen.getByRole('button', { name: /\+ add/i }));
         await userEvent.type(screen.getByLabelText(/exercise name/i), 'Incline Press');
         await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
@@ -173,6 +180,7 @@ describe('LibraryView', () => {
 
     it('calls updateExercise when a user exercise is renamed', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
         const input = screen.getByLabelText(/rename cable fly/i);
         await userEvent.clear(input);
@@ -185,6 +193,7 @@ describe('LibraryView', () => {
 
     it('shows default sets and reps inputs when editing a user exercise', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
         expect(screen.getByLabelText(/default sets/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/default reps/i)).toBeInTheDocument();
@@ -192,6 +201,7 @@ describe('LibraryView', () => {
 
     it('calls updateExercise with name, sets, and reps when edit is saved', async () => {
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
 
         const setsInput = screen.getByLabelText(/default sets/i);
@@ -274,6 +284,7 @@ describe('LibraryView', () => {
     it('calls deleteExercise when a user exercise delete is confirmed', async () => {
         vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         await userEvent.click(screen.getByRole('button', { name: /delete cable fly/i }));
         await waitFor(() => {
             expect(mocks.deleteExercise).toHaveBeenCalledWith('u1');
@@ -283,6 +294,7 @@ describe('LibraryView', () => {
     it('does not call deleteExercise when delete is cancelled', async () => {
         vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
         render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
         await userEvent.click(screen.getByRole('button', { name: /delete cable fly/i }));
         expect(mocks.deleteExercise).not.toHaveBeenCalled();
     });
