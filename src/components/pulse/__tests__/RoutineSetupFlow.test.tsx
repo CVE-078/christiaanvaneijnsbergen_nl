@@ -32,9 +32,10 @@ describe('RoutineSetupFlow', () => {
         const onClose = vi.fn();
         render(<RoutineSetupFlow initial={initial} onComplete={onComplete} onClose={onClose} />);
         // Each value is prefilled, so Next is enabled on every step. With 3 training
-        // days there are multiple styles, so a style step appears (7 Next clicks:
-        // equipment, experience, goal, days/week, which days, style, session time → start).
-        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
+        // days there are multiple styles, so a style step appears (8 Next clicks:
+        // equipment, experience, goal, days/week, which days, style, session time,
+        // program length → start).
+        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         const arg = onComplete.mock.calls[0][0];
@@ -48,6 +49,8 @@ describe('RoutineSetupFlow', () => {
         expect(arg.styleKey).toBe('fb-3');
         // The start-date step defaults to today, returning a noon-UTC anchor.
         expect(arg.startAnchor).toMatch(/^\d{4}-\d{2}-\d{2}T12:00:00\.000Z$/);
+        // The program-length step defaults to 12 weeks.
+        expect(arg.programWeeks).toBe(12);
     });
 
     it('shows the program-style step and lets you pick a non-default style', async () => {
@@ -57,7 +60,8 @@ describe('RoutineSetupFlow', () => {
         expect(screen.getByText(/which program style/i)).toBeInTheDocument();
         fireEvent.click(screen.getByText('Push / Pull / Legs'));
         fireEvent.click(screen.getByText('Next')); // style → session time
-        fireEvent.click(screen.getByText('Next')); // session time → start
+        fireEvent.click(screen.getByText('Next')); // session time → program length
+        fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         expect(onComplete.mock.calls[0][0].styleKey).toBe('ppl-3');
@@ -86,7 +90,8 @@ describe('RoutineSetupFlow', () => {
         for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'));
         // No style step: 5 Next clicks land straight on the session-time step.
         expect(screen.queryByText(/which program style/i)).not.toBeInTheDocument();
-        fireEvent.click(screen.getByText('Next')); // session time → start
+        fireEvent.click(screen.getByText('Next')); // session time → program length
+        fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         expect(onComplete.mock.calls[0][0].styleKey).toBe('fb-2');
@@ -96,7 +101,7 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] }; // 2 days → no style step
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
-        for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next')); // → start step
+        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next')); // → start step
         expect(screen.getByText(/when do you want to start/i)).toBeInTheDocument();
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -107,11 +112,40 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
-        for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next'));
+        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Pick a date'));
         fireEvent.change(screen.getByLabelText(/start date/i), { target: { value: '2099-01-05' } });
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         expect(onComplete.mock.calls[0][0].startAnchor).toBe('2099-01-05T12:00:00.000Z');
+    });
+
+    it('shows the program-length step before the start step and defaults to 12 weeks', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        const single = { ...initial, trainingDays: [1, 4] }; // no style step
+        render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
+        for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next')); // → program-length step
+        expect(screen.getByText(/how long should your program be/i)).toBeInTheDocument();
+        // All four hand-built lengths are offered, no custom field.
+        expect(screen.getByText('8 weeks')).toBeInTheDocument();
+        expect(screen.getByText('10 weeks')).toBeInTheDocument();
+        expect(screen.getByText('12 weeks')).toBeInTheDocument();
+        expect(screen.getByText('16 weeks')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Next')); // length → start (12 untouched)
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].programWeeks).toBe(12);
+    });
+
+    it('lets you pick a non-default program length', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        const single = { ...initial, trainingDays: [1, 4] };
+        render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
+        for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next')); // → program-length step
+        fireEvent.click(screen.getByText('16 weeks'));
+        fireEvent.click(screen.getByText('Next')); // length → start
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].programWeeks).toBe(16);
     });
 });

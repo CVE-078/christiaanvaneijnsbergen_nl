@@ -15,7 +15,7 @@ export default function GenerateRoutineButton({
     className?: string;
     label?: string;
 }) {
-    const { generateRoutine, setProgramAnchor, navigate } = usePulse();
+    const { generateRoutine, setProgramAnchor, updateRoutineProgramWeeks, navigate } = usePulse();
     const [open, setOpen] = useState(false);
     return (
         <>
@@ -24,7 +24,7 @@ export default function GenerateRoutineButton({
             </button>
             {open && (
                 <RoutineSetupFlow
-                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor }) => {
+                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks }) => {
                         const routine = await generateRoutine(
                             answers,
                             trainingDays,
@@ -32,6 +32,8 @@ export default function GenerateRoutineButton({
                             styleKey ?? recommendStyle(trainingDays.length),
                         );
                         if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
+                        // New routines default to 12 weeks in the DB; only write when it differs.
+                        if (programWeeks !== 12) await updateRoutineProgramWeeks(routine.id, programWeeks);
                         navigate('train');
                     }}
                     onClose={() => setOpen(false)}
