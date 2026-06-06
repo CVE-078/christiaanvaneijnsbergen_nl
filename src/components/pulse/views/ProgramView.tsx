@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { WEEK_NOTES, buildProgram, PROGRAM_LENGTHS } from '@/lib/pulse/data';
 import { getPhase, sessionTypeFor, weekInBlock } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
-import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
+import { WORKOUT_TYPE_LABELS, EQUIPMENT_LABELS } from '@/lib/pulse/constants';
 import type { WorkoutType, WorkoutVariant, RoutineExercise } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
 import GenerateRoutineButton from '../GenerateRoutineButton';
@@ -288,6 +288,24 @@ export default function ProgramView() {
                                         </div>
                                         <div className="font-pulse-body text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-1">
                                             {re.sets} sets · {re.reps} reps
+                                        </div>
+                                        {/* Resolved equipment per exercise, so an equipment mis-tag
+                                            (e.g. a bench-only lift in a no-bench setup) is visible here,
+                                            not only by reading the seed. */}
+                                        <div className="mt-1.5 flex flex-wrap gap-1">
+                                            {(re.exercise?.equipment ?? []).length === 0 ? (
+                                                <span className="rounded border border-pulse-border px-1.5 py-0.5 font-pulse text-[0.625rem] tracking-[0.02em] text-pulse-muted">
+                                                    Bodyweight
+                                                </span>
+                                            ) : (
+                                                (re.exercise?.equipment ?? []).map((eq) => (
+                                                    <span
+                                                        key={eq}
+                                                        className="rounded border border-pulse-border px-1.5 py-0.5 font-pulse text-[0.625rem] tracking-[0.02em] text-pulse-muted">
+                                                        {EQUIPMENT_LABELS[eq] ?? eq}
+                                                    </span>
+                                                ))
+                                            )}
                                         </div>
                                     </div>
                                     {re.exercise && re.exercise.user_id === null && (

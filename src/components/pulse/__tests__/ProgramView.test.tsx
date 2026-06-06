@@ -170,6 +170,15 @@ describe('ProgramView', () => {
         expect(screen.getByText('A balanced split.')).toBeInTheDocument();
     });
 
+    it('shows resolved equipment chips per exercise', () => {
+        const re = makeRE('Bench Press', 'push');
+        re.exercise = { ...re.exercise!, equipment: ['barbell', 'bench'] };
+        mockContext(makeRoutine([re], []));
+        render(<ProgramView />);
+        expect(screen.getByText('Barbell')).toBeInTheDocument();
+        expect(screen.getByText('Bench')).toBeInTheDocument();
+    });
+
     it('opens the how-to-perform modal for a built-in exercise', () => {
         // The modal fetches instructions on mount; keep it pending so it just
         // renders its header (we only assert the modal opens).
