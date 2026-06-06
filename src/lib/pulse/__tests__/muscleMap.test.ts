@@ -36,7 +36,7 @@ describe('PATTERN_MUSCLE_MAP', () => {
         expect(PATTERN_MUSCLE_MAP.horizontal_pull).toEqual({ back: 0.7, biceps: 0.2, shoulders: 0.1 });
         expect(PATTERN_MUSCLE_MAP.vertical_pull).toEqual({ back: 0.65, biceps: 0.25, shoulders: 0.1 });
         expect(PATTERN_MUSCLE_MAP.squat).toEqual({ legs: 0.7, glutes: 0.25, calves: 0.05 });
-        expect(PATTERN_MUSCLE_MAP.hinge).toEqual({ legs: 0.5, glutes: 0.4, back: 0.1 });
+        expect(PATTERN_MUSCLE_MAP.hinge).toEqual({ legs: 0.45, glutes: 0.4, back: 0.15 });
         expect(PATTERN_MUSCLE_MAP.lunge).toEqual({ legs: 0.6, glutes: 0.35, calves: 0.05 });
         expect(PATTERN_MUSCLE_MAP.calf).toEqual({ calves: 1 });
         expect(PATTERN_MUSCLE_MAP.core).toEqual({ abs: 1 });

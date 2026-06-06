@@ -1,8 +1,10 @@
 import type { MovementPattern, ExerciseCategory } from './types';
 
 // Weighted contribution of a MovementPattern to Pulse's 10 reporting categories.
-// Frozen v1 bridge from the Phase 0 design doc
-// (docs/superpowers/designs/2026-06-06-00-54-52-phase0-source-material.md §1).
+// v1 bridge from the Phase 0 design doc §1
+// (docs/superpowers/designs/2026-06-06-00-54-52-phase0-source-material.md); hinge's
+// back-share was raised 0.10 → 0.15 per the 2026-06-06 volume-science review (a hinge
+// carries real erector/lat load that 0.10 understated).
 //
 // The weights are contribution SIGNALS, not a probability distribution: they sum
 // to 1.0 per pattern, but consumers must NOT re-normalize per exercise or session
@@ -18,7 +20,7 @@ export const PATTERN_MUSCLE_MAP: Record<MovementPattern, MuscleContribution> = {
     horizontal_pull: { back: 0.7, biceps: 0.2, shoulders: 0.1 },
     vertical_pull: { back: 0.65, biceps: 0.25, shoulders: 0.1 },
     squat: { legs: 0.7, glutes: 0.25, calves: 0.05 },
-    hinge: { legs: 0.5, glutes: 0.4, back: 0.1 },
+    hinge: { legs: 0.45, glutes: 0.4, back: 0.15 },
     lunge: { legs: 0.6, glutes: 0.35, calves: 0.05 },
     calf: { calves: 1 },
     core: { abs: 1 },
