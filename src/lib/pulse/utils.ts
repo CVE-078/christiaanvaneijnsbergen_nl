@@ -347,6 +347,13 @@ export function calcE1RM(kg: number, reps: number): number {
     return kg * (1 + reps / 30);
 }
 
+// A bodyweight exercise carries no equipment (empty/absent equipment array), so
+// weight is optional when logging and progression is rep-based. Single source of
+// truth for the "is this bodyweight?" rule used by SetLogger and the train cards.
+export function isBodyweight(equipment: string[] | null | undefined): boolean {
+    return (equipment?.length ?? 0) === 0;
+}
+
 export function computePRMap(logs: Logs): Record<string, number> {
     const map: Record<string, number> = {};
     for (const [key, val] of Object.entries(logs)) {
@@ -398,12 +405,20 @@ export function computeProgression(
     previousEntry: LogEntry | undefined,
     repsRange: string,
     week: number,
+    bodyweight = false,
 ): { kg: number; reps: number } | null {
     if (!previousEntry || week <= 1) return null;
     const targetRIR = getRIR(week - 1);
     const nums = (repsRange.match(/\d+/g) ?? []).map(Number);
     const lo = nums.length ? nums[0] : previousEntry.reps;
     const hi = nums.length ? nums[nums.length - 1] : previousEntry.reps;
+    // Bodyweight progression is rep-based: there is no external load to add, so
+    // keep whatever was used (0 for pure bodyweight, or any added load) and aim
+    // for one more rep. A set harder than target eases back to the range bottom.
+    if (bodyweight) {
+        if (previousEntry.rir < targetRIR) return { kg: previousEntry.kg, reps: lo };
+        return { kg: previousEntry.kg, reps: previousEntry.reps + 1 };
+    }
     if (previousEntry.rir < targetRIR) {
         return { kg: Math.max(previousEntry.kg - 2.5, MIN_KG), reps: lo };
     }
