@@ -38,13 +38,23 @@ export default function RestTimer({ trigger, duration, onComplete }: Props) {
         const stored = raw !== null ? Number(raw) : -1;
         return stored >= 0 && stored < DURATIONS.length ? stored : DEFAULT_IDX;
     });
+    // The countdown is anchored to a wall-clock end time, not a per-second
+    // decrement, so it stays accurate when the phone locks or the tab is
+    // suspended (mobile pauses background timers). `remaining` is derived from
+    // `endAt` on every tick and recomputed on resume (visibilitychange / focus).
+    const [endAt, setEndAt] = useState<number | null>(null);
     const [remaining, setRemaining] = useState<number | null>(null);
     const totalRef = useRef(DURATIONS[durationIdx]);
+    const firedRef = useRef(false);
+    const clearAtRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (trigger === 0) return;
         const start = duration ?? DURATIONS[durationIdx];
         totalRef.current = start;
+        firedRef.current = false;
+        clearAtRef.current = null;
+        setEndAt(Date.now() + start * 1000);
         setRemaining(start);
     }, [trigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -53,38 +63,57 @@ export default function RestTimer({ trigger, duration, onComplete }: Props) {
     }, [durationIdx]);
 
     useEffect(() => {
-        if (remaining === null || remaining <= 0) {
-            if (remaining === 0) {
+        if (endAt === null) return;
+        const recompute = () => {
+            const rem = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+            if (rem <= 0 && !firedRef.current) {
+                firedRef.current = true;
                 beep();
                 onComplete?.();
-                const t = setTimeout(() => setRemaining(null), 2000);
-                return () => clearTimeout(t);
+                clearAtRef.current = Date.now() + 2000;
             }
-            return;
-        }
-        const id = setTimeout(() => setRemaining((r) => (r ?? 1) - 1), 1000);
-        return () => clearTimeout(id);
-        // onComplete is read at the moment remaining hits 0; the remaining change
-        // re-runs this effect with fresh props, so it stays excluded from deps.
+            // Hold the "Go!" state briefly after completion, then clear.
+            if (firedRef.current && clearAtRef.current !== null && Date.now() >= clearAtRef.current) {
+                setEndAt(null);
+                setRemaining(null);
+                return;
+            }
+            setRemaining(rem);
+        };
+        recompute(); // sync immediately so a resume jump lands at once
+        const id = setInterval(recompute, 250);
+        const onResume = () => {
+            if (document.visibilityState === 'visible') recompute();
+        };
+        document.addEventListener('visibilitychange', onResume);
+        window.addEventListener('focus', onResume);
+        return () => {
+            clearInterval(id);
+            document.removeEventListener('visibilitychange', onResume);
+            window.removeEventListener('focus', onResume);
+        };
+        // onComplete is read when the countdown hits 0; firedRef guards a single
+        // fire, so it stays out of deps to avoid resubscribing every render.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [remaining]);
+    }, [endAt]);
 
     function skip() {
+        setEndAt(null);
         setRemaining(null);
     }
 
     function addTime() {
         totalRef.current += 30;
-        setRemaining((r) => (r ?? 0) + 30);
+        setEndAt((e) => (e ?? Date.now()) + 30000);
     }
 
     function cycleDuration() {
         const nextIdx = (durationIdx + 1) % DURATIONS.length;
+        const delta = DURATIONS[nextIdx] - DURATIONS[durationIdx];
         setDurationIdx(nextIdx);
-        if (remaining !== null) {
-            const delta = DURATIONS[nextIdx] - DURATIONS[durationIdx];
+        if (endAt !== null) {
             totalRef.current = DURATIONS[nextIdx];
-            setRemaining((r) => Math.max(0, (r ?? 0) + delta));
+            setEndAt((e) => (e === null ? null : Math.max(Date.now(), e + delta * 1000)));
         }
     }
 
