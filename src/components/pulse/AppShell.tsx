@@ -1,10 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { logout } from '@/app/pulse/actions';
-import { clearAllSWRCache } from '@/lib/pulse/swrCache';
-import { flushQueue } from '@/lib/pulse/offlineSync';
 import { usePulse } from '@/context/PulseContext';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
+import { useSignOut } from '@/hooks/pulse/useSignOut';
 import DesktopLayout from './DesktopLayout';
 import RestTimer from './RestTimer';
 import BottomNav from './BottomNav';
@@ -21,20 +19,8 @@ export function AppShell({
     navigate: (v: View) => void;
     children: React.ReactNode;
 }) {
-    const { activeWeek, streak, timerTrigger, timerDuration, showOnboarding, workoutModeOpen, userId } = usePulse();
-
-    // Sign out. Drain this user's queued writes while still authenticated so they
-    // land in the right account and don't linger on a shared device; best-effort,
-    // then clear the per-user SWR cache and end the session.
-    const handleSignOut = async () => {
-        try {
-            await flushQueue(userId);
-        } catch {
-            // offline or failed, writes stay queued (scoped to this user) and sync on next sign-in
-        }
-        clearAllSWRCache();
-        await logout();
-    };
+    const { activeWeek, streak, timerTrigger, timerDuration, showOnboarding, workoutModeOpen } = usePulse();
+    const { signOut, signingOut } = useSignOut();
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -80,10 +66,11 @@ export function AppShell({
                 <div className="ml-auto flex gap-3 items-center">
                     <button
                         type="button"
-                        onClick={handleSignOut}
+                        onClick={signOut}
+                        disabled={signingOut}
                         aria-label="Sign out of Pulse"
-                        className="font-pulse-body text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer tracking-[0.02em]">
-                        Sign out
+                        className="font-pulse-body text-[0.8125rem] text-pulse-dim bg-transparent border-none cursor-pointer tracking-[0.02em] disabled:opacity-60">
+                        {signingOut ? 'Signing out…' : 'Sign out'}
                     </button>
                 </div>
             </div>
