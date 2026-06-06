@@ -1,5 +1,16 @@
-import type { TabKey, WorkoutType, WorkoutVariant } from './types';
+import type { TabKey, WorkoutType, WorkoutVariant, EquipmentKey } from './types';
 import type { DaysPerWeek, ExperienceLevel } from './recommendation';
+
+// Short, scannable equipment labels for chips (the routine setup uses its own
+// longer prose labels). Empty equipment = bodyweight, handled at the call site.
+export const EQUIPMENT_LABELS: Record<EquipmentKey, string> = {
+    dumbbells: 'Dumbbells',
+    barbell: 'Barbell',
+    bench: 'Bench',
+    cables: 'Cables',
+    machines: 'Machine',
+    pull_up_bar: 'Pull-up bar',
+};
 
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 

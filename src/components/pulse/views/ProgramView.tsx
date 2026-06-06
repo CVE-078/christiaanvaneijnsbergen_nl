@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { WEEK_NOTES, buildProgram, PROGRAM_LENGTHS } from '@/lib/pulse/data';
 import { getPhase, sessionTypeFor, weekInBlock } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
-import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
+import { WORKOUT_TYPE_LABELS, EQUIPMENT_LABELS } from '@/lib/pulse/constants';
 import type { WorkoutType, WorkoutVariant, RoutineExercise } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
 import GenerateRoutineButton from '../GenerateRoutineButton';
@@ -54,6 +54,23 @@ export default function ProgramView() {
     function handleSelectWeek(w: number) {
         setActiveWeek(w);
     }
+
+    // De-blob the persisted rationale: buildRationale emits a " · "-joined lead of
+    // facts then a ". " then prose. Split the lead into scannable chips and keep the
+    // prose below. Degrades to plain prose for any string not in that shape (older
+    // routines), so no data migration is needed.
+    const rationale = useMemo(() => {
+        const r = activeRoutine?.rationale?.trim();
+        if (!r) return null;
+        const cut = r.indexOf('. ');
+        const lead = cut === -1 ? r : r.slice(0, cut);
+        const prose = cut === -1 ? '' : r.slice(cut + 2);
+        const facts = lead
+            .split(' · ')
+            .map((f) => f.trim())
+            .filter(Boolean);
+        return facts.length > 1 ? { facts, prose } : { facts: [] as string[], prose: r };
+    }, [activeRoutine?.rationale]);
 
     // Group into the sessions the user actually trains: one section per distinct
     // (session type, variant). This mirrors the /train tabs and the routine editor,
@@ -106,10 +123,25 @@ export default function ProgramView() {
                                 {WEEK_NOTES[activeWeek]}
                             </div>
                         )}
-                        {activeRoutine?.rationale && (
-                            <p className="font-pulse text-[0.9375rem] text-pulse-dim leading-[1.6] mt-[0.375rem]">
-                                {activeRoutine.rationale}
-                            </p>
+                        {rationale && (
+                            <div className="mt-[0.5rem] flex flex-col gap-2">
+                                {rationale.facts.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {rationale.facts.map((f, i) => (
+                                            <span
+                                                key={i}
+                                                className="rounded-md border border-pulse-border bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] tracking-[0.01em] text-pulse-dim">
+                                                {f}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {rationale.prose && (
+                                    <p className="font-pulse text-[0.9375rem] text-pulse-dim leading-[1.6]">
+                                        {rationale.prose}
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1 self-start rounded-lg bg-pulse-surface-2 p-[3px]">
@@ -256,6 +288,24 @@ export default function ProgramView() {
                                         </div>
                                         <div className="font-pulse-body text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-1">
                                             {re.sets} sets · {re.reps} reps
+                                        </div>
+                                        {/* Resolved equipment per exercise, so an equipment mis-tag
+                                            (e.g. a bench-only lift in a no-bench setup) is visible here,
+                                            not only by reading the seed. */}
+                                        <div className="mt-1.5 flex flex-wrap gap-1">
+                                            {(re.exercise?.equipment ?? []).length === 0 ? (
+                                                <span className="rounded border border-pulse-border px-1.5 py-0.5 font-pulse text-[0.625rem] tracking-[0.02em] text-pulse-muted">
+                                                    Bodyweight
+                                                </span>
+                                            ) : (
+                                                (re.exercise?.equipment ?? []).map((eq) => (
+                                                    <span
+                                                        key={eq}
+                                                        className="rounded border border-pulse-border px-1.5 py-0.5 font-pulse text-[0.625rem] tracking-[0.02em] text-pulse-muted">
+                                                        {EQUIPMENT_LABELS[eq] ?? eq}
+                                                    </span>
+                                                ))
+                                            )}
                                         </div>
                                     </div>
                                     {re.exercise && re.exercise.user_id === null && (

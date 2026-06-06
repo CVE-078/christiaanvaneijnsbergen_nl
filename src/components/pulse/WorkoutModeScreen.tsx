@@ -398,6 +398,12 @@ function StepBody({
     const isPairStep = Array.isArray(step);
     return (
         <div className="flex flex-col gap-6">
+            {isPairStep && (
+                <div className="rounded-lg border border-pulse-border bg-pulse-surface px-3.5 py-2.5 font-pulse-body text-[0.75rem] leading-[1.5] text-pulse-dim">
+                    <span className="font-pulse font-semibold text-pulse-accent">Superset.</span> Do one set of each,
+                    alternating, then rest after both.
+                </div>
+            )}
             {members.map((re) => {
                 const display = displayOf(re);
                 return (
