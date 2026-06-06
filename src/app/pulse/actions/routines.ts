@@ -289,6 +289,14 @@ export async function cloneTemplate(
     experience?: ExperienceLevel,
 ): Promise<WorkoutRoutine> {
     if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid slug');
+    // Harden the client-supplied shaping inputs (mirrors generateAndSaveRoutine):
+    // trainingDays become routine_schedule.day_of_week rows, so an out-of-range day
+    // would write a junk schedule entry; sessionTime/experience drive volume sizing.
+    if (trainingDays !== undefined && !trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))
+        throw new Error('Invalid training days');
+    if (sessionTime !== undefined && !SESSION_TIMES.includes(sessionTime as SessionTime))
+        throw new Error('Invalid session time');
+    if (experience !== undefined && !EXPERIENCE_LEVELS.includes(experience)) throw new Error('Invalid experience');
 
     const { supabase, user } = await getUserOrThrow();
 
