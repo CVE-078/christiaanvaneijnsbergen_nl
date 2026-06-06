@@ -40,6 +40,9 @@ interface Props {
     // only the next set you log shows inputs. Default true, so the Train card
     // variant and every existing caller are unaffected.
     active?: boolean;
+    // Total sets for this exercise. Editorial shows "Set N / total" so you know
+    // where you are; omitted (card variant) keeps the bare "Set N".
+    totalSets?: number;
     onSave: (entry: LogEntry) => void;
     onDelete?: () => void;
 }
@@ -68,6 +71,7 @@ export default function SetLogger({
     bodyweight = false,
     variant = 'card',
     active = true,
+    totalSets,
     onSave,
     onDelete,
 }: Props) {
@@ -101,6 +105,9 @@ export default function SetLogger({
     const [editing, setEditing] = useState(false);
     const [inputError, setInputError] = useState<string | null>(null);
     const [platesOpen, setPlatesOpen] = useState(false);
+    // Editorial per-set overflow menu (currently just "Add drop set"; the home for
+    // future per-set actions like swap). Card variant keeps Add-drop inline.
+    const [overflowOpen, setOverflowOpen] = useState(false);
     // SetLogger always renders inside the Pulse provider (Train and guided mode),
     // so the active routine's block length drives the RIR target; the program
     // repeats past the block, so getRIR wraps. Defaults to a 12-week block.
@@ -189,8 +196,24 @@ export default function SetLogger({
         setInputError(null);
     }
 
+    // "Same as last": copy the previous set's weight + reps into the inputs, the
+    // common case for identical 3-4 set blocks. A pure-bodyweight previous set
+    // (kg 0) leaves the weight field blank, matching initKg.
+    function applyPrevious() {
+        if (!previousEntry) return;
+        setKg(bodyweight && previousEntry.kg === 0 ? '' : String(toDisplay(previousEntry.kg, unit)));
+        setReps(String(previousEntry.reps));
+        setInputError(null);
+    }
+
+    function addDrop() {
+        setDrops((prev) => [...prev, { id: newDropId(), kg: '', reps: '' }]);
+    }
+
     const showInputs = !saved || editing;
     const editorial = variant === 'editorial';
+    // "Set 2 / 3" when the caller passes the total (guided), else bare "Set 2".
+    const setLabel = totalSets ? `Set ${setIdx + 1} / ${totalSets}` : `Set ${setIdx + 1}`;
     // Bodyweight weight field is optional added load; hint that with the placeholder.
     const weightPlaceholder = bodyweight ? '+kg' : unit;
 
@@ -212,8 +235,8 @@ export default function SetLogger({
     if (editorial && !saved && !editing && !active) {
         return (
             <div className="flex items-center gap-3.5 border-b border-pulse-border py-3 opacity-50">
-                <span className="w-[3.25rem] shrink-0 font-pulse-body text-[0.625rem] uppercase tracking-[0.16em] text-pulse-muted">
-                    Set {setIdx + 1}
+                <span className="w-[3.75rem] shrink-0 font-pulse-body text-[0.625rem] uppercase tracking-[0.16em] text-pulse-muted">
+                    {setLabel}
                 </span>
                 <span className="font-pulse-body text-[0.8125rem] tracking-[0.02em] text-pulse-muted">
                     Not started · target RIR {targetRIR}
@@ -236,10 +259,10 @@ export default function SetLogger({
                 }>
                 {editorial ? (
                     <span
-                        className={`w-[3.25rem] shrink-0 font-pulse-body text-[0.625rem] uppercase tracking-[0.16em] ${
+                        className={`w-[3.75rem] shrink-0 font-pulse-body text-[0.625rem] uppercase tracking-[0.16em] ${
                             saved ? 'text-pulse-accent' : 'text-pulse-muted'
                         }`}>
-                        Set {setIdx + 1}
+                        {setLabel}
                     </span>
                 ) : (
                     /* check / pending indicator */
@@ -329,36 +352,46 @@ export default function SetLogger({
                                             {editing ? 'Update' : 'Save'}
                                         </button>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    {/* Prescription chips: the rep target and RIR, shown by the
+                                        inputs and visible even first-time (the rail only shows the
+                                        target for upcoming exercises, not the one in progress). */}
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        {repsRange && (
+                                            <span className="rounded-md border border-pulse-accent/35 bg-pulse-surface px-2 py-0.5 font-pulse-body text-[0.625rem] tracking-[0.02em] text-pulse-text">
+                                                {repsRange} reps
+                                            </span>
+                                        )}
                                         <span className="rounded-md border border-pulse-border bg-pulse-surface px-2 py-0.5 font-pulse-body text-[0.625rem] tracking-[0.02em] text-pulse-dim">
-                                            Target RIR {targetRIR}
+                                            RIR {targetRIR}
                                         </span>
-                                        {target && previousEntry ? (
-                                            <span
-                                                aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
-                                                className="font-pulse-body text-[0.6875rem] font-medium leading-[1.45] tracking-[0.02em] text-pulse-accent">
-                                                {deloadTgt
-                                                    ? `You stalled around ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}, so back off on purpose. Drop to ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}${deloadTankClause} to reset.`
-                                                    : bodyweight
-                                                      ? `Last time you hit ${previousEntry.reps} reps${previousEntry.kg > 0 ? ` at +${toDisplay(previousEntry.kg, unit)} ${unit}` : ''}. Go for ${target.reps} and ${rirClause}.`
-                                                      : `Last time you hit ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}. Go for ${toDisplay(target.kg, unit)} ${unit} × ${target.reps} and ${rirClause}.`}
-                                            </span>
-                                        ) : (
-                                            previousEntry && (
-                                                <span className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-muted">
-                                                    Last{' '}
-                                                    {bodyweight
-                                                        ? `${previousEntry.reps} reps${previousEntry.kg > 0 ? ` at +${toDisplay(previousEntry.kg, unit)} ${unit}` : ''}`
-                                                        : `${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}`}
-                                                </span>
-                                            )
-                                        )}
-                                        {inputError && (
-                                            <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">
-                                                {inputError}
-                                            </span>
-                                        )}
                                     </div>
+                                    {/* Coaching line: progression / deload target, last-time recall,
+                                        or a first-time "start light" cue. */}
+                                    {target && previousEntry ? (
+                                        <span
+                                            aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
+                                            className="font-pulse-body text-[0.6875rem] font-medium leading-[1.45] tracking-[0.02em] text-pulse-accent">
+                                            {deloadTgt
+                                                ? `You stalled around ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}, so back off on purpose. Drop to ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}${deloadTankClause} to reset.`
+                                                : bodyweight
+                                                  ? `Last time you hit ${previousEntry.reps} reps${previousEntry.kg > 0 ? ` at +${toDisplay(previousEntry.kg, unit)} ${unit}` : ''}. Go for ${target.reps} and ${rirClause}.`
+                                                  : `Last time you hit ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}. Go for ${toDisplay(target.kg, unit)} ${unit} × ${target.reps} and ${rirClause}.`}
+                                        </span>
+                                    ) : previousEntry ? (
+                                        <span className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-muted">
+                                            Last{' '}
+                                            {bodyweight
+                                                ? `${previousEntry.reps} reps${previousEntry.kg > 0 ? ` at +${toDisplay(previousEntry.kg, unit)} ${unit}` : ''}`
+                                                : `${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}`}
+                                        </span>
+                                    ) : (
+                                        <span className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-muted">
+                                            First time on this lift. Start light and {rirClause}.
+                                        </span>
+                                    )}
+                                    {inputError && (
+                                        <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>
+                                    )}
                                 </>
                             ) : (
                                 <>
@@ -469,56 +502,152 @@ export default function SetLogger({
                                     </button>
                                 </div>
                             ))}
-                            {drops.length < 6 && (
+                            {/* Card keeps Add-drop inline; editorial tucks it in the ⋯ overflow below. */}
+                            {!editorial && drops.length < 6 && (
                                 <button
                                     type="button"
-                                    onClick={() => setDrops((prev) => [...prev, { id: newDropId(), kg: '', reps: '' }])}
+                                    onClick={addDrop}
                                     className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border-none cursor-pointer p-0 self-start">
                                     + Add drop
                                 </button>
                             )}
+                            {/* Editorial actions row: quick fill, plate calc, and the ⋯ overflow.
+                                Save lives in the input row; Cancel (when editing) joins here. */}
+                            {editorial && (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    {previousEntry && (
+                                        <button
+                                            type="button"
+                                            onClick={applyPrevious}
+                                            className="inline-flex items-center gap-1.5 rounded-lg border border-pulse-border bg-transparent px-2.5 py-1 font-pulse text-[0.6875rem] font-medium text-pulse-dim cursor-pointer transition-colors hover:border-pulse-muted hover:text-pulse-text">
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth={2}
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                className="h-3 w-3"
+                                                aria-hidden>
+                                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                                                <path d="M3 3v5h5" />
+                                            </svg>
+                                            Same as last
+                                        </button>
+                                    )}
+                                    {showPlates && (
+                                        <button
+                                            type="button"
+                                            aria-label="Plate calculator"
+                                            aria-expanded={platesOpen}
+                                            onClick={() => setPlatesOpen((o) => !o)}
+                                            className={`inline-flex items-center gap-1.5 rounded-lg border bg-transparent px-2.5 py-1 font-pulse text-[0.6875rem] font-medium cursor-pointer transition-colors ${
+                                                platesOpen
+                                                    ? 'border-pulse-accent/50 text-pulse-accent'
+                                                    : 'border-pulse-border text-pulse-dim hover:border-pulse-muted hover:text-pulse-text'
+                                            }`}>
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth={2}
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                className="h-3 w-3"
+                                                aria-hidden>
+                                                <rect x="3" y="8" width="3" height="8" rx="1" />
+                                                <rect x="18" y="8" width="3" height="8" rx="1" />
+                                                <line x1="6" y1="12" x2="18" y2="12" />
+                                            </svg>
+                                            Plate calculator
+                                        </button>
+                                    )}
+                                    {editing && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCancel}
+                                            className="rounded-lg border border-pulse-border bg-transparent px-2.5 py-1 font-pulse text-[0.6875rem] font-medium text-pulse-dim cursor-pointer transition-colors hover:border-pulse-muted hover:text-pulse-text">
+                                            Cancel
+                                        </button>
+                                    )}
+                                    {drops.length < 6 && (
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                aria-label="More set actions"
+                                                aria-expanded={overflowOpen}
+                                                onClick={() => setOverflowOpen((o) => !o)}
+                                                className="grid h-7 w-[1.875rem] place-items-center rounded-lg border border-pulse-border bg-transparent text-pulse-muted cursor-pointer transition-colors hover:border-pulse-muted hover:text-pulse-text">
+                                                <svg
+                                                    viewBox="0 0 24 24"
+                                                    fill="currentColor"
+                                                    className="h-4 w-4"
+                                                    aria-hidden>
+                                                    <circle cx="5" cy="12" r="1.6" />
+                                                    <circle cx="12" cy="12" r="1.6" />
+                                                    <circle cx="19" cy="12" r="1.6" />
+                                                </svg>
+                                            </button>
+                                            {overflowOpen && (
+                                                <div className="absolute left-0 top-full z-10 mt-1.5 min-w-[10rem] rounded-xl border border-pulse-border bg-pulse-surface-2 p-1.5 shadow-lg">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            addDrop();
+                                                            setOverflowOpen(false);
+                                                        }}
+                                                        className="w-full rounded-lg bg-transparent px-2.5 py-2 text-left font-pulse text-[0.8125rem] text-pulse-text cursor-pointer hover:bg-pulse-bg">
+                                                        Add drop set
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                            {showPlates && (
-                                <button
-                                    type="button"
-                                    aria-label="Plate calculator"
-                                    aria-expanded={platesOpen}
-                                    onClick={() => setPlatesOpen((o) => !o)}
-                                    className={`grid h-10 w-9 place-items-center rounded-[6px] bg-transparent border-none cursor-pointer shrink-0 transition-colors ${
-                                        platesOpen ? 'text-pulse-accent' : 'text-pulse-dim'
-                                    }`}>
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth={2}
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="h-[1.05rem] w-[1.05rem]"
-                                        aria-hidden>
-                                        <rect x="3" y="8" width="3" height="8" rx="1" />
-                                        <rect x="18" y="8" width="3" height="8" rx="1" />
-                                        <line x1="6" y1="12" x2="18" y2="12" />
-                                    </svg>
-                                </button>
-                            )}
-                            {editing && (
-                                <button
-                                    onClick={handleCancel}
-                                    className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border border-pulse-border rounded-sm py-1 px-2 cursor-pointer shrink-0">
-                                    Cancel
-                                </button>
-                            )}
-                            {/* Editorial keeps Save grouped with the inputs above; card keeps it here. */}
-                            {!editorial && (
+                        {/* Card right cluster: plate calc, Cancel, Save. Editorial moves these
+                            into the input row (Save) and the actions row (plate calc, Cancel). */}
+                        {!editorial && (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                {showPlates && (
+                                    <button
+                                        type="button"
+                                        aria-label="Plate calculator"
+                                        aria-expanded={platesOpen}
+                                        onClick={() => setPlatesOpen((o) => !o)}
+                                        className={`grid h-10 w-9 place-items-center rounded-[6px] bg-transparent border-none cursor-pointer shrink-0 transition-colors ${
+                                            platesOpen ? 'text-pulse-accent' : 'text-pulse-dim'
+                                        }`}>
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth={2}
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="h-[1.05rem] w-[1.05rem]"
+                                            aria-hidden>
+                                            <rect x="3" y="8" width="3" height="8" rx="1" />
+                                            <rect x="18" y="8" width="3" height="8" rx="1" />
+                                            <line x1="6" y1="12" x2="18" y2="12" />
+                                        </svg>
+                                    </button>
+                                )}
+                                {editing && (
+                                    <button
+                                        onClick={handleCancel}
+                                        className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-dim bg-transparent border border-pulse-border rounded-sm py-1 px-2 cursor-pointer shrink-0">
+                                        Cancel
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleSave}
                                     className="h-10 shrink-0 cursor-pointer rounded-[6px] border-none bg-pulse-accent px-4 font-pulse text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-pulse-bg transition-opacity duration-100">
                                     {editing ? 'Update' : 'Save'}
                                 </button>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <>

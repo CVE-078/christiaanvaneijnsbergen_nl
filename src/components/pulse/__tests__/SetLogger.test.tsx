@@ -253,4 +253,39 @@ describe('SetLogger', () => {
         expect(hint).toHaveTextContent(/back off on purpose/);
         expect(hint).toHaveTextContent(/in the tank/);
     });
+
+    it('guided shows the rep-target and RIR prescription chips', () => {
+        render(<SetLogger {...defaultProps} variant="editorial" week={2} repsRange="8-12" />);
+        expect(screen.getByText('8-12 reps')).toBeInTheDocument();
+        expect(screen.getByText(/^RIR \d+$/)).toBeInTheDocument();
+    });
+
+    it('guided "Same as last" fills the inputs from the previous set', async () => {
+        const prev: LogEntry = { kg: 90, reps: 7, rir: 2, saved: true };
+        render(<SetLogger {...defaultProps} variant="editorial" week={2} previousEntry={prev} repsRange="8-12" />);
+        // Inputs start on the progression target, not the previous values.
+        expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).not.toHaveValue(90);
+        await userEvent.click(screen.getByRole('button', { name: /same as last/i }));
+        expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(90);
+        expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(7);
+    });
+
+    it('guided shows "Set N / total" when totalSets is provided', () => {
+        render(<SetLogger {...defaultProps} variant="editorial" setIdx={1} totalSets={3} />);
+        expect(screen.getByText('Set 2 / 3')).toBeInTheDocument();
+    });
+
+    it('guided shows a start-light cue for a first-time lift with no history', () => {
+        render(<SetLogger {...defaultProps} variant="editorial" repsRange="8-12" />);
+        expect(screen.getByText(/first time on this lift\. start light/i)).toBeInTheDocument();
+    });
+
+    it('guided tucks Add-drop in the overflow menu and adds a drop row', async () => {
+        render(<SetLogger {...defaultProps} variant="editorial" repsRange="8-12" />);
+        // Not inline like the card variant; it lives behind the overflow.
+        expect(screen.queryByText('+ Add drop')).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /more set actions/i }));
+        await userEvent.click(screen.getByRole('button', { name: /add drop set/i }));
+        expect(screen.getByRole('spinbutton', { name: /drop 1 weight/i })).toBeInTheDocument();
+    });
 });

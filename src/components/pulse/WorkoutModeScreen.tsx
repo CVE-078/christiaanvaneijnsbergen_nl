@@ -352,6 +352,7 @@ function ExerciseSetRows({
                         bodyweight={bodyweight}
                         variant="editorial"
                         active={s === activeIdx}
+                        totalSets={maxSets}
                         onSave={(e) => onSave(key, e)}
                         onDelete={() => onDelete(key)}
                     />
