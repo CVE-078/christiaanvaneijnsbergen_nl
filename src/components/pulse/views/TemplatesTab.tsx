@@ -16,6 +16,7 @@ import {
 import RoutineSetupFlow from '@/components/pulse/RoutineSetupFlow';
 import FilterChips from './library/FilterChips';
 import SectionLabel from '@/components/pulse/SectionLabel';
+import { SkeletonBar } from '@/components/pulse/PageSkeleton';
 import { BTN_GHOST } from '@/components/pulse/ui';
 
 // One-accent Slate rule: experience level is differentiated by its uppercase
@@ -29,7 +30,7 @@ const LEVEL_CLASS: Record<RoutineTemplate['experience_level'], string> = {
 export default function TemplatesTab() {
     const { cloneTemplate, setProgramAnchor, updateRoutineProgramWeeks, navigate, profile } = usePulse();
     // Templates are static per session, dedupe aggressively and don't refetch on focus.
-    const { data: templates = [] } = useSWR<RoutineTemplate[]>('/api/pulse/templates', fetcher, {
+    const { data: templates = [], isLoading } = useSWR<RoutineTemplate[]>('/api/pulse/templates', fetcher, {
         ...SWR_READ_OPTS,
         dedupingInterval: 600000,
         revalidateIfStale: false,
@@ -126,7 +127,19 @@ export default function TemplatesTab() {
                 </div>
             )}
 
-            {visible.length === 0 && (
+            {/* First load: skeleton rows instead of a blank list (templates fetch
+                on their own SWR key, separate from the provider-gated view). */}
+            {isLoading && templates.length === 0 && (
+                <div className="flex flex-col gap-2" aria-busy="true">
+                    {Array.from({ length: 4 }, (_, i) => (
+                        <div key={i} className="bg-pulse-surface rounded-xl px-3 py-4 flex items-center">
+                            <SkeletonBar w={`${50 + i * 8}%`} />
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {!isLoading && visible.length === 0 && (
                 <p className="font-pulse text-xs text-pulse-muted py-2">No templates match these filters.</p>
             )}
 

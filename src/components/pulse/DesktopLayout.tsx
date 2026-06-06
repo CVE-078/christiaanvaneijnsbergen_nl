@@ -1,11 +1,9 @@
 'use client';
-import { logout } from '@/app/pulse/actions';
 import { usePulse } from '@/context/PulseContext';
 import { getPhase, getRIR, logKey, parseLogKey, parseMaxSets } from '@/lib/pulse/utils';
 import { tabKeyLabel } from '@/lib/pulse/constants';
 import { useLocalStorage } from '@/hooks/pulse/useLocalStorage';
-import { clearAllSWRCache } from '@/lib/pulse/swrCache';
-import { flushQueue } from '@/lib/pulse/offlineSync';
+import { useSignOut } from '@/hooks/pulse/useSignOut';
 import OnboardingModal from './OnboardingModal';
 import RestTimer from './RestTimer';
 import CoachPanel from './CoachPanel';
@@ -109,23 +107,10 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
         timerDuration,
         showOnboarding,
         workoutModeOpen,
-        userId,
     } = usePulse();
+    const { signOut, signingOut } = useSignOut();
 
     const [expanded, setExpanded] = useLocalStorage('pulse:sidebar-expanded', false);
-
-    // Sign out. Drain this user's queued writes while still authenticated so they
-    // land in the right account and don't linger on a shared device; best-effort,
-    // then clear the per-user SWR cache and end the session.
-    const handleSignOut = async () => {
-        try {
-            await flushQueue(userId);
-        } catch {
-            // offline or failed, writes stay queued (scoped to this user) and sync on next sign-in
-        }
-        clearAllSWRCache();
-        await logout();
-    };
 
     const phase = getPhase(activeWeek);
     const rir = getRIR(activeWeek);
@@ -200,17 +185,18 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                 <div className={expanded ? 'mt-auto px-1' : 'mt-auto'}>
                     <button
                         type="button"
-                        onClick={handleSignOut}
+                        onClick={signOut}
+                        disabled={signingOut}
                         aria-label="Sign out of Pulse"
                         title="Sign out"
-                        className={`bg-transparent border-none cursor-pointer text-pulse-muted hover:text-pulse-text transition-colors [&_svg]:w-[22px] [&_svg]:h-[22px] [&_svg]:shrink-0 ${
+                        className={`bg-transparent border-none cursor-pointer text-pulse-muted hover:text-pulse-text transition-colors disabled:opacity-60 [&_svg]:w-[22px] [&_svg]:h-[22px] [&_svg]:shrink-0 ${
                             expanded ? 'flex items-center gap-3 font-pulse text-sm' : 'grid place-items-center'
                         }`}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                             <path d="M16 17l5-5-5-5M21 12H9" />
                         </svg>
-                        {expanded && <span>Sign out</span>}
+                        {expanded && <span>{signingOut ? 'Signing out…' : 'Sign out'}</span>}
                     </button>
                 </div>
             </aside>
