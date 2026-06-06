@@ -157,6 +157,19 @@ describe('ProgramView', () => {
         expect(screen.queryByText('Legs')).not.toBeInTheDocument();
     });
 
+    it('splits the rationale into fact chips plus prose', () => {
+        const routine = {
+            ...makeRoutine([makeRE('Bench Press', 'push')], []),
+            rationale:
+                'Push Pull Legs for intermediate lifters · 4 days/week · Build muscle · 45-60 min sessions. A balanced split.',
+        };
+        mockContext(routine);
+        render(<ProgramView />);
+        expect(screen.getByText('4 days/week')).toBeInTheDocument();
+        expect(screen.getByText('Build muscle')).toBeInTheDocument();
+        expect(screen.getByText('A balanced split.')).toBeInTheDocument();
+    });
+
     it('opens the how-to-perform modal for a built-in exercise', () => {
         // The modal fetches instructions on mount; keep it pending so it just
         // renders its header (we only assert the modal opens).

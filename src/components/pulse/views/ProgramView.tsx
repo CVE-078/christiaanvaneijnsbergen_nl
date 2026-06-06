@@ -55,6 +55,23 @@ export default function ProgramView() {
         setActiveWeek(w);
     }
 
+    // De-blob the persisted rationale: buildRationale emits a " · "-joined lead of
+    // facts then a ". " then prose. Split the lead into scannable chips and keep the
+    // prose below. Degrades to plain prose for any string not in that shape (older
+    // routines), so no data migration is needed.
+    const rationale = useMemo(() => {
+        const r = activeRoutine?.rationale?.trim();
+        if (!r) return null;
+        const cut = r.indexOf('. ');
+        const lead = cut === -1 ? r : r.slice(0, cut);
+        const prose = cut === -1 ? '' : r.slice(cut + 2);
+        const facts = lead
+            .split(' · ')
+            .map((f) => f.trim())
+            .filter(Boolean);
+        return facts.length > 1 ? { facts, prose } : { facts: [] as string[], prose: r };
+    }, [activeRoutine?.rationale]);
+
     // Group into the sessions the user actually trains: one section per distinct
     // (session type, variant). This mirrors the /train tabs and the routine editor,
     // so a split with two same-type days (e.g. Upper A + Upper B) shows as two
@@ -106,10 +123,25 @@ export default function ProgramView() {
                                 {WEEK_NOTES[activeWeek]}
                             </div>
                         )}
-                        {activeRoutine?.rationale && (
-                            <p className="font-pulse text-[0.9375rem] text-pulse-dim leading-[1.6] mt-[0.375rem]">
-                                {activeRoutine.rationale}
-                            </p>
+                        {rationale && (
+                            <div className="mt-[0.5rem] flex flex-col gap-2">
+                                {rationale.facts.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {rationale.facts.map((f, i) => (
+                                            <span
+                                                key={i}
+                                                className="rounded-md border border-pulse-border bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] tracking-[0.01em] text-pulse-dim">
+                                                {f}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {rationale.prose && (
+                                    <p className="font-pulse text-[0.9375rem] text-pulse-dim leading-[1.6]">
+                                        {rationale.prose}
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1 self-start rounded-lg bg-pulse-surface-2 p-[3px]">
