@@ -3,11 +3,11 @@ import { login } from './actions';
 import SubmitButton from './SubmitButton';
 
 export const metadata: Metadata = {
-    title: 'Pulse — Login',
+    title: 'Pulse Login',
     robots: { index: false, follow: false },
 };
 
-// Fields sit on surface-2 inside a surface card — Slate separates by tone shift,
+// Fields sit on surface-2 inside a surface card, Slate separates by tone shift,
 // not borders; the hairline border only sharpens to coral on focus.
 const FIELD =
     'block w-full py-3 px-3.5 bg-pulse-surface-2 rounded-lg text-pulse-text font-pulse text-base box-border border outline-none transition-colors focus:border-pulse-accent';

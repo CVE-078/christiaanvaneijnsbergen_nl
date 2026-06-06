@@ -90,12 +90,12 @@ export default function ProgramView() {
                 />
             </div>
 
-            {/* program header — phase + rationale, with an inline week stepper */}
+            {/* program header, phase + rationale, with an inline week stepper */}
             <div className="mb-6 rounded-xl border-l-2 border-pulse-accent bg-pulse-surface p-4">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <div className="font-pulse font-semibold text-sm tracking-[0.06em] uppercase text-pulse-accent">
-                            {phase.label} — {phase.subtitle}
+                            {phase.label}, {phase.subtitle}
                         </div>
                         {WEEK_NOTES[activeWeek] && (
                             <div className="text-pulse-dim text-[0.9375rem] mt-[0.375rem] leading-[1.6]">
@@ -205,7 +205,7 @@ export default function ProgramView() {
                         </div>
                     ) : (
                         <p className="font-pulse text-xs text-pulse-muted">
-                            No schedule set — add a routine with a weekly schedule.
+                            No schedule set, add a routine with a weekly schedule.
                         </p>
                     )}
 
@@ -220,7 +220,7 @@ export default function ProgramView() {
                                 aria-pressed={inBlockWeek === week}
                                 title={`Week ${week} · ${sets} sets`}
                                 className={`flex-1 self-end rounded-t-sm border-none cursor-pointer transition-colors duration-150 hover:opacity-80 ${inBlockWeek === week ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}
-                                /* height is a runtime ratio — must stay inline */
+                                /* height is a runtime ratio, must stay inline */
                                 style={{ height: `${(sets / maxSets) * BAR_MAX_HEIGHT_PX}px` }}
                             />
                         ))}

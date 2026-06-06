@@ -93,7 +93,7 @@ function CloseIcon() {
     );
 }
 
-// Set-progress ring — the focal anchor of both layouts.
+// Set-progress ring, the focal anchor of both layouts.
 function ProgressRing({
     done,
     total,
@@ -124,7 +124,7 @@ function ProgressRing({
             aria-label={`${done} of ${total} sets complete`}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block -rotate-90">
                 <circle cx={half} cy={half} r={r} fill="none" stroke="var(--color-pulse-border)" strokeWidth={stroke} />
-                {/* dashoffset is a runtime ratio — must stay inline */}
+                {/* dashoffset is a runtime ratio, must stay inline */}
                 <circle
                     cx={half}
                     cy={half}
@@ -184,7 +184,7 @@ function PipTrack({
     );
 }
 
-// Per-exercise actions (how-to / swap / note) — guided-mode parity with the Train
+// Per-exercise actions (how-to / swap / note), guided-mode parity with the Train
 // card. Mirrors ExerciseCard: instructions modal gated to global exercises, and a
 // per-exercise note editor that saves on blur.
 function ExerciseActions({
@@ -718,7 +718,7 @@ export default function WorkoutModeScreen({
                 }}
             />
 
-            {/* LEFT — main focus pane */}
+            {/* LEFT, main focus pane */}
             <main className="relative z-10 flex h-full min-w-0 flex-1 flex-col px-14 py-10">
                 <div className="flex flex-shrink-0 items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -797,7 +797,7 @@ export default function WorkoutModeScreen({
                 </section>
             </main>
 
-            {/* RIGHT — session sidebar */}
+            {/* RIGHT, session sidebar */}
             <aside
                 className="relative z-20 flex h-full w-[392px] flex-shrink-0 flex-col border-l border-pulse-border"
                 style={{
@@ -825,7 +825,7 @@ export default function WorkoutModeScreen({
                     </div>
                 </div>
 
-                {/* Whole-session track — click any step to jump */}
+                {/* Whole-session track, click any step to jump */}
                 <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-2.5 pt-1.5">
                     {steps.length > 1 && (
                         <div

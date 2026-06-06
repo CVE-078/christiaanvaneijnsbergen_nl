@@ -339,7 +339,7 @@ export async function cloneTemplate(
         if (exErr) throw new Error('Failed to clone template exercises');
     }
 
-    // Create schedule — zip user's chosen days with the template pattern
+    // Create schedule, zip user's chosen days with the template pattern
     const pattern: string[] = template.schedule_pattern ?? [];
     const defaultDays: number[] = template.default_days ?? [];
     const daysToUse = trainingDays ?? defaultDays;

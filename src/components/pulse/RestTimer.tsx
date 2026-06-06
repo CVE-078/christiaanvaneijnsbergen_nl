@@ -131,7 +131,7 @@ export default function RestTimer({ trigger, duration, onComplete }: Props) {
                 <div className="relative w-[42px] h-[42px] shrink-0">
                     <svg width="42" height="42" viewBox="0 0 42 42" className="-rotate-90">
                         <circle cx="21" cy="21" r="18" fill="none" stroke="var(--color-pulse-border)" strokeWidth="3" />
-                        {/* dashoffset is a runtime ratio — must stay inline */}
+                        {/* dashoffset is a runtime ratio, must stay inline */}
                         <circle
                             cx="21"
                             cy="21"

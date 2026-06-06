@@ -196,7 +196,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     const prMap = useMemo(() => computePRMap(logs), [logs]);
 
     // Download the full logged history as CSV. Resolves exercise names (honouring
-    // week-scoped swaps) from routines/exercises, which only the provider has —
+    // week-scoped swaps) from routines/exercises, which only the provider has,
     // hence it lives here rather than in useWorkoutLogs.
     const handleExport = useCallback(() => {
         const reName = new Map<string, string>();
@@ -222,14 +222,14 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
 
     // DecisionEvent keys (`type:lift:week`) already logged this page session. We
     // fire each at most once and only mark it captured on success, so an offline
-    // failure simply retries on the next save — the event is re-derivable from the
+    // failure simply retries on the next save, the event is re-derivable from the
     // logs, so it is fired best-effort rather than through the durable write queue.
     const capturedDecisions = useRef<Set<string>>(new Set());
 
     // The single set-save choke point exposed to the UI as `updateLog`. Persists
     // the set (stamping the user-local workout date + the guided session id so skip
     // detection / behavior learning are trustworthy), then logs the deload /
-    // progression DecisionEvent the save implies — derived purely from the logs the
+    // progression DecisionEvent the save implies, derived purely from the logs the
     // provider already holds, so the components stay untouched.
     const logSet = useCallback(
         (key: string, entry: LogEntry, sessionId?: string | null) => {
@@ -293,7 +293,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     // ── Adaptive missed-workout regeneration ────────────────────────────────
     // Derive the program position and the nudge from the active routine's
     // anchor, schedule, completed sessions, and accepted adjustments. `now` is
-    // fixed at mount — detecting a live day rollover mid-session is unnecessary.
+    // fixed at mount, detecting a live day rollover mid-session is unnecessary.
     const nowIso = useMemo(() => new Date().toISOString(), []);
     const routineSessions = useMemo(
         () => (activeRoutine ? sessions.filter((s) => s.routine_id === activeRoutine.id) : []),
@@ -349,7 +349,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     }, [profile.accent_color]);
 
     // Make activeWeek default to, and then follow, the completion-paced current
-    // week — without yanking the user while they browse. On the first sync for a
+    // week, without yanking the user while they browse. On the first sync for a
     // routine we snap to current; afterwards we only advance when currentWeek
     // moves AND the user was sitting on the previous current week (so manual
     // navigation elsewhere is left alone). Keyed by routine id so a switch resyncs.
@@ -379,7 +379,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     // `type:variant` key is preferred, but if the routine has no exercises under
     // that exact key (e.g. a legacy routine whose schedule variant was not pinned,
     // or a variant/exercise mismatch) we fall back to the first tab of the same
-    // workout type, then to the first tab overall — never an empty key, which is
+    // workout type, then to the first tab overall, never an empty key, which is
     // what made /train render blank while Plan/Library still showed exercises.
     const resolveTabForEntry = useCallback(
         (entry: ScheduleEntry): TabKey => {

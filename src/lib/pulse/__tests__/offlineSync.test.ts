@@ -132,7 +132,7 @@ describe('flushQueue', () => {
         expect(res).toEqual({ flushed: 1, remaining: 0, deadLettered: 1 });
     });
 
-    it('treats auth-expiry (Unauthorized) as transient — stops, retains, does not dead-letter', async () => {
+    it('treats auth-expiry (Unauthorized) as transient, stops, retains, does not dead-letter', async () => {
         const a1: QueuedMutation = { id: 1, type: 'upsertLog', args: ['a', {}], enqueuedAt: 'x', userId: USER_A };
         const a2: QueuedMutation = { id: 2, type: 'upsertLog', args: ['b', {}], enqueuedAt: 'x', userId: USER_A };
         vi.mocked(allQueued).mockResolvedValueOnce([a1, a2]).mockResolvedValueOnce([a1, a2]);

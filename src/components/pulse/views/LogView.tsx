@@ -150,10 +150,10 @@ export default function LogView() {
             );
             if (partner) {
                 if (exercise.order < partner.order) {
-                    // First in pair — suppress rest timer
+                    // First in pair, suppress rest timer
                     return;
                 }
-                // Second in pair — fire with first exercise's rest
+                // Second in pair, fire with first exercise's rest
                 fireTrigger(partner.rest_seconds ?? undefined);
                 return;
             }
@@ -171,7 +171,7 @@ export default function LogView() {
         try {
             await startSession(activeRoutine.id, baseType, variant);
         } catch {
-            // session creation failed — close the screen
+            // session creation failed, close the screen
             setWorkoutModeOpen(false);
         }
     }
@@ -184,7 +184,7 @@ export default function LogView() {
         try {
             await completeSession(completedSession.id);
         } catch {
-            // ignore — session may have already been completed or network failed
+            // ignore, session may have already been completed or network failed
         }
         // Revalidate the sessions feed so the derived program position (current
         // week, on-track status) reflects this completion immediately.
@@ -286,7 +286,7 @@ export default function LogView() {
 
             <div className="px-4 pt-6 pb-3 max-w-[600px] lg:max-w-[820px] mx-auto">
                 <RegenNudge />
-                {/* Coach decisions: inline on mobile only — desktop shows it in the right rail. */}
+                {/* Coach decisions: inline on mobile only, desktop shows it in the right rail. */}
                 <div className="lg:hidden">
                     <CoachPanel variant="inline" />
                 </div>

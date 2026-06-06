@@ -6,7 +6,7 @@ const PREFIX = 'pulse-swr-cache:';
 
 // Only the warm-start domains the protected layout reloads with initial* props
 // are worth persisting. Serializing the entire SWR cache (transient request
-// state, derived keys, etc.) on every tab-hide is wasteful — these six keys are
+// state, derived keys, etc.) on every tab-hide is wasteful, these six keys are
 // the ones that give a returning user an instant stale render.
 const WARM_KEYS = [
     '/api/pulse/logs',
@@ -46,7 +46,7 @@ export function makeSWRCacheProvider(userId: string): () => SWRCacheMap {
                 }
                 localStorage.setItem(storageKey, JSON.stringify(entries));
             } catch {
-                // storage full / unavailable (private mode) — cache is best-effort
+                // storage full / unavailable (private mode), cache is best-effort
             }
         };
 
@@ -80,6 +80,6 @@ export function clearAllSWRCache(): void {
             if (key && key.startsWith(PREFIX)) localStorage.removeItem(key);
         }
     } catch {
-        // ignore — nothing to clear if storage is unavailable
+        // ignore, nothing to clear if storage is unavailable
     }
 }

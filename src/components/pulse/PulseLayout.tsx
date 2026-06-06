@@ -26,7 +26,7 @@ const sora = Sora({
 });
 
 // Condensed athletic display face for big numerals (week number, day labels,
-// set-progress) — the distinctive "Focus" character shared by Train + guided mode.
+// set-progress), the distinctive "Focus" character shared by Train + guided mode.
 const bigShoulders = Big_Shoulders_Display({
     subsets: ['latin'],
     weight: ['600', '700', '800'],

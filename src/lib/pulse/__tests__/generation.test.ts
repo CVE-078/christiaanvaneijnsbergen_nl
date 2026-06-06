@@ -58,7 +58,7 @@ describe('recommendStyle / resolveStyle', () => {
         expect(resolveStyle('ppl-3', 3).key).toBe('ppl-3');
         expect(resolveStyle('does-not-exist', 3).key).toBe('fb-3');
     });
-    it('is gender-agnostic — the default no longer depends on gender', () => {
+    it('is gender-agnostic, the default no longer depends on gender', () => {
         expect(recommendStyle(4)).toBe('ul-classic-4');
         expect(recommendStyle(3)).toBe('fb-3');
         expect(recommendStyle(5)).toBe('ulppl-5');

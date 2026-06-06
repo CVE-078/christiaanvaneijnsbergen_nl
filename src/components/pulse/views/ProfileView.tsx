@@ -342,7 +342,7 @@ export default function ProfileView() {
                         </div>
                     </div>
 
-                    {/* Training priority — tilts generated routines toward this muscle */}
+                    {/* Training priority, tilts generated routines toward this muscle */}
                     <div>
                         <SectionLabel className="mb-2">Training priority</SectionLabel>
                         <select
@@ -392,7 +392,7 @@ export default function ProfileView() {
                         </button>
                     </div>
 
-                    {/* Data — export full history as CSV */}
+                    {/* Data, export full history as CSV */}
                     <div>
                         <SectionLabel className="mb-2">Data</SectionLabel>
                         <button
@@ -477,7 +477,7 @@ export default function ProfileView() {
                             <button
                                 onClick={handleLogBodyweight}
                                 disabled={isPending}
-                                /* opacity/cursor are runtime booleans — must stay inline */
+                                /* opacity/cursor are runtime booleans, must stay inline */
                                 style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
                                 className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase py-2 px-4 bg-pulse-surface-2 border-none rounded-lg text-pulse-dim shrink-0">
                                 Log

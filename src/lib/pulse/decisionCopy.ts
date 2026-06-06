@@ -9,7 +9,7 @@ export interface DecisionCopy {
 }
 
 // Turn one logged decision into plain-language copy: what changed (headline), why
-// (the trigger), and what to do next. Pure and unit-agnostic on purpose — the
+// (the trigger), and what to do next. Pure and unit-agnostic on purpose, the
 // weight delta + relative time live in the component, where the user's unit does.
 // `exerciseName` is the resolved name for the affected lift, or null when it is a
 // program-wide decision (ramp-back) or the lift can no longer be resolved.

@@ -10,7 +10,7 @@ import type { MovementPattern, ExerciseCategory } from './types';
 // to 1.0 per pattern, but consumers must NOT re-normalize per exercise or session
 // (that destroys volume interpretability). The 15 movement patterns stay the
 // generation control layer; this map only collapses the muscle-target side into
-// the 10 categories (the three-layer rule). `legs` is deliberately one bucket —
+// the 10 categories (the three-layer rule). `legs` is deliberately one bucket:
 // squat vs hinge differ only through their glute proportion (0.25 vs 0.40).
 export type MuscleContribution = Partial<Record<ExerciseCategory, number>>;
 

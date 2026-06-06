@@ -7,7 +7,7 @@ import type { DecisionEvent } from '@/lib/pulse/types';
 // Persist one adaptive decision to the unified decision_events log. Idempotent on
 // (user, routine, type, affected_area, week): re-saving sets in the same session
 // re-fires this with the same key and is a no-op upsert, so the log never doubles
-// up. Best-effort by design — the caller fires it without queuing because every
+// up. Best-effort by design, the caller fires it without queuing because every
 // decision is re-derivable from the set logs (decisionForExercise), so a dropped
 // write is recoverable, not data loss. The 'Invalid'/'not found' error strings are
 // load-bearing: they classify as permanent so a poison write is never retried.

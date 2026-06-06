@@ -280,7 +280,7 @@ export const SCHEDULE: ScheduleDay[] = [
 
 // Weekly working-set targets per muscle [min, max], hypertrophy-oriented. Tuned for
 // the fractional-set attribution (each set credits its primary 1.0 plus bucketed
-// pattern secondaries), so bands sit higher than direct-only counting — arms and
+// pattern secondaries), so bands sit higher than direct-only counting, arms and
 // shoulders most, since they accrue large secondary inflow from pressing/pulling.
 // Starting bands toward the MEV/MAV landmarks; tune against logged RIR. 'other' has
 // no target. Goal-agnostic v1.

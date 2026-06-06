@@ -608,7 +608,7 @@ describe('LibraryView', () => {
     it('rolls a full-body routine up to Full Body sessions even though exercises are tagged push/pull/legs', async () => {
         // Mirrors a cloned full-body template: schedule is full_body, but the
         // template tags exercises push/pull/legs. Sections must read Full Body,
-        // split only by variant — never Push/Pull/Legs.
+        // split only by variant, never Push/Pull/Legs.
         const re = (id: string, type: string, variant: string | null, order: number) => ({
             id,
             routine_id: 'r1',

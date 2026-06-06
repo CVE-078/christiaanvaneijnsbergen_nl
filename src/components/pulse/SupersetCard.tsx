@@ -36,7 +36,7 @@ export default function SupersetCard({
     return (
         // Grouping conveyed by a tone shift (surface-2 tray) + whitespace, not a border.
         <div className="bg-pulse-surface-2 rounded-2xl overflow-hidden">
-            {/* Header — always visible, shows exercise names in collapsed state */}
+            {/* Header, always visible, shows exercise names in collapsed state */}
             <button
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
@@ -63,7 +63,7 @@ export default function SupersetCard({
                 </svg>
             </button>
 
-            {/* Expanded body — two cards separated by whitespace */}
+            {/* Expanded body, two cards separated by whitespace */}
             {open && (
                 <div className="flex flex-col gap-2 px-2 pb-2">
                     <ExerciseCard

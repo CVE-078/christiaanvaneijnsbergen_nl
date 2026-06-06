@@ -120,7 +120,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
         try {
             await flushQueue(userId);
         } catch {
-            // offline or failed — writes stay queued (scoped to this user) and sync on next sign-in
+            // offline or failed, writes stay queued (scoped to this user) and sync on next sign-in
         }
         clearAllSWRCache();
         await logout();
@@ -134,7 +134,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
 
     return (
         <div className="flex h-screen bg-pulse-bg text-pulse-text overflow-hidden">
-            {/* Left nav rail — collapsible. Collapsed shows the "P" mark + icons;
+            {/* Left nav rail, collapsible. Collapsed shows the "P" mark + icons;
                 expanded shows the full "Pulse" wordmark + labels. Choice persists. */}
             <aside
                 className={`shrink-0 border-r border-pulse-border flex flex-col py-7 transition-[width] duration-200 ${
@@ -259,7 +259,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                     </div>
                 )}
 
-                {/* Coach decisions — the adaptive engine's calls, surfaced. */}
+                {/* Coach decisions, the adaptive engine's calls, surfaced. */}
                 <CoachPanel variant="rail" />
 
                 {/* Phase context */}

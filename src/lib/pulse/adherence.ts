@@ -1,11 +1,11 @@
-// Adaptive missed-workout regeneration — the pure engine.
+// Adaptive missed-workout regeneration, the pure engine.
 //
 // No DOM, no ambient clock: callers pass `now` (ISO) so every function is
 // deterministic and unit-testable, and the same code can run server-side later
 // (e.g. a cron that sends adherence push nudges). Two concerns live here:
-//   - Program progression  — completion-paced (advances when you finish a
+//   - Program progression , completion-paced (advances when you finish a
 //     scheduled microcycle), with ramp-back weeks inserted, not replacing.
-//   - Calendar adherence    — date-based (are you keeping up), from the real
+//   - Calendar adherence   , date-based (are you keeping up), from the real
 //     `completed_at` timestamps on workout sessions.
 //
 // `workout_sessions` is the date spine; set logs carry no timestamp.

@@ -16,7 +16,7 @@ export default function Loading() {
                 <div style={{ marginLeft: 'auto', width: 160, height: 12, borderRadius: 4, ...shimmer }} />
             </div>
 
-            {/* Workout-type tabs — dynamic per routine, shown as neutral pill placeholders */}
+            {/* Workout-type tabs, dynamic per routine, shown as neutral pill placeholders */}
             <div className="flex gap-2 px-4 py-3">
                 {[64, 56, 72].map((w, i) => (
                     <div key={i} style={{ width: w, height: 30, borderRadius: 999, ...shimmer }} />

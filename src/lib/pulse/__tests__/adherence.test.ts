@@ -274,7 +274,7 @@ describe('computeProgramPosition', () => {
             sessions: [],
             adjustments: [],
             tz: 'UTC',
-            now: '2026-06-03T12:00:00Z', // Wednesday — Monday passed undone
+            now: '2026-06-03T12:00:00Z', // Wednesday, Monday passed undone
         });
         expect(pos.behindBy).toBe(1);
         expect(pos.status).toBe('behind');

@@ -90,7 +90,7 @@ export default function ExercisesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Unified toolbar — a single-row scrollable filter rail (shared FilterChips),
+            {/* Unified toolbar, a single-row scrollable filter rail (shared FilterChips),
                 with Hidden + Add pinned to the right. */}
             <div className="flex items-center gap-2">
                 <FilterChips
@@ -100,7 +100,7 @@ export default function ExercisesTab() {
                     onSelect={(k) => setFilter(k as 'all' | ExerciseCategory)}
                 />
 
-                {/* Show-hidden toggle — only when the user has hidden something. */}
+                {/* Show-hidden toggle, only when the user has hidden something. */}
                 {hiddenCount > 0 && (
                     <button
                         onClick={() => setShowHidden((v) => !v)}

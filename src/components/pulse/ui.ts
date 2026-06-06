@@ -17,7 +17,7 @@
 //     not borders. CARD uses a surface tone with no border.
 //   - Inputs keep a hairline border so the editable field reads as interactive;
 //     focus moves the border to the coral accent.
-//   - One accent — coral (#ff7d66) — with near-black text on the filled button.
+//   - One accent, coral (#ff7d66), with near-black text on the filled button.
 //
 // Two filled-button shapes: BTN_PRIMARY is the compact inline action
 // (rounded-lg, px-4 py-2); BTN_PRIMARY_BLOCK is the full-width CTA used in

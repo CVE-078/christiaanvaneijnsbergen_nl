@@ -20,8 +20,8 @@ export type { Focus };
 // ── Emphasis library ─────────────────────────────────────────────────────────
 // Each entry pairs a training bias with an ordered list of movement patterns
 // (compounds first). The slot filler walks this list and backfills from it to
-// reach the target count. `vertical_pull` is never a primary slot — a
-// dumbbell-only user has no usable option — so it is omitted entirely; pulling
+// reach the target count. `vertical_pull` is never a primary slot, a
+// dumbbell-only user has no usable option, so it is omitted entirely; pulling
 // is covered by `horizontal_pull` + `back_iso`.
 export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // ── Upper (4-day classic) ────────────────────────────────────────────────
@@ -33,7 +33,7 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         bias: 'hypertrophy',
         slots: ['vertical_push', 'horizontal_pull', 'shoulder_iso', 'biceps_iso', 'triceps_iso', 'chest_iso'],
     },
-    // ── Upper (4-day aesthetic — upper-priority, more isolation) ──────────────
+    // ── Upper (4-day aesthetic, upper-priority, more isolation) ──────────────
     upper_aesthetic_a: {
         bias: 'hypertrophy',
         slots: ['horizontal_push', 'horizontal_pull', 'shoulder_iso', 'chest_iso', 'back_iso', 'biceps_iso'],
@@ -72,7 +72,7 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         bias: 'pump',
         slots: ['lunge', 'horizontal_push', 'horizontal_pull', 'shoulder_iso', 'biceps_iso', 'triceps_iso', 'calf'],
     },
-    // ── Full body — emphasis days (3-day) ─────────────────────────────────────
+    // ── Full body, emphasis days (3-day) ─────────────────────────────────────
     fb_chest_back: {
         bias: 'hypertrophy',
         slots: ['horizontal_push', 'horizontal_pull', 'vertical_push', 'chest_iso', 'back_iso', 'core'],
@@ -142,7 +142,7 @@ export function resolvePriority(value: PriorityMuscle | 'balanced' | null | unde
  * front slots first and backfills in order, so this gives the prioritized muscle
  * the first pick and earlier backfill (more volume) within the session's exercise
  * budget. Sessions that don't already train the priority (no matching pattern)
- * are left untouched — we never inject a glute slot into an upper day. A null
+ * are left untouched, we never inject a glute slot into an upper day. A null
  * priority is the identity.
  */
 export function tiltEmphasis(emphasis: Emphasis, priority: PriorityMuscle | null): Emphasis {
@@ -187,7 +187,7 @@ export const STYLES: Record<number, ProgramStyle[]> = {
         },
         {
             key: 'fb-emphasis-3',
-            name: 'Full Body — Emphasis Days',
+            name: 'Full Body - Emphasis Days',
             bestFor: 'Full body, but each day leans into one region.',
             sessions: [
                 { focus: 'full_body', emphasis: 'fb_chest_back', variant: 'A' },
@@ -254,7 +254,7 @@ export const STYLES: Record<number, ProgramStyle[]> = {
         },
         {
             key: 'fb-hmhp-4',
-            name: 'Full Body — Heavy / Medium / Heavy / Pump',
+            name: 'Full Body - Heavy / Medium / Heavy / Pump',
             bestFor: 'Four full-body days with a pump finisher to close the week.',
             sessions: [
                 { focus: 'full_body', emphasis: 'fb_strength', variant: 'A' },

@@ -24,7 +24,7 @@ const mockRE = (id: string, workoutType: WorkoutType = 'push'): RoutineExercise 
     exercise: { id, name: `Exercise ${id}`, category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null },
 });
 
-// Sparse context — only push and pull are present (not legs/chest/back/shoulders/arms)
+// Sparse context, only push and pull are present (not legs/chest/back/shoulders/arms)
 const defaultContext = {
     activeTab: 'push' as TabKey,
     setActiveTab: vi.fn(),

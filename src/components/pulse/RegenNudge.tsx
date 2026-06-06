@@ -49,7 +49,7 @@ export default function RegenNudge() {
         );
     }
 
-    // catch_up — informational; dismissible for this session (no persistence).
+    // catch_up, informational; dismissible for this session (no persistence).
     if (dismissedCatchUp) return null;
     const missed = regenSuggestion.missed;
     if (missed.length === 0) return null;

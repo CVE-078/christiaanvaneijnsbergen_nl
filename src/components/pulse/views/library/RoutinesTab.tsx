@@ -257,7 +257,7 @@ export default function RoutinesTab() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Unified toolbar — Generate + Create routine actions in one row. */}
+            {/* Unified toolbar, Generate + Create routine actions in one row. */}
             <div className="flex items-center gap-2">
                 <input
                     aria-label="Routine name"
