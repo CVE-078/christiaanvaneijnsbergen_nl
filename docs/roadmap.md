@@ -28,9 +28,51 @@
 1. **Validation block** (the highest-leverage item now that Tier 1 #1, #2, and #3 have all shipped): train on it with intent and run the deliberate missed-week test (skip a scheduled week to fire ramp-back), now that the `DecisionEvent` log records the adaptive events as first-class rows for the gate to query. Review query ready at `docs/queries/decision-events-review.sql` (newest-first, today-only, and ramp-back-only variants).
 2. **Then Phase 1 / Tier 2**, personalization in generation (training style, injury restrictions, equipment profiles).
 
+**Validation, first live test (2026-06-06):** the validation block is underway, the first real workout surfaced a batch of UX/bug findings, captured + triaged in the **"Validation block, live-test findings"** section directly below (bugs · set-row & plate-calc polish · screen tweaks · finish-screen & exercise-media features). Pick the build order from there; the launch-quality bugs (bodyweight logging, end-of-session teardown, routine-scoped decisions, week-1 anchoring, equipment-filter leak) are the immediate queue.
+
 **Launch-readiness track (gated behind validation, not due while private validation runs):** the **auth + billing lifecycle** is the long pole, then the **a11y audit**, both in the Launch floor section below.
 
 Full detail and rationale live in the phased plan under "Roadmap (re-tiered)" below and the two 2026-06-06 design docs.
+
+---
+
+## Validation block, live-test findings (2026-06-06)
+
+First real workout of the validation block (the user training with intent, returning after a layoff, so the ramp-back case is live too). One session surfaced a batch of UX and correctness findings, triaged below with the same discipline as the launch-floor triage: fix the launch-quality bugs on a branch (tests green), land the polish as a guided set-row follow-up, scope the two features properly. Build order to be picked with the user; a recommendation closes the section. Most line items name a likely code site as a starting point, not a verified root cause.
+
+**A. Bugs (correctness, launch-quality)**
+
+1. **Bodyweight exercises require a weight.** Push-Up can't be logged without a weight, so it went in at 0.5 kg, which pollutes the PR map and volume. Bodyweight movements should accept 0 / blank, or render as "bodyweight" with optional added load. `SetLogger.handleSave` rejects `weight <= 0`. Touches the exercise's bodyweight/equipment flag + SetLogger validation + the PR/volume math. Highest-value bug (it corrupts logged data).
+2. **Equipment filter leaks bench-dependent exercises.** "Dumbbells only" still generated Chest Fly + Dumbbell Single-Arm Row, both of which assume a bench. Likely cause: bench isn't modeled as its own equipment requirement, so a dumbbell-on-bench movement passes a dumbbell-only filter (or the exercise's equipment tag is wrong). Look at the exercise equipment seed + `hasEquipment` / pool filter in `generation.ts`. Connects to Tier 2 #6 (equipment profiles) and the Phase 0 equipment data.
+3. **Generator transparency.** No way to see the resolved equipment filter or why each exercise was picked in the generate flow. Add a visible "picked because" summary so the bench leak above is debuggable by the user, not only by reading code.
+4. **Week 1 shows the full weekly schedule, not the partial first week.** Started Sunday with Mon/Wed/Thu/Sun training days; Week 1 shows Mon/Wed/Thu as active 0/4 even though they're already past. Expectation: a mid-week start shows only the remaining day(s) in week 1. This is the calendar-aware anchoring not trimming the partial first week. Confirm intended completion-paced behavior vs the user's expectation before fixing; ties to the shipped "Program start-day selection" work + `adherence.ts`.
+5. **Coach decision feed isn't scoped to the active routine.** The right-rail Coach panel shows decision events from a different routine. `useDecisionEvents` / `CoachPanel` (and likely `loadDecisionEvents` / the `/api/pulse/decisions` query) should filter to the active routine.
+6. **End-of-session state isn't torn down (one cluster, likely one fix).** After finishing the last set of the last exercise: (a) the rest timer still fires though the session is over; (b) the rest timer reappears in the rail after "Done" on the post-workout screen, even though it was skipped in guided mode; (c) "Upper A session in progress" persists in the rail after completion; (d) the Train-header "Start workout" button stays clickable after the session is complete (should flip to a done / re-do state). Likely one teardown path across `useWorkoutSession` / `useRestTimer` / the rail / the Train header. Verify the root cause before patching four symptoms.
+7. **Plate calculator can't be closed after saving (guided).** `handleSave` doesn't reset `platesOpen`, and the editorial logged row renders no toggle (`SetLogger.tsx:530` gated `!editorial`), so the open panel traps you into edit-close-resave. Fix: close it on save (it's an input-time aid). Folds into the plate-calc rework below.
+
+**B. Set-row + plate-calculator polish (guided; follow-up to shipped Tier 1 #2)**
+
+- **Superset clarity + presence.** Two problems: (1) nothing communicates the sequence "1 set of A, then 1 set of B, then rest", add an explicit alternate-A→B / rest-after-both cue and visual pairing in both the Train card list and the guided screen; (2) the collapsed superset header row reads too small and narrow next to the normal exercise rows (live screenshot), give it parity in height/weight so it doesn't look like a minor strip.
+- **Suggested starting weight** for a first-time exercise with no history (a starting estimate, or a "start light" hint, instead of an empty field).
+- **Show the active exercise's target sets/reps** near the inputs (today the rail shows it for upcoming exercises only, not the one in progress).
+- **Copy previous set into the current empty set** ("same as last set"), a big win for identical 3-4 set blocks.
+- **Hide "+ Add drop"** behind the set overflow rather than inline on every set.
+- **Plate-calculator rework (one piece, not patches):** a real label (not a bare barbell icon); a placement that doesn't compete with the logged value; vertical-align to the input fields, not the whole row; gate on equipment (barbell / plate-loaded only, never dumbbell / cable / machine, so it never shows on a Chest Fly); close on save (bug 7).
+
+**C. Screen tweaks (small, cross-surface)**
+
+- **Train:** replace the "DONE" text on a completed exercise row with a green check.
+- **Plan:** add the how-to-perform info icon per exercise (parity with the Train card + guided mode; the instruction modal already exists, see Shipped "Exercise instructions").
+- **ProgramView:** split `activeRoutine.rationale` into labeled sections (e.g. program length, program start) instead of one blob. (A stray uncommitted 1-line ProgramView change exists on main, the phase-label comma→hyphen, unrelated to this; flagged to the user, left untouched.)
+- **Library:** make Routines the first tab, before Exercises.
+
+**D. Features + open questions (need design, scope separately)**
+
+- **Exercise "how to perform" media.** Add an image / gif / video to the instruction modal (text-only today). Needs a storage + content decision, and it shares infra with Tier 3 #9 Progress photos (Supabase storage bucket + RLS + a CSP `img-src` / `connect-src` update). Scope the two together.
+- **Finish / share screen rework.** The post-workout screen (`ShareCard`) should: (a) capture a session rating, how the workout felt (a session RPE / feel) + free notes; (b) show a coach summary using the per-muscle volume, PRs, and decision data now available; (c) get a general UX pass. This pulls forward the **post-workout session rating** deferred to generation Phase 3, the live test is the evidence to promote it (average session RIR is already derivable as a proxy, but an explicit feel + notes field is genuinely new signal worth capturing).
+- **Reset / clear a workout day (open question).** Should the user be able to clear a day's logged sets or reset a completed day (re-do today, undo a mis-log)? Pairs with bug 6(d): once a session is finished, "Start workout" should do something deliberate (re-do / clear) rather than silently restart. Decide the model (clear-day vs re-do-session vs both) before building.
+
+**Recommended order (to confirm with the user):** bodyweight bug first (unblocks honest data this session), then the end-of-session teardown cluster + routine-scoped decision feed + week-1 anchoring + equipment filter (all independent of training, no live screen needed), then the set-row & plate-calc polish as one guided follow-up branch, then the finish-screen and exercise-media features as their own scoped work. The reset/clear-day question gets answered alongside the end-of-session cluster (same surface).
 
 ---
 
