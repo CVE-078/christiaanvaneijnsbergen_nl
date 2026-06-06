@@ -202,13 +202,30 @@ describe('SetLogger', () => {
         );
     });
 
-    it('opens the plate calculator and shows per-side chips for the target weight', async () => {
+    it('opens the plate calculator and shows the loaded-bar breakdown for the target', async () => {
         const savedEntry: LogEntry = { kg: 100, reps: 8, rir: 2, saved: true };
         render(<SetLogger {...defaultProps} entry={savedEntry} />);
         await userEvent.click(screen.getByRole('button', { name: /plate calculator/i }));
-        expect(screen.getByText(/per side/i)).toBeInTheDocument();
+        expect(screen.getByText(/loaded bar/i)).toBeInTheDocument();
         // 100 kg barbell -> 40 per side -> [25, 15]
         expect(screen.getByText(/25 kg/)).toBeInTheDocument();
+    });
+
+    it('hides the plate calculator when the lift is not plate-loaded', () => {
+        const savedEntry: LogEntry = { kg: 100, reps: 8, rir: 2, saved: true };
+        render(<SetLogger {...defaultProps} entry={savedEntry} plateLoaded={false} />);
+        expect(screen.queryByRole('button', { name: /plate calculator/i })).not.toBeInTheDocument();
+    });
+
+    it('closes the plate calculator on save', async () => {
+        const onSave = vi.fn();
+        render(<SetLogger {...defaultProps} onSave={onSave} />);
+        await userEvent.type(screen.getByRole('spinbutton', { name: /weight in kg/i }), '100');
+        await userEvent.type(screen.getByRole('spinbutton', { name: /repetitions/i }), '8');
+        await userEvent.click(screen.getByRole('button', { name: /plate calculator/i }));
+        expect(screen.getByText(/loaded bar/i)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+        expect(screen.queryByText(/loaded bar/i)).not.toBeInTheDocument();
     });
 
     it('card target reads as an instruction ("Go") for a normal progression', () => {

@@ -11,7 +11,7 @@ import {
     MAX_KG,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
-import { DUMBBELL_HANDLE_KG } from '@/lib/pulse/constants';
+import { BARBELL_KG } from '@/lib/pulse/constants';
 import PlateCalculator from './PlateCalculator';
 import type { LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
@@ -43,6 +43,10 @@ interface Props {
     // Total sets for this exercise. Editorial shows "Set N / total" so you know
     // where you are; omitted (card variant) keeps the bare "Set N".
     totalSets?: number;
+    // Whether the plate calculator applies (barbell / plate-loaded lifts). The
+    // caller derives this from equipment via isPlateLoaded; default true keeps
+    // existing callers unchanged. Off hides the calc on dumbbell / cable / machine.
+    plateLoaded?: boolean;
     onSave: (entry: LogEntry) => void;
     onDelete?: () => void;
 }
@@ -72,6 +76,7 @@ export default function SetLogger({
     variant = 'card',
     active = true,
     totalSets,
+    plateLoaded = true,
     onSave,
     onDelete,
 }: Props) {
@@ -172,6 +177,10 @@ export default function SetLogger({
             ...(savedDrops.length > 0 ? { drops: savedDrops } : {}),
         });
         setEditing(false);
+        // The plate calc and overflow are input-time aids; close them on save so the
+        // logged row stays clean (and the panel does not get stranded open).
+        setPlatesOpen(false);
+        setOverflowOpen(false);
     }
 
     function resetDrafts() {
@@ -222,7 +231,9 @@ export default function SetLogger({
     // sits below the lightest base (a dumbbell handle), where no plates apply.
     const parsedTarget = showInputs ? parseDecimalInput(kg) : (entry?.kg ?? NaN);
     const targetKg = showInputs && !isNaN(parsedTarget) ? toKg(parsedTarget, unit) : parsedTarget;
-    const showPlates = !isNaN(targetKg) && targetKg >= DUMBBELL_HANDLE_KG;
+    // Barbell / plate-loaded lifts only, and only once there is at least an empty
+    // bar's worth to load.
+    const showPlates = plateLoaded && !isNaN(targetKg) && targetKg >= BARBELL_KG;
 
     // Plain-language RIR clause for the guided (editorial) coaching sentence: how
     // hard to push (reps left), with a failure cue at RIR 0 so "0 reps left" never shows.
@@ -771,7 +782,9 @@ export default function SetLogger({
                     ))}
                 </div>
             )}
-            {showPlates && platesOpen && <PlateCalculator targetKg={targetKg} unit={unit} />}
+            {showPlates && platesOpen && (
+                <PlateCalculator targetKg={targetKg} unit={unit} onClose={() => setPlatesOpen(false)} />
+            )}
         </div>
     );
 }

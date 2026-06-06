@@ -8,6 +8,7 @@ import {
     groupExercises,
     toDisplay,
     isBodyweight,
+    isPlateLoaded,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
@@ -324,8 +325,9 @@ function ExerciseSetRows({
     onDelete: (key: string) => void;
 }) {
     const maxSets = parseMaxSets(re.sets);
-    // Bodyweight follows the displayed exercise so a swap to/from bodyweight is honored.
+    // Bodyweight + plate-loaded both follow the displayed exercise so a swap is honored.
     const bodyweight = isBodyweight(display.equipment);
+    const plateLoaded = isPlateLoaded(display.equipment);
     // Single-active focus: the next unsaved set is the only one showing inputs; the
     // rest render as dimmed "not started" previews. -1 when every set is logged.
     const activeIdx = Array.from({ length: maxSets }, (_, s) => logKey(week, re.id, s)).findIndex(
@@ -353,6 +355,7 @@ function ExerciseSetRows({
                         variant="editorial"
                         active={s === activeIdx}
                         totalSets={maxSets}
+                        plateLoaded={plateLoaded}
                         onSave={(e) => onSave(key, e)}
                         onDelete={() => onDelete(key)}
                     />
