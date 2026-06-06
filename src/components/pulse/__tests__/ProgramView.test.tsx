@@ -156,4 +156,15 @@ describe('ProgramView', () => {
         expect(screen.getByText('Pull')).toBeInTheDocument();
         expect(screen.queryByText('Legs')).not.toBeInTheDocument();
     });
+
+    it('opens the how-to-perform modal for a built-in exercise', () => {
+        // The modal fetches instructions on mount; keep it pending so it just
+        // renders its header (we only assert the modal opens).
+        global.fetch = vi.fn(() => new Promise(() => {})) as unknown as typeof fetch;
+        const routine = makeRoutine([makeRE('Bench Press', 'push')], []);
+        mockContext(routine);
+        render(<ProgramView />);
+        fireEvent.click(screen.getByRole('button', { name: /how to perform bench press/i }));
+        expect(screen.getByRole('button', { name: /close instructions/i })).toBeInTheDocument();
+    });
 });

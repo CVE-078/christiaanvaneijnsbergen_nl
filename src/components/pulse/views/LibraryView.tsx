@@ -9,7 +9,7 @@ import RoutinesTab from './library/RoutinesTab';
 
 // ── LibraryView ──────────────────────────────────────────────────────────────
 export default function LibraryView() {
-    const [tab, setTab] = useState<'exercises' | 'routines' | 'templates'>('exercises');
+    const [tab, setTab] = useState<'exercises' | 'routines' | 'templates'>('routines');
     const { loading, errors, retry } = usePulse();
 
     if (errors?.exercises || errors?.routines) return <ErrorState onRetry={retry} />;
@@ -21,7 +21,7 @@ export default function LibraryView() {
 
             {/* Tab switcher */}
             <div className="flex gap-2" role="tablist" aria-label="Library sections">
-                {(['exercises', 'routines', 'templates'] as const).map((t) => {
+                {(['routines', 'exercises', 'templates'] as const).map((t) => {
                     const active = tab === t;
                     return (
                         <button
