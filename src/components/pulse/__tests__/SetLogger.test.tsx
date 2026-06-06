@@ -92,6 +92,20 @@ describe('SetLogger', () => {
         expect(onSave).not.toHaveBeenCalled();
     });
 
+    it('bodyweight: saves reps with no weight as 0 kg', async () => {
+        const onSave = vi.fn();
+        render(<SetLogger {...defaultProps} bodyweight onSave={onSave} />);
+        await userEvent.type(screen.getByRole('spinbutton', { name: /repetitions/i }), '12');
+        await userEvent.click(screen.getByRole('button', { name: /save/i }));
+        expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ kg: 0, reps: 12, saved: true }));
+    });
+
+    it('bodyweight: a logged set with no added load reads "Bodyweight"', () => {
+        const savedEntry: LogEntry = { kg: 0, reps: 12, rir: 3, saved: true };
+        render(<SetLogger {...defaultProps} bodyweight entry={savedEntry} />);
+        expect(screen.getByText(/bodyweight/i)).toBeInTheDocument();
+    });
+
     it('calls onDelete when the delete button is clicked', async () => {
         const onDelete = vi.fn();
         const savedEntry: LogEntry = { kg: 80, reps: 8, rir: 2, saved: true };

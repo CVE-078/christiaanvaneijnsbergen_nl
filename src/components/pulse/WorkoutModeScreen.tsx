@@ -1,6 +1,14 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { logKey, parseMaxSets, computeLastSession, isSetPR, groupExercises, toDisplay } from '@/lib/pulse/utils';
+import {
+    logKey,
+    parseMaxSets,
+    computeLastSession,
+    isSetPR,
+    groupExercises,
+    toDisplay,
+    isBodyweight,
+} from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
@@ -298,6 +306,7 @@ function ExerciseActions({
 // the 'editorial' variant gives it the guided-mode hairline / "Set N" treatment.
 function ExerciseSetRows({
     re,
+    display,
     week,
     logs,
     unit,
@@ -306,6 +315,7 @@ function ExerciseSetRows({
     onDelete,
 }: {
     re: RoutineExercise;
+    display: DbExercise;
     week: number;
     logs: Logs;
     unit: Unit;
@@ -314,6 +324,8 @@ function ExerciseSetRows({
     onDelete: (key: string) => void;
 }) {
     const maxSets = parseMaxSets(re.sets);
+    // Bodyweight follows the displayed exercise so a swap to/from bodyweight is honored.
+    const bodyweight = isBodyweight(display.equipment);
     // Single-active focus: the next unsaved set is the only one showing inputs; the
     // rest render as dimmed "not started" previews. -1 when every set is logged.
     const activeIdx = Array.from({ length: maxSets }, (_, s) => logKey(week, re.id, s)).findIndex(
@@ -337,6 +349,7 @@ function ExerciseSetRows({
                         repsRange={re.reps}
                         unit={unit}
                         isPR={isPR}
+                        bodyweight={bodyweight}
                         variant="editorial"
                         active={s === activeIdx}
                         onSave={(e) => onSave(key, e)}
@@ -397,6 +410,7 @@ function StepBody({
                         />
                         <ExerciseSetRows
                             re={re}
+                            display={display}
                             week={week}
                             logs={logs}
                             unit={unit}

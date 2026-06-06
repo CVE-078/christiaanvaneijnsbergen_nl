@@ -33,6 +33,7 @@ const routineExercise: RoutineExercise = {
         default_sets: '3-4',
         default_reps: '8-12',
         user_id: null,
+        equipment: ['dumbbells', 'bench'],
     },
 };
 

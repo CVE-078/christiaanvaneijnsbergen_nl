@@ -132,6 +132,7 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
     const routineExercises: RoutineExercise[] = routineExercisesByTabKey[activeTab] ?? [];
     const { done, total, volume } = computeSessionStats(logs, routineExercises, activeWeek);
     const sessionLabel = tabKeyLabel(activeTab);
+    const dayComplete = total > 0 && done >= total;
 
     return (
         <div className="flex h-screen bg-pulse-bg text-pulse-text overflow-hidden">
@@ -226,7 +227,13 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                         {done}
                         <small className="text-lg font-normal text-pulse-muted"> / {total} sets</small>
                     </div>
-                    <div className="mt-2 text-[0.8125rem] text-pulse-dim">{sessionLabel} session in progress</div>
+                    <div className={`mt-2 text-[0.8125rem] ${dayComplete ? 'text-pulse-success' : 'text-pulse-dim'}`}>
+                        {dayComplete
+                            ? `${sessionLabel} complete`
+                            : done > 0
+                              ? `${sessionLabel} session in progress`
+                              : `${sessionLabel} session`}
+                    </div>
                 </div>
 
                 <div className="mt-9 flex flex-col gap-6">

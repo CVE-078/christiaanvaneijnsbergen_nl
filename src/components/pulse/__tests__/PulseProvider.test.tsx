@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type {
+    DecisionEventRow,
     RoutineExercise,
     RoutineWithExercises,
     ScheduleEntry,
@@ -16,6 +17,8 @@ const setActiveTabSpy = vi.fn((tab: TabKey) => {
     activeTab = tab;
 });
 let activeRoutine: RoutineWithExercises | null = null;
+// Read lazily inside the mock factory (call-time), so the `let` is initialized.
+let decisionsData: DecisionEventRow[] = [];
 
 vi.mock('@/hooks/pulse/useUIState', () => ({
     useUIState: () => ({
@@ -86,6 +89,10 @@ vi.mock('@/hooks/pulse/useSwaps', () => ({
     useSwaps: () => ({ swaps: {}, setSwap: vi.fn(), clearSwap: vi.fn() }),
 }));
 
+vi.mock('@/hooks/pulse/useDecisionEvents', () => ({
+    useDecisionEvents: () => ({ decisions: decisionsData, loading: false, error: undefined }),
+}));
+
 vi.mock('@/lib/pulse/toast', () => ({
     useToast: () => ({ show: vi.fn() }),
 }));
@@ -126,6 +133,7 @@ function Consumer() {
         <div>
             <span data-testid="active-tab">{ctx.activeTab}</span>
             <span data-testid="has-isloading">{String('isLoading' in ctx)}</span>
+            <span data-testid="decisions-count">{ctx.decisions.length}</span>
         </div>
     );
 }
@@ -139,10 +147,45 @@ const baseProps = {
 beforeEach(() => {
     activeTab = 'push';
     activeRoutine = null;
+    decisionsData = [];
     setActiveTabSpy.mockClear();
 });
 
 describe('PulseProvider', () => {
+    it('scopes the decision feed to the active routine', () => {
+        activeRoutine = mockRoutine([mockExercise('e1', 'push')]); // routine id 'r1'
+        decisionsData = [
+            {
+                id: 'd1',
+                routine_id: 'r1',
+                type: 'progression',
+                trigger: 'targets_hit',
+                affectedArea: 'e1',
+                week: 1,
+                magnitude: {},
+                confidence: null,
+                created_at: '2026-01-02',
+            },
+            {
+                id: 'd2',
+                routine_id: 'r2', // a different routine, must be filtered out
+                type: 'deload',
+                trigger: 'plateau',
+                affectedArea: 'e9',
+                week: 1,
+                magnitude: {},
+                confidence: null,
+                created_at: '2026-01-03',
+            },
+        ];
+        render(
+            <PulseProvider {...baseProps}>
+                <Consumer />
+            </PulseProvider>,
+        );
+        expect(screen.getByTestId('decisions-count').textContent).toBe('1');
+    });
+
     it('does not expose isLoading on the context value', () => {
         activeRoutine = mockRoutine([mockExercise('e1', 'push')]);
         render(

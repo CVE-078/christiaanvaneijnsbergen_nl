@@ -28,6 +28,10 @@ interface Props {
     // drops to ~90% of the previous weight with reps reset to the bottom of the
     // range, instead of the normal progression. Decided per-exercise in ExerciseCard.
     deload?: boolean;
+    // Bodyweight exercise (no equipment): weight becomes optional (blank = pure
+    // bodyweight, a number = added load) and progression is rep-based. The caller
+    // derives this from the exercise's equipment via isBodyweight.
+    bodyweight?: boolean;
     // 'editorial' is the guided-mode look: hairline rows with a "Set N" label and
     // a big display value, vs the surface card used on the Train screen ('card').
     variant?: 'card' | 'editorial';
@@ -61,19 +65,23 @@ export default function SetLogger({
     isPR,
     unit,
     deload,
+    bodyweight = false,
     variant = 'card',
     active = true,
     onSave,
     onDelete,
 }: Props) {
-    const progression = computeProgression(previousEntry, repsRange ?? '', week);
+    const progression = computeProgression(previousEntry, repsRange ?? '', week, bodyweight);
     // A deload overrides the normal progression target when the lift is stalled.
-    const deloadTgt = deload && previousEntry && week > 1 ? deloadTarget(previousEntry, repsRange ?? '') : null;
+    // Never for bodyweight: there is no external load to back off.
+    const deloadTgt =
+        !bodyweight && deload && previousEntry && week > 1 ? deloadTarget(previousEntry, repsRange ?? '') : null;
     const target = deloadTgt ?? progression;
 
     function initKg() {
-        if (entry?.kg !== undefined) return String(toDisplay(entry.kg, unit));
-        if (target) return String(toDisplay(target.kg, unit));
+        // Bodyweight with no added load shows a blank field (placeholder), not "0".
+        if (entry?.kg !== undefined) return bodyweight && entry.kg === 0 ? '' : String(toDisplay(entry.kg, unit));
+        if (target) return bodyweight && target.kg === 0 ? '' : String(toDisplay(target.kg, unit));
         return '';
     }
 
@@ -105,7 +113,7 @@ export default function SetLogger({
     useEffect(() => {
         if (!saved || editing) {
             const baseKg = entry?.kg ?? target?.kg ?? null;
-            if (baseKg !== null) setKg(String(toDisplay(baseKg, unit)));
+            if (baseKg !== null) setKg(bodyweight && baseKg === 0 ? '' : String(toDisplay(baseKg, unit)));
             const baseReps = entry?.reps ?? target?.reps ?? null;
             if (baseReps !== null) setReps(String(baseReps));
             setDrops(
@@ -123,15 +131,22 @@ export default function SetLogger({
     const displayStep = unit === 'lbs' ? 1 : 0.5;
 
     function handleSave() {
-        const displayNum = parseDecimalInput(kg);
-        if (isNaN(displayNum) || displayNum <= 0) {
-            setInputError('Enter a valid weight');
-            return;
-        }
-        const kgNum = toKg(displayNum, unit);
-        if (kgNum <= 0 || kgNum > MAX_KG) {
-            setInputError(`Max ${toDisplay(MAX_KG, unit)} ${unit}`);
-            return;
+        // Bodyweight: a blank weight is valid (pure bodyweight = 0 kg); a number is
+        // optional added load. Every other exercise still requires a positive weight.
+        let kgNum: number;
+        if (bodyweight && kg.trim() === '') {
+            kgNum = 0;
+        } else {
+            const displayNum = parseDecimalInput(kg);
+            if (isNaN(displayNum) || displayNum <= 0) {
+                setInputError(bodyweight ? 'Enter added weight or leave blank' : 'Enter a valid weight');
+                return;
+            }
+            kgNum = toKg(displayNum, unit);
+            if (kgNum <= 0 || kgNum > MAX_KG) {
+                setInputError(`Max ${toDisplay(MAX_KG, unit)} ${unit}`);
+                return;
+            }
         }
         const repsNum = parseInt(reps, 10);
         if (!repsNum || repsNum < 1 || repsNum > 100) {
@@ -153,7 +168,8 @@ export default function SetLogger({
     }
 
     function resetDrafts() {
-        setKg(entry?.kg !== undefined ? String(toDisplay(entry.kg, unit)) : '');
+        // A pure-bodyweight set (kg 0) resets to a blank field, matching initKg.
+        setKg(entry?.kg !== undefined && !(bodyweight && entry.kg === 0) ? String(toDisplay(entry.kg, unit)) : '');
         setReps(entry?.reps?.toString() ?? '');
         setDrops(
             entry?.drops?.map((d) => ({ id: newDropId(), kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ??
@@ -175,6 +191,8 @@ export default function SetLogger({
 
     const showInputs = !saved || editing;
     const editorial = variant === 'editorial';
+    // Bodyweight weight field is optional added load; hint that with the placeholder.
+    const weightPlaceholder = bodyweight ? '+kg' : unit;
 
     // Target weight (kg) for the plate calculator: the editable input while
     // logging, otherwise the saved weight. The affordance is hidden when this
@@ -255,13 +273,15 @@ export default function SetLogger({
                                     <div className="flex items-stretch gap-2.5">
                                         <label className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-xl border border-pulse-border bg-pulse-bg px-3 py-1.5 transition-colors focus-within:border-pulse-accent/60">
                                             <span className="font-pulse-body text-[0.5625rem] uppercase tracking-[0.16em] text-pulse-muted">
-                                                Weight
+                                                {bodyweight ? 'Added' : 'Weight'}
                                             </span>
                                             <span className="flex items-baseline gap-1">
                                                 <input
                                                     type="number"
-                                                    aria-label={`Weight in ${unit}`}
-                                                    placeholder={unit}
+                                                    aria-label={
+                                                        bodyweight ? 'Added weight in ' + unit : `Weight in ${unit}`
+                                                    }
+                                                    placeholder={weightPlaceholder}
                                                     inputMode="decimal"
                                                     value={kg}
                                                     min={displayMin}
@@ -319,13 +339,17 @@ export default function SetLogger({
                                                 className="font-pulse-body text-[0.6875rem] font-medium leading-[1.45] tracking-[0.02em] text-pulse-accent">
                                                 {deloadTgt
                                                     ? `You stalled around ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}, so back off on purpose. Drop to ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}${deloadTankClause} to reset.`
-                                                    : `Last time you hit ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}. Go for ${toDisplay(target.kg, unit)} ${unit} × ${target.reps} and ${rirClause}.`}
+                                                    : bodyweight
+                                                      ? `Last time you hit ${previousEntry.reps} reps${previousEntry.kg > 0 ? ` at +${toDisplay(previousEntry.kg, unit)} ${unit}` : ''}. Go for ${target.reps} and ${rirClause}.`
+                                                      : `Last time you hit ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}. Go for ${toDisplay(target.kg, unit)} ${unit} × ${target.reps} and ${rirClause}.`}
                                             </span>
                                         ) : (
                                             previousEntry && (
                                                 <span className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-muted">
-                                                    Last {toDisplay(previousEntry.kg, unit)} {unit} ×{' '}
-                                                    {previousEntry.reps}
+                                                    Last{' '}
+                                                    {bodyweight
+                                                        ? `${previousEntry.reps} reps${previousEntry.kg > 0 ? ` at +${toDisplay(previousEntry.kg, unit)} ${unit}` : ''}`
+                                                        : `${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}`}
                                                 </span>
                                             )
                                         )}
@@ -341,8 +365,8 @@ export default function SetLogger({
                                     <div className="flex items-center gap-2">
                                         <input
                                             type="number"
-                                            aria-label={`Weight in ${unit}`}
-                                            placeholder={unit}
+                                            aria-label={bodyweight ? 'Added weight in ' + unit : `Weight in ${unit}`}
+                                            placeholder={weightPlaceholder}
                                             inputMode="decimal"
                                             value={kg}
                                             min={displayMin}
@@ -381,15 +405,19 @@ export default function SetLogger({
                                     </div>
                                     {previousEntry && (
                                         <span className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
-                                            Last {toDisplay(previousEntry.kg, unit)} {unit} × {previousEntry.reps}
+                                            Last{' '}
+                                            {bodyweight
+                                                ? `${previousEntry.reps} reps${previousEntry.kg > 0 ? ` at +${toDisplay(previousEntry.kg, unit)} ${unit}` : ''}`
+                                                : `${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}`}
                                         </span>
                                     )}
                                     {target && (
                                         <span
                                             aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
                                             className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
-                                            {deloadTgt ? 'Back off to' : 'Go'} {toDisplay(target.kg, unit)} {unit} ×{' '}
-                                            {target.reps}
+                                            {bodyweight
+                                                ? `Aim for ${target.reps} reps`
+                                                : `${deloadTgt ? 'Back off to' : 'Go'} ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}`}
                                         </span>
                                     )}
                                     {inputError && (
@@ -496,14 +524,26 @@ export default function SetLogger({
                     <>
                         {editorial ? (
                             <span className="font-pulse-display text-xl font-semibold leading-none text-pulse-text">
-                                {toDisplay(entry!.kg, unit)}
-                                <span className="font-pulse text-[0.8125rem] font-medium text-pulse-dim"> {unit}</span>
+                                {bodyweight && entry!.kg === 0 ? (
+                                    'Bodyweight'
+                                ) : (
+                                    <>
+                                        {bodyweight ? '+' : ''}
+                                        {toDisplay(entry!.kg, unit)}
+                                        <span className="font-pulse text-[0.8125rem] font-medium text-pulse-dim">
+                                            {' '}
+                                            {unit}
+                                        </span>
+                                    </>
+                                )}
                                 <span className="mx-1.5 text-pulse-muted">×</span>
                                 {entry!.reps}
                             </span>
                         ) : (
                             <span className="font-pulse text-[0.90625rem] text-pulse-text tracking-[0.01em]">
-                                {toDisplay(entry!.kg, unit)} {unit}
+                                {bodyweight && entry!.kg === 0
+                                    ? 'Bodyweight'
+                                    : `${bodyweight ? '+' : ''}${toDisplay(entry!.kg, unit)} ${unit}`}
                                 <span className="text-pulse-muted mx-[5px]">×</span>
                                 {entry!.reps}
                                 <span className="text-pulse-dim ml-1.5">@ RIR {entry!.rir}</span>

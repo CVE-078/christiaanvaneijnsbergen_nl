@@ -298,6 +298,20 @@ describe('computeProgramPosition', () => {
         expect(pos.isRampBack).toBe(true);
         expect(pos.progressionIndex).toBe(2);
     });
+    it('a mid-week (Sunday) start reads on_track on day one, not behind', () => {
+        const schedule = [entry(1, 'lower'), entry(3, 'upper'), entry(4, 'lower'), entry(0, 'upper')];
+        const pos = computeProgramPosition({
+            anchor: '2026-06-07T00:00:00Z', // Sunday
+            programWeeks: 12,
+            schedule,
+            sessions: [],
+            adjustments: [],
+            tz: 'UTC',
+            now: '2026-06-07T12:00:00Z',
+        });
+        expect(pos.behindBy).toBe(0);
+        expect(pos.status).toBe('on_track');
+    });
 });
 
 describe('computeWeekAdherence', () => {
@@ -344,6 +358,23 @@ describe('computeWeekAdherence', () => {
             sessions: [],
         });
         expect(wa).toEqual({ missed: [], upcoming: [], done: [] });
+    });
+    it('a mid-week start keys off completion, not the calendar: no pre-start day reads as missed', () => {
+        // The validation-block case: train Mon/Wed/Thu/Sun, start (anchor) on Sunday.
+        // 2026-06-01 is a Monday in these tests, so 2026-06-07 is a Sunday.
+        // The week window anchors to the start day, so Mon/Wed/Thu are upcoming
+        // (reached next calendar week), never overdue, and all 4 sessions remain.
+        const schedule = [entry(1, 'lower'), entry(3, 'upper'), entry(4, 'lower'), entry(0, 'upper')];
+        const wa = computeWeekAdherence({
+            schedule,
+            anchor: '2026-06-07T00:00:00Z',
+            tz: 'UTC',
+            now: '2026-06-07T12:00:00Z',
+            sessions: [],
+        });
+        expect(wa.missed).toEqual([]);
+        expect(wa.done).toEqual([]);
+        expect(wa.upcoming).toHaveLength(4); // full weekly volume preserved
     });
 });
 

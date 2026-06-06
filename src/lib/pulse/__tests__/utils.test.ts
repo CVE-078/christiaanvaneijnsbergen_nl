@@ -591,6 +591,24 @@ describe('computeProgression', () => {
         });
     });
 
+    it('bodyweight: progresses by reps and keeps the load, never adding weight', () => {
+        // rir met → one more rep, no hi cap (you cannot add load to bodyweight)
+        expect(computeProgression({ kg: 0, reps: 12, rir: 3, saved: true }, '8-12', 2, true)).toEqual({
+            kg: 0,
+            reps: 13,
+        });
+        // any added load is preserved, still rep progression
+        expect(computeProgression({ kg: 10, reps: 8, rir: 3, saved: true }, '8-12', 2, true)).toEqual({
+            kg: 10,
+            reps: 9,
+        });
+        // harder than target eases reps to the range bottom; the load never drops
+        expect(computeProgression({ kg: 0, reps: 10, rir: 1, saved: true }, '8-12', 2, true)).toEqual({
+            kg: 0,
+            reps: 8,
+        });
+    });
+
     it('treats a single-number rep target as linear weight progression', () => {
         // lo === hi === 8; reps 8 >= 8 and rir met → weight bump
         expect(computeProgression({ kg: 60, reps: 8, rir: 3, saved: true }, '8', 2)).toEqual({

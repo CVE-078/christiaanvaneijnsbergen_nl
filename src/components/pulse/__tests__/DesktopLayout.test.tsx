@@ -180,7 +180,8 @@ describe('DesktopLayout', () => {
         expect(screen.getByText('Today')).toBeInTheDocument();
         // With empty logs/routine the count is 0 and total is 0.
         expect(screen.getByText(/\/ 0 sets/)).toBeInTheDocument();
-        expect(screen.getByText(/session in progress/i)).toBeInTheDocument();
+        // No sets done yet, so the neutral "{label} session" line (not "in progress").
+        expect(screen.getByText(/push session/i)).toBeInTheDocument();
     });
 
     it('renders the context-rail stat blocks', () => {
@@ -222,9 +223,12 @@ describe('DesktopLayout', () => {
         expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
     });
 
-    it('renders the pinned rest timer when a rest is running and guided mode is closed', () => {
+    it('renders the pinned rest timer when a rest fires and guided mode is closed', () => {
+        // The rail timer only starts on a trigger change, not on mount (no phantom timer).
+        vi.mocked(usePulse).mockReturnValue({ ...mockContext, timerTrigger: 0, workoutModeOpen: false });
+        const { rerender } = render(<DesktopLayout {...defaultProps} />);
         vi.mocked(usePulse).mockReturnValue({ ...mockContext, timerTrigger: 1, workoutModeOpen: false });
-        render(<DesktopLayout {...defaultProps} />);
+        rerender(<DesktopLayout {...defaultProps} />);
         expect(screen.getByText(/rest before next set/i)).toBeInTheDocument();
     });
 
