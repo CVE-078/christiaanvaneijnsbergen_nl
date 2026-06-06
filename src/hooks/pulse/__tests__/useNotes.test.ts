@@ -26,7 +26,7 @@ describe('useNotes', () => {
     it('returns notes from SWR data', () => {
         const notes: Notes = { [`3-${UUID}`]: 'tight shoulder' };
         vi.mocked(useSWR).mockReturnValue({ data: notes, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
-        const { result } = renderHook(() => useNotes());
+        const { result } = renderHook(() => useNotes('user-a'));
         expect(result.current.notes).toEqual(notes);
     });
 
@@ -34,13 +34,13 @@ describe('useNotes', () => {
         vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: mockMutate } as unknown as ReturnType<
             typeof useSWR
         >);
-        const { result } = renderHook(() => useNotes());
+        const { result } = renderHook(() => useNotes('user-a'));
         // With no resolved SWR data the hook reports empty.
         expect(result.current.notes).toEqual({});
     });
 
     it('saveNote calls mutate optimistically then calls server action', async () => {
-        const { result } = renderHook(() => useNotes());
+        const { result } = renderHook(() => useNotes('user-a'));
         await act(async () => {
             await result.current.saveNote(3, UUID, 'tight shoulder');
         });
@@ -51,7 +51,7 @@ describe('useNotes', () => {
     it('deleteNote removes the key optimistically then calls server action', async () => {
         const notes: Notes = { [`3-${UUID}`]: 'tight shoulder' };
         vi.mocked(useSWR).mockReturnValue({ data: notes, mutate: mockMutate } as unknown as ReturnType<typeof useSWR>);
-        const { result } = renderHook(() => useNotes());
+        const { result } = renderHook(() => useNotes('user-a'));
         await act(async () => {
             await result.current.deleteNote(3, UUID);
         });

@@ -67,4 +67,6 @@ SQL migrations are hand-written and tracked in `docs/migrations/*.sql` (dated). 
 
 ## Docs
 
-`docs/roadmap.md` tracks shipped Pulse features. `docs/superpowers/{plans,specs,designs}/` hold the design specs, implementation plans, and HTML design mockups that drove each feature — useful context before extending an area.
+`docs/roadmap.md` tracks shipped Pulse features, the re-tiered roadmap, and a **"Status & next session"** block at the top with the ordered next actions. `docs/superpowers/{plans,specs,designs}/` hold the design specs, implementation plans, and HTML design mockups that drove each feature — useful context before extending an area.
+
+**Active next effort (generation v2 / Phase 0):** before touching routine generation or per-muscle volume, read `docs/superpowers/designs/2026-06-06-00-30-19-generation-engine-v2-audit.md` (architecture audit) and `docs/superpowers/designs/2026-06-06-00-54-52-phase0-source-material.md` (the canonical v1 MovementPattern → muscle map, exercise-metadata schema, `DecisionEvent` taxonomy, substitution classes, golden tests). The decision is to keep the slot-first generator and layer a data bridge + richer metadata on top — do not rewrite the engine.

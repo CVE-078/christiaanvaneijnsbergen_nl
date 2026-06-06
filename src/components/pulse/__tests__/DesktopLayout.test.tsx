@@ -34,6 +34,7 @@ const mockContext = {
     bodyMeasurements: [],
     refreshMeasurements: vi.fn(),
     email: 'test@example.com',
+    userId: 'u1',
     updateProfile: vi.fn(),
     updateGender: vi.fn(),
     updateLengthUnit: vi.fn(),

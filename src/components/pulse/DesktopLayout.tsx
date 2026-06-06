@@ -5,6 +5,7 @@ import { getPhase, getRIR, logKey, parseLogKey, parseMaxSets } from '@/lib/pulse
 import { tabKeyLabel } from '@/lib/pulse/constants';
 import { useLocalStorage } from '@/hooks/pulse/useLocalStorage';
 import { clearAllSWRCache } from '@/lib/pulse/swrCache';
+import { flushQueue } from '@/lib/pulse/offlineSync';
 import OnboardingModal from './OnboardingModal';
 import RestTimer from './RestTimer';
 import type { RoutineExercise, View } from '@/lib/pulse/types';
@@ -24,7 +25,8 @@ const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
         label: 'Plan',
         icon: (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
-                <rect x="3.5" y="5" width="17" height="15.5" rx="2" /><path d="M3.5 9.5h17M8 3.2v3.6M16 3.2v3.6" />
+                <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+                <path d="M3.5 9.5h17M8 3.2v3.6M16 3.2v3.6" />
             </svg>
         ),
     },
@@ -52,7 +54,9 @@ const NAV: { id: View; label: string; icon: React.ReactNode }[] = [
         label: 'Library',
         icon: (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
-                <rect x="4" y="4.5" width="5" height="15" rx="1" /><rect x="10" y="4.5" width="5" height="15" rx="1" /><path d="M16.6 6l3.6 1-3 14-3.6-1z" />
+                <rect x="4" y="4.5" width="5" height="15" rx="1" />
+                <rect x="10" y="4.5" width="5" height="15" rx="1" />
+                <path d="M16.6 6l3.6 1-3 14-3.6-1z" />
             </svg>
         ),
     },
@@ -103,9 +107,23 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
         timerDuration,
         showOnboarding,
         workoutModeOpen,
+        userId,
     } = usePulse();
 
     const [expanded, setExpanded] = useLocalStorage('pulse:sidebar-expanded', false);
+
+    // Sign out. Drain this user's queued writes while still authenticated so they
+    // land in the right account and don't linger on a shared device; best-effort,
+    // then clear the per-user SWR cache and end the session.
+    const handleSignOut = async () => {
+        try {
+            await flushQueue(userId);
+        } catch {
+            // offline or failed — writes stay queued (scoped to this user) and sync on next sign-in
+        }
+        clearAllSWRCache();
+        await logout();
+    };
 
     const phase = getPhase(activeWeek);
     const rir = getRIR(activeWeek);
@@ -177,22 +195,20 @@ export default function DesktopLayout({ view, navigate, children }: Props) {
                 </nav>
 
                 <div className={expanded ? 'mt-auto px-1' : 'mt-auto'}>
-                    <form action={logout}>
-                        <button
-                            type="submit"
-                            onClick={() => clearAllSWRCache()}
-                            aria-label="Sign out of Pulse"
-                            title="Sign out"
-                            className={`bg-transparent border-none cursor-pointer text-pulse-muted hover:text-pulse-text transition-colors [&_svg]:w-[22px] [&_svg]:h-[22px] [&_svg]:shrink-0 ${
-                                expanded ? 'flex items-center gap-3 font-pulse text-sm' : 'grid place-items-center'
-                            }`}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                                <path d="M16 17l5-5-5-5M21 12H9" />
-                            </svg>
-                            {expanded && <span>Sign out</span>}
-                        </button>
-                    </form>
+                    <button
+                        type="button"
+                        onClick={handleSignOut}
+                        aria-label="Sign out of Pulse"
+                        title="Sign out"
+                        className={`bg-transparent border-none cursor-pointer text-pulse-muted hover:text-pulse-text transition-colors [&_svg]:w-[22px] [&_svg]:h-[22px] [&_svg]:shrink-0 ${
+                            expanded ? 'flex items-center gap-3 font-pulse text-sm' : 'grid place-items-center'
+                        }`}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <path d="M16 17l5-5-5-5M21 12H9" />
+                        </svg>
+                        {expanded && <span>Sign out</span>}
+                    </button>
                 </div>
             </aside>
 

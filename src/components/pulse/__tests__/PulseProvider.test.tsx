@@ -131,6 +131,7 @@ function Consumer() {
 }
 
 const baseProps = {
+    userId: 'u1',
     email: 'test@example.com',
     navigate: vi.fn(),
 };
