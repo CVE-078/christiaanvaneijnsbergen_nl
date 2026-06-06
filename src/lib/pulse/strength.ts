@@ -23,9 +23,9 @@ export const STRENGTH_STANDARDS: Record<Gender, Record<MainLift, number[]>> = {
 };
 
 // Neutral standard for when no gender is set: the midpoint of the male and female
-// thresholds per lift/level. Strength standards are genuinely sex-based, so this is
+// thresholds per lift/level. Strength standards are genuinely gender-based, so this is
 // a reasonable "unspecified" baseline that scores everyone without gating; setting
-// gender in Profile refines it to the sex-specific table. The average of two
+// gender in Profile refines it to the gender-specific table. The average of two
 // ascending sequences is itself ascending, so the bands stay valid.
 export const NEUTRAL_STANDARDS: Record<MainLift, number[]> = (
     ['bench', 'squat', 'deadlift', 'ohp'] as MainLift[]
@@ -95,8 +95,8 @@ function levelFor(score: number): string {
 }
 
 // Compute the strength score from the user's bodyweight and best lifts. Gender is
-// optional: with it, the sex-specific standards are used; without it, a neutral
-// (sex-midpoint) standard scores anyway and the result is flagged `approximate`.
+// optional: with it, the gender-specific standards are used; without it, a neutral
+// (gender-midpoint) standard scores anyway and the result is flagged `approximate`.
 // Returns a null score with a reason only when bodyweight or a main lift is missing.
 export function computeStrengthScore(args: {
     gender: Gender | null;

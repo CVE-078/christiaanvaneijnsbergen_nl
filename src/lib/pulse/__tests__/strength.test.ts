@@ -68,7 +68,7 @@ describe('STRENGTH_STANDARDS', () => {
 });
 
 describe('computeStrengthScore', () => {
-    it('scores against a neutral (sex-midpoint) standard when gender is null, flagged approximate', () => {
+    it('scores against a neutral (gender-midpoint) standard when gender is null, flagged approximate', () => {
         // Gender is optional: no gate. Neutral bench thresholds are the midpoint of
         // male [0.5,0.75,1.25,1.75,2.0] and female [0.35,0.5,0.75,1.0,1.5] =
         // [0.425,0.625,1.0,1.375,1.75]; ratio 100/80 = 1.25 → 67 (between 50 and 75).
