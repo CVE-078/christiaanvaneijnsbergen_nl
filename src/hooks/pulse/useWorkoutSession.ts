@@ -24,7 +24,19 @@ export function useWorkoutSession() {
         setSession(null);
     }, []);
 
+    const saveSessionDebrief = useCallback(
+        async (sessionId: string, debrief: { rpe: number | null; note: string | null }): Promise<void> => {
+            const res = await fetch(`/api/pulse/sessions/${sessionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rpe: debrief.rpe, note: debrief.note }),
+            });
+            if (!res.ok) throw new Error('Failed to save session debrief');
+        },
+        [],
+    );
+
     const clearSession = useCallback(() => setSession(null), []);
 
-    return { session, startSession, completeSession, clearSession };
+    return { session, startSession, completeSession, saveSessionDebrief, clearSession };
 }
