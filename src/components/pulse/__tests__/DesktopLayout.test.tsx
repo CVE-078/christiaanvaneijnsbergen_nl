@@ -40,7 +40,6 @@ const mockContext = {
     updateGender: vi.fn(),
     updateLengthUnit: vi.fn(),
     updatePriorityMuscle: vi.fn(),
-    updateTrainingStyle: vi.fn(),
     logBodyWeight: vi.fn(),
     deleteBodyWeight: vi.fn(),
     isLoading: false,
