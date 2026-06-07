@@ -287,6 +287,34 @@ describe('SetLogger', () => {
         expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(7);
     });
 
+    it('guided "Same as set N" fills the inputs from the set logged this session', async () => {
+        const prevSet: LogEntry = { kg: 42.5, reps: 11, rir: 2, saved: true };
+        // setIdx 1 = "Set 2"; the previous set is set 1, so the label reads "set 1".
+        render(<SetLogger {...defaultProps} variant="editorial" setIdx={1} totalSets={3} prevSetEntry={prevSet} />);
+        const fill = screen.getByRole('button', { name: /same as set 1/i });
+        await userEvent.click(fill);
+        expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(42.5);
+        expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(11);
+    });
+
+    it('guided prefers the in-session set over last week: only one quick-fill shows', () => {
+        const prev: LogEntry = { kg: 90, reps: 7, rir: 2, saved: true };
+        const prevSet: LogEntry = { kg: 42.5, reps: 11, rir: 2, saved: true };
+        render(
+            <SetLogger
+                {...defaultProps}
+                variant="editorial"
+                week={2}
+                setIdx={1}
+                previousEntry={prev}
+                prevSetEntry={prevSet}
+                repsRange="8-12"
+            />,
+        );
+        expect(screen.getByRole('button', { name: /same as set 1/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /same as last/i })).not.toBeInTheDocument();
+    });
+
     it('guided shows "Set N / total" when totalSets is provided', () => {
         render(<SetLogger {...defaultProps} variant="editorial" setIdx={1} totalSets={3} />);
         expect(screen.getByText('Set 2 / 3')).toBeInTheDocument();

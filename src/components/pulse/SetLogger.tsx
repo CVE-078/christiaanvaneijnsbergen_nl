@@ -21,6 +21,11 @@ interface Props {
     type: WorkoutType;
     entry: LogEntry | undefined;
     previousEntry?: LogEntry;
+    // The set logged just before this one in the SAME session (previous set index,
+    // this week). When present, the guided quick-fill copies its weight + reps, the
+    // common "every set at the same load" case. Only passed for set 2+ once the
+    // prior set is saved, so its presence means there is a set to copy.
+    prevSetEntry?: LogEntry;
     repsRange?: string;
     isPR?: boolean;
     unit: Unit;
@@ -68,6 +73,7 @@ export default function SetLogger({
     week,
     entry,
     previousEntry,
+    prevSetEntry,
     repsRange,
     isPR,
     unit,
@@ -212,6 +218,15 @@ export default function SetLogger({
         if (!previousEntry) return;
         setKg(bodyweight && previousEntry.kg === 0 ? '' : String(toDisplay(previousEntry.kg, unit)));
         setReps(String(previousEntry.reps));
+        setInputError(null);
+    }
+
+    // "Same as set N": copy the set you just logged in this session into the inputs,
+    // the common case of holding the same load across a block's sets.
+    function applyPrevSet() {
+        if (!prevSetEntry) return;
+        setKg(bodyweight && prevSetEntry.kg === 0 ? '' : String(toDisplay(prevSetEntry.kg, unit)));
+        setReps(String(prevSetEntry.reps));
         setInputError(null);
     }
 
@@ -526,10 +541,13 @@ export default function SetLogger({
                                 Save lives in the input row; Cancel (when editing) joins here. */}
                             {editorial && (
                                 <div className="flex flex-wrap items-center gap-1.5">
-                                    {previousEntry && (
+                                    {/* One contextual quick-fill: copy the set you just logged this
+                                        session when there is one (set 2+), else recall last week's
+                                        same set. Showing one button keeps the actions row uncluttered. */}
+                                    {prevSetEntry ? (
                                         <button
                                             type="button"
-                                            onClick={applyPrevious}
+                                            onClick={applyPrevSet}
                                             className="inline-flex items-center gap-1.5 rounded-lg border border-pulse-border bg-transparent px-2.5 py-1 font-pulse text-[0.6875rem] font-medium text-pulse-dim cursor-pointer transition-colors hover:border-pulse-muted hover:text-pulse-text">
                                             <svg
                                                 viewBox="0 0 24 24"
@@ -540,11 +558,32 @@ export default function SetLogger({
                                                 strokeLinejoin="round"
                                                 className="h-3 w-3"
                                                 aria-hidden>
-                                                <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-                                                <path d="M3 3v5h5" />
+                                                <rect x="9" y="9" width="11" height="11" rx="2" />
+                                                <path d="M5 15V5a2 2 0 0 1 2-2h10" />
                                             </svg>
-                                            Same as last
+                                            Same as set {setIdx}
                                         </button>
+                                    ) : (
+                                        previousEntry && (
+                                            <button
+                                                type="button"
+                                                onClick={applyPrevious}
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-pulse-border bg-transparent px-2.5 py-1 font-pulse text-[0.6875rem] font-medium text-pulse-dim cursor-pointer transition-colors hover:border-pulse-muted hover:text-pulse-text">
+                                                <svg
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth={2}
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    className="h-3 w-3"
+                                                    aria-hidden>
+                                                    <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                                                    <path d="M3 3v5h5" />
+                                                </svg>
+                                                Same as last
+                                            </button>
+                                        )
                                     )}
                                     {showPlates && (
                                         <button

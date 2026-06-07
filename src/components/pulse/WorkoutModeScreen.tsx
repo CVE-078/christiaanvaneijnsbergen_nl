@@ -339,6 +339,10 @@ function ExerciseSetRows({
                 const key = logKey(week, re.id, s);
                 const prevKey = logKey(week - 1, re.id, s);
                 const entry = logs[key];
+                // The set just before this one in the same session, for the "Same as
+                // set N" quick-fill; only when it is saved (set 2+).
+                const prevSetKey = s > 0 ? logKey(week, re.id, s - 1) : undefined;
+                const prevSetEntry = prevSetKey && logs[prevSetKey]?.saved ? logs[prevSetKey] : undefined;
                 const isPR = !!(entry?.saved && isSetPR(entry.kg, entry.reps, re.id, prMap));
                 return (
                     <SetLogger
@@ -348,6 +352,7 @@ function ExerciseSetRows({
                         type={re.workout_type}
                         entry={entry}
                         previousEntry={week > 1 && logs[prevKey]?.saved ? logs[prevKey] : undefined}
+                        prevSetEntry={prevSetEntry}
                         repsRange={re.reps}
                         unit={unit}
                         isPR={isPR}
