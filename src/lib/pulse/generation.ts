@@ -670,8 +670,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         schedule.push({ day_of_week: days[i], workout_type, variant });
 
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
-        const style2 = input.trainingStyle ?? 'balanced';
-        const effectiveBias = resolveBias(emphasis.bias, style2);
+        const trainingStyle = input.trainingStyle ?? 'balanced';
+        const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
         const selected = selectForSession(emphasis, exCount, usable, used);
 
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
@@ -695,7 +695,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 variant,
                 order,
                 sets: String(exSets),
-                reps: resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, style2),
+                reps: resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, trainingStyle),
                 superset_group_id: groupId,
             });
         });
