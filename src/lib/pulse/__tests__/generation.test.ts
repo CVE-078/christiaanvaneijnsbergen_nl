@@ -548,3 +548,18 @@ describe('generateRoutine + trainingStyle', () => {
         expect(bp.exercises.filter((e) => e.sets === '4').length).toBe(bp.schedule.length);
     });
 });
+
+describe('buildRationale trainingStyle clause', () => {
+    const answers = { equipment: new Set<EquipmentKey>(['dumbbells']), experience: 'intermediate' as const, goal: 'build_muscle' as const, days: '4' as const };
+    const style = STYLES[4][0];
+    it('omits any style clause for balanced / undefined', () => {
+        const r = buildRationale(answers, '45–60 min', style, null, 'balanced');
+        expect(r).not.toMatch(/strength|powerbuilding|size/i);
+    });
+    it('adds a strength clause', () => {
+        expect(buildRationale(answers, '45–60 min', style, null, 'strength')).toMatch(/strength/i);
+    });
+    it('adds a powerbuilding clause', () => {
+        expect(buildRationale(answers, '45–60 min', style, null, 'powerbuilding')).toMatch(/powerbuilding/i);
+    });
+});

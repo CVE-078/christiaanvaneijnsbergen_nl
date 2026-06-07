@@ -26,6 +26,7 @@ import type {
     RoutineExercise,
     SessionTime,
     EquipmentKey,
+    TrainingStyle,
 } from '@/lib/pulse/types';
 import { assertUuid, assertOwnsRoutine, assertOwnsRoutineExercise } from './_shared';
 import { loadHiddenExerciseIds } from '@/lib/pulse/queries';
@@ -380,6 +381,7 @@ export async function generateAndSaveRoutine(
     sessionTime: SessionTime,
     styleKey: string,
     name?: string,
+    trainingStyle?: TrainingStyle,
 ): Promise<WorkoutRoutine> {
     if (!trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error('Invalid training days');
 
@@ -390,6 +392,8 @@ export async function generateAndSaveRoutine(
     if (!(answers.equipment instanceof Set) || ![...answers.equipment].every((e) => EQUIPMENT_KEYS.includes(e)))
         throw new Error('Invalid data');
     if (!SESSION_TIMES.includes(sessionTime)) throw new Error('Invalid data');
+    const TRAINING_STYLE_VALUES = ['balanced', 'strength', 'bodybuilding', 'powerbuilding'] as const;
+    if (trainingStyle !== undefined && !TRAINING_STYLE_VALUES.includes(trainingStyle)) throw new Error('Invalid data');
 
     const style = resolveStyle(styleKey, trainingDays.length);
 
@@ -415,11 +419,12 @@ export async function generateAndSaveRoutine(
     // effect without requiring a visit to Profile.
     const { data: profileRow } = await supabase
         .from('profiles')
-        .select('priority_muscle, gender')
+        .select('priority_muscle, gender, training_style')
         .eq('id', user.id)
         .maybeSingle();
     const priority = resolvePriority(profileRow?.priority_muscle ?? genderDefault(profileRow?.gender ?? null));
-    const rationale = buildRationale(answers, sessionTime, style, priority);
+    const resolvedTrainingStyle: TrainingStyle = trainingStyle ?? (profileRow?.training_style as TrainingStyle) ?? 'balanced';
+    const rationale = buildRationale(answers, sessionTime, style, priority, resolvedTrainingStyle);
 
     // Exclude the user's hidden exercises so generation never surfaces them. The
     // smaller pool flows through the existing equipment filter + thin-pool
@@ -443,6 +448,7 @@ export async function generateAndSaveRoutine(
         trainingDays,
         pool,
         priority,
+        trainingStyle: resolvedTrainingStyle,
         makeGroupId: () => crypto.randomUUID(),
     });
 
@@ -485,7 +491,7 @@ export async function generateAndSaveRoutine(
 
     const { error: profileErr } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, active_routine_id: routine.id }, { onConflict: 'id' });
+        .upsert({ id: user.id, active_routine_id: routine.id, training_style: resolvedTrainingStyle }, { onConflict: 'id' });
     if (profileErr) throw new Error('Failed to set active routine');
 
     revalidatePath('/pulse');

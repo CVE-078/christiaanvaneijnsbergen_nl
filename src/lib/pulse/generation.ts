@@ -733,6 +733,13 @@ const GOAL_LABELS: Record<Goal, string> = {
     general_fitness: 'general fitness',
 };
 
+const TRAINING_STYLE_CLAUSE: Record<TrainingStyle, string> = {
+    balanced: '',
+    strength: ' Tuned for strength: heavier loads and lower reps on the main lifts.',
+    bodybuilding: ' Tuned for size: moderate-to-high reps across every session.',
+    powerbuilding: ' A powerbuilding blend: heavy main lifts, higher-rep accessories.',
+};
+
 // Human-readable reason a routine was generated, from the onboarding inputs and
 // the chosen program style. Shown on the Plan screen and in the setup flow.
 export function buildRationale(
@@ -740,9 +747,13 @@ export function buildRationale(
     sessionTime: SessionTime,
     style: ProgramStyle,
     priority?: PriorityMuscle | null,
+    trainingStyle?: TrainingStyle,
 ): string {
     const goal = GOAL_LABELS[answers.goal] ?? answers.goal;
     const base = `${style.name} for ${answers.experience} lifters · ${answers.days} days/week · ${goal} · ${sessionTime} sessions. ${style.bestFor}`;
-    if (!priority) return base;
-    return `${base} Every session leans a bit harder into ${priority}, the muscle you want to grow.`;
+    const styleClause = TRAINING_STYLE_CLAUSE[trainingStyle ?? 'balanced'];
+    const withPriority = priority
+        ? `${base} Every session leans a bit harder into ${priority}, the muscle you want to grow.`
+        : base;
+    return `${withPriority}${styleClause}`;
 }
