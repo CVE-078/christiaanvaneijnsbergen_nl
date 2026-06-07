@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-07)
 
-**In progress:** (none).
+**In progress:** roadmap update -- monorepo extraction plan and dependency upgrade plan (`docs/roadmap-monorepo-and-upgrades`).
 
 **In review (on a branch, not yet merged):** the **variety preference generation input (Tier 2 #4, second of three generation-input refinements)** on `feature/variety-preference`. A `VarietyPreference` ('consistent' | 'varied') axis: under `consistent` a per-generation anchor map pins the main compound lifts (`COMPOUND_ANCHOR_PATTERNS` = squat / hinge / horizontal_push / vertical_push / horizontal_pull / vertical_pull) across sessions while accessories keep rotating; `varied` (default, null-resolved at the generation boundary) is byte-identical to today, locked by a golden identity + `consistent`-determinism test. Fully orthogonal to training style (variety picks *which* exercise fills a slot, style sets *how* it is trained). Persisted on `profiles.variety_preference` (nullable, mirrors `training_style`), chosen in a new optional `RoutineSetupFlow` step (gated by `collectVariety`), passed into `generateAndSaveRoutine` (param wins over the stored fallback, written back). Two external reviews (Claude.ai on coaching, Perplexity on architecture) folded. Migration `docs/migrations/2026-06-07-15-13-53-variety-preference.sql` to apply in Supabase. Spec + plan in `docs/superpowers/`. **Deferred:** loading lean (the third #4 input) and a standalone Profile-screen variety editor.
 
@@ -192,25 +192,46 @@ Deliberate infrastructure, chosen early. **Not a launch blocker, and must not bl
 - **Co-locate vs centralize (decide per type, don't force one bucket):** centralize the cross-cutting shared vocabulary (`MovementPattern`, `ExerciseCategory`, the core domain unions/values used by many modules) in `lib/pulse/types/`; keep module-private types co-located with their module.
 - **No TypeScript `enum`.** Use the const-object + derived-union pattern (`as const` + `type Foo = typeof Foo[keyof typeof Foo]`). TS `enum` has runtime quirks and `const enum` has known problems with bundlers / isolated-modules (relevant to the Next/SWC build); the const-object gives the same named-constant ergonomics, autocomplete, and exhaustiveness with none of the footguns. **Reframe the work:** much of the vocabulary already exists as union types (`MovementPattern`, `ExerciseCategory`, `AdjustmentKind`, `Bias`, and now `DecisionEventType`/`DecisionTrigger`), so for most code this is "centralize the canonical values and make scattered inline strings reference the union/const," not "introduce enums", pair each union with a const object of its values where logic needs the runtime values.
 
-### Infrastructure, standalone repo, then dependency upgrades
+### Infrastructure, monorepo extraction then full dependency upgrade
 
-Two sequenced tasks; the **order is hard: extract on current versions, verify + deploy, only then upgrade.** Both are isolated-branch jobs, not feature work. Pulse currently lives as a route group inside this portfolio repo (marketing site at `/`, Pulse under `/pulse`), sharing `globals.css` (`@theme` tokens for both themes), the Tailwind v4 / PostCSS / tsconfig setup, and `next.config.mjs` (global headers + the `/pulse` CSP). Sequencing note vs the i18n entry above: extraction is a pure structural move and i18n is a huge string diff, land the extraction first (or do i18n in the new repo after) so two large diffs don't collide.
+Two sequenced tasks; the **order is hard: extract first on current versions, verify and deploy, only then upgrade.** Both are isolated jobs, not feature work. **Timing:** after the variety preference branch merges and the current feature sprint settles -- the extraction is a large diff (all import paths, routing, service worker, CSP, Supabase URLs) and deserves a clean window with nothing else in flight. Sequencing note vs the i18n entry above: do i18n after the extraction, in the new repo, so two large diffs never collide.
 
-**1. Extract Pulse to its own repo (same code, new home, NO dependency changes).** Goal: identical build + behaviour, just a standalone home.
-- Identify the full Pulse surface: routes (the `(protected)` group + `login`), components under `pulse/`, lib modules (`src/lib/pulse/*`, `src/lib/supabase/*`), the migrations in `docs/migrations/`, Pulse env vars, the PWA manifest + `/pulse`-scoped service worker, and shared utilities. Flag anything shared with the portfolio as copy-not-move (notably the `globals.css` Pulse tokens and the Tailwind/PostCSS/tsconfig config).
-- New standalone Next.js project with its own `package.json` containing only the deps Pulse actually imports (audit imports, do not copy the portfolio's full list, e.g. confirm whether `@vercel/analytics` is used by Pulse or only the marketing root). Keep the SAME current versions, no bumps.
-- Move code, fix import paths and portfolio-specific layout/routing assumptions so it runs as a root app. **OPEN DECISION (confirm before flattening): keep `/pulse/*` paths or flatten to root.** Flattening changes the PWA `scope`/`start_url`, the SW scope, bookmarks, and Supabase Auth redirect URLs. Recommendation: if flattening, do it now (two users) rather than post-launch (installed PWAs + stranger bookmarks).
-- Carry env requirements into a `.env.example` (Supabase URL/keys, etc.), no real secrets.
-- Confirm `npm install` / `npm run build` / `npm run dev` succeed and the main flows render.
-- Do NOT touch the portfolio repo beyond identifying what to extract (the user removes the Pulse folder afterwards). Output: the standalone project, a moved/copied/left-behind summary, duplicated shared code that may drift, and the explicit manual steps that are the user's (new GitHub repo, new host/Vercel project, domain, Supabase Auth redirect URLs).
+**Destination (decided):** the existing `G:\Workspace\pulse-app` Turborepo monorepo, reset and re-scaffolded from a fresh Turborepo Next.js + pnpm starter. The monorepo structure is the right long-term home: `packages/lib` will hold the Pulse brain (`lib/pulse/*`) when a native app eventually arrives, and `packages/ui` will hold shared components. Mobile (`apps/mobile`) is excluded until the native reopen bar is cleared. Package manager for the monorepo: **pnpm** (stricter workspace isolation, better `workspace:*` protocol, already the monorepo convention).
 
-**2. Dependency upgrades**, **precondition: task 1 done, deployed, and running on current versions; else stop and report.** Stack is already React 19 + Tailwind v4, so the only real major is **Next 15 → 16**; the rest are minors / dev tooling.
-- Produce an upgrade plan table first (each dep: current / latest / latest stack-compatible / risk), shown before any change. For Next 16, verify it is mature and that `eslint-config-next`, `@supabase/ssr`, `@supabase/supabase-js`, and React 19 are confirmed compatible; if Next 16 is fresh or anything lags, recommend latest 15.x and state the gap. "Latest the whole stack supports" beats "newest."
-- Low-risk group first, one pass, verify green (build + typecheck + test): `swr`, testing-library, `vitest` (currently `^2`, 3.x is a major; config may shift), eslint + `eslint-config-next` (sync to the Next version), typescript, prettier, prettier-plugin-tailwindcss, `react-icons`, `@types/*`, `jsdom`, postcss, Tailwind v4 minors, `@vercel/analytics` only if Pulse keeps it.
-- Then Next 15 → 16 as its OWN isolated step (official codemods, not hand-migration). Watch: caching default changes, async request APIs (cookies/headers/params), PWA service worker, Supabase SSR cookie handling. Verify core flows (auth, log a set, generation, progress, PWA install/offline). Report behavioural changes (esp. caching / RSC).
-- Then bump the Supabase libs AGAINST the upgraded Next, separately, **never stack the Next major with the Supabase bump in one commit.** `@supabase/ssr` is pre-1.0 (`^0.10.x`), so treat a minor as potentially breaking: read its changelog, verify auth + data flows.
-- Housekeeping: sync the confirmed-mismatched pair (`next@15.1.11` vs `eslint-config-next@15.1.7`) and pin/caret `jsdom` consistently (currently a bare `"24"`).
-- Output: plan table first, then the upgraded project, codemods + breaking changes handled, and anything deliberately not upgraded and why. Isolated branch; the user soak-tests on real training before merging. Constraint: upgrades only, no features, copy changes, or refactors beyond what an upgrade strictly requires.
+**Monorepo target structure:**
+```
+pulse-app/
+├── apps/
+│   ├── web/          ← Next.js, Pulse PWA (all current Pulse code, paths flattened to root)
+│   └── api/          ← empty scaffold, placeholder for a shared API surface when mobile arrives
+├── packages/
+│   ├── lib/          ← empty for now; destination for lib/pulse/* when web + mobile share logic
+│   ├── ui/           ← empty for now; destination for shared components when mobile arrives
+│   ├── eslint-config/
+│   └── typescript-config/
+├── turbo.json
+└── package.json
+```
+
+**Path decision (decided):** flatten to root. Every `/pulse/*` route becomes a root route (`/train`, `/plan`, `/progress`, `/profile`, `/library`, `/login`). This changes the PWA `scope`/`start_url`, the service worker scope, the middleware matcher, and every Supabase Auth redirect URL. Two users is the right moment; post-launch is too late (installed PWAs and bookmarks break). Do not defer this decision.
+
+**Task 1: Reset pulse-app and extract Pulse into `apps/web`.** Same code, new home, NO dependency changes during this step.
+- Reset the pulse-app repo: remove the current obytes mobile template and Turborepo boilerplate. Scaffold a fresh Turborepo Next.js + pnpm monorepo with the structure above.
+- Identify the full Pulse surface to move: routes (`(protected)` group + `login`), all `src/components/pulse/`, `src/lib/pulse/`, `src/lib/supabase/`, `src/hooks/pulse/`, `src/context/`, `src/app/pulse/`, `src/app/api/pulse/`, the PWA manifest, the `/pulse`-scoped service worker, migrations in `docs/migrations/`, and env vars. Flag anything shared with the portfolio as copy-not-move (`globals.css` Pulse tokens, Tailwind/PostCSS/tsconfig).
+- Move code into `apps/web`. Fix all import paths (`@/*` alias carries over, confirm in `tsconfig.json` and `vitest.config.mjs`). Strip portfolio-specific assumptions (layout structure, root `globals.css` split, `next.config.mjs` global headers vs Pulse-only CSP).
+- Flatten paths: remove the `/pulse` prefix from every route, update the middleware matcher (`/pulse/:path*` → all protected paths at root), update the service worker scope to `/`, update `next.config.mjs` CSP to match root paths.
+- Carry env requirements into `.env.example` (Supabase URL/keys, no real secrets).
+- Verify: `pnpm install`, `pnpm build`, `pnpm dev` all green; typecheck clean; full test suite passes; core flows work in the browser (auth, log a set, generation, PWA install).
+- Manual steps (user does these): create/update Vercel project pointing at the new repo and `apps/web` as the root; update Supabase Auth redirect URLs in the dashboard to the new domain/paths; remove Pulse from the portfolio repo.
+
+**Task 2: Full dependency upgrade.** Precondition: Task 1 done, deployed, and running correctly in production. Do not stack with the extraction.
+- Produce an upgrade plan table first (dep / current / latest / risk) before touching anything.
+- **Target: fully current stack.** Next 15 → 16 (official codemods, not hand-migration; watch caching defaults, async request APIs, Supabase SSR cookie handling, PWA service worker behaviour). React 19 is already current. Tailwind v4 is already current.
+- **Upgrade in three isolated passes, each verified green before the next:**
+  - Pass 1 (low-risk group): `swr`, `vitest` (2.x → 3.x is a major; config may shift), `eslint` + `eslint-config-next` (sync to the Next version), `typescript`, `prettier`, `prettier-plugin-tailwindcss`, `react-icons`, `@types/*`, `jsdom` (pin consistently), `postcss`, Tailwind v4 minors.
+  - Pass 2 (Next major): Next 15 → 16 as its own isolated commit using official codemods. Verify core flows: auth, log a set, generation, progress, PWA install/offline. Report any behavioural changes, especially caching and RSC behaviour.
+  - Pass 3 (Supabase): bump `@supabase/ssr` and `@supabase/supabase-js` against the upgraded Next. Never stack this with the Next major bump. `@supabase/ssr` is pre-1.0, treat a minor as potentially breaking; read its changelog and verify auth + data flows end-to-end.
+- Output: plan table first, then the upgraded project with codemods handled and anything deliberately not upgraded (and why). User soak-tests on real training before merging. Upgrades only -- no features, no copy changes, no refactors beyond what an upgrade strictly requires.
 
 ### Native client, deferred direction (Expo + react-native-web)
 
