@@ -9,6 +9,7 @@ import {
     setActiveRoutine as serverSetActiveRoutine,
     addExerciseToRoutine as serverAddExerciseToRoutine,
     removeExerciseFromRoutine as serverRemoveExerciseFromRoutine,
+    swapRoutineExercisePermanently as serverSwapRoutineExercisePermanently,
     updateRoutineExercise as serverUpdateRoutineExercise,
     reorderRoutineExercises as serverReorderRoutineExercises,
     createExercise as serverCreateExercise,
@@ -169,6 +170,14 @@ export function useRoutines(activeRoutineId: string | null = null) {
         [mutateRoutines],
     );
 
+    const swapRoutineExercisePermanently = useCallback(
+        async (routineExerciseId: string, newExerciseId: string): Promise<void> => {
+            await serverSwapRoutineExercisePermanently(routineExerciseId, newExerciseId);
+            await mutateRoutines();
+        },
+        [mutateRoutines],
+    );
+
     const updateRoutineExercise = useCallback(
         async (
             routineExerciseId: string,
@@ -283,6 +292,7 @@ export function useRoutines(activeRoutineId: string | null = null) {
         setActiveRoutine,
         addExerciseToRoutine,
         removeExerciseFromRoutine,
+        swapRoutineExercisePermanently,
         updateRoutineExercise,
         reorderRoutineExercises,
         cloneTemplate,
