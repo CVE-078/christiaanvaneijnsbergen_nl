@@ -671,12 +671,7 @@ export function computeShareStats(
 // Total external load for a session: kg*reps over every saved set (incl. drop
 // sets) of the session's exercises in the given week, returned in the display
 // unit. Pure-bodyweight sets (kg 0) contribute their added load only.
-export function computeSessionTonnage(
-    exercises: RoutineExercise[],
-    logs: Logs,
-    week: number,
-    unit: Unit,
-): number {
+export function computeSessionTonnage(exercises: RoutineExercise[], logs: Logs, week: number, unit: Unit): number {
     const ids = new Set(exercises.map((e) => e.id));
     let kg = 0;
     for (const [key, val] of Object.entries(logs)) {
