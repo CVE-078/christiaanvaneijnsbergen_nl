@@ -55,6 +55,8 @@ export interface Profile {
     goal_weight_kg: number | null;
     gender: Gender | null;
     priority_muscle: PriorityMuscle | 'balanced' | null;
+    // How the user wants to train; seeds generation. null = never chosen (Balanced).
+    training_style: TrainingStyle | null;
     // IANA timezone (e.g. 'Europe/Amsterdam'); used to resolve "today"/weekday
     // for calendar adherence. Defaults to 'UTC' until the browser reports one.
     timezone: string;
@@ -404,6 +406,10 @@ export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
 
 /** Training bias for a session, driving rep ranges. */
 export type Bias = 'strength' | 'hypertrophy' | 'balanced' | 'pump';
+
+/** How the user wants to train; remaps session bias and rep ranges in generation.
+ *  'balanced' is the identity (today's behaviour). Stored nullable on the profile. */
+export type TrainingStyle = 'balanced' | 'strength' | 'bodybuilding' | 'powerbuilding';
 
 /** Which session focus a scheduled day trains. */
 export type Focus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs';

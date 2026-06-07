@@ -10,6 +10,7 @@ import type {
     SessionTime,
     Gender,
     PriorityMuscle,
+    TrainingStyle,
     WorkoutType,
     WorkoutVariant,
 } from './types';
@@ -413,6 +414,61 @@ export function repRange(bias: Bias, isCompound: boolean, goal?: Goal): string {
     return loseFat ? '12-20' : '10-15';
 }
 
+// ── Training style ───────────────────────────────────────────────────────────
+// Training style remaps each session's bias through this table before the rep
+// and set logic. 'balanced' is the identity column, so an unset / balanced style
+// leaves the engine's output byte-identical (the safety invariant for rollout).
+// See docs/superpowers/specs/2026-06-07-training-style-generation-design.md.
+//
+// NOTE: training style does NOT constrain training frequency. A 6-day split under
+// 'strength' remaps all six sessions to strength bias by design (an accepted
+// limitation, there is no fatigue model yet). Future fatigue work must not assume
+// the style already caps frequency.
+const BIAS_REMAP: Record<TrainingStyle, Record<Bias, Bias>> = {
+    balanced: { strength: 'strength', balanced: 'balanced', hypertrophy: 'hypertrophy', pump: 'pump' },
+    strength: { strength: 'strength', balanced: 'strength', hypertrophy: 'strength', pump: 'hypertrophy' },
+    bodybuilding: { strength: 'hypertrophy', balanced: 'hypertrophy', hypertrophy: 'hypertrophy', pump: 'pump' },
+    powerbuilding: { strength: 'strength', balanced: 'strength', hypertrophy: 'strength', pump: 'strength' },
+};
+
+/** Remap a session's bias for the chosen training style. The single source of
+ *  truth for day-level style remapping. Defensive fallback returns the input. */
+export function resolveBias(sessionBias: Bias, style: TrainingStyle): Bias {
+    return BIAS_REMAP[style]?.[sessionBias] ?? sessionBias;
+}
+
+// Main movement patterns that keep the heavy (strength) rep range under
+// Powerbuilding; everything else uses the hypertrophy range. This constant is the
+// single edit point for the heavy-pattern policy (data, not buried logic).
+//
+// NOTE: a conventional deadlift and a Romanian deadlift both map to `hinge`, so
+// both land here. That is an intentional approximation until per-exercise metadata
+// (generation Phase 0 #2) can separate the main lift from its accessory variants.
+export const POWERBUILDING_HEAVY_PATTERNS: ReadonlySet<MovementPattern> = new Set([
+    'squat',
+    'hinge',
+    'horizontal_push',
+    'vertical_push',
+]);
+
+/** Rep range for a slot, given the bias already resolved by `resolveBias`.
+ *  Powerbuilding is the one style that overrides per movement pattern: the main
+ *  patterns get the strength range, accessories get hypertrophy. Every other style
+ *  simply defers to `repRange` on the resolved bias (pattern ignored). */
+export function resolveRepRange(
+    effectiveBias: Bias,
+    pattern: MovementPattern,
+    isCompound: boolean,
+    goal: Goal | undefined,
+    style: TrainingStyle,
+): string {
+    if (style === 'powerbuilding') {
+        const heavy = POWERBUILDING_HEAVY_PATTERNS.has(pattern);
+        return repRange(heavy ? 'strength' : 'hypertrophy', isCompound, goal);
+    }
+    return repRange(effectiveBias, isCompound, goal);
+}
+
 const FOCUS_TYPE: Record<Focus, WorkoutType> = {
     full_body: 'full_body',
     upper: 'upper',
@@ -568,6 +624,9 @@ export interface GenerationInput {
     pool: ExerciseMeta[];
     /** Active muscle priority (resolved; null = none). Tilts each session's emphasis. */
     priority?: PriorityMuscle | null;
+    /** How the user wants to train. Remaps each session's bias and rep ranges.
+     *  Absent / 'balanced' is a no-op (identity). */
+    trainingStyle?: TrainingStyle;
     /** Generates a unique superset group id. Server passes crypto.randomUUID. */
     makeGroupId?: () => string;
 }
@@ -611,6 +670,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         schedule.push({ day_of_week: days[i], workout_type, variant });
 
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
+        const trainingStyle = input.trainingStyle ?? 'balanced';
+        const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
         const selected = selectForSession(emphasis, exCount, usable, used);
 
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
@@ -624,18 +685,17 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         ordered.forEach(({ item, groupId }, order) => {
             const { ex, pattern } = item;
             let exSets = baseSets;
-            if (emphasis.bias === 'strength' && ex.is_compound && !firstCompoundBumped) {
+            if (effectiveBias === 'strength' && ex.is_compound && !firstCompoundBumped) {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            void pattern;
             exercises.push({
                 exercise_id: ex.id,
                 workout_type,
                 variant,
                 order,
                 sets: String(exSets),
-                reps: repRange(emphasis.bias, ex.is_compound, answers.goal),
+                reps: resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, trainingStyle),
                 superset_group_id: groupId,
             });
         });
@@ -673,6 +733,13 @@ const GOAL_LABELS: Record<Goal, string> = {
     general_fitness: 'general fitness',
 };
 
+const TRAINING_STYLE_CLAUSE: Record<TrainingStyle, string> = {
+    balanced: '',
+    strength: ' Tuned for strength: heavier loads and lower reps on the main lifts.',
+    bodybuilding: ' Tuned for size: moderate-to-high reps across every session.',
+    powerbuilding: ' A powerbuilding blend: heavy main lifts, higher-rep accessories.',
+};
+
 // Human-readable reason a routine was generated, from the onboarding inputs and
 // the chosen program style. Shown on the Plan screen and in the setup flow.
 export function buildRationale(
@@ -680,9 +747,13 @@ export function buildRationale(
     sessionTime: SessionTime,
     style: ProgramStyle,
     priority?: PriorityMuscle | null,
+    trainingStyle?: TrainingStyle,
 ): string {
     const goal = GOAL_LABELS[answers.goal] ?? answers.goal;
     const base = `${style.name} for ${answers.experience} lifters · ${answers.days} days/week · ${goal} · ${sessionTime} sessions. ${style.bestFor}`;
-    if (!priority) return base;
-    return `${base} Every session leans a bit harder into ${priority}, the muscle you want to grow.`;
+    const styleClause = TRAINING_STYLE_CLAUSE[trainingStyle ?? 'balanced'];
+    const withPriority = priority
+        ? `${base} Every session leans a bit harder into ${priority}, the muscle you want to grow.`
+        : base;
+    return `${withPriority}${styleClause}`;
 }

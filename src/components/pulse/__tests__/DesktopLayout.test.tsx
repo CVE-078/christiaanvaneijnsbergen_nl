@@ -22,6 +22,7 @@ const mockContext = {
         goal_weight_kg: null,
         gender: null,
         priority_muscle: null,
+        training_style: null,
         timezone: 'UTC',
     },
     prMap: {},

@@ -12,9 +12,12 @@ import {
     genderDefault,
     resolvePriority,
     tiltEmphasis,
+    resolveBias,
+    resolveRepRange,
+    POWERBUILDING_HEAVY_PATTERNS,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
-import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle } from '@/lib/pulse/types';
+import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle, Bias, TrainingStyle } from '@/lib/pulse/types';
 
 describe('volumeFor', () => {
     it('30 min never drops below the floor of 3 exercises / 2 sets', () => {
@@ -45,6 +48,69 @@ describe('repRange', () => {
     it('lose_fat shifts both columns up one notch', () => {
         expect(repRange('strength', true, 'lose_fat')).toBe('8-12');
         expect(repRange('hypertrophy', false, 'lose_fat')).toBe('15-20');
+    });
+});
+
+describe('resolveBias', () => {
+    // The full 4x4 remap table from the spec. Rows = session bias, cols = style.
+    const TABLE: Record<Bias, Record<TrainingStyle, Bias>> = {
+        strength: { balanced: 'strength', strength: 'strength', bodybuilding: 'hypertrophy', powerbuilding: 'strength' },
+        balanced: { balanced: 'balanced', strength: 'strength', bodybuilding: 'hypertrophy', powerbuilding: 'strength' },
+        hypertrophy: { balanced: 'hypertrophy', strength: 'strength', bodybuilding: 'hypertrophy', powerbuilding: 'strength' },
+        pump: { balanced: 'pump', strength: 'hypertrophy', bodybuilding: 'pump', powerbuilding: 'strength' },
+    };
+    const biases: Bias[] = ['strength', 'balanced', 'hypertrophy', 'pump'];
+    const styles: TrainingStyle[] = ['balanced', 'strength', 'bodybuilding', 'powerbuilding'];
+    for (const b of biases) {
+        for (const s of styles) {
+            it(`${s} maps ${b} -> ${TABLE[b][s]}`, () => {
+                expect(resolveBias(b, s)).toBe(TABLE[b][s]);
+            });
+        }
+    }
+    it('balanced is the identity for every bias', () => {
+        for (const b of biases) expect(resolveBias(b, 'balanced')).toBe(b);
+    });
+});
+
+describe('resolveRepRange', () => {
+    it('non-powerbuilding styles defer to repRange on the resolved bias (pattern ignored)', () => {
+        expect(resolveRepRange('hypertrophy', 'horizontal_push', true, 'build_muscle', 'bodybuilding')).toBe(
+            repRange('hypertrophy', true, 'build_muscle'),
+        );
+    });
+    it('balanced reproduces repRange exactly for every bias x compound/iso', () => {
+        const biases: Bias[] = ['strength', 'balanced', 'hypertrophy', 'pump'];
+        for (const b of biases) {
+            for (const compound of [true, false]) {
+                expect(resolveRepRange(b, 'horizontal_push', compound, 'build_muscle', 'balanced')).toBe(
+                    repRange(b, compound, 'build_muscle'),
+                );
+            }
+        }
+    });
+    it('powerbuilding gives the strength range to every heavy pattern', () => {
+        for (const p of POWERBUILDING_HEAVY_PATTERNS) {
+            expect(resolveRepRange('strength', p, true, 'build_muscle', 'powerbuilding')).toBe(
+                repRange('strength', true, 'build_muscle'),
+            );
+        }
+    });
+    it('powerbuilding gives the hypertrophy range to accessories (rows, isolation, lunge)', () => {
+        for (const p of ['horizontal_pull', 'biceps_iso', 'lunge'] as MovementPattern[]) {
+            const isCompound = p === 'horizontal_pull' || p === 'lunge';
+            expect(resolveRepRange('strength', p, isCompound, 'build_muscle', 'powerbuilding')).toBe(
+                repRange('hypertrophy', isCompound, 'build_muscle'),
+            );
+        }
+    });
+    it('lose_fat still shifts on top of the resolved range', () => {
+        expect(resolveRepRange('strength', 'squat', true, 'lose_fat', 'strength')).toBe(
+            repRange('strength', true, 'lose_fat'),
+        );
+    });
+    it('deadlift/RDL both ride the hinge pattern (intentional approximation)', () => {
+        expect(POWERBUILDING_HEAVY_PATTERNS.has('hinge')).toBe(true);
     });
 });
 
@@ -430,5 +496,70 @@ describe('buildRationale', () => {
         expect(buildRationale(answers, '45–60 min', style, null)).not.toMatch(
             /into (chest|back|legs|glutes|shoulders|arms)/i,
         );
+    });
+});
+
+// ── 10. generateRoutine + trainingStyle ──────────────────────────────────────
+
+describe('generateRoutine + trainingStyle', () => {
+    it('balanced (and omitted) reproduce the current blueprint across every archetype', () => {
+        const archetypes: { key: string; count: number; days: number[] }[] = [
+            { key: STYLES[2][0].key, count: 2, days: [1, 4] },
+            { key: STYLES[3][0].key, count: 3, days: [1, 3, 5] },
+            { key: 'ppl-3', count: 3, days: [1, 3, 5] },
+            { key: 'ul-classic-4', count: 4, days: [1, 2, 4, 5] },
+            { key: 'ppl-x2-6', count: 6, days: [1, 2, 3, 4, 5, 6] },
+        ];
+        for (const a of archetypes) {
+            const style = STYLES[a.count].find((s) => s.key === a.key) as ProgramStyle;
+            const base = generateRoutine(input({ style, trainingDays: a.days }));
+            const balanced = generateRoutine(input({ style, trainingDays: a.days, trainingStyle: 'balanced' }));
+            expect(balanced).toEqual(base);
+        }
+    });
+    it('strength lowers rep ranges and bumps the first compound on a PPL split', () => {
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const base = generateRoutine(input({ style, trainingDays: [1, 3, 5] }));
+        const strong = generateRoutine(input({ style, trainingDays: [1, 3, 5], trainingStyle: 'strength' }));
+        expect(strong.exercises.map((e) => e.reps)).not.toEqual(base.exercises.map((e) => e.reps));
+        expect(strong.exercises.some((e) => e.sets === '4')).toBe(true);
+    });
+    it('powerbuilding splits heavy patterns vs accessories within a PPL session', () => {
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], trainingStyle: 'powerbuilding' }));
+        const strengthRange = repRange('strength', true, 'build_muscle');
+        const hyperIso = repRange('hypertrophy', false, 'build_muscle');
+        const push = bp.exercises.filter((e) => e.workout_type === 'push');
+        expect(push.some((e) => e.reps === strengthRange)).toBe(true);
+        expect(push.some((e) => e.reps === hyperIso)).toBe(true);
+    });
+    it('powerbuilding also splits on a U/L split (more than one archetype verified)', () => {
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], trainingStyle: 'powerbuilding' }));
+        const strengthRange = repRange('strength', true, 'build_muscle');
+        const hyperIso = repRange('hypertrophy', false, 'build_muscle');
+        expect(bp.exercises.some((e) => e.reps === strengthRange)).toBe(true);
+        expect(bp.exercises.some((e) => e.reps === hyperIso)).toBe(true);
+    });
+    it('6-day PPL + strength: every session has a well-formed range and exactly one bumped compound', () => {
+        const style = STYLES[6][0] as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], trainingStyle: 'strength' }));
+        expect(bp.exercises.every((e) => /^\d+-\d+$/.test(e.reps))).toBe(true);
+        expect(bp.exercises.filter((e) => e.sets === '4').length).toBe(bp.schedule.length);
+    });
+});
+
+describe('buildRationale trainingStyle clause', () => {
+    const answers = { equipment: new Set<EquipmentKey>(['dumbbells']), experience: 'intermediate' as const, goal: 'build_muscle' as const, days: '4' as const };
+    const style = STYLES[4][0];
+    it('omits any style clause for balanced / undefined', () => {
+        const r = buildRationale(answers, '45–60 min', style, null, 'balanced');
+        expect(r).not.toMatch(/strength|powerbuilding|size/i);
+    });
+    it('adds a strength clause', () => {
+        expect(buildRationale(answers, '45–60 min', style, null, 'strength')).toMatch(/strength/i);
+    });
+    it('adds a powerbuilding clause', () => {
+        expect(buildRationale(answers, '45–60 min', style, null, 'powerbuilding')).toMatch(/powerbuilding/i);
     });
 });

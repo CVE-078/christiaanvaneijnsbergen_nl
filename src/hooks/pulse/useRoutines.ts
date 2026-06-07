@@ -26,6 +26,7 @@ import type {
     RoutineWithExercises,
     RoutineExercise,
     ExerciseCategory,
+    TrainingStyle,
 } from '@/lib/pulse/types';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 import type { SessionTime } from '@/lib/pulse/types';
@@ -211,8 +212,9 @@ export function useRoutines(activeRoutineId: string | null = null) {
             sessionTime: SessionTime,
             styleKey: string,
             name?: string,
+            trainingStyle?: TrainingStyle,
         ): Promise<WorkoutRoutine> => {
-            const routine = await serverGenerateRoutine(answers, trainingDays, sessionTime, styleKey, name);
+            const routine = await serverGenerateRoutine(answers, trainingDays, sessionTime, styleKey, name, trainingStyle);
             await mutateRoutines();
             await globalMutate(PROFILE_KEY);
             return routine;

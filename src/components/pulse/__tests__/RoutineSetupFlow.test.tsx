@@ -32,10 +32,10 @@ describe('RoutineSetupFlow', () => {
         const onClose = vi.fn();
         render(<RoutineSetupFlow initial={initial} onComplete={onComplete} onClose={onClose} />);
         // Each value is prefilled, so Next is enabled on every step. With 3 training
-        // days there are multiple styles, so a style step appears (8 Next clicks:
-        // equipment, experience, goal, days/week, which days, style, session time,
-        // program length → start).
-        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
+        // days there are multiple styles, so a style step appears. Steps: equipment,
+        // experience, goal, days/week, which days, style, session time, train_style,
+        // program length → start. That is 9 Next clicks.
+        for (let i = 0; i < 9; i++) fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         const arg = onComplete.mock.calls[0][0];
@@ -51,6 +51,8 @@ describe('RoutineSetupFlow', () => {
         expect(arg.startAnchor).toMatch(/^\d{4}-\d{2}-\d{2}T12:00:00\.000Z$/);
         // The program-length step defaults to 12 weeks.
         expect(arg.programWeeks).toBe(12);
+        // The train-style step defaults to 'balanced'.
+        expect(arg.trainingStyle).toBe('balanced');
     });
 
     it('shows the program-style step and lets you pick a non-default style', async () => {
@@ -60,7 +62,8 @@ describe('RoutineSetupFlow', () => {
         expect(screen.getByText(/which program style/i)).toBeInTheDocument();
         fireEvent.click(screen.getByText('Push / Pull / Legs'));
         fireEvent.click(screen.getByText('Next')); // style → session time
-        fireEvent.click(screen.getByText('Next')); // session time → program length
+        fireEvent.click(screen.getByText('Next')); // session time → train_style
+        fireEvent.click(screen.getByText('Next')); // train_style → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -90,7 +93,8 @@ describe('RoutineSetupFlow', () => {
         for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'));
         // No style step: 5 Next clicks land straight on the session-time step.
         expect(screen.queryByText(/which program style/i)).not.toBeInTheDocument();
-        fireEvent.click(screen.getByText('Next')); // session time → program length
+        fireEvent.click(screen.getByText('Next')); // session time → train_style
+        fireEvent.click(screen.getByText('Next')); // train_style → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -101,7 +105,8 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] }; // 2 days → no style step
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
-        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next')); // → start step
+        // equipment, experience, goal, days/week, which days, session, train_style, length → start
+        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
         expect(screen.getByText(/when do you want to start/i)).toBeInTheDocument();
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -112,7 +117,7 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
-        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
+        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Pick a date'));
         fireEvent.change(screen.getByLabelText(/start date/i), { target: { value: '2099-01-05' } });
         fireEvent.click(screen.getByText('Create routine'));
@@ -124,7 +129,8 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] }; // no style step
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
-        for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next')); // → program-length step
+        // equipment, experience, goal, days/week, which days, session, train_style → program-length
+        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
         expect(screen.getByText(/how long should your program be/i)).toBeInTheDocument();
         // All four hand-built lengths are offered, no custom field.
         expect(screen.getByText('8 weeks')).toBeInTheDocument();
@@ -141,7 +147,7 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
-        for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next')); // → program-length step
+        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next')); // → program-length step
         fireEvent.click(screen.getByText('16 weeks'));
         fireEvent.click(screen.getByText('Next')); // length → start
         fireEvent.click(screen.getByText('Create routine'));
@@ -157,8 +163,8 @@ describe('RoutineSetupFlow', () => {
         // No gender picked, Next still advances straight to equipment.
         fireEvent.click(screen.getByText('Next')); // gender → equipment
         expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
-        // gender · equipment · experience · goal · days · which days · session · length → start
-        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
+        // equipment, experience, goal, days, which days, session, train_style, length → start
+        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         expect(onComplete.mock.calls[0][0].gender).toBeNull();
@@ -170,9 +176,53 @@ describe('RoutineSetupFlow', () => {
         render(<RoutineSetupFlow collectGender initial={single} onComplete={onComplete} onClose={vi.fn()} />);
         fireEvent.click(screen.getByText('Prefer not to say'));
         fireEvent.click(screen.getByText('Next')); // gender → equipment
-        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
+        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         expect(onComplete.mock.calls[0][0].gender).toBeNull();
+    });
+
+    it('the train_style step renders with four options and Balanced is the default', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        const single = { ...initial, trainingDays: [1, 4] }; // 2 days → no program style step
+        render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
+        // Navigate: equipment, experience, goal, days/week, which days, session time → train_style
+        for (let i = 0; i < 6; i++) fireEvent.click(screen.getByText('Next'));
+        expect(screen.getByText(/how do you want to train/i)).toBeInTheDocument();
+        expect(screen.getByText('Balanced')).toBeInTheDocument();
+        expect(screen.getByText('Strength')).toBeInTheDocument();
+        expect(screen.getByText('Bodybuilding')).toBeInTheDocument();
+        expect(screen.getByText('Powerbuilding')).toBeInTheDocument();
+        // Balanced is the default: selecting Strength then completing returns 'strength'.
+        fireEvent.click(screen.getByText('Strength'));
+        fireEvent.click(screen.getByText('Next')); // train_style → length
+        fireEvent.click(screen.getByText('Next')); // length → start
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].trainingStyle).toBe('strength');
+    });
+
+    it('train_style defaults to balanced when not changed', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        const single = { ...initial, trainingDays: [1, 4] };
+        render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
+        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next')); // through all steps including train_style
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].trainingStyle).toBe('balanced');
+    });
+
+    it('collectTrainingStyle=false skips the train_style step and train_style still in result', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        const single = { ...initial, trainingDays: [1, 4] };
+        render(<RoutineSetupFlow initial={single} collectTrainingStyle={false} onComplete={onComplete} onClose={vi.fn()} />);
+        // With no train_style step: equipment, experience, goal, days, which days, session, length → start (7 Nexts)
+        for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
+        // train_style step must not appear anywhere
+        expect(screen.queryByText(/how do you want to train/i)).not.toBeInTheDocument();
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        // trainingStyle defaults to 'balanced' in the result even when step is skipped
+        expect(onComplete.mock.calls[0][0].trainingStyle).toBe('balanced');
     });
 });

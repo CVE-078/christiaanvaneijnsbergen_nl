@@ -6,9 +6,10 @@ import { UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { ACCENT_PRESETS } from '@/lib/pulse/constants';
 import { assertUuid } from './_shared';
-import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle } from '@/lib/pulse/types';
+import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle, TrainingStyle } from '@/lib/pulse/types';
 
 const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'] as const;
+const TRAINING_STYLE_VALUES = ['balanced', 'strength', 'bodybuilding', 'powerbuilding'] as const;
 
 export async function logout() {
     const supabase = await createClient();
@@ -140,6 +141,18 @@ export async function updatePriorityMuscle(priority: PriorityMuscle | 'balanced'
         .from('profiles')
         .upsert({ id: user.id, priority_muscle: priority, updated_at: new Date().toISOString() }, { onConflict: 'id' });
     if (error) throw new Error('Failed to update priority muscle');
+    revalidatePath('/pulse');
+}
+
+export async function updateTrainingStyle(style: TrainingStyle | null): Promise<void> {
+    if (style !== null && !TRAINING_STYLE_VALUES.includes(style)) throw new Error('Invalid training style');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, training_style: style, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw new Error('Failed to update training style');
     revalidatePath('/pulse');
 }
 
