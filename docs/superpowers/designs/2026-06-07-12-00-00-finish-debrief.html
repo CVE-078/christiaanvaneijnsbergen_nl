@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Finish / debrief screen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600&family=Big+Shoulders+Display:wght@600;700;800&display=swap"
+      rel="stylesheet" />
+    <style>
+      :root {
+        --color-pulse-accent: #ff7d66;
+        --color-pulse-bg: #0e1113;
+        --color-pulse-surface: #161a1d;
+        --color-pulse-surface-2: #1c2125;
+        --color-pulse-border: #262c31;
+        --color-pulse-dim: #aab2b7;
+        --color-pulse-muted: #6f787e;
+        --color-pulse-success: #4ade80;
+        --color-pulse-text: #e7ebed;
+        --font-pulse: 'Hanken Grotesk', sans-serif;
+        --font-pulse-body: 'Sora', sans-serif;
+        --font-pulse-display: 'Big Shoulders Display', sans-serif;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #07090a; color: var(--color-pulse-text); font-family: var(--font-pulse); padding: 32px 24px 64px; display: flex; flex-direction: column; gap: 28px; align-items: flex-start; }
+      h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-pulse-muted); }
+      .lede { font-family: var(--font-pulse-body); font-size: 12px; color: var(--color-pulse-dim); max-width: 680px; line-height: 1.6; }
+      .row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+      .frame-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-pulse-muted); margin-bottom: 10px; }
+
+      /* device frame */
+      .screen { width: 380px; background: var(--color-pulse-bg); border: 1px solid var(--color-pulse-border); border-radius: 26px; padding: 22px 18px; position: relative; overflow: hidden; }
+      .screen.desktop { width: 560px; }
+      .glow { position: absolute; top: -60px; left: 50%; width: 420px; height: 320px; transform: translateX(-50%); pointer-events: none;
+              background: radial-gradient(circle, color-mix(in srgb, var(--color-pulse-accent) 13%, transparent) 0%, transparent 65%); }
+      .content { position: relative; z-index: 1; }
+
+      /* header */
+      .brand { font-family: var(--font-pulse-display); font-weight: 800; font-size: 1rem; letter-spacing: -0.02em; color: var(--color-pulse-text); }
+      .brand b { color: var(--color-pulse-accent); }
+      .eyebrow { font-family: var(--font-pulse-body); font-size: 0.625rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--color-pulse-success); margin-top: 14px; }
+      .title { font-family: var(--font-pulse-display); font-size: 2rem; font-weight: 800; text-transform: uppercase; letter-spacing: -0.01em; line-height: 0.95; margin-top: 4px; }
+      .submeta { font-family: var(--font-pulse-body); font-size: 0.6875rem; color: var(--color-pulse-muted); margin-top: 6px; }
+      .submeta b { color: var(--color-pulse-dim); font-weight: 600; }
+
+      /* section scaffolding */
+      .sec { margin-top: 18px; }
+      .sec-label { font-family: var(--font-pulse-body); font-size: 0.625rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-pulse-muted); margin-bottom: 9px; }
+
+      /* RPE rating (primary) */
+      .rpe-card { background: var(--color-pulse-surface); border: 1px solid var(--color-pulse-border); border-radius: 16px; padding: 15px 15px 13px; }
+      .rpe-q { font-family: var(--font-pulse); font-size: 0.9375rem; font-weight: 700; }
+      .rpe-scale { margin-top: 12px; display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+      .rpe-pill { aspect-ratio: 1; display: grid; place-items: center; border-radius: 9px; background: var(--color-pulse-surface-2); border: 1px solid transparent; font-family: var(--font-pulse-display); font-size: 0.9375rem; font-weight: 700; color: var(--color-pulse-muted); cursor: pointer; }
+      .rpe-pill.filled { background: color-mix(in srgb, var(--color-pulse-accent) 16%, transparent); color: var(--color-pulse-dim); }
+      .rpe-pill.sel { background: var(--color-pulse-accent); color: var(--color-pulse-bg); border-color: var(--color-pulse-accent); }
+      .rpe-anchors { display: flex; justify-content: space-between; margin-top: 9px; font-family: var(--font-pulse-body); font-size: 0.5625rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-pulse-muted); }
+      .rpe-read { margin-top: 10px; font-family: var(--font-pulse-body); font-size: 0.6875rem; color: var(--color-pulse-accent); }
+      .rpe-empty { margin-top: 10px; font-family: var(--font-pulse-body); font-size: 0.6875rem; color: var(--color-pulse-muted); }
+
+      /* notes */
+      .notes { width: 100%; background: var(--color-pulse-surface); border: 1px solid var(--color-pulse-border); border-radius: 14px; padding: 11px 13px; font-family: var(--font-pulse-body); font-size: 0.8125rem; color: var(--color-pulse-dim); min-height: 48px; }
+      .notes::placeholder { color: var(--color-pulse-muted); }
+
+      /* coach summary */
+      .coach-read { font-family: var(--font-pulse); font-size: 0.9375rem; font-weight: 600; line-height: 1.45; color: var(--color-pulse-text); }
+      .coach-read .hl { color: var(--color-pulse-accent); }
+
+      .stats { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat { background: var(--color-pulse-surface); border: 1px solid var(--color-pulse-border); border-radius: 13px; padding: 11px 10px; }
+      .stat .v { font-family: var(--font-pulse-display); font-size: 1.6rem; font-weight: 800; line-height: 0.85; color: var(--color-pulse-text); }
+      .stat .v small { font-family: var(--font-pulse); font-size: 0.6875rem; font-weight: 600; color: var(--color-pulse-dim); }
+      .stat .k { font-family: var(--font-pulse-body); font-size: 0.5625rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-pulse-muted); margin-top: 7px; }
+
+      .adapt { margin-top: 14px; display: flex; flex-direction: column; gap: 7px; }
+      .arow { display: flex; align-items: center; gap: 10px; background: var(--color-pulse-surface); border: 1px solid var(--color-pulse-border); border-radius: 12px; padding: 9px 12px; }
+      .arow .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; }
+      .ic.up { background: color-mix(in srgb, var(--color-pulse-accent) 16%, transparent); color: var(--color-pulse-accent); }
+      .ic.down { background: color-mix(in srgb, var(--color-pulse-dim) 16%, transparent); color: var(--color-pulse-dim); }
+      .ic.pr { background: color-mix(in srgb, var(--color-pulse-success) 16%, transparent); color: var(--color-pulse-success); }
+      .arow .ic svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .arow .txt { font-family: var(--font-pulse); font-size: 0.8125rem; font-weight: 600; color: var(--color-pulse-text); }
+      .arow .txt small { display: block; font-family: var(--font-pulse-body); font-size: 0.625rem; font-weight: 400; color: var(--color-pulse-muted); margin-top: 1px; }
+      .arow .tag { margin-left: auto; font-family: var(--font-pulse-display); font-size: 0.875rem; font-weight: 700; }
+      .tag.up { color: var(--color-pulse-accent); }
+      .tag.down { color: var(--color-pulse-dim); }
+      .steady { background: var(--color-pulse-surface); border: 1px solid var(--color-pulse-border); border-radius: 12px; padding: 11px 13px; font-family: var(--font-pulse-body); font-size: 0.75rem; color: var(--color-pulse-muted); }
+
+      .muscles { margin-top: 13px; display: flex; flex-wrap: wrap; gap: 6px; }
+      .mchip { font-family: var(--font-pulse); font-size: 0.6875rem; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--color-pulse-surface-2); color: var(--color-pulse-dim); }
+      .mchip b { color: var(--color-pulse-accent); font-weight: 700; }
+
+      /* actions */
+      .actions { margin-top: 20px; display: flex; flex-direction: column; gap: 9px; }
+      .btn { width: 100%; border: none; border-radius: 13px; padding: 13px; font-family: var(--font-pulse); font-size: 0.875rem; font-weight: 700; cursor: pointer; }
+      .btn-primary { background: var(--color-pulse-accent); color: var(--color-pulse-bg); }
+      .btn-ghost { background: transparent; border: 1px solid var(--color-pulse-border); color: var(--color-pulse-dim); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+      .btn-ghost svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .group { border-top: 1px solid var(--color-pulse-border); padding-top: 24px; width: 100%; }
+      .section-title { font-size: 13px; font-weight: 700; color: var(--color-pulse-text); margin-bottom: 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Finish · post-workout debrief</h1>
+    <p class="lede">
+      Debrief-first, one scrollable overlay. The session-RPE rating is the primary input up top (left empty so you see
+      the prompt), then optional notes, then the coach summary: a one-line read, the engine's decisions (what
+      progressed / deloaded), PRs, sets/tonnage/duration, and the muscles this session hit. Done is primary; Share
+      (screenshot) is demoted to a quiet secondary action. Two states shown: a rich session (PR + progressions + a
+      deload) and a quiet one (nothing adapted).
+    </p>
+
+    <div class="group">
+      <div class="section-title">Mobile 380px</div>
+      <div class="row">
+        <!-- RICH STATE -->
+        <div>
+          <div class="frame-label">Rich session · RPE not yet picked</div>
+          <div class="screen">
+            <div class="glow"></div>
+            <div class="content">
+              <div class="brand">Pulse<b>.</b></div>
+              <div class="eyebrow">Session complete</div>
+              <div class="title">Push Day</div>
+              <div class="submeta">Variant A <b>·</b> Thu, 30 May <b>·</b> 52 min</div>
+
+              <!-- RPE -->
+              <div class="sec">
+                <div class="rpe-card">
+                  <div class="rpe-q">How hard was that?</div>
+                  <div class="rpe-scale">
+                    <span class="rpe-pill">1</span><span class="rpe-pill">2</span><span class="rpe-pill">3</span>
+                    <span class="rpe-pill">4</span><span class="rpe-pill">5</span><span class="rpe-pill">6</span>
+                    <span class="rpe-pill">7</span><span class="rpe-pill">8</span><span class="rpe-pill">9</span>
+                    <span class="rpe-pill">10</span>
+                  </div>
+                  <div class="rpe-anchors"><span>Easy</span><span>Hard</span><span>Max</span></div>
+                  <div class="rpe-empty">Tap to rate overall effort (optional)</div>
+                </div>
+              </div>
+
+              <!-- notes -->
+              <div class="sec">
+                <div class="sec-label">Notes</div>
+                <div class="notes">Anything worth remembering? (optional)</div>
+              </div>
+
+              <!-- coach summary -->
+              <div class="sec">
+                <div class="sec-label">Coach summary</div>
+                <div class="coach-read">Strong push session. You <span class="hl">progressed 3 lifts</span> and set a <span class="hl">new PR</span>, one lift backed off on purpose.</div>
+
+                <div class="stats">
+                  <div class="stat"><div class="v">52<small> min</small></div><div class="k">Duration</div></div>
+                  <div class="stat"><div class="v">18</div><div class="k">Sets</div></div>
+                  <div class="stat"><div class="v">4.2<small> t</small></div><div class="k">Volume</div></div>
+                </div>
+
+                <div class="adapt">
+                  <div class="arow">
+                    <span class="ic pr"><svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M6 4h12v5a6 6 0 0 1-12 0V4Z"/><path d="M9 20h6M10 16v4M14 16v4"/></svg></span>
+                    <span class="txt">PR · Dumbbell Bench Press<small>40 kg × 10 · best e1RM</small></span>
+                  </div>
+                  <div class="arow">
+                    <span class="ic up"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+                    <span class="txt">Progressed · 3 lifts<small>Bench, Lateral Raise, Pushdown</small></span>
+                    <span class="tag up">↑</span>
+                  </div>
+                  <div class="arow">
+                    <span class="ic down"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span>
+                    <span class="txt">Auto-deload · Overhead Press<small>stalled, backed off to reset</small></span>
+                    <span class="tag down">↓</span>
+                  </div>
+                </div>
+
+                <div class="muscles">
+                  <span class="mchip">Chest <b>6</b></span>
+                  <span class="mchip">Shoulders <b>5</b></span>
+                  <span class="mchip">Triceps <b>4.5</b></span>
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="btn btn-primary">Done</button>
+                <button class="btn btn-ghost"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>Save image to share</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUIET STATE -->
+        <div>
+          <div class="frame-label">Quiet session · RPE picked (7)</div>
+          <div class="screen">
+            <div class="glow"></div>
+            <div class="content">
+              <div class="brand">Pulse<b>.</b></div>
+              <div class="eyebrow">Session complete</div>
+              <div class="title">Lower Body</div>
+              <div class="submeta">Variant B <b>·</b> Fri, 31 May <b>·</b> 44 min</div>
+
+              <div class="sec">
+                <div class="rpe-card">
+                  <div class="rpe-q">How hard was that?</div>
+                  <div class="rpe-scale">
+                    <span class="rpe-pill filled">1</span><span class="rpe-pill filled">2</span><span class="rpe-pill filled">3</span>
+                    <span class="rpe-pill filled">4</span><span class="rpe-pill filled">5</span><span class="rpe-pill filled">6</span>
+                    <span class="rpe-pill sel">7</span><span class="rpe-pill">8</span><span class="rpe-pill">9</span>
+                    <span class="rpe-pill">10</span>
+                  </div>
+                  <div class="rpe-anchors"><span>Easy</span><span>Hard</span><span>Max</span></div>
+                  <div class="rpe-read">RPE 7 · hard but a couple reps left in the tank.</div>
+                </div>
+              </div>
+
+              <div class="sec">
+                <div class="sec-label">Notes</div>
+                <div class="notes" style="color:var(--color-pulse-dim)">Knee felt good today. Try +2.5 on squats next week.</div>
+              </div>
+
+              <div class="sec">
+                <div class="sec-label">Coach summary</div>
+                <div class="coach-read">Steady session, right on plan. Nothing needed adjusting, hold the line and keep showing up.</div>
+
+                <div class="stats">
+                  <div class="stat"><div class="v">44<small> min</small></div><div class="k">Duration</div></div>
+                  <div class="stat"><div class="v">15</div><div class="k">Sets</div></div>
+                  <div class="stat"><div class="v">5.8<small> t</small></div><div class="k">Volume</div></div>
+                </div>
+
+                <div class="adapt">
+                  <div class="steady">No PRs and nothing flagged this session, weights held and every set hit its target. That is exactly what an on-plan week looks like.</div>
+                </div>
+
+                <div class="muscles">
+                  <span class="mchip">Quads <b>7</b></span>
+                  <span class="mchip">Glutes <b>5</b></span>
+                  <span class="mchip">Hamstrings <b>4</b></span>
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="btn btn-primary">Done</button>
+                <button class="btn btn-ghost"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>Save image to share</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

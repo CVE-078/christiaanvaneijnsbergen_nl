@@ -39,6 +39,8 @@ import type {
     BodyweightEntry,
     BodyMeasurement,
     DecisionEvent,
+    DecisionEventRow,
+    SessionSummary,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -666,6 +668,23 @@ export function computeShareStats(
     };
 }
 
+// Total external load for a session: kg*reps over every saved set (incl. drop
+// sets) of the session's exercises in the given week, returned in the display
+// unit. Pure-bodyweight sets (kg 0) contribute their added load only.
+export function computeSessionTonnage(exercises: RoutineExercise[], logs: Logs, week: number, unit: Unit): number {
+    const ids = new Set(exercises.map((e) => e.id));
+    let kg = 0;
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const parsed = parseLogKey(key);
+        if (!parsed || parsed.week !== week) continue;
+        if (!ids.has(parsed.routineExerciseId)) continue;
+        kg += val.kg * val.reps;
+        if (val.drops) for (const d of val.drops) kg += d.kg * d.reps;
+    }
+    return toDisplay(kg, unit);
+}
+
 // Mirrors the PR check inside computeShareStats: a set is a PR when its
 // estimated 1RM meets or beats the recorded best for the exercise.
 export function isSetPR(kg: number, reps: number, routineExerciseId: string, prMap: PRMap): boolean {
@@ -931,6 +950,86 @@ export function computeRecompSignal(args: {
     }
 
     return { weight, strength, waist, isRecomping, verdict, weightDeltaKg, strengthDeltaPct, waistDeltaCm };
+}
+
+// Adaptive-engine events attributable to this session: same program week, and
+// either targeting one of the session's exercises or program-wide (ramp-back,
+// affectedArea ''). Decisions are stored per routine+week+exercise, not by
+// session id, so week + exercise membership is the correct attribution.
+export function sessionDecisions(
+    decisions: DecisionEventRow[],
+    week: number,
+    exerciseIds: Set<string>,
+): { progressions: DecisionEventRow[]; deloads: DecisionEventRow[]; rampBack: DecisionEventRow[] } {
+    const inScope = decisions.filter(
+        (dec) => dec.week === week && (dec.affectedArea === '' || exerciseIds.has(dec.affectedArea)),
+    );
+    return {
+        progressions: inScope.filter((dec) => dec.type === 'progression'),
+        deloads: inScope.filter((dec) => dec.type === 'deload'),
+        rampBack: inScope.filter((dec) => dec.type === 'ramp_back'),
+    };
+}
+
+// Deterministic, rule-based coach read for the debrief (no LLM). Ordered rules:
+// ramp-back > wins (PRs/progressions, with a deload clause) > deload-only > steady.
+export function composeCoachRead(input: {
+    prCount: number;
+    progressionCount: number;
+    deloadCount: number;
+    rampBack: boolean;
+}): string {
+    const { prCount, progressionCount, deloadCount, rampBack } = input;
+    if (rampBack) {
+        return 'Easier ramp-back session by design, welcome back. Keep it controlled and rebuild from here.';
+    }
+    const wins: string[] = [];
+    if (prCount > 0) wins.push(prCount === 1 ? 'set a new PR' : `set ${prCount} new PRs`);
+    if (progressionCount > 0) {
+        wins.push(`progressed ${progressionCount} ${progressionCount === 1 ? 'lift' : 'lifts'}`);
+    }
+    const deloadClause =
+        deloadCount > 0
+            ? `, ${deloadCount === 1 ? 'one lift' : `${deloadCount} lifts`} backed off on purpose to reset`
+            : '';
+    if (wins.length > 0) {
+        return `Strong session. You ${wins.join(' and ')}${deloadClause}.`;
+    }
+    if (deloadCount > 0) {
+        return `Smart session. ${deloadCount === 1 ? 'One lift' : `${deloadCount} lifts`} backed off on purpose to break a stall, exactly the right call.`;
+    }
+    return 'Steady session, right on plan. Nothing needed adjusting, hold the line and keep showing up.';
+}
+
+// One composite the debrief screen consumes: the share stats plus session
+// tonnage, top muscles worked, bucketed adaptive decisions, and a coach read.
+export function computeSessionSummary(
+    session: WorkoutSession,
+    completedAt: string,
+    exercises: RoutineExercise[],
+    logs: Logs,
+    prMap: PRMap,
+    week: number,
+    unit: Unit,
+    decisions: DecisionEventRow[],
+): SessionSummary {
+    const stats = computeShareStats(session, completedAt, exercises, logs, prMap, week, unit);
+    const tonnage = computeSessionTonnage(exercises, logs, week, unit);
+    const volume = computePerMuscleVolume(logs, exercises, week);
+    const muscles = (Object.entries(volume) as [ExerciseCategory, number][])
+        .map(([category, sets]) => ({ category, sets: roundSets(sets) }))
+        .filter((m) => m.sets > 0)
+        .sort((a, b) => b.sets - a.sets)
+        .slice(0, 4);
+    const ids = new Set(exercises.map((e) => e.id));
+    const decisionBuckets = sessionDecisions(decisions, week, ids);
+    const coachRead = composeCoachRead({
+        prCount: stats.prCount,
+        progressionCount: decisionBuckets.progressions.length,
+        deloadCount: decisionBuckets.deloads.length,
+        rampBack: decisionBuckets.rampBack.length > 0,
+    });
+    return { ...stats, tonnage, muscles, decisions: decisionBuckets, coachRead };
 }
 
 export function groupExercises(exercises: RoutineExercise[]): ExerciseItem[] {

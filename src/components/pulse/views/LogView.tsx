@@ -26,7 +26,7 @@ import SupersetCard from '../SupersetCard';
 import ExerciseSwapPicker from '../ExerciseSwapPicker';
 import { useWorkoutSession } from '@/hooks/pulse/useWorkoutSession';
 import WorkoutModeScreen from '../WorkoutModeScreen';
-import ShareCard from '../ShareCard';
+import FinishDebrief from '../FinishDebrief';
 import GenerateRoutineButton from '../GenerateRoutineButton';
 import PendingSyncBadge from '../PendingSyncBadge';
 import type { LogEntry, RoutineExercise, WorkoutSession, WorkoutVariant } from '@/lib/pulse/types';
@@ -65,9 +65,10 @@ export default function LogView() {
         loading,
         errors,
         retry,
+        decisions,
     } = usePulse();
 
-    const { session, startSession, completeSession, clearSession } = useWorkoutSession();
+    const { session, startSession, completeSession, saveSessionDebrief, clearSession } = useWorkoutSession();
     const [shareSession, setShareSession] = useState<{
         session: WorkoutSession;
         completedAt: string;
@@ -289,7 +290,7 @@ export default function LogView() {
             )}
 
             {shareSession && (
-                <ShareCard
+                <FinishDebrief
                     session={shareSession.session}
                     completedAt={shareSession.completedAt}
                     exercises={shareSession.exercises}
@@ -297,6 +298,8 @@ export default function LogView() {
                     prMap={prMap}
                     week={activeWeek}
                     unit={unit}
+                    decisions={decisions}
+                    saveSessionDebrief={saveSessionDebrief}
                     onDismiss={() => setShareSession(null)}
                 />
             )}

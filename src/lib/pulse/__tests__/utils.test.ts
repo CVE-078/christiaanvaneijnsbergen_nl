@@ -42,6 +42,10 @@ import {
     shouldDeload,
     deloadTarget,
     decisionForExercise,
+    computeSessionTonnage,
+    sessionDecisions,
+    composeCoachRead,
+    computeSessionSummary,
 } from '../utils';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
@@ -930,6 +934,8 @@ describe('computeShareStats', () => {
         variant: null,
         started_at: '2026-05-30T10:00:00.000Z',
         completed_at: null,
+        session_rpe: null,
+        session_note: null,
     };
     const completedAt = '2026-05-30T10:47:00.000Z';
 
@@ -1338,6 +1344,93 @@ describe('groupExercises', () => {
 
     it('returns an empty array for empty input', () => {
         expect(groupExercises([])).toEqual([]);
+    });
+});
+
+// ── computeSessionTonnage ─────────────────────────────────────────────────────
+const T4_UUID_A = 'aaaaaaaa-0000-4000-8000-000000000001';
+const T4_UUID_B = 'bbbbbbbb-0000-4000-8000-000000000002';
+const T4_UUID_C = 'cccccccc-0000-4000-8000-000000000003';
+const T4_UUID_D = 'dddddddd-0000-4000-8000-000000000004';
+
+describe('computeSessionTonnage', () => {
+    const ex = (id: string) => ({ id, exercise: { name: id } }) as any;
+    it('sums kg*reps over saved sets for the session exercises in the week', () => {
+        const logs = {
+            [`1-${T4_UUID_A}-0`]: { kg: 100, reps: 5, rir: 2, saved: true },
+            [`1-${T4_UUID_A}-1`]: { kg: 100, reps: 5, rir: 2, saved: true },
+            [`1-${T4_UUID_B}-0`]: { kg: 50, reps: 10, rir: 2, saved: true },
+            [`2-${T4_UUID_A}-0`]: { kg: 999, reps: 9, rir: 2, saved: true },
+            [`1-${T4_UUID_C}-0`]: { kg: 80, reps: 8, rir: 2, saved: true },
+        } as any;
+        expect(computeSessionTonnage([ex(T4_UUID_A), ex(T4_UUID_B)], logs, 1, 'kg')).toBe(1500);
+    });
+    it('includes drop sets and ignores unsaved sets', () => {
+        const logs = {
+            [`1-${T4_UUID_A}-0`]: { kg: 100, reps: 5, rir: 2, saved: true, drops: [{ kg: 80, reps: 5 }] },
+            [`1-${T4_UUID_A}-1`]: { kg: 100, reps: 5, rir: 2, saved: false },
+        } as any;
+        expect(computeSessionTonnage([ex(T4_UUID_A)], logs, 1, 'kg')).toBe(900);
+    });
+});
+
+// ── sessionDecisions ──────────────────────────────────────────────────────────
+describe('sessionDecisions', () => {
+    const d = (over: Partial<any>) =>
+        ({ type: 'progression', trigger: 'targets_hit', affectedArea: 'a', week: 1, magnitude: {}, confidence: null, id: 'x', routine_id: 'r', created_at: '' , ...over }) as any;
+    it('buckets by type, scoped to the week and the session exercises', () => {
+        const decisions = [
+            d({ type: 'progression', affectedArea: 'a', week: 1 }),
+            d({ type: 'deload', affectedArea: 'b', week: 1 }),
+            d({ type: 'progression', affectedArea: 'c', week: 1 }),
+            d({ type: 'progression', affectedArea: 'a', week: 2 }),
+            d({ type: 'ramp_back', affectedArea: '', week: 1 }),
+        ];
+        const out = sessionDecisions(decisions, 1, new Set(['a', 'b']));
+        expect(out.progressions.map((x) => x.affectedArea)).toEqual(['a']);
+        expect(out.deloads.map((x) => x.affectedArea)).toEqual(['b']);
+        expect(out.rampBack).toHaveLength(1);
+    });
+});
+
+// ── composeCoachRead ──────────────────────────────────────────────────────────
+describe('composeCoachRead', () => {
+    it('ramp-back wins over everything', () => {
+        expect(composeCoachRead({ prCount: 2, progressionCount: 3, deloadCount: 1, rampBack: true })).toMatch(/ramp-back/i);
+    });
+    it('celebrates PRs and progressions with the deload clause', () => {
+        const s = composeCoachRead({ prCount: 1, progressionCount: 3, deloadCount: 1, rampBack: false });
+        expect(s).toMatch(/new PR/i);
+        expect(s).toMatch(/progressed 3 lifts/i);
+        expect(s).toMatch(/backed off/i);
+    });
+    it('frames a deload-only session as a smart call', () => {
+        expect(composeCoachRead({ prCount: 0, progressionCount: 0, deloadCount: 1, rampBack: false })).toMatch(/smart/i);
+    });
+    it('falls back to steady on-plan when nothing happened', () => {
+        expect(composeCoachRead({ prCount: 0, progressionCount: 0, deloadCount: 0, rampBack: false })).toMatch(/steady/i);
+    });
+});
+
+// ── computeSessionSummary ─────────────────────────────────────────────────────
+const T7_UUID_A = 'aaaaaaaa-1111-4111-8111-111111111111';
+
+describe('computeSessionSummary', () => {
+    const session = { id: 's', user_id: 'u', routine_id: 'r', workout_type: 'push', variant: 'A', started_at: '2026-05-30T10:00:00Z', completed_at: null, session_rpe: null, session_note: null } as any;
+    const exFull = (id: string, cat: string) => ({ id, sets: '3', reps: '8-12', exercise: { name: id, category: cat } }) as any;
+    it('composes stats, tonnage, muscles, decisions and a coach read', () => {
+        const exercises = [exFull(T7_UUID_A, 'chest')];
+        const logs = { [`1-${T7_UUID_A}-0`]: { kg: 100, reps: 10, rir: 2, saved: true } } as any;
+        const prMap = {} as any;
+        const decisions = [
+            { type: 'progression', trigger: 'targets_hit', affectedArea: T7_UUID_A, week: 1, magnitude: {}, confidence: null, id: 'd1', routine_id: 'r', created_at: '' },
+        ] as any;
+        const out = computeSessionSummary(session, '2026-05-30T11:00:00Z', exercises, logs, prMap, 1, 'kg', decisions);
+        expect(out.workoutLabel).toMatch(/Variant A/);
+        expect(out.tonnage).toBe(1000);
+        expect(out.muscles[0].category).toBe('chest');
+        expect(out.decisions.progressions).toHaveLength(1);
+        expect(out.coachRead).toMatch(/progressed 1 lift/i);
     });
 });
 
