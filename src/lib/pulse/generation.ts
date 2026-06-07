@@ -11,6 +11,7 @@ import type {
     Gender,
     PriorityMuscle,
     TrainingStyle,
+    VarietyPreference,
     WorkoutType,
     WorkoutVariant,
 } from './types';
@@ -451,6 +452,25 @@ export const POWERBUILDING_HEAVY_PATTERNS: ReadonlySet<MovementPattern> = new Se
     'vertical_push',
 ]);
 
+/** Main bilateral compound patterns anchored across sessions under the
+ *  'consistent' variety preference, so the same squat/press/row recurs for
+ *  progressive overload and skill. Broader than POWERBUILDING_HEAVY_PATTERNS
+ *  (which is about rep ranges, not skill): rows and vertical pulls belong here.
+ *  `lunge` is excluded (unilateral accessory). Kept SEPARATE from
+ *  POWERBUILDING_HEAVY_PATTERNS so a change to one never silently changes the
+ *  other. NOTE: anchors are per-generation and never persisted; generation runs
+ *  once at routine creation, so this does not interact with ramp-back today. The
+ *  only thing that would reopen that is mid-program regeneration, at which point
+ *  reconsider whether the anchor map should be preserved or reset. */
+export const COMPOUND_ANCHOR_PATTERNS: ReadonlySet<MovementPattern> = new Set([
+    'squat',
+    'hinge',
+    'horizontal_push',
+    'vertical_push',
+    'horizontal_pull',
+    'vertical_pull',
+]);
+
 /** Rep range for a slot, given the bias already resolved by `resolveBias`.
  *  Powerbuilding is the one style that overrides per movement pattern: the main
  *  patterns get the strength range, accessories get hypertrophy. Every other style
@@ -505,25 +525,65 @@ interface Selected {
  * `used` is a routine-wide avoid-set: a candidate not yet used anywhere this
  * routine is preferred; repetition is only allowed when the pattern is
  * genuinely exhausted across the week. Never picks an exercise already chosen
- * in this session.
+ * in this session. Under 'consistent', a routine-wide anchor map pins the
+ * first-chosen exercise for each compound pattern so it recurs across sessions;
+ * accessories keep the fresh-preference.
  */
-function selectForSession(emphasis: Emphasis, count: number, usable: ExerciseMeta[], used: Set<string>): Selected[] {
+function selectForSession(
+    emphasis: Emphasis,
+    count: number,
+    usable: ExerciseMeta[],
+    used: Set<string>,
+    variety: VarietyPreference,
+    anchors: Map<MovementPattern, string>,
+): Selected[] {
     const byPattern = (p: MovementPattern) =>
         usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => a.id.localeCompare(b.id));
 
     const chosen: Selected[] = [];
     const chosenIds = new Set<string>();
 
+    const push = (ex: ExerciseMeta, slot: MovementPattern) => {
+        chosen.push({ ex, pattern: slot });
+        chosenIds.add(ex.id);
+        used.add(ex.id);
+    };
+
     const pick = (slot: MovementPattern): boolean => {
         const candidates = byPattern(slot).filter((ex) => !chosenIds.has(ex.id));
         if (candidates.length === 0) return false;
-        // Prefer a candidate not yet used anywhere this routine; otherwise fall
-        // back to the first (stable) candidate (pattern exhausted).
+
+        // Variety 'consistent': anchor the main compound lifts across sessions.
+        if (variety === 'consistent' && COMPOUND_ANCHOR_PATTERNS.has(slot)) {
+            const anchoredId = anchors.get(slot);
+            if (anchoredId) {
+                // Anchor lookup takes precedence over the fresh-preference and
+                // deliberately bypasses the routine-wide `used` avoid-set. Do not
+                // reorder the fresh-preference ahead of this.
+                const anchored = candidates.find((ex) => ex.id === anchoredId);
+                if (anchored) {
+                    push(anchored, slot);
+                    return true;
+                }
+                // Defensive: anchored exercise not selectable here (e.g. a rare
+                // second same-pattern slot in one session). Fall through to a
+                // fresh pick WITHOUT re-anchoring. Cannot happen on a pattern's
+                // first slot within one generation (usable pool is fixed).
+            } else {
+                // First time this pattern is filled: pick fresh, record the anchor.
+                const fresh = candidates.find((ex) => !used.has(ex.id));
+                const choice = fresh ?? candidates[0];
+                push(choice, slot);
+                anchors.set(slot, choice.id);
+                return true;
+            }
+        }
+
+        // Default / accessory path: prefer a candidate not yet used anywhere this
+        // routine; otherwise fall back to the first (stable) candidate.
         const fresh = candidates.find((ex) => !used.has(ex.id));
         const choice = fresh ?? candidates[0];
-        chosen.push({ ex: choice, pattern: slot });
-        chosenIds.add(choice.id);
-        used.add(choice.id);
+        push(choice, slot);
         return true;
     };
 
@@ -532,8 +592,8 @@ function selectForSession(emphasis: Emphasis, count: number, usable: ExerciseMet
         if (chosen.length >= count) break;
         pick(slot);
     }
-    // Backfill: walk the slot list again with the same avoid logic until count
-    // is reached or no slot can yield another exercise.
+    // Backfill: walk the slot list again with the same logic until count is
+    // reached or no slot can yield another exercise.
     let guard = 0;
     while (chosen.length < count && guard < 50) {
         guard++;
@@ -627,6 +687,9 @@ export interface GenerationInput {
     /** How the user wants to train. Remaps each session's bias and rep ranges.
      *  Absent / 'balanced' is a no-op (identity). */
     trainingStyle?: TrainingStyle;
+    /** How much to rotate exercises across sessions. Absent / 'varied' is the
+     *  no-op identity path; 'consistent' anchors the main compounds. */
+    varietyPreference?: VarietyPreference;
     /** Generates a unique superset group id. Server passes crypto.randomUUID. */
     makeGroupId?: () => string;
 }
@@ -659,6 +722,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
 
     const usable = pool.filter((ex) => hasEquipment(ex, answers.equipment));
     const used = new Set<string>();
+    const variety = input.varietyPreference ?? 'varied';
+    // Routine-wide anchor map (per-generation, never persisted) used only under
+    // 'consistent' to keep the main compounds the same across sessions.
+    const anchors = new Map<MovementPattern, string>();
 
     const schedule: RoutineBlueprint['schedule'] = [];
     const exercises: RoutineBlueprint['exercises'] = [];
@@ -672,7 +739,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';
         const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
-        const selected = selectForSession(emphasis, exCount, usable, used);
+        const selected = selectForSession(emphasis, exCount, usable, used, variety, anchors);
 
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
         let firstCompoundBumped = false;
