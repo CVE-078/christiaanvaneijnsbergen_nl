@@ -167,13 +167,13 @@ describe('LogView', () => {
         '1-re-test-uuid-2': { kg: 60, reps: 10, rir: 3, saved: true },
     };
 
-    it('shows the Workout complete done-state and hides Start workout when the day is fully logged', () => {
+    it('shows the Complete done-state and hides Start workout when the day is fully logged', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             logs: fullDayLogs,
         } as unknown as ReturnType<typeof usePulse>);
         renderWithToast(<LogView />);
-        expect(screen.getByText(/workout complete/i)).toBeInTheDocument();
+        expect(screen.getByText(/^complete$/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /re-open/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /clear day/i })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /start workout/i })).not.toBeInTheDocument();
