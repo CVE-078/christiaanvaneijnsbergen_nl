@@ -334,7 +334,10 @@ export default function LogView() {
                     <CoachPanel variant="inline" />
                 </div>
                 <div className="bg-pulse-surface rounded-2xl px-4 py-3.5">
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                    {/* Identity row: week number + phase meta, with the week stepper alone on
+                        the right. Day-actions live in their own band below, so this row stays
+                        compact and never overflows on mobile. */}
+                    <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                             <div className="flex items-baseline gap-2">
                                 <span className="font-pulse-display text-[2.5rem] font-extrabold leading-[0.8] tracking-[-0.01em] text-pulse-text">
@@ -359,75 +362,89 @@ export default function LogView() {
                                     <button
                                         onClick={() => setActiveWeek(currentWeek)}
                                         className="cursor-pointer whitespace-nowrap rounded-md border-none bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] font-semibold text-pulse-accent hover:text-pulse-text">
-                                        Go to Wk {currentWeek}
+                                        Go to Week {currentWeek}
                                     </button>
                                 )}
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <div className="inline-flex items-center bg-pulse-surface-2 rounded-lg p-[3px] gap-[3px]">
-                                <button
-                                    onClick={() => setActiveWeek(Math.max(1, activeWeek - 1))}
-                                    disabled={activeWeek <= 1}
-                                    aria-label="Previous week"
-                                    className="font-pulse text-sm text-pulse-dim bg-transparent border-none rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:text-pulse-text">
-                                    ‹
-                                </button>
-                                <span className="font-pulse text-xs font-semibold text-pulse-text tabular-nums px-1.5 min-w-[2.5rem] text-center">
-                                    Wk {activeWeek}
-                                </span>
-                                <button
-                                    onClick={() => setActiveWeek(activeWeek + 1)}
-                                    aria-label="Next week"
-                                    className="font-pulse text-sm text-pulse-dim bg-transparent border-none rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:text-pulse-text">
-                                    ›
-                                </button>
-                            </div>
-                            {routineExercises.length > 0 &&
-                                (dayComplete ? (
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-pulse-success/15 px-3 py-2 font-pulse text-sm font-semibold text-pulse-success">
-                                            <svg
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth={3}
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className="h-4 w-4"
-                                                aria-hidden>
-                                                <path d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            Workout complete
-                                        </span>
-                                        <button
-                                            onClick={handleReopenWorkout}
-                                            className="cursor-pointer rounded-lg border border-pulse-border bg-transparent px-3 py-2 font-pulse text-sm font-medium text-pulse-dim transition-colors hover:border-pulse-accent/40 hover:text-pulse-text">
-                                            Re-open
-                                        </button>
-                                        {clearConfirm ? (
-                                            <button
-                                                onClick={handleClearDay}
-                                                className="cursor-pointer rounded-lg border border-[#f43f5e]/50 bg-transparent px-3 py-2 font-pulse text-sm font-semibold text-[#f43f5e] transition-colors hover:bg-[#f43f5e]/10">
-                                                Confirm clear
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => setClearConfirm(true)}
-                                                className="cursor-pointer rounded-lg border border-pulse-border bg-transparent px-3 py-2 font-pulse text-sm font-medium text-pulse-dim transition-colors hover:text-pulse-text">
-                                                Clear day
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={handleStartWorkout}
-                                        className="cursor-pointer rounded-lg border-none bg-pulse-accent px-4 py-2 font-pulse text-sm font-semibold text-pulse-bg transition-opacity hover:opacity-90">
-                                        Start workout
-                                    </button>
-                                ))}
+                        <div className="inline-flex shrink-0 items-center gap-[3px] rounded-lg bg-pulse-surface-2 p-[3px]">
+                            <button
+                                onClick={() => setActiveWeek(Math.max(1, activeWeek - 1))}
+                                disabled={activeWeek <= 1}
+                                aria-label="Previous week"
+                                className="cursor-pointer rounded-md border-none bg-transparent px-2.5 py-1 font-pulse text-sm text-pulse-dim hover:text-pulse-text disabled:cursor-not-allowed disabled:opacity-40">
+                                ‹
+                            </button>
+                            <span className="min-w-[3.25rem] px-1 text-center font-pulse text-xs font-semibold tabular-nums text-pulse-text">
+                                Week {activeWeek}
+                            </span>
+                            <button
+                                onClick={() => setActiveWeek(activeWeek + 1)}
+                                aria-label="Next week"
+                                className="cursor-pointer rounded-md border-none bg-transparent px-2.5 py-1 font-pulse text-sm text-pulse-dim hover:text-pulse-text disabled:cursor-not-allowed disabled:opacity-40">
+                                ›
+                            </button>
                         </div>
                     </div>
+                    {/* Action band: status on the left, day-actions on the right. Same shape in
+                        both the ready and complete states; flex-wrap is a safety net so the
+                        actions drop to their own line rather than ever clipping on small screens. */}
+                    {routineExercises.length > 0 &&
+                        (dayComplete ? (
+                            <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-pulse-surface-2 py-2.5 pl-3.5 pr-2.5">
+                                <span className="inline-flex items-center gap-1.5 font-pulse text-[0.8125rem] font-semibold text-pulse-success">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={3}
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="h-[0.9375rem] w-[0.9375rem]"
+                                        aria-hidden>
+                                        <path d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Complete
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={handleReopenWorkout}
+                                        className="cursor-pointer rounded-lg border border-pulse-border bg-transparent px-3.5 py-1.5 font-pulse text-[0.8125rem] font-medium text-pulse-dim transition-colors hover:border-pulse-accent/40 hover:text-pulse-text">
+                                        Re-open
+                                    </button>
+                                    {clearConfirm ? (
+                                        <button
+                                            onClick={handleClearDay}
+                                            className="cursor-pointer rounded-lg border border-[#f43f5e]/50 bg-transparent px-3.5 py-1.5 font-pulse text-[0.8125rem] font-semibold text-[#f43f5e] transition-colors hover:bg-[#f43f5e]/10">
+                                            Confirm clear
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => setClearConfirm(true)}
+                                            className="cursor-pointer rounded-lg border-none bg-transparent px-2.5 py-1.5 font-pulse text-[0.8125rem] font-medium text-pulse-muted transition-colors hover:text-pulse-dim">
+                                            Clear day
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-pulse-surface-2 py-2 pl-3.5 pr-2">
+                                <div className="flex min-w-0 items-baseline gap-2">
+                                    <span className="font-pulse text-[0.8125rem] font-semibold text-pulse-dim">
+                                        Ready to train
+                                    </span>
+                                    <span className="whitespace-nowrap font-pulse-body text-[0.6875rem] text-pulse-muted">
+                                        {routineExercises.length}{' '}
+                                        {routineExercises.length === 1 ? 'exercise' : 'exercises'}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleStartWorkout}
+                                    className="cursor-pointer rounded-lg border-none bg-pulse-accent px-4 py-1.5 font-pulse text-[0.8125rem] font-semibold text-pulse-bg transition-opacity hover:opacity-90">
+                                    Start workout
+                                </button>
+                            </div>
+                        ))}
                     <div className="mt-4">{activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}</div>
                 </div>
                 {isRampBack ? (
