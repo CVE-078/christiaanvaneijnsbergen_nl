@@ -10,6 +10,7 @@ import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/li
 // Steps: 'gender' (only when collectGender, optional/skippable) · 1 equipment ·
 // 2 experience · 3 goal · 4 days/week · 5 which days ·
 // 6 program style (only when >1 style exists for the count) · 7 session time ·
+// 'train_style' how-to-train (only when collectTrainingStyle) ·
 // 'length' program length · 'start' when-to-start.
 // 'length' + 'start' are the two "shape your program" choices (program_weeks +
 // program_anchor), applied by the consumer after the routine is created.
@@ -205,7 +206,9 @@ export default function RoutineSetupFlow({
     // The optional gender step adds one to the count and shifts the numbered steps
     // one position later in the progress display.
     const genderOffset = collectGender ? 1 : 0;
-    // +1 for the program-length step, which always shows.
+    // 8 always-on steps (equipment · experience · goal · days/week · which days ·
+    // session time · length · start), plus the optional gender, program-style, and
+    // training-style steps when each is shown.
     const total = 8 + genderOffset + (showStyleStep ? 1 : 0) + (collectTrainingStyle ? 1 : 0);
 
     function toggleEquipment(key: EquipmentKey) {
