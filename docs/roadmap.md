@@ -14,13 +14,17 @@
 
 **Design principle:** simple surface, ignorable intelligence. The app carries a lot of smarts; the UI stays calm and lets users ignore most of it until it matters.
 
-**Not building** (focus guards, all evaluated): AI chatbot, LLM-generated workouts, social feed / followers / leaderboards, public profiles, **network/social achievements** (leaderboards, comparative badges), heavy fatigue modeling, goal prediction, native apps and wearables until real traction (the native *how* is settled and the *whether* is held open under "Native client, deferred direction" below). (Achievements split into two lanes: self-referential milestones, your own PRs / streaks / volume bests, are post-launch-OK and on-vision; only the network/social kind stays hard-out, since it pulls toward the social-network anti-goal.)
+**Not building** (focus guards, all evaluated): AI chatbot, LLM-generated workouts, heavy fatigue modeling, goal prediction, native apps and wearables until real traction (the native *how* is settled and the *whether* is held open under "Native client, deferred direction" below).
+
+**Social -- hard-out permanently:** global leaderboards, competitive rankings, public follower counts, feed-first home screen (Train is always the home screen), viral challenges, engagement farming mechanics, likes or reactions on body or progress photos, network/comparison achievements (self-referential milestones -- your own PRs / streaks / volume bests -- are on-vision; only the comparative kind stays hard-out), DMs or in-app messaging, creator economy or paid content. (Achievements split into two lanes: self-referential milestones are post-launch-OK and on-vision; only the network/social kind stays hard-out, since it pulls toward the social-network anti-goal.)
+
+**Social -- deferred, not ruled out:** lightweight training-community features (routine link sharing, friend activity, private accountability groups, public routine pages) are a documented long-term direction, not a near-term build. The distinction is "not social-first", not "not social". See "Social direction, deferred" below.
 
 ---
 
 ## Status & next session (2026-06-07)
 
-**In progress:** (none).
+**In progress:** social direction decision record -- roadmap wording update and "Social direction, deferred" section (`docs/social-direction-roadmap`).
 
 **In review (on a branch, not yet merged):** the **variety preference generation input (Tier 2 #4, second of three generation-input refinements)** on `feature/variety-preference`. A `VarietyPreference` ('consistent' | 'varied') axis: under `consistent` a per-generation anchor map pins the main compound lifts (`COMPOUND_ANCHOR_PATTERNS` = squat / hinge / horizontal_push / vertical_push / horizontal_pull / vertical_pull) across sessions while accessories keep rotating; `varied` (default, null-resolved at the generation boundary) is byte-identical to today, locked by a golden identity + `consistent`-determinism test. Fully orthogonal to training style (variety picks *which* exercise fills a slot, style sets *how* it is trained). Persisted on `profiles.variety_preference` (nullable, mirrors `training_style`), chosen in a new optional `RoutineSetupFlow` step (gated by `collectVariety`), passed into `generateAndSaveRoutine` (param wins over the stored fallback, written back). Two external reviews (Claude.ai on coaching, Perplexity on architecture) folded. Migration `docs/migrations/2026-06-07-15-13-53-variety-preference.sql` to apply in Supabase. Spec + plan in `docs/superpowers/`. **Deferred:** loading lean (the third #4 input) and a standalone Profile-screen variety editor.
 
