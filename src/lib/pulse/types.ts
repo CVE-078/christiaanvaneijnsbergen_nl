@@ -57,6 +57,8 @@ export interface Profile {
     priority_muscle: PriorityMuscle | 'balanced' | null;
     // How the user wants to train; seeds generation. null = never chosen (Balanced).
     training_style: TrainingStyle | null;
+    // How much generation rotates exercises; seeds generation. null = never chosen ('varied').
+    variety_preference: VarietyPreference | null;
     // IANA timezone (e.g. 'Europe/Amsterdam'); used to resolve "today"/weekday
     // for calendar adherence. Defaults to 'UTC' until the browser reports one.
     timezone: string;
@@ -410,6 +412,13 @@ export type Bias = 'strength' | 'hypertrophy' | 'balanced' | 'pump';
 /** How the user wants to train; remaps session bias and rep ranges in generation.
  *  'balanced' is the identity (today's behaviour). Stored nullable on the profile. */
 export type TrainingStyle = 'balanced' | 'strength' | 'bodybuilding' | 'powerbuilding';
+
+/** How much the generator rotates exercises across sessions. 'varied' is the
+ *  identity (today's behaviour: prefer a not-yet-used exercise per slot).
+ *  'consistent' anchors the main compound lifts across sessions (progressive
+ *  overload + skill) while accessories keep rotating. Stored nullable on the
+ *  profile; null resolves to 'varied' only at the generation boundary. */
+export type VarietyPreference = 'consistent' | 'varied';
 
 /** Which session focus a scheduled day trains. */
 export type Focus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs';

@@ -15,6 +15,7 @@ import {
     resolveBias,
     resolveRepRange,
     POWERBUILDING_HEAVY_PATTERNS,
+    COMPOUND_ANCHOR_PATTERNS,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle, Bias, TrainingStyle } from '@/lib/pulse/types';
@@ -561,5 +562,79 @@ describe('buildRationale trainingStyle clause', () => {
     });
     it('adds a powerbuilding clause', () => {
         expect(buildRationale(answers, '45–60 min', style, null, 'powerbuilding')).toMatch(/powerbuilding/i);
+    });
+});
+
+// ── 11. generateRoutine + varietyPreference ──────────────────────────────────
+
+describe('generateRoutine + varietyPreference', () => {
+    const fbStyle = STYLES[4].find((s) => s.key === 'fb-hmhp-4') as ProgramStyle;
+    const fbDays = [1, 2, 4, 5];
+
+    const patternOf = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e.movement_pattern]));
+    const distinctFor = (
+        bp: ReturnType<typeof generateRoutine>,
+        pool: ExerciseMeta[],
+        pattern: MovementPattern,
+    ) => {
+        const pat = patternOf(pool);
+        return new Set(bp.exercises.filter((e) => pat.get(e.exercise_id) === pattern).map((e) => e.exercise_id));
+    };
+    const countFor = (bp: ReturnType<typeof generateRoutine>, pool: ExerciseMeta[], pattern: MovementPattern) => {
+        const pat = patternOf(pool);
+        return bp.exercises.filter((e) => pat.get(e.exercise_id) === pattern).length;
+    };
+
+    it("'varied' and undefined produce identical output (identity)", () => {
+        for (const a of [{ days: [1, 3, 5] }, { days: [1, 2, 4, 5] }, { days: [1, 2, 3, 4, 5, 6] }]) {
+            const style = STYLES[a.days.length][0] as ProgramStyle;
+            const base = generateRoutine(input({ style, trainingDays: a.days }));
+            const varied = generateRoutine(input({ style, trainingDays: a.days, varietyPreference: 'varied' }));
+            expect(varied).toEqual(base);
+        }
+    });
+
+    it("'consistent' is deterministic (same input twice -> identical output)", () => {
+        const a = generateRoutine(input({ style: fbStyle, trainingDays: fbDays, varietyPreference: 'consistent' }));
+        const b = generateRoutine(input({ style: fbStyle, trainingDays: fbDays, varietyPreference: 'consistent' }));
+        expect(a).toEqual(b);
+    });
+
+    it("'consistent' anchors each recurring compound to one exercise across sessions", () => {
+        const pool = deepPool();
+        const bp = generateRoutine(input({ style: fbStyle, trainingDays: fbDays, pool, varietyPreference: 'consistent' }));
+        for (const p of COMPOUND_ANCHOR_PATTERNS) {
+            if (countFor(bp, pool, p) > 1) {
+                expect(distinctFor(bp, pool, p).size).toBe(1);
+            }
+        }
+    });
+
+    it("'varied' (default) lets at least one recurring compound rotate across sessions", () => {
+        const pool = deepPool();
+        const bp = generateRoutine(input({ style: fbStyle, trainingDays: fbDays, pool, varietyPreference: 'varied' }));
+        const rotated = [...COMPOUND_ANCHOR_PATTERNS].some(
+            (p) => countFor(bp, pool, p) > 1 && distinctFor(bp, pool, p).size > 1,
+        );
+        expect(rotated).toBe(true);
+    });
+
+    it("'consistent' still rotates accessories (isolation is not anchored)", () => {
+        const pool = deepPool();
+        const bp = generateRoutine(input({ style: fbStyle, trainingDays: fbDays, pool, varietyPreference: 'consistent' }));
+        const isoRotated = (['biceps_iso', 'triceps_iso', 'chest_iso', 'back_iso', 'shoulder_iso', 'glute_iso'] as MovementPattern[]).some(
+            (p) => countFor(bp, pool, p) > 1 && distinctFor(bp, pool, p).size > 1,
+        );
+        expect(isoRotated).toBe(true);
+    });
+
+    it("'consistent' never repeats an exercise within one session", () => {
+        const pool = deepPool();
+        const bp = generateRoutine(input({ style: fbStyle, trainingDays: fbDays, pool, varietyPreference: 'consistent' }));
+        for (const day of fbDays) {
+            const variant = bp.schedule.find((s) => s.day_of_week === day)?.variant ?? null;
+            const ids = sessionIds(bp, 'full_body', variant);
+            expect(new Set(ids).size).toBe(ids.length);
+        }
     });
 });

@@ -25,7 +25,7 @@ export default function OnboardingModal() {
             completeLabel="Create my routine"
             collectGender={!hasGender}
             intro="Pulse adapts as you train: miss a week, hit a plateau, or train somewhere new, and your plan adjusts so you keep moving forward."
-            onComplete={async ({ answers, trainingDays, sessionTime, styleKey, gender, startAnchor, programWeeks, trainingStyle }) => {
+            onComplete={async ({ answers, trainingDays, sessionTime, styleKey, gender, startAnchor, programWeeks, trainingStyle, varietyPreference }) => {
                 if (gender) await updateGender(gender);
                 const routine = await generateRoutine(
                     answers,
@@ -34,6 +34,7 @@ export default function OnboardingModal() {
                     styleKey ?? recommendStyle(trainingDays.length),
                     undefined,
                     trainingStyle,
+                    varietyPreference,
                 );
                 if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
                 // New routines default to 12 weeks in the DB; only write when it differs.
