@@ -1006,6 +1006,37 @@ export function composeCoachRead(input: {
     return 'Steady session, right on plan. Nothing needed adjusting, hold the line and keep showing up.';
 }
 
+// One composite the debrief screen consumes: the share stats plus session
+// tonnage, top muscles worked, bucketed adaptive decisions, and a coach read.
+export function computeSessionSummary(
+    session: WorkoutSession,
+    completedAt: string,
+    exercises: RoutineExercise[],
+    logs: Logs,
+    prMap: PRMap,
+    week: number,
+    unit: Unit,
+    decisions: DecisionEventRow[],
+): SessionSummary {
+    const stats = computeShareStats(session, completedAt, exercises, logs, prMap, week, unit);
+    const tonnage = computeSessionTonnage(exercises, logs, week, unit);
+    const volume = computePerMuscleVolume(logs, exercises, week);
+    const muscles = (Object.entries(volume) as [ExerciseCategory, number][])
+        .map(([category, sets]) => ({ category, sets: roundSets(sets) }))
+        .filter((m) => m.sets > 0)
+        .sort((a, b) => b.sets - a.sets)
+        .slice(0, 4);
+    const ids = new Set(exercises.map((e) => e.id));
+    const decisionBuckets = sessionDecisions(decisions, week, ids);
+    const coachRead = composeCoachRead({
+        prCount: stats.prCount,
+        progressionCount: decisionBuckets.progressions.length,
+        deloadCount: decisionBuckets.deloads.length,
+        rampBack: decisionBuckets.rampBack.length > 0,
+    });
+    return { ...stats, tonnage, muscles, decisions: decisionBuckets, coachRead };
+}
+
 export function groupExercises(exercises: RoutineExercise[]): ExerciseItem[] {
     const items: ExerciseItem[] = [];
     let i = 0;
