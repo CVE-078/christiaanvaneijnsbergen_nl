@@ -19,6 +19,7 @@ const defaultCtx = {
     setActiveDay: vi.fn(),
     activeSchedule: schedule,
     activeWeek: 1,
+    currentWeek: 1,
     logs: {},
     routineExercisesByTabKey: {
         upper: [
@@ -65,10 +66,10 @@ describe('DayTabs', () => {
         expect(screen.getByRole('tab', { name: /wed/i })).toBeDisabled();
     });
 
-    it('shows "Rest" label for non-training days', () => {
+    it('labels non-training days as rest', () => {
         render(<DayTabs />);
-        const wedTab = screen.getByRole('tab', { name: /wed/i });
-        expect(wedTab).toHaveTextContent('Rest');
+        // The "Rest" detail now lives in the accessible name, not visible tile text.
+        expect(screen.getByRole('tab', { name: /wed, rest day/i })).toBeInTheDocument();
     });
 
     it('marks the active day tab as aria-selected', () => {
@@ -77,10 +78,15 @@ describe('DayTabs', () => {
         expect(screen.getByRole('tab', { name: /tue/i })).toHaveAttribute('aria-selected', 'false');
     });
 
-    it('shows workout type label on each tab', () => {
+    it('shows the selected day focus in the summary line', () => {
         render(<DayTabs />);
-        const monTab = screen.getByRole('tab', { name: /mon/i });
-        expect(monTab).toHaveTextContent('Upper');
+        // Mon is active and trains Upper, so the summary surfaces its focus once.
+        expect(screen.getByText('Upper')).toBeInTheDocument();
+    });
+
+    it('exposes done/total for each training day via the accessible name', () => {
+        render(<DayTabs />);
+        expect(screen.getByRole('tab', { name: /mon, upper, 0 of 1 done/i })).toBeInTheDocument();
     });
 
     it('calls setActiveDay when a tab is clicked', async () => {
@@ -89,9 +95,25 @@ describe('DayTabs', () => {
         expect(defaultCtx.setActiveDay).toHaveBeenCalledWith(2);
     });
 
-    it('shows done/total badge when tab has exercises', () => {
-        render(<DayTabs />);
-        const monTab = screen.getByRole('tab', { name: /mon/i });
-        expect(monTab).toHaveTextContent('0/1');
+    it('only marks today in the week the program is currently on', () => {
+        // Mon 8 Jun 2026 -> getDay() === 1 (Monday). Select Tue so Mon (today) is
+        // unselected and free to show the marker.
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 5, 8));
+        try {
+            const { unmount } = render(<DayTabs />);
+            vi.mocked(usePulse).mockReturnValue({ ...defaultCtx, activeDay: 2, activeWeek: 3, currentWeek: 3 } as any);
+            unmount();
+            const { container, unmount: unmount2 } = render(<DayTabs />);
+            expect(container.querySelector('[aria-label="today"]')).toBeTruthy();
+            unmount2();
+
+            // Viewing a different week than the program is on: no today marker.
+            vi.mocked(usePulse).mockReturnValue({ ...defaultCtx, activeDay: 2, activeWeek: 2, currentWeek: 3 } as any);
+            const { container: c2 } = render(<DayTabs />);
+            expect(c2.querySelector('[aria-label="today"]')).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

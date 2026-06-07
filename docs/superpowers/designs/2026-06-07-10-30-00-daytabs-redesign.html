@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weekday strip redesign</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600&family=Big+Shoulders+Display:wght@600;700;800&display=swap"
+      rel="stylesheet" />
+    <style>
+      :root {
+        --color-pulse-accent: #ff7d66;
+        --color-pulse-bg: #0e1113;
+        --color-pulse-surface: #161a1d;
+        --color-pulse-surface-2: #1c2125;
+        --color-pulse-border: #262c31;
+        --color-pulse-dim: #aab2b7;
+        --color-pulse-muted: #6f787e;
+        --color-pulse-success: #4ade80;
+        --color-pulse-text: #e7ebed;
+        --font-pulse: 'Hanken Grotesk', sans-serif;
+        --font-pulse-body: 'Sora', sans-serif;
+        --font-pulse-display: 'Big Shoulders Display', sans-serif;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #07090a; color: var(--color-pulse-text); font-family: var(--font-pulse); padding: 32px 24px 64px; display: flex; flex-direction: column; gap: 36px; align-items: flex-start; }
+      h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-pulse-muted); }
+      .lede { font-family: var(--font-pulse-body); font-size: 12px; color: var(--color-pulse-dim); max-width: 680px; line-height: 1.6; }
+      .row { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+      .frame-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-pulse-muted); margin-bottom: 10px; }
+      .section-title { font-size: 13px; font-weight: 700; color: var(--color-pulse-text); margin-bottom: 2px; }
+      .group { border-top: 1px solid var(--color-pulse-border); padding-top: 26px; width: 100%; }
+      .canvas { background: var(--color-pulse-surface); border-radius: 16px; padding: 14px 16px; }
+      .mobile { width: 343px; }
+      .desktop { width: 760px; }
+
+      /* ===== CURRENT (the crammed baseline) ===== */
+      .cur-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .cur-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 16px; border: 1px solid transparent; background: var(--color-pulse-surface-2); padding: 12px 4px; }
+      .cur-tile.rest { background: transparent; border: 1px dashed var(--color-pulse-border); opacity: 0.55; }
+      .cur-tile.active { background: var(--color-pulse-accent); }
+      .cur-day { font-family: var(--font-pulse-display); font-size: 0.9375rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-pulse-dim); }
+      .cur-tile.active .cur-day, .cur-tile.active .cur-focus, .cur-tile.active .cur-count { color: var(--color-pulse-bg); }
+      .cur-focus { font-family: var(--font-pulse-body); font-size: 0.6875rem; color: var(--color-pulse-muted); }
+      .cur-bar { height: 3px; width: 24px; border-radius: 99px; background: var(--color-pulse-surface); overflow: hidden; }
+      .cur-bar > i { display: block; height: 100%; background: var(--color-pulse-accent); }
+      .cur-count { font-family: var(--font-pulse-body); font-size: 0.75rem; font-weight: 600; color: var(--color-pulse-dim); }
+
+      /* ===== shared: selected-day summary line ===== */
+      .summary { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-family: var(--font-pulse-body); font-size: 0.75rem; }
+      .summary .sday { font-family: var(--font-pulse); font-weight: 700; letter-spacing: 0.04em; color: var(--color-pulse-accent); text-transform: uppercase; }
+      .summary .dot { width: 3px; height: 3px; border-radius: 99px; background: var(--color-pulse-muted); }
+      .summary .sfocus { color: var(--color-pulse-text); font-weight: 600; }
+      .summary .scount { color: var(--color-pulse-dim); margin-left: auto; font-variant-numeric: tabular-nums; }
+      .summary .scount b { color: var(--color-pulse-success); }
+
+      /* ===== VARIANT A: glyph strip ===== */
+      .a-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .a-tile { display: flex; flex-direction: column; align-items: center; gap: 7px; border-radius: 13px; border: 1px solid transparent; background: var(--color-pulse-surface-2); padding: 9px 0 10px; cursor: pointer; position: relative; }
+      .a-tile.rest { background: transparent; }
+      .a-tile.active { background: var(--color-pulse-accent); }
+      .a-day { font-family: var(--font-pulse); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-pulse-dim); }
+      .a-tile.rest .a-day { color: var(--color-pulse-muted); }
+      .a-tile.active .a-day { color: var(--color-pulse-bg); }
+      .ring { width: 22px; height: 22px; border-radius: 99px; display: grid; place-items: center; }
+      .ring.todo { border: 2px solid var(--color-pulse-border); }
+      .ring.partial { background: conic-gradient(var(--color-pulse-accent) var(--p,50%), var(--color-pulse-surface) 0); }
+      .ring.partial > i { width: 14px; height: 14px; border-radius: 99px; background: var(--color-pulse-surface-2); display: block; }
+      .ring.done { background: var(--color-pulse-accent); }
+      .a-tile.active .ring.done { background: var(--color-pulse-bg); }
+      .ring.done svg { width: 12px; height: 12px; stroke: var(--color-pulse-bg); stroke-width: 3.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .a-tile.active .ring.done svg { stroke: var(--color-pulse-accent); }
+      .rest-dash { width: 12px; height: 2px; border-radius: 99px; background: var(--color-pulse-border); }
+      .today-dot { position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; border-radius: 99px; background: var(--color-pulse-accent); }
+
+      /* ===== VARIANT B: slim tiles, focus kept ===== */
+      .b-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .b-tile { display: flex; flex-direction: column; align-items: center; gap: 5px; border-radius: 14px; border: 1px solid transparent; background: var(--color-pulse-surface-2); padding: 9px 2px 10px; cursor: pointer; position: relative; }
+      .b-tile.rest { background: transparent; border: 1px dashed var(--color-pulse-border); opacity: 0.5; }
+      .b-tile.active { background: var(--color-pulse-accent); }
+      .b-day { font-family: var(--font-pulse-display); font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-pulse-dim); }
+      .b-tile.active .b-day, .b-tile.active .b-focus { color: var(--color-pulse-bg); }
+      .b-focus { font-family: var(--font-pulse-body); font-size: 0.625rem; color: var(--color-pulse-muted); letter-spacing: 0.02em; }
+      .b-ring { width: 20px; height: 20px; border-radius: 99px; display: grid; place-items: center; margin-top: 1px; }
+      .b-ring.todo { border: 2px solid var(--color-pulse-border); }
+      .b-ring.partial { background: conic-gradient(var(--color-pulse-accent) var(--p,50%), var(--color-pulse-surface) 0); }
+      .b-ring.partial > i { width: 12px; height: 12px; border-radius: 99px; background: var(--color-pulse-surface-2); }
+      .b-ring.done { background: var(--color-pulse-accent); }
+      .b-tile.active .b-ring.done { background: var(--color-pulse-bg); }
+      .b-ring.done svg { width: 11px; height: 11px; stroke: var(--color-pulse-bg); stroke-width: 3.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .b-tile.active .b-ring.done svg { stroke: var(--color-pulse-accent); }
+      .b-rest-dash { width: 10px; height: 2px; border-radius: 99px; background: var(--color-pulse-border); margin-top: 3px; }
+      .b-today { position: absolute; top: 5px; right: 5px; width: 5px; height: 5px; border-radius: 99px; background: var(--color-pulse-accent); }
+    </style>
+  </head>
+  <body>
+    <h1>Weekday strip redesign</h1>
+    <p class="lede">
+      Today each of the 7 tiles stacks day + focus + progress bar + count, so at 375px every tile is ~44px wide and
+      reads crammed. Two ways out. <b>A</b> moves the verbose detail to a single summary line for the selected day and
+      reduces each tile to day + a progress ring (fills, then a check when done; rest days are a quiet dash). <b>B</b>
+      keeps the per-day focus label but trims each tile to day + focus + one ring, dropping the separate bar and number.
+    </p>
+
+    <!-- CURRENT -->
+    <div class="group">
+      <div class="section-title">Now — 375px (the cram)</div>
+      <div class="row">
+        <div>
+          <div class="frame-label">Current</div>
+          <div class="canvas mobile">
+            <div class="cur-grid">
+              <div class="cur-tile rest"><span class="cur-day">Mon</span><span class="cur-focus">Rest</span></div>
+              <div class="cur-tile rest"><span class="cur-day">Tue</span><span class="cur-focus">Rest</span></div>
+              <div class="cur-tile"><span class="cur-day">Wed</span><span class="cur-focus">Lower</span><span class="cur-bar"><i style="width:0%"></i></span><span class="cur-count">0/6</span></div>
+              <div class="cur-tile"><span class="cur-day">Thu</span><span class="cur-focus">Upper</span><span class="cur-bar"><i style="width:0%"></i></span><span class="cur-count">0/6</span></div>
+              <div class="cur-tile rest"><span class="cur-day">Fri</span><span class="cur-focus">Rest</span></div>
+              <div class="cur-tile"><span class="cur-day">Sat</span><span class="cur-focus">Lower</span><span class="cur-bar"><i style="width:0%"></i></span><span class="cur-count">0/6</span></div>
+              <div class="cur-tile active"><span class="cur-day">Sun</span><span class="cur-focus">Upper</span><span class="cur-bar"><i style="width:100%;background:var(--color-pulse-bg)"></i></span><span class="cur-count">6/6</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VARIANT A -->
+    <div class="group">
+      <div class="section-title">A — summary line + glyph strip</div>
+      <div class="row">
+        <div>
+          <div class="frame-label">375px · Sun selected (done)</div>
+          <div class="canvas mobile">
+            <div class="summary"><span class="sday">Sun</span><span class="dot"></span><span class="sfocus">Upper</span><span class="scount"><b>6</b> / 6 done</span></div>
+            <div class="a-grid">
+              <div class="a-tile rest"><span class="a-day">M</span><span class="rest-dash"></span></div>
+              <div class="a-tile rest"><span class="a-day">T</span><span class="rest-dash"></span></div>
+              <div class="a-tile"><span class="a-day">W</span><span class="ring todo"></span></div>
+              <div class="a-tile"><span class="a-day">T</span><span class="ring partial" style="--p:33%"><i></i></span></div>
+              <div class="a-tile rest"><span class="a-day">F</span><span class="rest-dash"></span></div>
+              <div class="a-tile"><span class="a-day">S</span><span class="ring todo"></span></div>
+              <div class="a-tile active"><span class="today-dot"></span><span class="a-day">S</span><span class="ring done"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="frame-label">375px · Wed selected (in progress)</div>
+          <div class="canvas mobile">
+            <div class="summary"><span class="sday">Wed</span><span class="dot"></span><span class="sfocus">Lower</span><span class="scount">2 / 6 done</span></div>
+            <div class="a-grid">
+              <div class="a-tile rest"><span class="a-day">M</span><span class="rest-dash"></span></div>
+              <div class="a-tile rest"><span class="a-day">T</span><span class="rest-dash"></span></div>
+              <div class="a-tile active"><span class="a-day">W</span><span class="ring done" style="background:var(--color-pulse-bg)"><svg viewBox="0 0 24 24" style="stroke:var(--color-pulse-accent)"><path d="M5 13l4 4L19 7"/></svg></span></div>
+              <div class="a-tile"><span class="a-day">T</span><span class="ring todo"></span></div>
+              <div class="a-tile rest"><span class="a-day">F</span><span class="rest-dash"></span></div>
+              <div class="a-tile"><span class="a-day">S</span><span class="ring todo"></span></div>
+              <div class="a-tile"><span class="a-day">S</span><span class="ring partial" style="--p:50%"><i></i></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:20px">
+        <div>
+          <div class="frame-label">760px · desktop</div>
+          <div class="canvas desktop">
+            <div class="summary"><span class="sday">Sun</span><span class="dot"></span><span class="sfocus">Upper</span><span class="scount"><b>6</b> / 6 done</span></div>
+            <div class="a-grid">
+              <div class="a-tile rest"><span class="a-day">Mon</span><span class="rest-dash"></span></div>
+              <div class="a-tile rest"><span class="a-day">Tue</span><span class="rest-dash"></span></div>
+              <div class="a-tile"><span class="a-day">Wed</span><span class="ring todo"></span></div>
+              <div class="a-tile"><span class="a-day">Thu</span><span class="ring partial" style="--p:33%"><i></i></span></div>
+              <div class="a-tile rest"><span class="a-day">Fri</span><span class="rest-dash"></span></div>
+              <div class="a-tile"><span class="a-day">Sat</span><span class="ring todo"></span></div>
+              <div class="a-tile active"><span class="today-dot"></span><span class="a-day">Sun</span><span class="ring done"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VARIANT B -->
+    <div class="group">
+      <div class="section-title">B — slim tiles, focus label kept</div>
+      <div class="row">
+        <div>
+          <div class="frame-label">375px</div>
+          <div class="canvas mobile">
+            <div class="b-grid">
+              <div class="b-tile rest"><span class="b-day">M</span><span class="b-focus">Rest</span><span class="b-rest-dash"></span></div>
+              <div class="b-tile rest"><span class="b-day">T</span><span class="b-focus">Rest</span><span class="b-rest-dash"></span></div>
+              <div class="b-tile"><span class="b-day">W</span><span class="b-focus">Lower</span><span class="b-ring todo"></span></div>
+              <div class="b-tile"><span class="b-day">T</span><span class="b-focus">Upper</span><span class="b-ring partial" style="--p:33%"><i></i></span></div>
+              <div class="b-tile rest"><span class="b-day">F</span><span class="b-focus">Rest</span><span class="b-rest-dash"></span></div>
+              <div class="b-tile"><span class="b-day">S</span><span class="b-focus">Lower</span><span class="b-ring todo"></span></div>
+              <div class="b-tile active"><span class="b-today"></span><span class="b-day">S</span><span class="b-focus">Upper</span><span class="b-ring done"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="frame-label">760px · desktop</div>
+          <div class="canvas desktop">
+            <div class="b-grid">
+              <div class="b-tile rest"><span class="b-day">Mon</span><span class="b-focus">Rest</span><span class="b-rest-dash"></span></div>
+              <div class="b-tile rest"><span class="b-day">Tue</span><span class="b-focus">Rest</span><span class="b-rest-dash"></span></div>
+              <div class="b-tile"><span class="b-day">Wed</span><span class="b-focus">Lower</span><span class="b-ring todo"></span></div>
+              <div class="b-tile"><span class="b-day">Thu</span><span class="b-focus">Upper</span><span class="b-ring partial" style="--p:33%"><i></i></span></div>
+              <div class="b-tile rest"><span class="b-day">Fri</span><span class="b-focus">Rest</span><span class="b-rest-dash"></span></div>
+              <div class="b-tile"><span class="b-day">Sat</span><span class="b-focus">Lower</span><span class="b-ring todo"></span></div>
+              <div class="b-tile active"><span class="b-today"></span><span class="b-day">Sun</span><span class="b-focus">Upper</span><span class="b-ring done"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
