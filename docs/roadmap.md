@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-07)
 
-**In progress:** roadmap update -- monorepo extraction plan and dependency upgrade plan (`docs/roadmap-monorepo-and-upgrades`).
+**In progress:** (none).
 
 **In review (on a branch, not yet merged):** the **variety preference generation input (Tier 2 #4, second of three generation-input refinements)** on `feature/variety-preference`. A `VarietyPreference` ('consistent' | 'varied') axis: under `consistent` a per-generation anchor map pins the main compound lifts (`COMPOUND_ANCHOR_PATTERNS` = squat / hinge / horizontal_push / vertical_push / horizontal_pull / vertical_pull) across sessions while accessories keep rotating; `varied` (default, null-resolved at the generation boundary) is byte-identical to today, locked by a golden identity + `consistent`-determinism test. Fully orthogonal to training style (variety picks *which* exercise fills a slot, style sets *how* it is trained). Persisted on `profiles.variety_preference` (nullable, mirrors `training_style`), chosen in a new optional `RoutineSetupFlow` step (gated by `collectVariety`), passed into `generateAndSaveRoutine` (param wins over the stored fallback, written back). Two external reviews (Claude.ai on coaching, Perplexity on architecture) folded. Migration `docs/migrations/2026-06-07-15-13-53-variety-preference.sql` to apply in Supabase. Spec + plan in `docs/superpowers/`. **Deferred:** loading lean (the third #4 input) and a standalone Profile-screen variety editor.
 
