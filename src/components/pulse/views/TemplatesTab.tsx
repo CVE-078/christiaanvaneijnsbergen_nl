@@ -179,6 +179,7 @@ export default function TemplatesTab() {
                     }}
                     completeLabel="Use this routine"
                     collectTrainingStyle={false}
+                    collectVariety={false}
                     onComplete={async ({ answers, trainingDays, sessionTime, startAnchor, programWeeks }) => {
                         const routine = await cloneTemplate(
                             setupTemplate.slug,
