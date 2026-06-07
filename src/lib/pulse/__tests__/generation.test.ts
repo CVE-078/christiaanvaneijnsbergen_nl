@@ -565,7 +565,158 @@ describe('buildRationale trainingStyle clause', () => {
     });
 });
 
-// ── 11. generateRoutine + varietyPreference ──────────────────────────────────
+// ── 11. GQ1: exercise ordering and pattern guardrails ────────────────────────
+
+describe('GQ1: tier sort -- compounds before isolation', () => {
+    it('every session has all compound exercises ordered before all isolation exercises', () => {
+        const pool = deepPool();
+        // Use PPL (push/pull/legs) -- each session has a clear mix of compounds + isolations.
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const patternMap = new Map(pool.map((e) => [e.id, e]));
+        for (const s of bp.schedule) {
+            const sessionExs = bp.exercises
+                .filter((e) => e.workout_type === s.workout_type && e.variant === s.variant)
+                .sort((a, b) => a.order - b.order);
+            let seenIso = false;
+            for (const ex of sessionExs) {
+                const m = patternMap.get(ex.exercise_id);
+                if (!m) continue;
+                const isIso = (m.movement_pattern?.endsWith('_iso') ?? false)
+                    || m.movement_pattern === 'calf'
+                    || m.movement_pattern === 'core';
+                if (!isIso) {
+                    // A compound appeared -- it must not follow an isolation.
+                    expect(seenIso).toBe(false);
+                }
+                if (isIso) seenIso = true;
+            }
+        }
+    });
+
+    it('Tier 1 squat/hinge compounds lead the legs session', () => {
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, sessionTime: '45–60 min' }));
+        const patternMap = new Map(pool.map((e) => [e.id, e]));
+        const legsExs = bp.exercises
+            .filter((e) => e.workout_type === 'legs')
+            .sort((a, b) => a.order - b.order);
+        // The first exercise must be squat or hinge (both Tier 1).
+        const first = patternMap.get(legsExs[0].exercise_id);
+        const firstPattern = first?.movement_pattern;
+        expect(firstPattern === 'squat' || firstPattern === 'hinge').toBe(true);
+    });
+});
+
+describe('GQ1: hinge deduplication guard', () => {
+    it('a session with a deep hinge pool never contains two hinge exercises', () => {
+        const pool = deepPool();
+        // Add extra hinge options so backfill has candidates.
+        for (let i = 3; i <= 6; i++) {
+            pool.push(meta(`hinge-${i}`, 'hinge', ['dumbbells'], true));
+        }
+        // 90+ min gives 7-8 exercises -- enough to trigger backfill on a legs session.
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, sessionTime: '90+ min' }));
+        const patternMap = new Map(pool.map((e) => [e.id, e]));
+        for (const s of bp.schedule) {
+            const sessionExs = bp.exercises.filter((e) => e.workout_type === s.workout_type && e.variant === s.variant);
+            const hingeCount = sessionExs.filter(
+                (e) => patternMap.get(e.exercise_id)?.movement_pattern === 'hinge',
+            ).length;
+            expect(hingeCount).toBeLessThanOrEqual(1);
+        }
+    });
+
+    it('squat compound is capped at one per session but lunge is never capped', () => {
+        const pool = deepPool();
+        for (let i = 3; i <= 6; i++) {
+            pool.push(meta(`squat-${i}`, 'squat', ['dumbbells'], true));
+            pool.push(meta(`lunge-${i}`, 'lunge', ['dumbbells'], true));
+        }
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, sessionTime: '90+ min' }));
+        const patternMap = new Map(pool.map((e) => [e.id, e]));
+        const legsExs = bp.exercises.filter((e) => e.workout_type === 'legs');
+        const squatCount = legsExs.filter((e) => patternMap.get(e.exercise_id)?.movement_pattern === 'squat').length;
+        const lungeCount = legsExs.filter((e) => patternMap.get(e.exercise_id)?.movement_pattern === 'lunge').length;
+        // At most one heavy squat compound; lunge can appear more than once (it is not capped).
+        expect(squatCount).toBeLessThanOrEqual(1);
+        expect(lungeCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('squat + lunge (Bulgarian Split Squat) is valid in the same session', () => {
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const patternMap = new Map(pool.map((e) => [e.id, e]));
+        const legsExs = bp.exercises.filter((e) => e.workout_type === 'legs');
+        const patterns = new Set(legsExs.map((e) => patternMap.get(e.exercise_id)?.movement_pattern));
+        // A squat + a lunge may (and should) coexist.
+        expect(patterns.has('squat')).toBe(true);
+        expect(patterns.has('lunge')).toBe(true);
+    });
+});
+
+describe('GQ1: backfill prefers uncovered slots', () => {
+    it('equipment-constrained pool (only 1 hinge option) still reaches the target exercise count', () => {
+        const pool: ExerciseMeta[] = [];
+        for (const p of ALL_PATTERNS) {
+            const compound = !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            if (p === 'hinge') {
+                // Only one hinge -- cap must not prevent filling the session.
+                pool.push(meta('hinge-only', 'hinge', ['dumbbells'], true));
+            } else {
+                pool.push(meta(`${p}-1`, p, ['dumbbells'], compound));
+                pool.push(meta(`${p}-2`, p, ['dumbbells'], compound));
+            }
+        }
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, sessionTime: '90+ min' }));
+        // 90+ min intermediate = 8 exercises; beginner = 7 -- either is fine, check floor.
+        for (const s of bp.schedule) {
+            const count = sessionIds(bp, s.workout_type, s.variant).length;
+            expect(count).toBeGreaterThanOrEqual(7);
+        }
+    });
+
+    it('when leg-pattern pool is exhausted the heavy-cap relaxes and hinge fills the session', () => {
+        // Pool: deep hinge (4 options), only 1 of every other leg pattern.
+        // This exercises the relaxed-cap fallback: after squat/lunge/glute/calf/core
+        // are exhausted, the second and third hinge should fill out the count.
+        const pool: ExerciseMeta[] = [];
+        for (const p of ALL_PATTERNS) {
+            const compound = !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            if (p === 'hinge') {
+                for (let i = 1; i <= 4; i++) pool.push(meta(`hinge-${i}`, 'hinge', ['dumbbells'], true));
+            } else {
+                pool.push(meta(`${p}-1`, p, ['dumbbells'], compound));
+                pool.push(meta(`${p}-2`, p, ['dumbbells'], compound));
+            }
+        }
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, sessionTime: '90+ min' }));
+        // The legs session specifically should hit target count via hinge fallback.
+        const legsCount = sessionIds(bp, 'legs', null).length;
+        expect(legsCount).toBeGreaterThanOrEqual(7);
+    });
+});
+
+describe('GQ1: golden identity -- varied default unchanged', () => {
+    it("'varied' and omitted still produce byte-identical output after GQ1", () => {
+        for (const config of [
+            { days: [1, 3, 5] },
+            { days: [1, 2, 4, 5] },
+            { days: [1, 2, 3, 4, 5, 6] },
+        ]) {
+            const style = STYLES[config.days.length][0] as ProgramStyle;
+            const base = generateRoutine(input({ style, trainingDays: config.days }));
+            const varied = generateRoutine(input({ style, trainingDays: config.days, varietyPreference: 'varied' }));
+            expect(varied).toEqual(base);
+        }
+    });
+});
 
 describe('generateRoutine + varietyPreference', () => {
     const fbStyle = STYLES[4].find((s) => s.key === 'fb-hmhp-4') as ProgramStyle;

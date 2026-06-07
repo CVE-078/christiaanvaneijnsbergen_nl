@@ -513,6 +513,33 @@ function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
     return ex.equipment.every((e) => have.has(e));
 }
 
+// ── Exercise ordering (tier sort) ────────────────────────────────────────────
+// Applied after selectForSession; assigns the coach-standard presentation order:
+// Tier 1 (primary compounds: squat + hinge) → Tier 2 (big multi-joint compounds:
+// push, pull, lunge) → Tier 3 (isolation) → Tier 4 (calf, core finishers).
+// Non-compound exercises in Tier 1/2 patterns fall through to Tier 3.
+
+function patternTier(pattern: MovementPattern, isCompound: boolean): number {
+    if (isCompound && (pattern === 'squat' || pattern === 'hinge')) return 1;
+    if (
+        isCompound &&
+        (pattern === 'horizontal_push' ||
+            pattern === 'horizontal_pull' ||
+            pattern === 'vertical_push' ||
+            pattern === 'vertical_pull' ||
+            pattern === 'lunge')
+    )
+        return 2;
+    if (pattern.endsWith('_iso')) return 3;
+    return 4; // core, calf, anything else
+}
+
+// ── Heavy-compound deduplication guard ───────────────────────────────────────
+// These patterns are capped at one compound per session to prevent coach-quality
+// errors like "Sumo Deadlift + Deadlift in the same leg day". Lunge and glute_iso
+// are intentionally excluded -- Back Squat + Bulgarian Split Squat is valid.
+const HEAVY_DEDUP_PATTERNS: ReadonlySet<MovementPattern> = new Set(['hinge', 'squat']);
+
 // ── Slot selection (cross-session avoid-set) ─────────────────────────────────
 
 interface Selected {
@@ -542,16 +569,31 @@ function selectForSession(
 
     const chosen: Selected[] = [];
     const chosenIds = new Set<string>();
+    // Tracks which heavy-compound patterns (hinge / squat) have been filled this
+    // session. The cap prevents a second deadlift variant or squat compound from
+    // entering via backfill while still allowing lunge and glute_iso accessories.
+    const heavyPatternFilled = new Set<MovementPattern>();
 
     const push = (ex: ExerciseMeta, slot: MovementPattern) => {
         chosen.push({ ex, pattern: slot });
         chosenIds.add(ex.id);
         used.add(ex.id);
+        if (HEAVY_DEDUP_PATTERNS.has(slot) && ex.is_compound) {
+            heavyPatternFilled.add(slot);
+        }
     };
 
-    const pick = (slot: MovementPattern): boolean => {
+    // `relaxHeavyCap`: thin-pool fallback -- allow a second heavy compound only
+    // after a full backfill round produces nothing else.
+    const pick = (slot: MovementPattern, relaxHeavyCap = false): boolean => {
         const candidates = byPattern(slot).filter((ex) => !chosenIds.has(ex.id));
         if (candidates.length === 0) return false;
+
+        // Heavy-compound cap: skip if this Tier-1 pattern is already filled,
+        // unless the cap has been relaxed because no other option is available.
+        if (!relaxHeavyCap && HEAVY_DEDUP_PATTERNS.has(slot) && heavyPatternFilled.has(slot)) {
+            return false;
+        }
 
         // Variety 'consistent': anchor the main compound lifts across sessions.
         if (variety === 'consistent' && COMPOUND_ANCHOR_PATTERNS.has(slot)) {
@@ -592,18 +634,33 @@ function selectForSession(
         if (chosen.length >= count) break;
         pick(slot);
     }
-    // Backfill: walk the slot list again with the same logic until count is
-    // reached or no slot can yield another exercise.
+
+    // Backfill: walk uncovered patterns first (breadth over depth), then revisit
+    // already-filled ones. The heavy-cap is relaxed only after a full round yields
+    // nothing, so thin equipment pools can still reach the target count.
+    let relaxedHeavyCap = false;
     let guard = 0;
     while (chosen.length < count && guard < 50) {
         guard++;
         let added = false;
-        for (const slot of emphasis.slots) {
+        const coveredPatterns = new Set(chosen.map((c) => c.pattern));
+        // Stable sort: uncovered slots (0) before covered (1).
+        const slotsByPriority = [...emphasis.slots].sort(
+            (a, b) => (coveredPatterns.has(a) ? 1 : 0) - (coveredPatterns.has(b) ? 1 : 0),
+        );
+        for (const slot of slotsByPriority) {
             if (chosen.length >= count) break;
-            if (pick(slot)) added = true;
+            if (pick(slot, relaxedHeavyCap)) added = true;
         }
-        if (!added) break; // pool exhausted for this emphasis
+        if (!added) {
+            if (!relaxedHeavyCap) {
+                relaxedHeavyCap = true; // one retry with the cap lifted
+            } else {
+                break; // pool genuinely exhausted
+            }
+        }
     }
+
     return chosen;
 }
 
@@ -741,13 +798,21 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
         const selected = selectForSession(emphasis, exCount, usable, used, variety, anchors);
 
+        // Tier sort: present exercises in coach-standard order within each session.
+        // Compounds lead (Tier 1: squat/hinge; Tier 2: push/pull/lunge), isolations
+        // follow (Tier 3), core/calf finish (Tier 4). Stable sort preserves
+        // emphasis-driven ordering within the same tier.
+        const sortedSelected = [...selected].sort(
+            (a, b) => patternTier(a.pattern, a.ex.is_compound) - patternTier(b.pattern, b.ex.is_compound),
+        );
+
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
         let firstCompoundBumped = false;
         const baseSets = Math.max(3, sets);
 
         const ordered = isSuperset
-            ? buildSupersets(selected, makeGroupId)
-            : selected.map((item) => ({ item, groupId: null as string | null }));
+            ? buildSupersets(sortedSelected, makeGroupId)
+            : sortedSelected.map((item) => ({ item, groupId: null as string | null }));
 
         ordered.forEach(({ item, groupId }, order) => {
             const { ex, pattern } = item;
