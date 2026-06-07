@@ -12,9 +12,10 @@ import {
     genderDefault,
     resolvePriority,
     tiltEmphasis,
+    resolveBias,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
-import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle } from '@/lib/pulse/types';
+import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle, Bias, TrainingStyle } from '@/lib/pulse/types';
 
 describe('volumeFor', () => {
     it('30 min never drops below the floor of 3 exercises / 2 sets', () => {
@@ -45,6 +46,28 @@ describe('repRange', () => {
     it('lose_fat shifts both columns up one notch', () => {
         expect(repRange('strength', true, 'lose_fat')).toBe('8-12');
         expect(repRange('hypertrophy', false, 'lose_fat')).toBe('15-20');
+    });
+});
+
+describe('resolveBias', () => {
+    // The full 4x4 remap table from the spec. Rows = session bias, cols = style.
+    const TABLE: Record<Bias, Record<TrainingStyle, Bias>> = {
+        strength: { balanced: 'strength', strength: 'strength', bodybuilding: 'hypertrophy', powerbuilding: 'strength' },
+        balanced: { balanced: 'balanced', strength: 'strength', bodybuilding: 'hypertrophy', powerbuilding: 'strength' },
+        hypertrophy: { balanced: 'hypertrophy', strength: 'strength', bodybuilding: 'hypertrophy', powerbuilding: 'strength' },
+        pump: { balanced: 'pump', strength: 'hypertrophy', bodybuilding: 'pump', powerbuilding: 'strength' },
+    };
+    const biases: Bias[] = ['strength', 'balanced', 'hypertrophy', 'pump'];
+    const styles: TrainingStyle[] = ['balanced', 'strength', 'bodybuilding', 'powerbuilding'];
+    for (const b of biases) {
+        for (const s of styles) {
+            it(`${s} maps ${b} -> ${TABLE[b][s]}`, () => {
+                expect(resolveBias(b, s)).toBe(TABLE[b][s]);
+            });
+        }
+    }
+    it('balanced is the identity for every bias', () => {
+        for (const b of biases) expect(resolveBias(b, 'balanced')).toBe(b);
     });
 });
 

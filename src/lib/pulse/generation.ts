@@ -10,6 +10,7 @@ import type {
     SessionTime,
     Gender,
     PriorityMuscle,
+    TrainingStyle,
     WorkoutType,
     WorkoutVariant,
 } from './types';
@@ -411,6 +412,29 @@ export function repRange(bias: Bias, isCompound: boolean, goal?: Goal): string {
     // balanced
     if (isCompound) return loseFat ? '10-15' : '8-12';
     return loseFat ? '12-20' : '10-15';
+}
+
+// ── Training style ───────────────────────────────────────────────────────────
+// Training style remaps each session's bias through this table before the rep
+// and set logic. 'balanced' is the identity column, so an unset / balanced style
+// leaves the engine's output byte-identical (the safety invariant for rollout).
+// See docs/superpowers/specs/2026-06-07-training-style-generation-design.md.
+//
+// NOTE: training style does NOT constrain training frequency. A 6-day split under
+// 'strength' remaps all six sessions to strength bias by design (an accepted
+// limitation, there is no fatigue model yet). Future fatigue work must not assume
+// the style already caps frequency.
+const BIAS_REMAP: Record<TrainingStyle, Record<Bias, Bias>> = {
+    balanced: { strength: 'strength', balanced: 'balanced', hypertrophy: 'hypertrophy', pump: 'pump' },
+    strength: { strength: 'strength', balanced: 'strength', hypertrophy: 'strength', pump: 'hypertrophy' },
+    bodybuilding: { strength: 'hypertrophy', balanced: 'hypertrophy', hypertrophy: 'hypertrophy', pump: 'pump' },
+    powerbuilding: { strength: 'strength', balanced: 'strength', hypertrophy: 'strength', pump: 'strength' },
+};
+
+/** Remap a session's bias for the chosen training style. The single source of
+ *  truth for day-level style remapping. Defensive fallback returns the input. */
+export function resolveBias(sessionBias: Bias, style: TrainingStyle): Bias {
+    return BIAS_REMAP[style]?.[sessionBias] ?? sessionBias;
 }
 
 const FOCUS_TYPE: Record<Focus, WorkoutType> = {

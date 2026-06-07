@@ -405,6 +405,10 @@ export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
 /** Training bias for a session, driving rep ranges. */
 export type Bias = 'strength' | 'hypertrophy' | 'balanced' | 'pump';
 
+/** How the user wants to train; remaps session bias and rep ranges in generation.
+ *  'balanced' is the identity (today's behaviour). Stored nullable on the profile. */
+export type TrainingStyle = 'balanced' | 'strength' | 'bodybuilding' | 'powerbuilding';
+
 /** Which session focus a scheduled day trains. */
 export type Focus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs';
 
