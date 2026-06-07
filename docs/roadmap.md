@@ -20,7 +20,7 @@
 
 ## Status & next session (2026-06-07)
 
-**In progress:** (none).
+**In progress:** Training style generation input (Tier 2 #4) on `feature/training-style-generation` (spec + plan committed; implementing).
 
 **In review (on a branch, not yet merged):** the **finish / debrief screen rework** on `feature/finish-debrief`, the post-workout `ShareCard` replaced by a debrief-first `FinishDebrief`: an optional **session RPE (1-10)** + free-text **note** (new nullable `session_rpe` / `session_note` columns, saved best-effort via the session PATCH route), a **coach summary** built entirely from already-shipped data (a deterministic `composeCoachRead`, the `DecisionEvent` log bucketed by `sessionDecisions`, PRs, session tonnage, and top muscles worked), and **real PNG export** via `html-to-image` (`toBlob`, so it clears the `/pulse` connect-src CSP) with a Web-Share / download fallback off a clean export-only `ShareImageCard`. New pure functions `computeSessionTonnage` / `sessionDecisions` / `composeCoachRead` / `computeSessionSummary`. Migration `docs/migrations/2026-06-07-13-00-00-session-debrief.sql` to apply in Supabase. Spec + plan in `docs/superpowers/`.
 
