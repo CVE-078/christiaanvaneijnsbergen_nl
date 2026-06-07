@@ -13,6 +13,8 @@ import {
     resolvePriority,
     tiltEmphasis,
     resolveBias,
+    resolveRepRange,
+    POWERBUILDING_HEAVY_PATTERNS,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle, Bias, TrainingStyle } from '@/lib/pulse/types';
@@ -68,6 +70,47 @@ describe('resolveBias', () => {
     }
     it('balanced is the identity for every bias', () => {
         for (const b of biases) expect(resolveBias(b, 'balanced')).toBe(b);
+    });
+});
+
+describe('resolveRepRange', () => {
+    it('non-powerbuilding styles defer to repRange on the resolved bias (pattern ignored)', () => {
+        expect(resolveRepRange('hypertrophy', 'horizontal_push', true, 'build_muscle', 'bodybuilding')).toBe(
+            repRange('hypertrophy', true, 'build_muscle'),
+        );
+    });
+    it('balanced reproduces repRange exactly for every bias x compound/iso', () => {
+        const biases: Bias[] = ['strength', 'balanced', 'hypertrophy', 'pump'];
+        for (const b of biases) {
+            for (const compound of [true, false]) {
+                expect(resolveRepRange(b, 'horizontal_push', compound, 'build_muscle', 'balanced')).toBe(
+                    repRange(b, compound, 'build_muscle'),
+                );
+            }
+        }
+    });
+    it('powerbuilding gives the strength range to every heavy pattern', () => {
+        for (const p of POWERBUILDING_HEAVY_PATTERNS) {
+            expect(resolveRepRange('strength', p, true, 'build_muscle', 'powerbuilding')).toBe(
+                repRange('strength', true, 'build_muscle'),
+            );
+        }
+    });
+    it('powerbuilding gives the hypertrophy range to accessories (rows, isolation, lunge)', () => {
+        for (const p of ['horizontal_pull', 'biceps_iso', 'lunge'] as MovementPattern[]) {
+            const isCompound = p === 'horizontal_pull' || p === 'lunge';
+            expect(resolveRepRange('strength', p, isCompound, 'build_muscle', 'powerbuilding')).toBe(
+                repRange('hypertrophy', isCompound, 'build_muscle'),
+            );
+        }
+    });
+    it('lose_fat still shifts on top of the resolved range', () => {
+        expect(resolveRepRange('strength', 'squat', true, 'lose_fat', 'strength')).toBe(
+            repRange('strength', true, 'lose_fat'),
+        );
+    });
+    it('deadlift/RDL both ride the hinge pattern (intentional approximation)', () => {
+        expect(POWERBUILDING_HEAVY_PATTERNS.has('hinge')).toBe(true);
     });
 });
 

@@ -437,6 +437,38 @@ export function resolveBias(sessionBias: Bias, style: TrainingStyle): Bias {
     return BIAS_REMAP[style]?.[sessionBias] ?? sessionBias;
 }
 
+// Main movement patterns that keep the heavy (strength) rep range under
+// Powerbuilding; everything else uses the hypertrophy range. This constant is the
+// single edit point for the heavy-pattern policy (data, not buried logic).
+//
+// NOTE: a conventional deadlift and a Romanian deadlift both map to `hinge`, so
+// both land here. That is an intentional approximation until per-exercise metadata
+// (generation Phase 0 #2) can separate the main lift from its accessory variants.
+export const POWERBUILDING_HEAVY_PATTERNS: ReadonlySet<MovementPattern> = new Set([
+    'squat',
+    'hinge',
+    'horizontal_push',
+    'vertical_push',
+]);
+
+/** Rep range for a slot, given the bias already resolved by `resolveBias`.
+ *  Powerbuilding is the one style that overrides per movement pattern: the main
+ *  patterns get the strength range, accessories get hypertrophy. Every other style
+ *  simply defers to `repRange` on the resolved bias (pattern ignored). */
+export function resolveRepRange(
+    effectiveBias: Bias,
+    pattern: MovementPattern,
+    isCompound: boolean,
+    goal: Goal | undefined,
+    style: TrainingStyle,
+): string {
+    if (style === 'powerbuilding') {
+        const heavy = POWERBUILDING_HEAVY_PATTERNS.has(pattern);
+        return repRange(heavy ? 'strength' : 'hypertrophy', isCompound, goal);
+    }
+    return repRange(effectiveBias, isCompound, goal);
+}
+
 const FOCUS_TYPE: Record<Focus, WorkoutType> = {
     full_body: 'full_body',
     upper: 'upper',
