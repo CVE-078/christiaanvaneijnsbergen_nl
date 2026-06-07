@@ -976,6 +976,36 @@ export function sessionDecisions(
     };
 }
 
+// Deterministic, rule-based coach read for the debrief (no LLM). Ordered rules:
+// ramp-back > wins (PRs/progressions, with a deload clause) > deload-only > steady.
+export function composeCoachRead(input: {
+    prCount: number;
+    progressionCount: number;
+    deloadCount: number;
+    rampBack: boolean;
+}): string {
+    const { prCount, progressionCount, deloadCount, rampBack } = input;
+    if (rampBack) {
+        return 'Easier ramp-back session by design, welcome back. Keep it controlled and rebuild from here.';
+    }
+    const wins: string[] = [];
+    if (prCount > 0) wins.push(prCount === 1 ? 'set a new PR' : `set ${prCount} new PRs`);
+    if (progressionCount > 0) {
+        wins.push(`progressed ${progressionCount} ${progressionCount === 1 ? 'lift' : 'lifts'}`);
+    }
+    const deloadClause =
+        deloadCount > 0
+            ? `, ${deloadCount === 1 ? 'one lift' : `${deloadCount} lifts`} backed off on purpose to reset`
+            : '';
+    if (wins.length > 0) {
+        return `Strong session. You ${wins.join(' and ')}${deloadClause}.`;
+    }
+    if (deloadCount > 0) {
+        return `Smart session. ${deloadCount === 1 ? 'One lift' : `${deloadCount} lifts`} backed off on purpose to break a stall, exactly the right call.`;
+    }
+    return 'Steady session, right on plan. Nothing needed adjusting, hold the line and keep showing up.';
+}
+
 export function groupExercises(exercises: RoutineExercise[]): ExerciseItem[] {
     const items: ExerciseItem[] = [];
     let i = 0;
