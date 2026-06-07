@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/lib/pulse/toast';
+import { usePulse } from '@/context/PulseContext';
 import type { Toast } from '@/lib/pulse/toast';
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
@@ -45,15 +46,21 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
 
 export default function ToastContainer() {
     const { toasts, dismiss } = useToast();
+    const { workoutModeOpen } = usePulse();
     const handleDismiss = useCallback((id: string) => dismiss(id), [dismiss]);
 
     if (toasts.length === 0) return null;
 
+    // Guided mode puts its primary actions (Save / Next / Finish) along the bottom,
+    // so anchor toasts to the top there, just below the guided topbar, instead of
+    // letting them sit over those buttons. Elsewhere they stay bottom-right, above
+    // the mobile BottomNav.
+    const position = workoutModeOpen
+        ? 'right-4 top-[calc(env(safe-area-inset-top)+4.5rem)]'
+        : 'bottom-20 right-4 lg:bottom-4';
+
     return (
-        <div
-            className="fixed bottom-20 right-4 z-50 flex flex-col gap-2 lg:bottom-4"
-            aria-live="polite"
-            aria-atomic="false">
+        <div className={`fixed z-50 flex flex-col gap-2 ${position}`} aria-live="polite" aria-atomic="false">
             {toasts.map((toast) => (
                 <ToastItem key={toast.id} toast={toast} onDismiss={handleDismiss} />
             ))}

@@ -3,6 +3,10 @@ import { render, screen, act, fireEvent } from '@testing-library/react';
 import { ToastProvider, useToast } from '@/lib/pulse/toast';
 import ToastContainer from '../ToastContainer';
 
+// ToastContainer reads workoutModeOpen to choose top vs bottom anchoring; stub the
+// provider so the container renders standalone (bottom anchoring by default).
+vi.mock('@/context/PulseContext', () => ({ usePulse: () => ({ workoutModeOpen: false }) }));
+
 // Helper that exposes show() so tests can push toasts and trigger re-renders.
 let showRef: (message: string, variant?: 'error' | 'success' | 'info') => void;
 

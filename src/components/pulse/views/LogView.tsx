@@ -391,7 +391,7 @@ export default function LogView() {
                         actions drop to their own line rather than ever clipping on small screens. */}
                     {routineExercises.length > 0 &&
                         (dayComplete ? (
-                            <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-pulse-surface-2 py-2.5 pl-3.5 pr-2.5">
+                            <div className="mt-3.5 flex min-h-[3.25rem] flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-pulse-surface-2 py-2 pl-3.5 pr-2">
                                 <span className="inline-flex items-center gap-1.5 font-pulse text-[0.8125rem] font-semibold text-pulse-success">
                                     <svg
                                         viewBox="0 0 24 24"
@@ -428,7 +428,7 @@ export default function LogView() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-pulse-surface-2 py-2 pl-3.5 pr-2">
+                            <div className="mt-3.5 flex min-h-[3.25rem] flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-pulse-surface-2 py-2 pl-3.5 pr-2">
                                 <div className="flex min-w-0 items-baseline gap-2">
                                     <span className="font-pulse text-[0.8125rem] font-semibold text-pulse-dim">
                                         Ready to train

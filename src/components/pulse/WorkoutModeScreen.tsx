@@ -676,7 +676,7 @@ export default function WorkoutModeScreen({
                             <div className="font-pulse-body text-[0.65625rem] font-semibold uppercase tracking-[0.22em] text-pulse-accent">
                                 Now lifting
                             </div>
-                            <h2 className="mt-1.5 break-words text-balance font-pulse-display text-[2.5rem] font-bold uppercase leading-[0.92] tracking-[-0.01em] text-pulse-text">
+                            <h2 className="mt-1.5 break-words text-balance font-pulse-display text-[clamp(1.5rem,6.5vw,2.5rem)] font-bold uppercase leading-[0.95] tracking-[-0.01em] text-pulse-text">
                                 {single ? nameOf(single) : 'Superset'}
                             </h2>
                             <div className="mt-2.5 font-pulse-body text-[0.71875rem] leading-relaxed text-pulse-dim">
