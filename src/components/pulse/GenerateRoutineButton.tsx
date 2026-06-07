@@ -24,7 +24,7 @@ export default function GenerateRoutineButton({
             </button>
             {open && (
                 <RoutineSetupFlow
-                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks, trainingStyle, varietyPreference }) => {
+                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks, trainingStyle, varietyPreference, loadingLean }) => {
                         const routine = await generateRoutine(
                             answers,
                             trainingDays,
@@ -33,6 +33,7 @@ export default function GenerateRoutineButton({
                             undefined,
                             trainingStyle,
                             varietyPreference,
+                            loadingLean ?? undefined,
                         );
                         if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
                         // New routines default to 12 weeks in the DB; only write when it differs.

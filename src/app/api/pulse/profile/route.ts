@@ -18,6 +18,7 @@ export async function GET() {
         priority_muscle: null,
         training_style: null,
         variety_preference: null,
+        loading_lean: null,
         timezone: 'UTC',
     };
     try {

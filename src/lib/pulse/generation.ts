@@ -12,6 +12,7 @@ import type {
     PriorityMuscle,
     TrainingStyle,
     VarietyPreference,
+    LoadingPreference,
     WorkoutType,
     WorkoutVariant,
 } from './types';
@@ -540,6 +541,19 @@ function patternTier(pattern: MovementPattern, isCompound: boolean): number {
 // are intentionally excluded -- Back Squat + Bulgarian Split Squat is valid.
 const HEAVY_DEDUP_PATTERNS: ReadonlySet<MovementPattern> = new Set(['hinge', 'squat']);
 
+// ── Loading lean: modality preference secondary sort ─────────────────────────
+// Maps a LoadingPreference to the EquipmentKey that identifies that modality.
+// Used in byPattern to float preferred-equipment exercises to the front of the
+// candidate list so the fresh-preference logic picks them first. Note the
+// plural/singular mismatch between the preference names and EquipmentKey values
+// ('dumbbell' → 'dumbbells', 'machine' → 'machines', 'cable' → 'cables').
+const LOADING_TO_EQUIPMENT: Record<LoadingPreference, EquipmentKey> = {
+    barbell: 'barbell',
+    dumbbell: 'dumbbells',
+    machine: 'machines',
+    cable: 'cables',
+};
+
 // ── Slot selection (cross-session avoid-set) ─────────────────────────────────
 
 interface Selected {
@@ -563,9 +577,22 @@ function selectForSession(
     used: Set<string>,
     variety: VarietyPreference,
     anchors: Map<MovementPattern, string>,
+    loadingLean?: LoadingPreference | null,
 ): Selected[] {
+    const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
+
+    // Sort candidates: preferred-equipment exercises first (within freshness),
+    // then stable alphabetical by id. When loadingLean is null/undefined the
+    // sort is purely alphabetical (byte-identical to the pre-loading-lean output).
     const byPattern = (p: MovementPattern) =>
-        usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => a.id.localeCompare(b.id));
+        usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => {
+            if (preferredKey) {
+                const aMatch = a.equipment.includes(preferredKey) ? 0 : 1;
+                const bMatch = b.equipment.includes(preferredKey) ? 0 : 1;
+                if (aMatch !== bMatch) return aMatch - bMatch;
+            }
+            return a.id.localeCompare(b.id);
+        });
 
     const chosen: Selected[] = [];
     const chosenIds = new Set<string>();
@@ -747,6 +774,9 @@ export interface GenerationInput {
     /** How much to rotate exercises across sessions. Absent / 'varied' is the
      *  no-op identity path; 'consistent' anchors the main compounds. */
     varietyPreference?: VarietyPreference;
+    /** Which loading modality to prefer within a slot (secondary sort inside
+     *  byPattern). Absent / null is the no-op identity path. */
+    loadingLean?: LoadingPreference | null;
     /** Generates a unique superset group id. Server passes crypto.randomUUID. */
     makeGroupId?: () => string;
 }
@@ -796,7 +826,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';
         const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
-        const selected = selectForSession(emphasis, exCount, usable, used, variety, anchors);
+        const selected = selectForSession(emphasis, exCount, usable, used, variety, anchors, input.loadingLean);
 
         // Tier sort: present exercises in coach-standard order within each session.
         // Compounds lead (Tier 1: squat/hinge; Tier 2: push/pull/lunge), isolations
