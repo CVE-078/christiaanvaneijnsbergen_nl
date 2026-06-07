@@ -23,6 +23,7 @@ const defaultProfile: Profile = {
     gender: null,
     priority_muscle: null,
     training_style: null,
+    variety_preference: null,
     timezone: 'UTC',
 };
 const defaultBWLogs: BodyweightEntry[] = [];

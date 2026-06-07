@@ -23,6 +23,7 @@ const mockContext = {
         gender: null,
         priority_muscle: null,
         training_style: null,
+        variety_preference: null,
         timezone: 'UTC',
     },
     prMap: {},
