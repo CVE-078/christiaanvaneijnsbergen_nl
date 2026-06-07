@@ -14,6 +14,7 @@ import type {
     LogEntry,
     Gender,
     PriorityMuscle,
+    TrainingStyle,
     View,
     PRMap,
     DbExercise,
@@ -59,6 +60,7 @@ export interface PulseContextValue {
     updateGender: (gender: Gender | null) => Promise<void>;
     updateLengthUnit: (lengthUnit: LengthUnit) => Promise<void>;
     updatePriorityMuscle: (priority: PriorityMuscle | 'balanced' | null) => Promise<void>;
+    updateTrainingStyle: (style: TrainingStyle | null) => Promise<void>;
     updateTimezone: (timezone: string) => Promise<void>;
     updateAccentColor: (accentColor: string) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;

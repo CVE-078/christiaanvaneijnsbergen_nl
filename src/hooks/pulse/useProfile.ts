@@ -5,6 +5,7 @@ import {
     updateGender as serverUpdateGender,
     updateLengthUnit as serverUpdateLengthUnit,
     updatePriorityMuscle as serverUpdatePriorityMuscle,
+    updateTrainingStyle as serverUpdateTrainingStyle,
     updateTimezone as serverUpdateTimezone,
     updateAccentColor as serverUpdateAccentColor,
     logBodyWeight as serverLogBodyWeight,
@@ -19,6 +20,7 @@ import type {
     LengthUnit,
     Gender,
     PriorityMuscle,
+    TrainingStyle,
 } from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
@@ -39,6 +41,7 @@ const DEFAULT_PROFILE: Profile = {
     goal_weight_kg: null,
     gender: null,
     priority_muscle: null,
+    training_style: null,
     timezone: 'UTC',
     accent_color: null,
 };
@@ -119,6 +122,18 @@ export function useProfile() {
         [mutateProfile, profile],
     );
 
+    const updateTrainingStyle = useCallback(
+        async (style: TrainingStyle | null): Promise<void> => {
+            mutateProfile({ ...profile, training_style: style }, false);
+            try {
+                await serverUpdateTrainingStyle(style);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
     const updateTimezone = useCallback(
         async (timezone: string): Promise<void> => {
             mutateProfile({ ...profile, timezone }, false);
@@ -176,6 +191,7 @@ export function useProfile() {
         updateGender,
         updateLengthUnit,
         updatePriorityMuscle,
+        updateTrainingStyle,
         updateTimezone,
         updateAccentColor,
         logBodyWeight,

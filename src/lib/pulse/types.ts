@@ -55,6 +55,8 @@ export interface Profile {
     goal_weight_kg: number | null;
     gender: Gender | null;
     priority_muscle: PriorityMuscle | 'balanced' | null;
+    // How the user wants to train; seeds generation. null = never chosen (Balanced).
+    training_style: TrainingStyle | null;
     // IANA timezone (e.g. 'Europe/Amsterdam'); used to resolve "today"/weekday
     // for calendar adherence. Defaults to 'UTC' until the browser reports one.
     timezone: string;
