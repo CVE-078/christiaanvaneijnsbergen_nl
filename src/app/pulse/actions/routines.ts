@@ -393,6 +393,7 @@ interface ExercisePoolRow {
     equipment: EquipmentKey[] | null;
     movement_pattern: ExerciseMeta['movement_pattern'];
     is_compound: boolean;
+    fatigue: number | null;
 }
 
 export async function generateAndSaveRoutine(
@@ -437,7 +438,7 @@ export async function generateAndSaveRoutine(
 
     const { data: poolData } = await supabase
         .from('exercises')
-        .select('id, category, equipment, movement_pattern, is_compound')
+        .select('id, category, equipment, movement_pattern, is_compound, fatigue')
         .is('user_id', null);
 
     // The persisted muscle priority tilts each session's emphasis toward that
@@ -472,6 +473,7 @@ export async function generateAndSaveRoutine(
             equipment: row.equipment ?? [],
             movement_pattern: row.movement_pattern,
             is_compound: row.is_compound,
+            ...(row.fatigue !== null ? { fatigue: row.fatigue } : {}),
         }));
 
     const blueprint = generateRoutine({
