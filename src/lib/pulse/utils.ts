@@ -39,6 +39,8 @@ import type {
     BodyweightEntry,
     BodyMeasurement,
     DecisionEvent,
+    DecisionEventRow,
+    SessionSummary,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -664,6 +666,28 @@ export function computeShareStats(
         topLifts: allLifts.slice(0, 3),
         prCount: allLifts.filter((l) => l.isPR).length,
     };
+}
+
+// Total external load for a session: kg*reps over every saved set (incl. drop
+// sets) of the session's exercises in the given week, returned in the display
+// unit. Pure-bodyweight sets (kg 0) contribute their added load only.
+export function computeSessionTonnage(
+    exercises: RoutineExercise[],
+    logs: Logs,
+    week: number,
+    unit: Unit,
+): number {
+    const ids = new Set(exercises.map((e) => e.id));
+    let kg = 0;
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const parsed = parseLogKey(key);
+        if (!parsed || parsed.week !== week) continue;
+        if (!ids.has(parsed.routineExerciseId)) continue;
+        kg += val.kg * val.reps;
+        if (val.drops) for (const d of val.drops) kg += d.kg * d.reps;
+    }
+    return toDisplay(kg, unit);
 }
 
 // Mirrors the PR check inside computeShareStats: a set is a PR when its
