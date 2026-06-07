@@ -175,6 +175,19 @@ export interface ShareStats {
     prCount: number;
 }
 
+export interface SessionSummary extends ShareStats {
+    // Total external load this session in the display unit (sum of kg*reps over
+    // saved sets incl. drop sets). Pure-bodyweight sets contribute their added
+    // load only (0 for unloaded).
+    tonnage: number;
+    // Top muscle categories worked this session, fractional sets, highest first.
+    muscles: Array<{ category: ExerciseCategory; sets: number }>;
+    // This session's adaptive-engine events, bucketed for the "what adapted" list.
+    decisions: { progressions: DecisionEventRow[]; deloads: DecisionEventRow[]; rampBack: DecisionEventRow[] };
+    // Deterministic one-line coach read (no LLM).
+    coachRead: string;
+}
+
 export const EXERCISE_CATEGORIES = [
     'chest',
     'shoulders',
@@ -274,6 +287,8 @@ export interface WorkoutSession {
     variant: WorkoutVariant | null;
     started_at: string;
     completed_at: string | null;
+    session_rpe: number | null;
+    session_note: string | null;
 }
 
 // ── Adaptive missed-workout regeneration ────────────────────────────────────

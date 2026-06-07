@@ -42,6 +42,8 @@ const sess = (
     variant,
     started_at: completed_at ?? '2026-01-01T00:00:00Z',
     completed_at,
+    session_rpe: null,
+    session_note: null,
 });
 const adj = (kind: AdjustmentKind, effective_week: number): ProgramAdjustment => ({
     id: `a${idc++}`,

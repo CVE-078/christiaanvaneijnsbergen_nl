@@ -930,6 +930,8 @@ describe('computeShareStats', () => {
         variant: null,
         started_at: '2026-05-30T10:00:00.000Z',
         completed_at: null,
+        session_rpe: null,
+        session_note: null,
     };
     const completedAt = '2026-05-30T10:47:00.000Z';
 

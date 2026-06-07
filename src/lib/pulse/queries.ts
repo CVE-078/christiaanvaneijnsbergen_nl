@@ -35,7 +35,7 @@ const EXERCISES_SELECT =
 const NOTES_SELECT = 'week, routine_exercise_id, note';
 const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
-const SESSIONS_SELECT = 'id, user_id, routine_id, workout_type, variant, started_at, completed_at';
+const SESSIONS_SELECT = 'id, user_id, routine_id, workout_type, variant, started_at, completed_at, session_rpe, session_note';
 const ADJUSTMENTS_SELECT = 'id, routine_id, kind, effective_week, created_at, payload';
 const DECISION_EVENTS_SELECT = 'id, routine_id, type, trigger, affected_area, week, magnitude, confidence, created_at';
 const ROUTINES_SELECT = `
@@ -217,6 +217,8 @@ export async function loadSessions(supabase: SupabaseServerClient, userId: strin
         variant: r.variant ?? null,
         started_at: r.started_at,
         completed_at: r.completed_at ?? null,
+        session_rpe: r.session_rpe ?? null,
+        session_note: r.session_note ?? null,
     }));
 }
 
