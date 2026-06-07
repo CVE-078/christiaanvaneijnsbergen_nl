@@ -8,7 +8,7 @@
 //   - views/library/ExercisesTab.tsx   INPUT, BTN_PRIMARY, CARD
 //   - views/ProfileView.tsx            INPUT, BTN_PRIMARY
 //   - WorkoutModeScreen.tsx            BTN_PRIMARY_BLOCK
-//   - ShareCard.tsx                    BTN_PRIMARY_BLOCK
+//   - FinishDebrief.tsx                BTN_PRIMARY_BLOCK
 //   - PageSkeleton.tsx (ErrorState)    BTN_PRIMARY
 //   - RoutineSetupFlow.tsx             BTN_PRIMARY_BLOCK
 //
