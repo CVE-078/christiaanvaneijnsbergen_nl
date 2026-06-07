@@ -957,6 +957,25 @@ export function computeRecompSignal(args: {
     return { weight, strength, waist, isRecomping, verdict, weightDeltaKg, strengthDeltaPct, waistDeltaCm };
 }
 
+// Adaptive-engine events attributable to this session: same program week, and
+// either targeting one of the session's exercises or program-wide (ramp-back,
+// affectedArea ''). Decisions are stored per routine+week+exercise, not by
+// session id, so week + exercise membership is the correct attribution.
+export function sessionDecisions(
+    decisions: DecisionEventRow[],
+    week: number,
+    exerciseIds: Set<string>,
+): { progressions: DecisionEventRow[]; deloads: DecisionEventRow[]; rampBack: DecisionEventRow[] } {
+    const inScope = decisions.filter(
+        (dec) => dec.week === week && (dec.affectedArea === '' || exerciseIds.has(dec.affectedArea)),
+    );
+    return {
+        progressions: inScope.filter((dec) => dec.type === 'progression'),
+        deloads: inScope.filter((dec) => dec.type === 'deload'),
+        rampBack: inScope.filter((dec) => dec.type === 'ramp_back'),
+    };
+}
+
 export function groupExercises(exercises: RoutineExercise[]): ExerciseItem[] {
     const items: ExerciseItem[] = [];
     let i = 0;
