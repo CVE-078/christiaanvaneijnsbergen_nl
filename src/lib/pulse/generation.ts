@@ -624,6 +624,9 @@ export interface GenerationInput {
     pool: ExerciseMeta[];
     /** Active muscle priority (resolved; null = none). Tilts each session's emphasis. */
     priority?: PriorityMuscle | null;
+    /** How the user wants to train. Remaps each session's bias and rep ranges.
+     *  Absent / 'balanced' is a no-op (identity). */
+    trainingStyle?: TrainingStyle;
     /** Generates a unique superset group id. Server passes crypto.randomUUID. */
     makeGroupId?: () => string;
 }
@@ -667,6 +670,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         schedule.push({ day_of_week: days[i], workout_type, variant });
 
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
+        const style2 = input.trainingStyle ?? 'balanced';
+        const effectiveBias = resolveBias(emphasis.bias, style2);
         const selected = selectForSession(emphasis, exCount, usable, used);
 
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
@@ -680,18 +685,17 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         ordered.forEach(({ item, groupId }, order) => {
             const { ex, pattern } = item;
             let exSets = baseSets;
-            if (emphasis.bias === 'strength' && ex.is_compound && !firstCompoundBumped) {
+            if (effectiveBias === 'strength' && ex.is_compound && !firstCompoundBumped) {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            void pattern;
             exercises.push({
                 exercise_id: ex.id,
                 workout_type,
                 variant,
                 order,
                 sets: String(exSets),
-                reps: repRange(emphasis.bias, ex.is_compound, answers.goal),
+                reps: resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, style2),
                 superset_group_id: groupId,
             });
         });

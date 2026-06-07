@@ -498,3 +498,53 @@ describe('buildRationale', () => {
         );
     });
 });
+
+// ── 10. generateRoutine + trainingStyle ──────────────────────────────────────
+
+describe('generateRoutine + trainingStyle', () => {
+    it('balanced (and omitted) reproduce the current blueprint across every archetype', () => {
+        const archetypes: { key: string; count: number; days: number[] }[] = [
+            { key: STYLES[2][0].key, count: 2, days: [1, 4] },
+            { key: STYLES[3][0].key, count: 3, days: [1, 3, 5] },
+            { key: 'ppl-3', count: 3, days: [1, 3, 5] },
+            { key: 'ul-classic-4', count: 4, days: [1, 2, 4, 5] },
+            { key: 'ppl-x2-6', count: 6, days: [1, 2, 3, 4, 5, 6] },
+        ];
+        for (const a of archetypes) {
+            const style = STYLES[a.count].find((s) => s.key === a.key) as ProgramStyle;
+            const base = generateRoutine(input({ style, trainingDays: a.days }));
+            const balanced = generateRoutine(input({ style, trainingDays: a.days, trainingStyle: 'balanced' }));
+            expect(balanced).toEqual(base);
+        }
+    });
+    it('strength lowers rep ranges and bumps the first compound on a PPL split', () => {
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const base = generateRoutine(input({ style, trainingDays: [1, 3, 5] }));
+        const strong = generateRoutine(input({ style, trainingDays: [1, 3, 5], trainingStyle: 'strength' }));
+        expect(strong.exercises.map((e) => e.reps)).not.toEqual(base.exercises.map((e) => e.reps));
+        expect(strong.exercises.some((e) => e.sets === '4')).toBe(true);
+    });
+    it('powerbuilding splits heavy patterns vs accessories within a PPL session', () => {
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], trainingStyle: 'powerbuilding' }));
+        const strengthRange = repRange('strength', true, 'build_muscle');
+        const hyperIso = repRange('hypertrophy', false, 'build_muscle');
+        const push = bp.exercises.filter((e) => e.workout_type === 'push');
+        expect(push.some((e) => e.reps === strengthRange)).toBe(true);
+        expect(push.some((e) => e.reps === hyperIso)).toBe(true);
+    });
+    it('powerbuilding also splits on a U/L split (more than one archetype verified)', () => {
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], trainingStyle: 'powerbuilding' }));
+        const strengthRange = repRange('strength', true, 'build_muscle');
+        const hyperIso = repRange('hypertrophy', false, 'build_muscle');
+        expect(bp.exercises.some((e) => e.reps === strengthRange)).toBe(true);
+        expect(bp.exercises.some((e) => e.reps === hyperIso)).toBe(true);
+    });
+    it('6-day PPL + strength: every session has a well-formed range and exactly one bumped compound', () => {
+        const style = STYLES[6][0] as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], trainingStyle: 'strength' }));
+        expect(bp.exercises.every((e) => /^\d+-\d+$/.test(e.reps))).toBe(true);
+        expect(bp.exercises.filter((e) => e.sets === '4').length).toBe(bp.schedule.length);
+    });
+});
