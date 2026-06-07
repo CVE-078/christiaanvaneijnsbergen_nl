@@ -4,7 +4,7 @@ import { DAY_NAMES, SUGGESTED_DAYS, MAX_TRAINING_DAYS } from '@/lib/pulse/consta
 import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { PROGRAM_LENGTHS } from '@/lib/pulse/data';
 import { BTN_PRIMARY_BLOCK } from './ui';
-import type { EquipmentKey, SessionTime, Gender } from '@/lib/pulse/types';
+import type { EquipmentKey, SessionTime, Gender, TrainingStyle } from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
 // Steps: 'gender' (only when collectGender, optional/skippable) · 1 equipment ·
@@ -13,7 +13,7 @@ import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/li
 // 'length' program length · 'start' when-to-start.
 // 'length' + 'start' are the two "shape your program" choices (program_weeks +
 // program_anchor), applied by the consumer after the routine is created.
-type Step = 'gender' | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 'length' | 'start';
+type Step = 'gender' | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 'train_style' | 'length' | 'start';
 type StartChoice = 'today' | 'tomorrow' | 'monday' | 'custom';
 
 // Program-length options come from the single source in data.ts (8/10/12/16);
@@ -100,6 +100,13 @@ function OptionRow({
     );
 }
 
+const TRAINING_STYLE_OPTIONS: { key: TrainingStyle; label: string; desc: string }[] = [
+    { key: 'balanced', label: 'Balanced', desc: 'A bit of everything. Heavy days, hypertrophy days, and a pump day.' },
+    { key: 'strength', label: 'Strength', desc: 'Lower reps and heavier loads on the big lifts. Still keeps one lighter day each week.' },
+    { key: 'bodybuilding', label: 'Bodybuilding', desc: 'Moderate-to-high reps for size, across every session.' },
+    { key: 'powerbuilding', label: 'Powerbuilding', desc: 'A blend: heavy, low-rep work on the main lifts, higher-rep work on the accessories.' },
+];
+
 const EQUIPMENT_OPTIONS: { key: EquipmentKey; label: string }[] = [
     { key: 'dumbbells', label: 'Dumbbells' },
     { key: 'barbell', label: 'Barbell & plates' },
@@ -125,6 +132,9 @@ export interface RoutineSetupResult {
      *  length step (defaults to 12); the consumer applies it after create when it
      *  differs from the DB default. */
     programWeeks: number;
+    /** Chosen training style; always set (defaults to 'balanced'). Generate
+     *  consumers pass it to generateRoutine; the template consumer ignores it. */
+    trainingStyle: TrainingStyle;
 }
 
 interface Props {
@@ -145,6 +155,9 @@ interface Props {
     /** Optional one-line positioning lead shown above the very first step. Set
      *  only by first-run onboarding; later routine-creation surfaces omit it. */
     intro?: string;
+    /** Show the "How do you want to train?" step. Default true; template cloning
+     *  sets this false because a fixed template can't be re-biased by style. */
+    collectTrainingStyle?: boolean;
 }
 
 export default function RoutineSetupFlow({
@@ -154,6 +167,7 @@ export default function RoutineSetupFlow({
     completeLabel = 'Create routine',
     collectGender = false,
     intro,
+    collectTrainingStyle = true,
 }: Props) {
     const [step, setStep] = useState<Step>(collectGender ? 'gender' : 1);
     const [gender, setGender] = useState<Gender | null>(null);
@@ -171,6 +185,7 @@ export default function RoutineSetupFlow({
     const [startChoice, setStartChoice] = useState<StartChoice>('today');
     const [customDate, setCustomDate] = useState('');
     const [programWeeks, setProgramWeeks] = useState<number>(DEFAULT_PROGRAM_WEEKS);
+    const [trainingStyle, setTrainingStyle] = useState<TrainingStyle>('balanced');
     const [loading, setLoading] = useState(false);
 
     // The days-per-week answer caps how many days can be picked, so the chosen
@@ -191,7 +206,7 @@ export default function RoutineSetupFlow({
     // one position later in the progress display.
     const genderOffset = collectGender ? 1 : 0;
     // +1 for the program-length step, which always shows.
-    const total = (showStyleStep ? 9 : 8) + genderOffset;
+    const total = 8 + genderOffset + (showStyleStep ? 1 : 0) + (collectTrainingStyle ? 1 : 0);
 
     function toggleEquipment(key: EquipmentKey) {
         setEquipment((prev) => {
@@ -225,6 +240,7 @@ export default function RoutineSetupFlow({
                     gender,
                     startAnchor: startAnchorISO(),
                     programWeeks,
+                    trainingStyle,
                 });
             } finally {
                 setLoading(false);
@@ -503,11 +519,38 @@ export default function RoutineSetupFlow({
             </div>
         );
 
+    if (step === 'train_style')
+        return (
+            <div className={WRAP}>
+                <div className={CARD}>
+                    <Header stepNum={total - 2} total={total} onBack={() => setStep(7)} />
+                    <p className={Q}>How do you want to train?</p>
+                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                        Same plan, tuned to your style. You can change this anytime you regenerate.
+                    </p>
+                    <div className="flex flex-col gap-2">
+                        {TRAINING_STYLE_OPTIONS.map((o) => (
+                            <OptionRow
+                                key={o.key}
+                                label={o.label}
+                                desc={o.desc}
+                                active={trainingStyle === o.key}
+                                onClick={() => setTrainingStyle(o.key)}
+                            />
+                        ))}
+                    </div>
+                    <button onClick={() => setStep('length')} className={BTN_PRIMARY_BLOCK}>
+                        Next
+                    </button>
+                </div>
+            </div>
+        );
+
     if (step === 'length')
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={total - 1} total={total} onBack={() => setStep(7)} />
+                    <Header stepNum={total - 1} total={total} onBack={() => setStep(collectTrainingStyle ? 'train_style' : 7)} />
                     <p className={Q}>How long should your program be?</p>
                     <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
                         How long a training block runs before it repeats with a deload. You can change it later in Plan.
@@ -587,13 +630,13 @@ export default function RoutineSetupFlow({
     const previewStyle = resolveStyle(styleKey ?? recommendStyle(trainingDays.length), trainingDays.length);
     const rationalePreview =
         experience && goal && days && sessionTime && trainingDays.length > 0
-            ? buildRationale({ equipment, experience, goal, days }, sessionTime, previewStyle)
+            ? buildRationale({ equipment, experience, goal, days }, sessionTime, previewStyle, null, trainingStyle)
             : null;
 
     return (
         <div className={WRAP}>
             <div className={CARD}>
-                <Header stepNum={total - 2} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
+                <Header stepNum={total - 2 - (collectTrainingStyle ? 1 : 0)} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
                 <p className={Q}>How long are your sessions?</p>
                 <div className="flex flex-col gap-2">
                     <OptionRow
@@ -623,7 +666,7 @@ export default function RoutineSetupFlow({
                         <p className="font-pulse text-sm text-pulse-dim leading-[1.55]">{rationalePreview}</p>
                     </div>
                 )}
-                <button onClick={() => setStep('length')} disabled={!sessionTime} className={BTN_PRIMARY_BLOCK}>
+                <button onClick={() => setStep(collectTrainingStyle ? 'train_style' : 'length')} disabled={!sessionTime} className={BTN_PRIMARY_BLOCK}>
                     Next
                 </button>
             </div>

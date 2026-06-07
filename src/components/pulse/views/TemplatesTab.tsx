@@ -178,6 +178,7 @@ export default function TemplatesTab() {
                         experience: setupTemplate.experience_level,
                     }}
                     completeLabel="Use this routine"
+                    collectTrainingStyle={false}
                     onComplete={async ({ answers, trainingDays, sessionTime, startAnchor, programWeeks }) => {
                         const routine = await cloneTemplate(
                             setupTemplate.slug,
