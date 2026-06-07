@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
-import { toPng } from 'html-to-image';
+import { toBlob } from 'html-to-image';
 import { computeSessionSummary } from '@/lib/pulse/utils';
 import { BTN_PRIMARY_BLOCK } from './ui';
 import RpeScale from './RpeScale';
@@ -55,16 +55,20 @@ export default function FinishDebrief({
     async function handleShare() {
         if (!shareRef.current) return;
         try {
-            const dataUrl = await toPng(shareRef.current, { pixelRatio: 2, backgroundColor: '#0e1113' });
-            const blob = await (await fetch(dataUrl)).blob();
+            // toBlob (not toPng + fetch): fetching a data: URL would be blocked by the
+            // /pulse connect-src CSP, which does not list data:. A Blob avoids the fetch.
+            const blob = await toBlob(shareRef.current, { pixelRatio: 2, backgroundColor: '#0e1113' });
+            if (!blob) return;
             const file = new File([blob], 'pulse-session.png', { type: 'image/png' });
             if (navigator.canShare?.({ files: [file] })) {
                 await navigator.share({ files: [file] });
             } else {
+                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = dataUrl;
+                a.href = url;
                 a.download = 'pulse-session.png';
                 a.click();
+                URL.revokeObjectURL(url);
             }
         } catch {
             // User-cancelled share or unsupported; no-op.
