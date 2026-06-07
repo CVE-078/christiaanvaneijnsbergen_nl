@@ -505,6 +505,10 @@ export interface ExerciseMeta {
     movement_pattern: MovementPattern | null;
     is_compound: boolean;
     category: ExerciseCategory;
+    /** Science-derived 1-5 fatigue cost (1 = low, 5 = high). Optional: exercises
+     *  without this field are treated as neutral (3) so they neither win nor lose
+     *  against well-characterised exercises on fatigue alone. */
+    fatigue?: number;
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
@@ -581,9 +585,12 @@ function selectForSession(
 ): Selected[] {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
 
-    // Sort candidates: preferred-equipment exercises first (within freshness),
-    // then stable alphabetical by id. When loadingLean is null/undefined the
-    // sort is purely alphabetical (byte-identical to the pre-loading-lean output).
+    // Sort candidates: (1) preferred-equipment first (loading lean), (2) lower
+    // fatigue first (GQ2 tiebreak; undefined → neutral midpoint 3 so untagged
+    // exercises neither win nor lose against well-characterised ones), (3) stable
+    // alphabetical by id. When loadingLean is null/undefined the first key is a
+    // no-op; when fatigue is uniformly undefined the second key is a no-op.
+    const FATIGUE_UNKNOWN = 3;
     const byPattern = (p: MovementPattern) =>
         usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => {
             if (preferredKey) {
@@ -591,6 +598,9 @@ function selectForSession(
                 const bMatch = b.equipment.includes(preferredKey) ? 0 : 1;
                 if (aMatch !== bMatch) return aMatch - bMatch;
             }
+            const aFatigue = a.fatigue ?? FATIGUE_UNKNOWN;
+            const bFatigue = b.fatigue ?? FATIGUE_UNKNOWN;
+            if (aFatigue !== bFatigue) return aFatigue - bFatigue;
             return a.id.localeCompare(b.id);
         });
 

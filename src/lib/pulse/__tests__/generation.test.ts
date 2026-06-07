@@ -867,3 +867,105 @@ describe('loading lean: golden identity -- null/undefined is byte-identical to b
         expect(nullLean).toEqual(base);
     });
 });
+
+// ── 13. GQ2: fatigue metadata into backfill priority ─────────────────────────
+
+function metaFatigue(
+    id: string,
+    pattern: MovementPattern,
+    fatigue: number,
+    equipment: EquipmentKey[] = ['dumbbells'],
+    compound = true,
+): ExerciseMeta {
+    return { id, movement_pattern: pattern, equipment, is_compound: compound, category: 'chest' as ExerciseCategory, fatigue };
+}
+
+describe('GQ2: lower-fatigue exercise preferred within same freshness', () => {
+    // Two squat exercises with the same equipment. The high-id one has lower
+    // fatigue -- with GQ2 it should be picked over the alphabetically-first one.
+    function poolWithFatigue(): ExerciseMeta[] {
+        return [
+            metaFatigue('squat-aa', 'squat', 5, ['dumbbells'], true), // high fatigue, alphabetically first
+            metaFatigue('squat-zz', 'squat', 1, ['dumbbells'], true), // low fatigue, alphabetically last
+            ...ALL_PATTERNS.filter((p) => p !== 'squat').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
+    }
+
+    it('picks lower-fatigue squat over the alphabetically-first when both fresh', () => {
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+
+        // Pool with no fatigue: alphabetically first (squat-aa) wins.
+        const poolNoFatigue = [
+            meta('squat-aa', 'squat', ['dumbbells'], true),
+            meta('squat-zz', 'squat', ['dumbbells'], true),
+            ...ALL_PATTERNS.filter((p) => p !== 'squat').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
+        const base = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: poolNoFatigue }));
+        expect(sessionIds(base, 'legs', null)).toContain('squat-aa');
+
+        // Pool with fatigue tagged: squat-zz (fatigue 1) beats squat-aa (fatigue 5).
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: poolWithFatigue() }));
+        expect(sessionIds(bp, 'legs', null)).toContain('squat-zz');
+        expect(sessionIds(bp, 'legs', null)).not.toContain('squat-aa');
+    });
+
+    it('fresh high-fatigue still beats used low-fatigue (fresh wins over fatigue)', () => {
+        // After session A uses squat-zz (low fatigue, fresh), session B should
+        // pick squat-aa (high fatigue, fresh) rather than the used squat-zz.
+        const pool = poolWithFatigue();
+        const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: legs × 2
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool }));
+        const legsA = sessionIds(bp, 'legs', 'A');
+        const legsB = sessionIds(bp, 'legs', 'B');
+        // Session A picks the low-fatigue squat (squat-zz, fatigue 1).
+        expect(legsA).toContain('squat-zz');
+        // Session B: squat-zz is used. Even though squat-aa is higher fatigue,
+        // it is the only FRESH squat -- fresh wins.
+        expect(legsB).toContain('squat-aa');
+    });
+});
+
+describe('GQ2: undefined fatigue is neutral (does not displace exercises with explicit fatigue)', () => {
+    it('existing pool with no fatigue field preserves alphabetical ordering', () => {
+        // deepPool() exercises have no fatigue set. They should all sort
+        // stably among themselves (undefined → neutral, falling back to id).
+        const style = STYLES[4][0] as ProgramStyle;
+        const base = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5] }));
+        const again = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5] }));
+        // Deterministic: same pool, same output.
+        expect(base).toEqual(again);
+    });
+});
+
+describe('GQ2: loading lean still beats fatigue within same freshness', () => {
+    it('preferred-equipment wins even when it has higher fatigue than non-preferred', () => {
+        // pool: barbell squat (preferred by loadingLean, high fatigue 5) and
+        // dumbbell squat (non-preferred, low fatigue 1). Loading lean preference
+        // should override the fatigue tiebreak.
+        const pool = [
+            metaFatigue('squat-bb', 'squat', 5, ['barbell'], true),
+            metaFatigue('squat-db', 'squat', 1, ['dumbbells'], true),
+            ...ALL_PATTERNS.filter((p) => p !== 'squat').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const answers = {
+            equipment: new Set<EquipmentKey>(['dumbbells', 'barbell']),
+            experience: 'intermediate' as const,
+            goal: 'build_muscle' as const,
+            days: '2-3' as const,
+        };
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, answers, loadingLean: 'barbell' }));
+        // Barbell squat (higher fatigue) still wins because loading lean takes priority.
+        expect(sessionIds(bp, 'legs', null)).toContain('squat-bb');
+        expect(sessionIds(bp, 'legs', null)).not.toContain('squat-db');
+    });
+});
