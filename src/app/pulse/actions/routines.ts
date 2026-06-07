@@ -27,6 +27,7 @@ import type {
     SessionTime,
     EquipmentKey,
     TrainingStyle,
+    VarietyPreference,
 } from '@/lib/pulse/types';
 import { assertUuid, assertOwnsRoutine, assertOwnsRoutineExercise } from './_shared';
 import { loadHiddenExerciseIds } from '@/lib/pulse/queries';
@@ -382,6 +383,7 @@ export async function generateAndSaveRoutine(
     styleKey: string,
     name?: string,
     trainingStyle?: TrainingStyle,
+    varietyPreference?: VarietyPreference,
 ): Promise<WorkoutRoutine> {
     if (!trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error('Invalid training days');
 
@@ -394,6 +396,9 @@ export async function generateAndSaveRoutine(
     if (!SESSION_TIMES.includes(sessionTime)) throw new Error('Invalid data');
     const TRAINING_STYLE_VALUES = ['balanced', 'strength', 'bodybuilding', 'powerbuilding'] as const;
     if (trainingStyle !== undefined && !TRAINING_STYLE_VALUES.includes(trainingStyle)) throw new Error('Invalid data');
+    const VARIETY_PREFERENCE_VALUES = ['consistent', 'varied'] as const;
+    if (varietyPreference !== undefined && !VARIETY_PREFERENCE_VALUES.includes(varietyPreference))
+        throw new Error('Invalid data');
 
     const style = resolveStyle(styleKey, trainingDays.length);
 
@@ -419,11 +424,14 @@ export async function generateAndSaveRoutine(
     // effect without requiring a visit to Profile.
     const { data: profileRow } = await supabase
         .from('profiles')
-        .select('priority_muscle, gender, training_style')
+        .select('priority_muscle, gender, training_style, variety_preference')
         .eq('id', user.id)
         .maybeSingle();
     const priority = resolvePriority(profileRow?.priority_muscle ?? genderDefault(profileRow?.gender ?? null));
     const resolvedTrainingStyle: TrainingStyle = trainingStyle ?? (profileRow?.training_style as TrainingStyle) ?? 'balanced';
+    // Param wins over the stored value, which falls back to 'varied' (identity).
+    const resolvedVariety: VarietyPreference =
+        varietyPreference ?? (profileRow?.variety_preference as VarietyPreference) ?? 'varied';
     const rationale = buildRationale(answers, sessionTime, style, priority, resolvedTrainingStyle);
 
     // Exclude the user's hidden exercises so generation never surfaces them. The
@@ -449,6 +457,7 @@ export async function generateAndSaveRoutine(
         pool,
         priority,
         trainingStyle: resolvedTrainingStyle,
+        varietyPreference: resolvedVariety,
         makeGroupId: () => crypto.randomUUID(),
     });
 
@@ -491,7 +500,10 @@ export async function generateAndSaveRoutine(
 
     const { error: profileErr } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, active_routine_id: routine.id, training_style: resolvedTrainingStyle }, { onConflict: 'id' });
+        .upsert(
+            { id: user.id, active_routine_id: routine.id, training_style: resolvedTrainingStyle, variety_preference: resolvedVariety },
+            { onConflict: 'id' },
+        );
     if (profileErr) throw new Error('Failed to set active routine');
 
     revalidatePath('/pulse');
