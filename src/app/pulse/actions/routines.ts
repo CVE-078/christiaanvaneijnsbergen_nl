@@ -28,6 +28,7 @@ import type {
     EquipmentKey,
     TrainingStyle,
     VarietyPreference,
+    LoadingPreference,
 } from '@/lib/pulse/types';
 import { assertUuid, assertOwnsRoutine, assertOwnsRoutineExercise } from './_shared';
 import { loadHiddenExerciseIds } from '@/lib/pulse/queries';
@@ -402,6 +403,7 @@ export async function generateAndSaveRoutine(
     name?: string,
     trainingStyle?: TrainingStyle,
     varietyPreference?: VarietyPreference,
+    loadingLean?: LoadingPreference,
 ): Promise<WorkoutRoutine> {
     if (!trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error('Invalid training days');
 
@@ -417,6 +419,8 @@ export async function generateAndSaveRoutine(
     const VARIETY_PREFERENCE_VALUES = ['consistent', 'varied'] as const;
     if (varietyPreference !== undefined && !VARIETY_PREFERENCE_VALUES.includes(varietyPreference))
         throw new Error('Invalid data');
+    const LOADING_LEAN_VALUES = ['barbell', 'dumbbell', 'machine', 'cable'] as const;
+    if (loadingLean !== undefined && !LOADING_LEAN_VALUES.includes(loadingLean)) throw new Error('Invalid data');
 
     const style = resolveStyle(styleKey, trainingDays.length);
 
@@ -442,7 +446,7 @@ export async function generateAndSaveRoutine(
     // effect without requiring a visit to Profile.
     const { data: profileRow } = await supabase
         .from('profiles')
-        .select('priority_muscle, gender, training_style, variety_preference')
+        .select('priority_muscle, gender, training_style, variety_preference, loading_lean')
         .eq('id', user.id)
         .maybeSingle();
     const priority = resolvePriority(profileRow?.priority_muscle ?? genderDefault(profileRow?.gender ?? null));
@@ -450,6 +454,9 @@ export async function generateAndSaveRoutine(
     // Param wins over the stored value, which falls back to 'varied' (identity).
     const resolvedVariety: VarietyPreference =
         varietyPreference ?? (profileRow?.variety_preference as VarietyPreference) ?? 'varied';
+    // Param wins over stored value; null stored value = no preference (identity).
+    const resolvedLoadingLean: LoadingPreference | undefined =
+        loadingLean ?? (profileRow?.loading_lean as LoadingPreference) ?? undefined;
     const rationale = buildRationale(answers, sessionTime, style, priority, resolvedTrainingStyle);
 
     // Exclude the user's hidden exercises so generation never surfaces them. The
@@ -476,6 +483,7 @@ export async function generateAndSaveRoutine(
         priority,
         trainingStyle: resolvedTrainingStyle,
         varietyPreference: resolvedVariety,
+        loadingLean: resolvedLoadingLean,
         makeGroupId: () => crypto.randomUUID(),
     });
 

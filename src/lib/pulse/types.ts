@@ -59,6 +59,8 @@ export interface Profile {
     training_style: TrainingStyle | null;
     // How much generation rotates exercises; seeds generation. null = never chosen ('varied').
     variety_preference: VarietyPreference | null;
+    // Which loading modality to prefer within slots; seeds generation. null = no preference (identity).
+    loading_lean: LoadingPreference | null;
     // IANA timezone (e.g. 'Europe/Amsterdam'); used to resolve "today"/weekday
     // for calendar adherence. Defaults to 'UTC' until the browser reports one.
     timezone: string;
@@ -419,6 +421,15 @@ export type TrainingStyle = 'balanced' | 'strength' | 'bodybuilding' | 'powerbui
  *  overload + skill) while accessories keep rotating. Stored nullable on the
  *  profile; null resolves to 'varied' only at the generation boundary. */
 export type VarietyPreference = 'consistent' | 'varied';
+
+/** Which loading modality the user prefers within a movement-pattern slot.
+ *  Acts as a secondary sort inside byPattern: preferred-equipment exercises
+ *  float to the top so the fresh-preference logic picks them first. The
+ *  fresh-preference always beats the loading preference (a fresh non-preferred
+ *  exercise wins over a used preferred one). Stored nullable on the profile;
+ *  null / undefined resolves to no preference (identity, byte-identical to
+ *  the base generator). */
+export type LoadingPreference = 'barbell' | 'dumbbell' | 'machine' | 'cable';
 
 /** Which session focus a scheduled day trains. */
 export type Focus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs';

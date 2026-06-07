@@ -30,6 +30,7 @@ import type {
     DecisionEventRow,
     TrainingStyle,
     VarietyPreference,
+    LoadingPreference,
 } from '@/lib/pulse/types';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 
@@ -172,6 +173,7 @@ export interface PulseContextValue {
         name?: string,
         trainingStyle?: TrainingStyle,
         varietyPreference?: VarietyPreference,
+        loadingLean?: LoadingPreference,
     ) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
 

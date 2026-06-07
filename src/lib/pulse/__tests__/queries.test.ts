@@ -89,7 +89,7 @@ describe('loadProfile', () => {
         const profile = await loadProfile(client, UID);
         expect(calls.table).toBe('profiles');
         expect(calls.select).toBe(
-            'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle, timezone, accent_color, training_style, variety_preference',
+            'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle, timezone, accent_color, training_style, variety_preference, loading_lean',
         );
         expect(profile).toEqual({
             display_name: 'Sam',
@@ -102,6 +102,7 @@ describe('loadProfile', () => {
             priority_muscle: 'glutes',
             training_style: null,
             variety_preference: null,
+            loading_lean: null,
             timezone: 'UTC',
             accent_color: null,
         });
@@ -120,6 +121,7 @@ describe('loadProfile', () => {
             priority_muscle: null,
             training_style: null,
             variety_preference: null,
+            loading_lean: null,
             timezone: 'UTC',
             accent_color: null,
         });

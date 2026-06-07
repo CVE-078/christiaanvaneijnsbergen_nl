@@ -789,3 +789,81 @@ describe('generateRoutine + varietyPreference', () => {
         }
     });
 });
+
+// ── 12. Loading lean: modality preference secondary sort ─────────────────────
+
+describe('loading lean: preferred equipment floats before non-preferred', () => {
+    const bbAndDb = new Set<EquipmentKey>(['dumbbells', 'barbell']);
+
+    // Two squat exercises: 'squat-aa-dumbbell' sorts first alphabetically, but
+    // 'squat-zz-barbell' should win when loadingLean is 'barbell'.
+    function poolWithBarbell(): ExerciseMeta[] {
+        return [
+            meta('squat-aa-dumbbell', 'squat', ['dumbbells'], true),
+            meta('squat-zz-barbell', 'squat', ['barbell'], true),
+            ...ALL_PATTERNS.filter((p) => p !== 'squat').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
+    }
+
+    it('picks barbell squat over alphabetically-first dumbbell squat when loadingLean is barbell', () => {
+        const pool = poolWithBarbell();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const answers = { equipment: bbAndDb, experience: 'intermediate' as const, goal: 'build_muscle' as const, days: '2-3' as const };
+
+        // Without loading lean: squat-aa-dumbbell wins (alphabetically first).
+        const base = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, answers }));
+        expect(sessionIds(base, 'legs', null)).toContain('squat-aa-dumbbell');
+
+        // With loadingLean: 'barbell': squat-zz-barbell should be preferred.
+        const lean = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, answers, loadingLean: 'barbell' }));
+        expect(sessionIds(lean, 'legs', null)).toContain('squat-zz-barbell');
+        expect(sessionIds(lean, 'legs', null)).not.toContain('squat-aa-dumbbell');
+    });
+
+    it('fresh non-preferred beats used preferred across two same-focus sessions', () => {
+        // ppl-x2-6: legs-A and legs-B both hit the squat slot.
+        // Barbell squat (preferred) is fresh in legs-A, so it wins there.
+        // By legs-B the barbell squat is in the used set, so the fresh dumbbell wins.
+        const pool = poolWithBarbell();
+        const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6
+        const answers = { equipment: bbAndDb, experience: 'intermediate' as const, goal: 'build_muscle' as const, days: '5-6' as const };
+
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool, answers, loadingLean: 'barbell' }));
+        const legsA = sessionIds(bp, 'legs', 'A');
+        const legsB = sessionIds(bp, 'legs', 'B');
+
+        expect(legsA).toContain('squat-zz-barbell');
+        expect(legsB).toContain('squat-aa-dumbbell');
+        expect(legsB).not.toContain('squat-zz-barbell');
+    });
+});
+
+describe('loading lean: graceful fallback when no preferred exercises exist', () => {
+    it('generates a full session when loadingLean equipment is absent from pool', () => {
+        // loadingLean: 'cable' but pool has only dumbbell exercises.
+        // Generator should fall through and produce a normal result.
+        const bp = generateRoutine(input({ loadingLean: 'cable' }));
+        expect(bp.exercises.length).toBeGreaterThan(0);
+    });
+});
+
+describe('loading lean: golden identity -- null/undefined is byte-identical to base', () => {
+    it('undefined loadingLean produces byte-identical output', () => {
+        for (const config of [{ days: [1, 3, 5] }, { days: [1, 2, 4, 5] }, { days: [1, 2, 3, 4, 5, 6] }]) {
+            const style = STYLES[config.days.length][0] as ProgramStyle;
+            const base = generateRoutine(input({ style, trainingDays: config.days }));
+            const noLean = generateRoutine(input({ style, trainingDays: config.days, loadingLean: undefined }));
+            expect(noLean).toEqual(base);
+        }
+    });
+
+    it('null loadingLean produces byte-identical output', () => {
+        const style = STYLES[4][0] as ProgramStyle;
+        const base = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5] }));
+        const nullLean = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], loadingLean: null }));
+        expect(nullLean).toEqual(base);
+    });
+});
