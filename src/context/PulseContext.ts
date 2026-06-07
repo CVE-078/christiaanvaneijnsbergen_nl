@@ -149,6 +149,7 @@ export interface PulseContextValue {
         variant?: WorkoutVariant | null,
     ) => Promise<RoutineExercise>;
     removeExerciseFromRoutine: (routineExerciseId: string) => Promise<void>;
+    swapRoutineExercisePermanently: (routineExerciseId: string, newExerciseId: string) => Promise<void>;
     updateRoutineExercise: (
         routineExerciseId: string,
         sets: string,

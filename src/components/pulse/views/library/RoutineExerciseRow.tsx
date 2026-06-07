@@ -67,7 +67,8 @@ export default function RoutineExerciseRow({
     }
 
     return (
-        <div className="flex flex-col gap-2 bg-pulse-surface rounded-xl px-3 py-2.5">
+        <div className="flex flex-col gap-1.5 bg-pulse-surface rounded-xl px-3 py-2.5">
+            {/* Line 1: index + full exercise name */}
             <div className="flex items-center gap-3">
                 <span className="font-pulse text-xs text-pulse-muted w-5 shrink-0">{index + 1}</span>
                 <span className="font-pulse text-sm text-pulse-text flex-1 min-w-0 truncate">
@@ -78,8 +79,11 @@ export default function RoutineExerciseRow({
                         </span>
                     )}
                 </span>
-                {!editing && (
-                    <span className="font-pulse text-xs text-pulse-dim shrink-0">
+            </div>
+            {/* Line 2: sets × reps then all actions, indented past the index column */}
+            {!editing && (
+                <div className="flex items-center gap-2.5 pl-8 flex-wrap">
+                    <span className="font-pulse text-[0.6875rem] text-pulse-dim shrink-0">
                         {re.sets} × {re.reps}
                         {re.starting_weight_kg !== null && (
                             <>
@@ -88,48 +92,49 @@ export default function RoutineExerciseRow({
                             </>
                         )}
                     </span>
-                )}
-                <button
-                    onClick={() => onMove(index, -1)}
-                    disabled={!canMoveUp}
-                    aria-label={`Move ${re.exercise.name} up`}
-                    className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                    ↑
-                </button>
-                <button
-                    onClick={() => onMove(index, 1)}
-                    disabled={!canMoveDown}
-                    aria-label={`Move ${re.exercise.name} down`}
-                    className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                    ↓
-                </button>
-                <button
-                    onClick={() => setEditing((v) => !v)}
-                    aria-label={`Edit ${re.exercise.name}`}
-                    className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                    Edit
-                </button>
-                {onPair && (
+                    <span className="w-px h-3 bg-pulse-border shrink-0 self-center" aria-hidden />
                     <button
-                        onClick={onPair}
-                        className="font-pulse text-xs text-pulse-accent bg-transparent border-none cursor-pointer shrink-0">
-                        Pair ↓
+                        onClick={() => onMove(index, -1)}
+                        disabled={!canMoveUp}
+                        aria-label={`Move ${re.exercise.name} up`}
+                        className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
+                        ↑
                     </button>
-                )}
-                {onUnpair && (
                     <button
-                        onClick={onUnpair}
-                        className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                        Unpair
+                        onClick={() => onMove(index, 1)}
+                        disabled={!canMoveDown}
+                        aria-label={`Move ${re.exercise.name} down`}
+                        className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
+                        ↓
                     </button>
-                )}
-                <button
-                    onClick={() => onRemove(re.id)}
-                    aria-label={`Remove ${re.exercise.name}`}
-                    className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                    Remove
-                </button>
-            </div>
+                    <button
+                        onClick={() => setEditing((v) => !v)}
+                        aria-label={`Edit ${re.exercise.name}`}
+                        className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
+                        Edit
+                    </button>
+                    {onPair && (
+                        <button
+                            onClick={onPair}
+                            className="font-pulse text-[0.6875rem] text-pulse-accent bg-transparent border-none cursor-pointer shrink-0">
+                            Pair ↓
+                        </button>
+                    )}
+                    {onUnpair && (
+                        <button
+                            onClick={onUnpair}
+                            className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
+                            Unpair
+                        </button>
+                    )}
+                    <button
+                        onClick={() => onRemove(re.id)}
+                        aria-label={`Remove ${re.exercise.name}`}
+                        className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
+                        Remove
+                    </button>
+                </div>
+            )}
             {editing && (
                 <div className="flex flex-wrap items-end gap-2 pl-8">
                     <label className="flex flex-col gap-1">

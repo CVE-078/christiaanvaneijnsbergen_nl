@@ -1,7 +1,7 @@
 ﻿'use client';
 import { useMemo, useState } from 'react';
 import { WEEK_NOTES, buildProgram, PROGRAM_LENGTHS } from '@/lib/pulse/data';
-import { getPhase, sessionTypeFor, weekInBlock } from '@/lib/pulse/utils';
+import { getPhase, sessionTypeFor, weekInBlock, swapCandidates } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { WORKOUT_TYPE_LABELS, EQUIPMENT_LABELS } from '@/lib/pulse/constants';
 import type { WorkoutType, WorkoutVariant, RoutineExercise } from '@/lib/pulse/types';
@@ -10,6 +10,7 @@ import GenerateRoutineButton from '../GenerateRoutineButton';
 import PageTitle from '@/components/pulse/PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import ExerciseInstructionModal from '../ExerciseInstructionModal';
+import ExerciseSwapPicker from '../ExerciseSwapPicker';
 
 type Section = { type: WorkoutType; variant: WorkoutVariant | null; exercises: RoutineExercise[] };
 
@@ -22,8 +23,10 @@ export default function ProgramView() {
         activeSchedule,
         activeRoutine,
         profile,
+        exercises,
         updateRoutineProgramWeeks,
         setProgramAnchor,
+        swapRoutineExercisePermanently,
         loading,
         errors,
         retry,
@@ -31,6 +34,13 @@ export default function ProgramView() {
     // Which exercise's how-to-perform modal is open (parity with the Train card +
     // guided mode). Built-in exercises only, the ones that carry instructions.
     const [instructionFor, setInstructionFor] = useState<{ id: string; name: string } | null>(null);
+    const [swapTarget, setSwapTarget] = useState<RoutineExercise | null>(null);
+
+    async function handlePermanentSwap(newExerciseId: string) {
+        if (!swapTarget) return;
+        await swapRoutineExercisePermanently(swapTarget.id, newExerciseId);
+        setSwapTarget(null);
+    }
     const programWeeks = activeRoutine?.program_weeks ?? 12;
     const phase = getPhase(activeWeek, programWeeks);
     const volume = useMemo(() => buildProgram(programWeeks).volume, [programWeeks]);
@@ -278,8 +288,8 @@ export default function ProgramView() {
                             {exercises.map((re, i) => (
                                 <div
                                     key={re.id}
-                                    className="py-3 border-b border-pulse-border last:border-b-0 flex gap-4 items-baseline">
-                                    <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0 w-5">
+                                    className="py-3 border-b border-pulse-border last:border-b-0 flex gap-4 items-start">
+                                    <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0 w-5 pt-0.5">
                                         {String(i + 1).padStart(2, '0')}
                                     </span>
                                     <div className="min-w-0 flex-1">
@@ -308,27 +318,36 @@ export default function ProgramView() {
                                             )}
                                         </div>
                                     </div>
-                                    {re.exercise && re.exercise.user_id === null && (
+                                    <div className="flex items-center gap-1.5 shrink-0 self-center">
                                         <button
                                             type="button"
-                                            onClick={() =>
-                                                setInstructionFor({ id: re.exercise!.id, name: re.exercise!.name })
-                                            }
-                                            aria-label={`How to perform ${re.exercise.name}`}
-                                            className="grid h-7 w-7 shrink-0 place-items-center self-center rounded-lg bg-pulse-surface-2 text-pulse-dim border-none cursor-pointer hover:text-pulse-accent">
-                                            <svg
-                                                className="h-3.5 w-3.5"
-                                                viewBox="0 0 16 16"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth={1.5}
-                                                aria-hidden>
-                                                <circle cx="8" cy="8" r="6.5" />
-                                                <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
-                                                <circle cx="8" cy="4.75" r="0.6" fill="currentColor" stroke="none" />
-                                            </svg>
+                                            onClick={() => setSwapTarget(re)}
+                                            aria-label={`Swap ${re.exercise?.name ?? 'exercise'}`}
+                                            className="inline-flex items-center gap-1.5 font-pulse text-[0.75rem] font-semibold text-pulse-dim bg-pulse-surface-2 border-none rounded-lg px-2.5 py-1.5 cursor-pointer hover:text-pulse-accent">
+                                            ⇄ Swap
                                         </button>
-                                    )}
+                                        {re.exercise && re.exercise.user_id === null && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setInstructionFor({ id: re.exercise!.id, name: re.exercise!.name })
+                                                }
+                                                aria-label={`How to perform ${re.exercise.name}`}
+                                                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-pulse-surface-2 text-pulse-dim border-none cursor-pointer hover:text-pulse-accent">
+                                                <svg
+                                                    className="h-3.5 w-3.5"
+                                                    viewBox="0 0 16 16"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth={1.5}
+                                                    aria-hidden>
+                                                    <circle cx="8" cy="8" r="6.5" />
+                                                    <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
+                                                    <circle cx="8" cy="4.75" r="0.6" fill="currentColor" stroke="none" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -341,6 +360,24 @@ export default function ProgramView() {
                     exerciseId={instructionFor.id}
                     exerciseName={instructionFor.name}
                     onClose={() => setInstructionFor(null)}
+                />
+            )}
+
+            {swapTarget && swapTarget.exercise && (
+                <ExerciseSwapPicker
+                    originalName={swapTarget.exercise.name}
+                    week={activeWeek}
+                    candidates={swapCandidates(swapTarget.exercise, exercises, {
+                        excludeIds: new Set(
+                            activeRoutine?.exercises
+                                .filter((r) => r.id !== swapTarget.id)
+                                .map((r) => r.exercise_id) ?? [],
+                        ),
+                    })}
+                    isSwapped={false}
+                    onSelect={handlePermanentSwap}
+                    onRevert={() => setSwapTarget(null)}
+                    onClose={() => setSwapTarget(null)}
                 />
             )}
         </div>

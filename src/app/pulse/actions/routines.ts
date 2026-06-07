@@ -217,6 +217,24 @@ export async function removeExerciseFromRoutine(routineExerciseId: string): Prom
     if (error) throw new Error('Failed to remove exercise from routine');
 }
 
+export async function swapRoutineExercisePermanently(
+    routineExerciseId: string,
+    newExerciseId: string,
+): Promise<void> {
+    if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid id');
+    if (!UUID_RE.test(newExerciseId)) throw new Error('Invalid exercise id');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    await assertOwnsRoutineExercise(supabase, routineExerciseId, user.id);
+
+    const { error } = await supabase
+        .from('routine_exercises')
+        .update({ exercise_id: newExerciseId })
+        .eq('id', routineExerciseId);
+    if (error) throw new Error('Failed to swap routine exercise');
+}
+
 export async function updateRoutineExercise(
     routineExerciseId: string,
     sets: string,

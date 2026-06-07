@@ -34,11 +34,9 @@ export default function SupersetCard({
     const [first, second] = pair;
 
     return (
-        // Grouping conveyed by a tone shift (surface-2 tray) + whitespace, not a border.
         <div className="bg-pulse-surface-2 rounded-2xl overflow-hidden">
-            {/* Header, always visible. Sized to match a normal exercise card row so a
-                superset reads as a peer, not a minor strip, and it names the
-                alternate-then-rest sequence up front. */}
+            {/* Header: superset badge, stacked exercise names (primary + dimmed secondary),
+                no per-card alternating cue (repetitive at scale; cue lives in the open body). */}
             <button
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
@@ -48,13 +46,14 @@ export default function SupersetCard({
                     <span className="inline-block rounded-md bg-pulse-accent/10 px-2 py-0.5 font-pulse text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-pulse-accent">
                         Superset
                     </span>
-                    <div className="font-pulse text-[1.1875rem] font-medium tracking-[-0.01em] truncate text-pulse-text mt-1.5">
-                        <span>{first.exercise.name}</span>
-                        <span className="text-pulse-dim"> + </span>
-                        <span>{second.exercise.name}</span>
+                    <div className="mt-1.5 font-pulse text-[0.9375rem] font-semibold tracking-[-0.01em] text-pulse-text leading-snug">
+                        {first.exercise.name}
                     </div>
-                    <div className="font-pulse-body text-[0.6875rem] tracking-[0.02em] text-pulse-dim mt-1">
-                        One set of each, alternating, then rest after both.
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                        <span className="font-pulse text-[0.6875rem] text-pulse-muted">+</span>
+                        <span className="font-pulse text-[0.8125rem] text-pulse-dim tracking-[-0.005em]">
+                            {second.exercise.name}
+                        </span>
                     </div>
                 </div>
                 <svg
@@ -70,9 +69,12 @@ export default function SupersetCard({
                 </svg>
             </button>
 
-            {/* Expanded body, two cards separated by whitespace */}
+            {/* Expanded body: alternating cue once at top, then one card per exercise. */}
             {open && (
                 <div className="flex flex-col gap-2 px-2 pb-2">
+                    <p className="font-pulse-body text-[0.625rem] tracking-[0.04em] text-pulse-muted px-1 pb-0.5">
+                        Alternate between exercises, then rest after both sets.
+                    </p>
                     <ExerciseCard
                         routineExercise={first}
                         exIdx={pairIdx}
