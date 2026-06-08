@@ -530,6 +530,15 @@ function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
     return ex.equipment.every((e) => have.has(e));
 }
 
+function isContraindicated(ex: ExerciseMeta, restrictions: Set<RestrictionFlag>): boolean {
+    // Safety filter: hard, never relaxed (unlike the equipment thin-pool / heavy-
+    // dedup / unilateral relax fallbacks). A flagged lift is never re-added to
+    // fill a slot; if a pattern empties, the existing backfill covers it from
+    // safe patterns. Empty restriction set = no-op (identity).
+    if (restrictions.size === 0) return false;
+    return ex.contraindications.some((c) => restrictions.has(c));
+}
+
 // ── Exercise ordering (tier sort) ────────────────────────────────────────────
 // Applied after selectForSession; assigns the coach-standard presentation order:
 // Tier 1 (primary compounds: squat + hinge) → Tier 2 (big multi-joint compounds:
@@ -900,7 +909,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const { exercises: exCount, sets } = volumeFor(sessionTime, answers.experience);
     const isSuperset = sessionTime === '~30 min';
 
-    const usable = pool.filter((ex) => hasEquipment(ex, answers.equipment));
+    const restrictions = new Set(input.restrictions ?? []);
+    const usable = pool
+        .filter((ex) => hasEquipment(ex, answers.equipment))
+        .filter((ex) => !isContraindicated(ex, restrictions));
     const used = new Set<string>();
     // Routine-wide record of substitution_class values already selected, so
     // selectForSession can soft-deprioritize functionally-identical lifts that

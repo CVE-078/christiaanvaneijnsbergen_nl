@@ -1180,3 +1180,68 @@ describe('GQ2: loading lean still beats fatigue within same freshness', () => {
         expect(sessionIds(bp, 'legs', null)).not.toContain('squat-db');
     });
 });
+
+describe('movement restrictions: golden identity -- empty/undefined is byte-identical to base', () => {
+    it('undefined and [] restrictions produce byte-identical output', () => {
+        for (const config of [{ days: [1, 3, 5] }, { days: [1, 2, 4, 5] }, { days: [1, 2, 3, 4, 5, 6] }]) {
+            const style = STYLES[config.days.length][0] as ProgramStyle;
+            const base = generateRoutine(input({ style, trainingDays: config.days }));
+            const undef = generateRoutine(input({ style, trainingDays: config.days, restrictions: undefined }));
+            const empty = generateRoutine(input({ style, trainingDays: config.days, restrictions: [] }));
+            expect(undef).toEqual(base);
+            expect(empty).toEqual(base);
+        }
+    });
+});
+
+describe('movement restrictions: a contraindicated exercise is excluded by name', () => {
+    it('drops a knee-contraindicated squat and keeps a safe one', () => {
+        const pool: ExerciseMeta[] = [
+            meta('barbell-back-squat', 'squat', ['dumbbells'], true, { contraindications: ['knee'] }),
+            meta('box-squat', 'squat', ['dumbbells'], true, { contraindications: [] }),
+            ...deepPool().filter((e) => e.movement_pattern !== 'squat'),
+        ];
+        const bp = generateRoutine(input({ pool, restrictions: ['knee'] }));
+        const ids = new Set(bp.exercises.map((e) => e.exercise_id));
+        expect(ids.has('barbell-back-squat')).toBe(false);
+        const baseIds = new Set(generateRoutine(input({ pool })).exercises.map((e) => e.exercise_id));
+        expect(baseIds.has('barbell-back-squat') || baseIds.has('box-squat')).toBe(true);
+    });
+});
+
+describe('movement restrictions: a single flag never empties leg work', () => {
+    // Assert across both a 6-day split and a 3-day full-body config. The 3-day
+    // case is where pool thinning bites hardest (fewer slots, more patterns per
+    // session), so it is the more important guard.
+    const kneePool = (): ExerciseMeta[] => [
+        meta('barbell-back-squat', 'squat', ['dumbbells'], true, { contraindications: ['knee'] }),
+        meta('leg-press', 'squat', ['dumbbells'], true, { contraindications: [] }),
+        meta('romanian-deadlift', 'hinge', ['dumbbells'], true, { contraindications: [] }),
+        ...deepPool().filter((e) => e.movement_pattern !== 'squat' && e.movement_pattern !== 'hinge'),
+    ];
+    it.each([
+        { label: '6-day split', days: [1, 2, 3, 4, 5, 6] },
+        { label: '3-day full body', days: [1, 3, 5] },
+    ])('a knee restriction still leaves squat-or-hinge leg work available ($label)', ({ days }) => {
+        const bp = generateRoutine(input({ pool: kneePool(), restrictions: ['knee'], trainingDays: days }));
+        const ids = new Set(bp.exercises.map((e) => e.exercise_id));
+        expect(ids.has('leg-press') || ids.has('romanian-deadlift')).toBe(true);
+    });
+});
+
+describe('movement restrictions: two flags at once filter the union', () => {
+    it('a knee + shoulder restriction drops both flagged lifts and still produces a routine', () => {
+        const pool: ExerciseMeta[] = [
+            meta('barbell-back-squat', 'squat', ['dumbbells'], true, { contraindications: ['knee'] }),
+            meta('leg-press', 'squat', ['dumbbells'], true, { contraindications: [] }),
+            meta('overhead-press', 'vertical_push', ['dumbbells'], true, { contraindications: ['shoulder'] }),
+            meta('machine-shoulder-press', 'vertical_push', ['dumbbells'], true, { contraindications: [] }),
+            ...deepPool().filter((e) => e.movement_pattern !== 'squat' && e.movement_pattern !== 'vertical_push'),
+        ];
+        const bp = generateRoutine(input({ pool, restrictions: ['knee', 'shoulder'], trainingDays: [1, 2, 3, 4, 5, 6] }));
+        const ids = new Set(bp.exercises.map((e) => e.exercise_id));
+        expect(ids.has('barbell-back-squat')).toBe(false);
+        expect(ids.has('overhead-press')).toBe(false);
+        expect(bp.exercises.length).toBeGreaterThan(0);
+    });
+});
