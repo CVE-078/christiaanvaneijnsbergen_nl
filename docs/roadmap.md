@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-08)
 
-**In progress:** (none).
+**In progress:** Movement restrictions (Tier 2 #5), on `feature/movement-restrictions`. Spec written, awaiting review before implementation.
 
 **In review (on a branch, not yet merged):** (none).
 
