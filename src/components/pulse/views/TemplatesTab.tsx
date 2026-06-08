@@ -181,6 +181,7 @@ export default function TemplatesTab() {
                     collectTrainingStyle={false}
                     collectVariety={false}
                     collectLoadingLean={false}
+                    collectRestrictions={false}
                     onComplete={async ({ answers, trainingDays, sessionTime, startAnchor, programWeeks }) => {
                         const routine = await cloneTemplate(
                             setupTemplate.slug,

@@ -33,10 +33,11 @@ describe('RoutineSetupFlow', () => {
         render(<RoutineSetupFlow initial={initial} onComplete={onComplete} onClose={onClose} />);
         // 3 training days → style step appears. Steps: equipment, experience, goal,
         // days/week, which days, style, session time, train_style, variety, loading → Skip
-        // → program length → start. 9 Next + Skip + 2 Next → start → Create routine.
-        // 9 Next → variety→loading; Skip loading; Next length→start; Create routine.
+        // → restrictions → Skip → program length → start.
+        // 9 Next → variety→loading; Skip loading; Skip restrictions; Next length→start; Create routine.
         for (let i = 0; i < 9; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -59,6 +60,8 @@ describe('RoutineSetupFlow', () => {
         expect(arg.varietyPreference).toBe('varied');
         // The loading step defaults to null (skipped).
         expect(arg.loadingLean).toBeNull();
+        // The restrictions step defaults to [] (skipped).
+        expect(arg.movementRestrictions).toEqual([]);
     });
 
     it('shows the program-style step and lets you pick a non-default style', async () => {
@@ -71,7 +74,8 @@ describe('RoutineSetupFlow', () => {
         fireEvent.click(screen.getByText('Next')); // session time → train_style
         fireEvent.click(screen.getByText('Next')); // train_style → variety
         fireEvent.click(screen.getByText('Next')); // variety → loading
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -104,7 +108,8 @@ describe('RoutineSetupFlow', () => {
         fireEvent.click(screen.getByText('Next')); // session time → train_style
         fireEvent.click(screen.getByText('Next')); // train_style → variety
         fireEvent.click(screen.getByText('Next')); // variety → loading
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -117,7 +122,8 @@ describe('RoutineSetupFlow', () => {
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
         // equipment, experience, goal, days/week, which days, session, train_style, variety → loading
         for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         expect(screen.getByText(/when do you want to start/i)).toBeInTheDocument();
         fireEvent.click(screen.getByText('Create routine'));
@@ -130,7 +136,8 @@ describe('RoutineSetupFlow', () => {
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
         for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Pick a date'));
         fireEvent.change(screen.getByLabelText(/start date/i), { target: { value: '2099-01-05' } });
@@ -145,7 +152,8 @@ describe('RoutineSetupFlow', () => {
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
         // equipment, experience, goal, days/week, which days, session, train_style, variety → loading
         for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program-length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program-length
         expect(screen.getByText(/how long should your program be/i)).toBeInTheDocument();
         // All four hand-built lengths are offered, no custom field.
         expect(screen.getByText('8 weeks')).toBeInTheDocument();
@@ -163,7 +171,8 @@ describe('RoutineSetupFlow', () => {
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
         for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program-length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program-length
         fireEvent.click(screen.getByText('16 weeks'));
         fireEvent.click(screen.getByText('Next')); // length → start
         fireEvent.click(screen.getByText('Create routine'));
@@ -181,7 +190,8 @@ describe('RoutineSetupFlow', () => {
         expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
         // equipment, experience, goal, days, which days, session, train_style, variety → loading
         for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -195,7 +205,8 @@ describe('RoutineSetupFlow', () => {
         fireEvent.click(screen.getByText('Prefer not to say'));
         fireEvent.click(screen.getByText('Next')); // gender → equipment
         for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -217,7 +228,8 @@ describe('RoutineSetupFlow', () => {
         fireEvent.click(screen.getByText('Strength'));
         fireEvent.click(screen.getByText('Next')); // train_style → variety
         fireEvent.click(screen.getByText('Next')); // variety → loading
-        fireEvent.click(screen.getByText('Skip')); // loading → length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → length
         fireEvent.click(screen.getByText('Next')); // length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -228,9 +240,10 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} onComplete={onComplete} onClose={vi.fn()} />);
-        // Navigate through all steps including train_style, variety, loading.
+        // Navigate through all steps including train_style, variety, loading, restrictions.
         for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -241,10 +254,11 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} collectTrainingStyle={false} onComplete={onComplete} onClose={vi.fn()} />);
-        // With no train_style step (variety + loading still show): equipment, experience,
-        // goal, days, which days, session, variety, loading → Skip → length → start (8 Next + Skip + Next).
+        // With no train_style step (variety + loading + restrictions still show): equipment,
+        // experience, goal, days, which days, session, variety, loading → Skip → restrictions → Skip → length → start.
         for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         // train_style step must not appear anywhere
         expect(screen.queryByText(/how do you want to train/i)).not.toBeInTheDocument();
@@ -266,7 +280,8 @@ describe('RoutineSetupFlow', () => {
         // Varied is the default: selecting Consistent then completing returns it.
         fireEvent.click(screen.getByText('Consistent'));
         fireEvent.click(screen.getByText('Next')); // variety → loading
-        fireEvent.click(screen.getByText('Skip')); // loading → length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → length
         fireEvent.click(screen.getByText('Next')); // length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -277,10 +292,11 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} collectVariety={false} onComplete={onComplete} onClose={vi.fn()} />);
-        // With no variety step (loading still shows): equipment, experience, goal, days,
-        // which days, session, train_style, loading → Skip → length → start.
+        // With no variety step (loading + restrictions still show): equipment, experience,
+        // goal, days, which days, session, train_style, loading → Skip → restrictions → Skip → length → start.
         for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         // variety step must not appear anywhere
         expect(screen.queryByText(/how varied should it be/i)).not.toBeInTheDocument();
@@ -306,7 +322,8 @@ describe('RoutineSetupFlow', () => {
         // Select Barbell: button changes to "Next".
         fireEvent.click(screen.getByText('Barbell'));
         expect(screen.getByText('Next')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Next')); // loading → program length
+        fireEvent.click(screen.getByText('Next')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -322,7 +339,8 @@ describe('RoutineSetupFlow', () => {
         expect(screen.getByText('Next')).toBeInTheDocument();
         fireEvent.click(screen.getByText('Barbell')); // deselect (toggle off)
         expect(screen.getByText('Skip')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Skip')); // loading → program length
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
         fireEvent.click(screen.getByText('Next')); // program length → start
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -333,9 +351,11 @@ describe('RoutineSetupFlow', () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
         render(<RoutineSetupFlow initial={single} collectLoadingLean={false} onComplete={onComplete} onClose={vi.fn()} />);
-        // With no loading step: equipment, experience, goal, days, which days,
-        // session, train_style, variety, program length → start (9 Next).
-        for (let i = 0; i < 9; i++) fireEvent.click(screen.getByText('Next'));
+        // With no loading step (restrictions still shows): equipment, experience, goal,
+        // days, which days, session, train_style, variety, restrictions → Skip → length → start.
+        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
+        fireEvent.click(screen.getByText('Next')); // program length → start
         // loading step must not appear anywhere
         expect(screen.queryByText(/which equipment do you prefer/i)).not.toBeInTheDocument();
         fireEvent.click(screen.getByText('Create routine'));

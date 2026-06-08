@@ -176,6 +176,7 @@ export interface PulseContextValue {
         trainingStyle?: TrainingStyle,
         varietyPreference?: VarietyPreference,
         loadingLean?: LoadingPreference,
+        movementRestrictions?: RestrictionFlag[],
     ) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
 
