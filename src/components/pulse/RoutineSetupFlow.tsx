@@ -594,7 +594,7 @@ export default function RoutineSetupFlow({
             <div className={WRAP}>
                 <div className={CARD}>
                     <Header
-                        stepNum={total - 2 - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
+                        stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
                         total={total}
                         onBack={() => setStep(7)}
                     />
@@ -627,7 +627,7 @@ export default function RoutineSetupFlow({
             <div className={WRAP}>
                 <div className={CARD}>
                     <Header
-                        stepNum={total - 2 - (collectLoadingLean ? 1 : 0)}
+                        stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
                         total={total}
                         onBack={() => setStep(collectTrainingStyle ? 'train_style' : 7)}
                     />
