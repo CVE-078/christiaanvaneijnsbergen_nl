@@ -51,7 +51,8 @@ A "Training preferences" group (one `SectionLabel` + intro line, then the four e
 - **Loading lean**: rows from `LOADING_LEAN_OPTIONS` **plus an explicit "No preference" row at the top**. Active state:
   - When `profile.loading_lean` is null → the "No preference" row is active and no equipment row is highlighted.
   - When set → that equipment row is active.
-  - Selecting "No preference" → `updateLoadingLean(null)`. Selecting an equipment row → `updateLoadingLean(key)`.
+  - Selecting "No preference" → `updateLoadingLean(null)`. Selecting an inactive equipment row → `updateLoadingLean(key)`.
+  - Clicking the **already-active** equipment row is a **no-op** (the setter is not called). Equipment rows do NOT tap-to-deselect, that is the difference from the flow step; clearing is done only via the "No preference" row. This prevents a redundant double-fire.
   - The explicit "No preference" row is required (not tap-to-deselect alone) because this is a standing editor with no Next button, so clearing must be a visible, discoverable affordance. Null is a valid intentional state, not a missing default, so it must render distinctly (never as a stale prior value).
 - **Movement restrictions**: the existing multi-select editor, unchanged in behavior, regrouped under this heading and switched to import `RESTRICTION_OPTIONS` from the shared module instead of its current inline array.
 
@@ -71,6 +72,7 @@ None. `training_style`, `variety_preference`, `loading_lean`, `movement_restrict
   - The three editors render and reflect current profile values (training style defaults to balanced, variety to varied when columns are null).
   - **Null loading-lean renders as "No preference" active with no equipment row highlighted** (explicit, since the `?? default` pattern does not apply, null is intentional).
   - Clicking a row calls the matching setter with the expected argument (including the "No preference" row calling `updateLoadingLean(null)`).
+  - Clicking the **already-active** equipment row does **not** call `updateLoadingLean` (no-op; equipment rows do not deselect).
 - **Shared-constants extraction is non-breaking**: existing `RoutineSetupFlow` tests stay green after the import swap (no copy change; the constants move byte-identical).
 
 ## Self-review notes
