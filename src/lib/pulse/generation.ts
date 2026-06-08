@@ -7,6 +7,7 @@ import type {
     Focus,
     MovementPattern,
     ProgramStyle,
+    RestrictionFlag,
     SessionTime,
     Gender,
     PriorityMuscle,
@@ -516,6 +517,10 @@ export interface ExerciseMeta {
     /** True for single-limb-at-a-time lifts (Step-Up, Bulgarian Split Squat, Walking
      *  Lunge); used to cap how many land in one session so they don't crowd it out. */
     unilateral: boolean;
+    /** Joint areas this exercise commonly stresses. A user who flags one of these
+     *  has the exercise filtered out of generation. Empty for the vast majority
+     *  of exercises (DB default '{}'). */
+    contraindications: RestrictionFlag[];
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
@@ -862,6 +867,9 @@ export interface GenerationInput {
     /** Which loading modality to prefer within a slot (secondary sort inside
      *  byPattern). Absent / null is the no-op identity path. */
     loadingLean?: LoadingPreference | null;
+    /** Joint areas to avoid. Absent / empty is the no-op identity path (no
+     *  exercise filtered, output byte-identical to the base generator). */
+    restrictions?: RestrictionFlag[];
     /** Generates a unique superset group id. Server passes crypto.randomUUID. */
     makeGroupId?: () => string;
 }

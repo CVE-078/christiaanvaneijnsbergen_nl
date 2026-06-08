@@ -93,6 +93,8 @@ export async function loadProfile(supabase: SupabaseServerClient, userId: string
             data && (LOADING_LEAN_VALUES as readonly string[]).includes(data.loading_lean as string)
                 ? (data.loading_lean as Profile['loading_lean'])
                 : null,
+        // movement_restrictions is not yet in the DB schema; defaults to null until the migration lands.
+        movement_restrictions: null,
         timezone: typeof data?.timezone === 'string' && data.timezone ? data.timezone : 'UTC',
         accent_color: typeof data?.accent_color === 'string' ? data.accent_color : null,
     };

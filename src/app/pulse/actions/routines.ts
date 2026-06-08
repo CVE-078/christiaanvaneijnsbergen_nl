@@ -477,6 +477,7 @@ export async function generateAndSaveRoutine(
             is_compound: row.is_compound,
             substitution_class: row.substitution_class,
             unilateral: row.unilateral ?? false,
+            contraindications: [],
             ...(row.fatigue !== null ? { fatigue: row.fatigue } : {}),
         }));
 

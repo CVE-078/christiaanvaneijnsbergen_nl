@@ -25,6 +25,7 @@ const mockContext = {
         training_style: null,
         variety_preference: null,
         loading_lean: null,
+        movement_restrictions: null,
         timezone: 'UTC',
     },
     prMap: {},

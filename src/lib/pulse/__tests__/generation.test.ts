@@ -174,7 +174,7 @@ function meta(
     pattern: MovementPattern,
     equipment: EquipmentKey[] = ['dumbbells'],
     compound = true,
-    role: Partial<Pick<ExerciseMeta, 'substitution_class' | 'unilateral' | 'fatigue'>> = {},
+    role: Partial<Pick<ExerciseMeta, 'substitution_class' | 'unilateral' | 'fatigue' | 'contraindications'>> = {},
 ): ExerciseMeta {
     return {
         id,
@@ -184,6 +184,7 @@ function meta(
         category: 'chest' as ExerciseCategory,
         substitution_class: null,
         unilateral: false,
+        contraindications: [],
         ...role,
     };
 }
@@ -896,6 +897,7 @@ function metaFatigue(
         fatigue,
         substitution_class: null,
         unilateral: false,
+        contraindications: [],
     };
 }
 

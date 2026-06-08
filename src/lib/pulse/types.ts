@@ -61,6 +61,8 @@ export interface Profile {
     variety_preference: VarietyPreference | null;
     // Which loading modality to prefer within slots; seeds generation. null = no preference (identity).
     loading_lean: LoadingPreference | null;
+    // Joint areas to avoid in generation; null/[] = no restrictions (identity).
+    movement_restrictions: RestrictionFlag[] | null;
     // IANA timezone (e.g. 'Europe/Amsterdam'); used to resolve "today"/weekday
     // for calendar adherence. Defaults to 'UTC' until the browser reports one.
     timezone: string;
@@ -430,6 +432,12 @@ export type VarietyPreference = 'consistent' | 'varied';
  *  null / undefined resolves to no preference (identity, byte-identical to
  *  the base generator). */
 export type LoadingPreference = 'barbell' | 'dumbbell' | 'machine' | 'cable';
+
+/** Joint areas a user can flag so generation avoids the movements that commonly
+ *  stress them. A pure pool filter (like equipment); reduces and substitutes,
+ *  never diagnoses or rehabs. Extensible: add a flag here + tag exercises. */
+export const RESTRICTION_FLAGS = ['knee', 'lower_back', 'shoulder', 'wrist'] as const;
+export type RestrictionFlag = (typeof RESTRICTION_FLAGS)[number];
 
 /** Which session focus a scheduled day trains. */
 export type Focus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs';
