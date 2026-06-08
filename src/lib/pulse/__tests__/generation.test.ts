@@ -174,8 +174,18 @@ function meta(
     pattern: MovementPattern,
     equipment: EquipmentKey[] = ['dumbbells'],
     compound = true,
+    role: Partial<Pick<ExerciseMeta, 'substitution_class' | 'unilateral' | 'fatigue'>> = {},
 ): ExerciseMeta {
-    return { id, movement_pattern: pattern, equipment, is_compound: compound, category: 'chest' as ExerciseCategory };
+    return {
+        id,
+        movement_pattern: pattern,
+        equipment,
+        is_compound: compound,
+        category: 'chest' as ExerciseCategory,
+        substitution_class: null,
+        unilateral: false,
+        ...role,
+    };
 }
 
 // Two dumbbell-usable options for every pattern a slot can request, plus a few
@@ -877,16 +887,95 @@ function metaFatigue(
     equipment: EquipmentKey[] = ['dumbbells'],
     compound = true,
 ): ExerciseMeta {
-    return { id, movement_pattern: pattern, equipment, is_compound: compound, category: 'chest' as ExerciseCategory, fatigue };
+    return {
+        id,
+        movement_pattern: pattern,
+        equipment,
+        is_compound: compound,
+        category: 'chest' as ExerciseCategory,
+        fatigue,
+        substitution_class: null,
+        unilateral: false,
+    };
 }
 
-describe('GQ2: lower-fatigue exercise preferred within same freshness', () => {
-    // Two squat exercises with the same equipment. The high-id one has lower
-    // fatigue -- with GQ2 it should be picked over the alphabetically-first one.
+describe('GQ2: lower-fatigue exercise preferred within same freshness (accessory slots)', () => {
+    // Two shoulder-isolation exercises with the same equipment. shoulder_iso is
+    // an accessory pattern (not in COMPOUND_ANCHOR_PATTERNS), so GQ2's original
+    // lower-fatigue-first tiebreak still applies there post-GQ3 (see the
+    // 'GQ3: anchor patterns prefer higher fatigue' suite below for the inverted
+    // anchor-pattern behaviour).
     function poolWithFatigue(): ExerciseMeta[] {
         return [
-            metaFatigue('squat-aa', 'squat', 5, ['dumbbells'], true), // high fatigue, alphabetically first
-            metaFatigue('squat-zz', 'squat', 1, ['dumbbells'], true), // low fatigue, alphabetically last
+            metaFatigue('shoulder-aa', 'shoulder_iso', 5, ['dumbbells'], false), // high fatigue, alphabetically first
+            metaFatigue('shoulder-zz', 'shoulder_iso', 1, ['dumbbells'], false), // low fatigue, alphabetically last
+            ...ALL_PATTERNS.filter((p) => p !== 'shoulder_iso').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
+    }
+
+    it('picks lower-fatigue accessory over the alphabetically-first when both fresh', () => {
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+
+        // Pool with no fatigue: alphabetically first (shoulder-aa) wins.
+        const poolNoFatigue = [
+            meta('shoulder-aa', 'shoulder_iso', ['dumbbells'], false),
+            meta('shoulder-zz', 'shoulder_iso', ['dumbbells'], false),
+            ...ALL_PATTERNS.filter((p) => p !== 'shoulder_iso').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
+        const base = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: poolNoFatigue }));
+        expect(sessionIds(base, 'push', null)).toContain('shoulder-aa');
+
+        // Pool with fatigue tagged: shoulder-zz (fatigue 1) beats shoulder-aa (fatigue 5).
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: poolWithFatigue() }));
+        expect(sessionIds(bp, 'push', null)).toContain('shoulder-zz');
+        expect(sessionIds(bp, 'push', null)).not.toContain('shoulder-aa');
+    });
+
+    it('fresh high-fatigue still beats used low-fatigue (fresh wins over fatigue)', () => {
+        // glute_iso is exclusive to the 'legs' emphasis (unlike shoulder_iso,
+        // which also appears in 'push'/'pull'), so legs A / legs B are the only
+        // two slots competing for these two candidates -- a clean fresh-vs-used
+        // comparison, mirroring the original GQ2 'squat' setup.
+        function poolGlute(): ExerciseMeta[] {
+            return [
+                metaFatigue('glute-aa', 'glute_iso', 5, ['dumbbells'], false),
+                metaFatigue('glute-zz', 'glute_iso', 1, ['dumbbells'], false),
+                ...ALL_PATTERNS.filter((p) => p !== 'glute_iso').flatMap((p) => [
+                    meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                    meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                ]),
+            ];
+        }
+        // After session A uses glute-zz (low fatigue, fresh), session B should
+        // pick glute-aa (high fatigue, fresh) rather than the used glute-zz.
+        const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: legs appears twice
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool: poolGlute() }));
+        const legsA = sessionIds(bp, 'legs', 'A');
+        const legsB = sessionIds(bp, 'legs', 'B');
+        // Session A picks the low-fatigue accessory (glute-zz, fatigue 1).
+        expect(legsA).toContain('glute-zz');
+        // Session B: glute-zz is used. Even though glute-aa is higher fatigue,
+        // it is the only FRESH option -- fresh wins.
+        expect(legsB).toContain('glute-aa');
+    });
+});
+
+describe('GQ3: anchor patterns prefer higher fatigue', () => {
+    // Anchor patterns (COMPOUND_ANCHOR_PATTERNS: squat, hinge, horizontal_push,
+    // vertical_push, horizontal_pull, vertical_pull) build the session around a
+    // primary lift. Fatigue cost tracks mechanical stimulus for these, so the
+    // higher-fatigue option is the better anchor (Barbell Squat over Goblet
+    // Squat); GQ2's lower-fatigue-first tiebreak is inverted for them.
+    function poolWithFatigue(): ExerciseMeta[] {
+        return [
+            metaFatigue('squat-aa', 'squat', 1, ['dumbbells'], true), // low fatigue, alphabetically first
+            metaFatigue('squat-zz', 'squat', 5, ['dumbbells'], true), // high fatigue, alphabetically last
             ...ALL_PATTERNS.filter((p) => p !== 'squat').flatMap((p) => [
                 meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
                 meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
@@ -894,10 +983,10 @@ describe('GQ2: lower-fatigue exercise preferred within same freshness', () => {
         ];
     }
 
-    it('picks lower-fatigue squat over the alphabetically-first when both fresh', () => {
+    it('picks the higher-fatigue anchor over the alphabetically-first when both fresh', () => {
         const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
 
-        // Pool with no fatigue: alphabetically first (squat-aa) wins.
+        // Pool with no fatigue: alphabetically first (squat-aa) wins (unchanged).
         const poolNoFatigue = [
             meta('squat-aa', 'squat', ['dumbbells'], true),
             meta('squat-zz', 'squat', ['dumbbells'], true),
@@ -909,25 +998,145 @@ describe('GQ2: lower-fatigue exercise preferred within same freshness', () => {
         const base = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: poolNoFatigue }));
         expect(sessionIds(base, 'legs', null)).toContain('squat-aa');
 
-        // Pool with fatigue tagged: squat-zz (fatigue 1) beats squat-aa (fatigue 5).
+        // Pool with fatigue tagged: squat-zz (fatigue 5, the better anchor) beats
+        // squat-aa (fatigue 1).
         const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: poolWithFatigue() }));
         expect(sessionIds(bp, 'legs', null)).toContain('squat-zz');
         expect(sessionIds(bp, 'legs', null)).not.toContain('squat-aa');
     });
 
-    it('fresh high-fatigue still beats used low-fatigue (fresh wins over fatigue)', () => {
-        // After session A uses squat-zz (low fatigue, fresh), session B should
-        // pick squat-aa (high fatigue, fresh) rather than the used squat-zz.
+    it('fresh lower-fatigue anchor still beats a used higher-fatigue one (fresh wins over fatigue)', () => {
+        // After session A uses squat-zz (high fatigue, fresh), session B should
+        // pick squat-aa (low fatigue, fresh) rather than the used squat-zz.
         const pool = poolWithFatigue();
         const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: legs × 2
         const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool }));
         const legsA = sessionIds(bp, 'legs', 'A');
         const legsB = sessionIds(bp, 'legs', 'B');
-        // Session A picks the low-fatigue squat (squat-zz, fatigue 1).
+        // Session A picks the better anchor (squat-zz, fatigue 5).
         expect(legsA).toContain('squat-zz');
-        // Session B: squat-zz is used. Even though squat-aa is higher fatigue,
-        // it is the only FRESH squat -- fresh wins.
+        // Session B: squat-zz is used. Even though squat-aa is lower fatigue (a
+        // weaker anchor), it is the only FRESH squat -- fresh wins.
         expect(legsB).toContain('squat-aa');
+    });
+});
+
+describe('GQ3: substitution-class cross-session deduplication', () => {
+    it('prefers a distinct movement family over a redundant variant of an already-used class', () => {
+        // Two Romanian Deadlift variants share substitution_class 'hinge_pattern';
+        // Good Morning trains the same pattern via a distinct family. Pull and
+        // Legs (ppl-3) both carry a hinge slot -- without the cross-session dedup,
+        // the routine could seat both RDL variants, which reads as redundant.
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'hinge')
+            .concat([
+                meta('romanian-deadlift', 'hinge', ['dumbbells'], true, { substitution_class: 'hinge_pattern', fatigue: 5 }),
+                meta('romanian-deadlift-db', 'hinge', ['dumbbells'], true, { substitution_class: 'hinge_pattern', fatigue: 4 }),
+                meta('good-morning', 'hinge', ['dumbbells'], true, { substitution_class: 'back_extension_pattern', fatigue: 1 }),
+            ]);
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const ids = bp.exercises.map((e) => e.exercise_id);
+        // Pull anchors on the higher-fatigue RDL variant (the better anchor)...
+        expect(ids).toContain('romanian-deadlift');
+        // ...and Legs reaches for Good Morning -- a distinct substitution class --
+        // rather than seating the redundant Dumbbell RDL.
+        expect(ids).toContain('good-morning');
+        expect(ids).not.toContain('romanian-deadlift-db');
+    });
+});
+
+describe('GQ3: unilateral exercise cap (at most one per session)', () => {
+    it('a deep lunge-pattern pool never seats two unilateral exercises in the same session', () => {
+        // Walking Lunge, Bulgarian Split Squat, and Step-Up are all single-limb
+        // lifts that load the same movement; seating two together front-loads
+        // fatigue without adding variety. Dumbbell Lunge is the bilateral option.
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'lunge')
+            .concat([
+                meta('bulgarian-split-squat', 'lunge', ['dumbbells'], true, { unilateral: true, substitution_class: 'unilateral_leg' }),
+                meta('step-up', 'lunge', ['dumbbells'], true, { unilateral: true, substitution_class: 'unilateral_leg' }),
+                meta('walking-lunge', 'lunge', ['dumbbells'], true, { unilateral: true, substitution_class: 'unilateral_leg' }),
+                meta('dumbbell-lunge', 'lunge', ['dumbbells'], true, { unilateral: false }),
+            ]);
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, sessionTime: '90+ min' }));
+        const unilateralIds = new Set(['bulgarian-split-squat', 'step-up', 'walking-lunge']);
+        for (const s of bp.schedule) {
+            const sessionExs = bp.exercises.filter((e) => e.workout_type === s.workout_type && e.variant === s.variant);
+            const unilateralCount = sessionExs.filter((e) => unilateralIds.has(e.exercise_id)).length;
+            expect(unilateralCount).toBeLessThanOrEqual(1);
+        }
+        // The session that needed a second lunge-pattern pick reaches for the
+        // bilateral Dumbbell Lunge rather than a redundant unilateral lift.
+        expect(bp.exercises.map((e) => e.exercise_id)).toContain('dumbbell-lunge');
+    });
+});
+
+describe('GQ3: front-delt-isolation suppression after a vertical press', () => {
+    function pool(includeLateralRaise: boolean): ExerciseMeta[] {
+        const base = deepPool().filter(
+            (e) => e.movement_pattern !== 'vertical_push' && e.movement_pattern !== 'shoulder_iso',
+        );
+        base.push(meta('overhead-press', 'vertical_push', ['dumbbells'], true));
+        base.push(meta('front-raise', 'shoulder_iso', ['dumbbells'], true, { substitution_class: 'front_delt_isolation' }));
+        if (includeLateralRaise) {
+            base.push(meta('lateral-raise', 'shoulder_iso', ['dumbbells'], true, { substitution_class: 'lateral_raise' }));
+        }
+        return base;
+    }
+    const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+
+    it('prefers Lateral Raise over Front Raise once the session already has a vertical press', () => {
+        // Pressing already loads the front delts, so Front Raise is a redundant
+        // accessory in the same session; Lateral Raise targets the side delt and
+        // adds genuine coverage.
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: pool(true) }));
+        const ids = sessionIds(bp, 'push', null);
+        expect(ids).toContain('overhead-press');
+        expect(ids).toContain('lateral-raise');
+        expect(ids).not.toContain('front-raise');
+    });
+
+    it('still selects Front Raise when it is the only shoulder-isolation option (soft, not a hard block)', () => {
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: pool(false) }));
+        const ids = sessionIds(bp, 'push', null);
+        expect(ids).toContain('overhead-press');
+        expect(ids).toContain('front-raise');
+    });
+});
+
+describe('GQ3: Smith Machine Bench Press equipment gating (post-correction tagging)', () => {
+    // Re-tagged {machines, bench} (was incorrectly {barbell, bench}): a Smith
+    // machine is a fixed-rail machine, not a barbell, so it must gate on machine
+    // access rather than leaking into barbell-only pools.
+    function pool(): ExerciseMeta[] {
+        return deepPool()
+            .filter((e) => e.movement_pattern !== 'horizontal_push')
+            .concat([meta('smith-machine-bench-press', 'horizontal_push', ['machines', 'bench'], true)]);
+    }
+    const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+
+    it('is excluded from a barbell-only pool with no machine access', () => {
+        const answers = {
+            equipment: new Set<EquipmentKey>(['barbell', 'bench', 'dumbbells']),
+            experience: 'intermediate' as const,
+            goal: 'build_muscle' as const,
+            days: '2-3' as const,
+        };
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: pool(), answers }));
+        expect(sessionIds(bp, 'push', null)).not.toContain('smith-machine-bench-press');
+    });
+
+    it('surfaces for a gym setup with machine access', () => {
+        const answers = {
+            equipment: new Set<EquipmentKey>(['machines', 'bench', 'dumbbells']),
+            experience: 'intermediate' as const,
+            goal: 'build_muscle' as const,
+            days: '2-3' as const,
+        };
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: pool(), answers }));
+        expect(sessionIds(bp, 'push', null)).toContain('smith-machine-bench-press');
     });
 });
 
