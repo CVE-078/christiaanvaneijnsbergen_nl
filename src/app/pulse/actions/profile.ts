@@ -6,11 +6,13 @@ import { UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { ACCENT_PRESETS } from '@/lib/pulse/constants';
 import { assertUuid } from './_shared';
-import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle, TrainingStyle, RestrictionFlag } from '@/lib/pulse/types';
+import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle, TrainingStyle, RestrictionFlag, VarietyPreference, LoadingPreference } from '@/lib/pulse/types';
 import { RESTRICTION_FLAGS } from '@/lib/pulse/types';
 
 const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'] as const;
 const TRAINING_STYLE_VALUES = ['balanced', 'strength', 'bodybuilding', 'powerbuilding'] as const;
+const VARIETY_PREFERENCE_VALUES = ['varied', 'consistent'] as const;
+const LOADING_LEAN_VALUES = ['barbell', 'dumbbell', 'machine', 'cable'] as const;
 
 export async function logout() {
     const supabase = await createClient();
@@ -169,6 +171,31 @@ export async function updateMovementRestrictions(restrictions: RestrictionFlag[]
         .from('profiles')
         .upsert({ id: user.id, movement_restrictions: unique, updated_at: new Date().toISOString() }, { onConflict: 'id' });
     if (error) throw new Error('Failed to update movement restrictions');
+    revalidatePath('/pulse');
+}
+
+export async function updateVarietyPreference(pref: VarietyPreference): Promise<void> {
+    if (!VARIETY_PREFERENCE_VALUES.includes(pref)) throw new Error('Invalid variety preference');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, variety_preference: pref, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw new Error('Failed to update variety preference');
+    revalidatePath('/pulse');
+}
+
+export async function updateLoadingLean(pref: LoadingPreference | null): Promise<void> {
+    // null is a valid stored value: it clears the preference (generator treats it as no preference / identity).
+    if (pref !== null && !LOADING_LEAN_VALUES.includes(pref)) throw new Error('Invalid loading preference');
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, loading_lean: pref, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw new Error('Failed to update loading preference');
     revalidatePath('/pulse');
 }
 
