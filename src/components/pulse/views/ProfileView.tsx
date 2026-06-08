@@ -350,16 +350,20 @@ export default function ProfileView() {
                                         key={key}
                                         type="button"
                                         aria-pressed={active}
+                                        disabled={isPending}
                                         onClick={() => {
+                                            if (isPending) return;
                                             const current = profile.movement_restrictions ?? [];
                                             const next = active
                                                 ? current.filter((r) => r !== key)
                                                 : [...current, key];
-                                            void updateMovementRestrictions(next);
+                                            startTransition(async () => {
+                                                await updateMovementRestrictions(next);
+                                            });
                                         }}
                                         className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
                                             active ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent' : 'bg-pulse-surface-2 ring-0'
-                                        }`}>
+                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
                                         <div
                                             className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 ${active ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
                                             {active && (

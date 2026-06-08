@@ -851,7 +851,7 @@ export default function RoutineSetupFlow({
     return (
         <div className={WRAP}>
             <div className={CARD}>
-                <Header stepNum={total - 2 - (collectTrainingStyle ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
+                <Header stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectTrainingStyle ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
                 <p className={Q}>How long are your sessions?</p>
                 <div className="flex flex-col gap-2">
                     <OptionRow
