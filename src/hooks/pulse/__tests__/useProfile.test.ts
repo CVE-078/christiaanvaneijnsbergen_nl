@@ -6,10 +6,12 @@ vi.mock('@/app/pulse/actions', () => ({
     updateProfile: vi.fn().mockResolvedValue(undefined),
     logBodyWeight: vi.fn(),
     deleteBodyWeight: vi.fn().mockResolvedValue(undefined),
+    updateVarietyPreference: vi.fn().mockResolvedValue(undefined),
+    updateLoadingLean: vi.fn().mockResolvedValue(undefined),
 }));
 
 import useSWR from 'swr';
-import { updateProfile, logBodyWeight, deleteBodyWeight } from '@/app/pulse/actions';
+import { updateProfile, logBodyWeight, deleteBodyWeight, updateVarietyPreference, updateLoadingLean } from '@/app/pulse/actions';
 import { useProfile } from '../useProfile';
 import type { Profile, BodyweightEntry } from '@/lib/pulse/types';
 
@@ -45,6 +47,8 @@ beforeEach(() => {
     vi.mocked(updateProfile).mockClear();
     vi.mocked(logBodyWeight).mockClear();
     vi.mocked(deleteBodyWeight).mockClear();
+    vi.mocked(updateVarietyPreference).mockClear();
+    vi.mocked(updateLoadingLean).mockClear();
 });
 
 describe('useProfile', () => {
@@ -123,5 +127,33 @@ describe('useProfile', () => {
 
         expect(logBodyWeight).toHaveBeenCalledWith(75);
         expect(bwMutate).toHaveBeenCalled();
+    });
+
+    it('updateVarietyPreference optimistically mutates and calls the server action', async () => {
+        const { result } = renderHook(() => useProfile());
+
+        await act(async () => {
+            await result.current.updateVarietyPreference('consistent');
+        });
+
+        expect(profileMutate).toHaveBeenCalledWith(
+            { ...defaultProfile, variety_preference: 'consistent' },
+            false,
+        );
+        expect(updateVarietyPreference).toHaveBeenCalledWith('consistent');
+    });
+
+    it('updateLoadingLean accepts an equipment value and null', async () => {
+        const { result } = renderHook(() => useProfile());
+
+        await act(async () => {
+            await result.current.updateLoadingLean('barbell');
+        });
+        expect(updateLoadingLean).toHaveBeenCalledWith('barbell');
+
+        await act(async () => {
+            await result.current.updateLoadingLean(null);
+        });
+        expect(updateLoadingLean).toHaveBeenCalledWith(null);
     });
 });
