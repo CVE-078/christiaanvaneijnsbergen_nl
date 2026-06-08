@@ -6,6 +6,7 @@ import {
     updateLengthUnit as serverUpdateLengthUnit,
     updatePriorityMuscle as serverUpdatePriorityMuscle,
     updateTrainingStyle as serverUpdateTrainingStyle,
+    updateMovementRestrictions as serverUpdateMovementRestrictions,
     updateTimezone as serverUpdateTimezone,
     updateAccentColor as serverUpdateAccentColor,
     logBodyWeight as serverLogBodyWeight,
@@ -21,6 +22,7 @@ import type {
     Gender,
     PriorityMuscle,
     TrainingStyle,
+    RestrictionFlag,
 } from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
@@ -137,6 +139,18 @@ export function useProfile() {
         [mutateProfile, profile],
     );
 
+    const updateMovementRestrictions = useCallback(
+        async (restrictions: RestrictionFlag[]): Promise<void> => {
+            mutateProfile({ ...profile, movement_restrictions: restrictions }, false);
+            try {
+                await serverUpdateMovementRestrictions(restrictions);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
     const updateTimezone = useCallback(
         async (timezone: string): Promise<void> => {
             mutateProfile({ ...profile, timezone }, false);
@@ -195,6 +209,7 @@ export function useProfile() {
         updateLengthUnit,
         updatePriorityMuscle,
         updateTrainingStyle,
+        updateMovementRestrictions,
         updateTimezone,
         updateAccentColor,
         logBodyWeight,

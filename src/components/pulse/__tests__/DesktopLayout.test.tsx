@@ -84,6 +84,7 @@ const mockContext = {
     toggleHideExercise: vi.fn().mockResolvedValue(undefined),
     updateTimezone: vi.fn().mockResolvedValue(undefined),
     updateAccentColor: vi.fn().mockResolvedValue(undefined),
+    updateMovementRestrictions: vi.fn().mockResolvedValue(undefined),
     adjustments: [],
     programPosition: null,
     currentWeek: 1,

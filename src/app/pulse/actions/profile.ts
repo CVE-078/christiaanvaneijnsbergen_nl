@@ -6,7 +6,8 @@ import { UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { ACCENT_PRESETS } from '@/lib/pulse/constants';
 import { assertUuid } from './_shared';
-import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle, TrainingStyle } from '@/lib/pulse/types';
+import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle, TrainingStyle, RestrictionFlag } from '@/lib/pulse/types';
+import { RESTRICTION_FLAGS } from '@/lib/pulse/types';
 
 const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'] as const;
 const TRAINING_STYLE_VALUES = ['balanced', 'strength', 'bodybuilding', 'powerbuilding'] as const;
@@ -153,6 +154,21 @@ export async function updateTrainingStyle(style: TrainingStyle | null): Promise<
         .from('profiles')
         .upsert({ id: user.id, training_style: style, updated_at: new Date().toISOString() }, { onConflict: 'id' });
     if (error) throw new Error('Failed to update training style');
+    revalidatePath('/pulse');
+}
+
+export async function updateMovementRestrictions(restrictions: RestrictionFlag[]): Promise<void> {
+    if (!Array.isArray(restrictions) || !restrictions.every((r) => (RESTRICTION_FLAGS as readonly string[]).includes(r)))
+        throw new Error('Invalid data');
+    // De-dupe so the stored array is canonical.
+    const unique = [...new Set(restrictions)];
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, movement_restrictions: unique, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw new Error('Failed to update movement restrictions');
     revalidatePath('/pulse');
 }
 
