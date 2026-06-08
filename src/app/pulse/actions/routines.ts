@@ -18,7 +18,7 @@ import {
     type ExperienceLevel,
     type OnboardingAnswers,
 } from '@/lib/pulse/recommendation';
-import { EQUIPMENT_KEYS } from '@/lib/pulse/types';
+import { EQUIPMENT_KEYS, RESTRICTION_FLAGS } from '@/lib/pulse/types';
 import type {
     WorkoutType,
     WorkoutVariant,
@@ -29,6 +29,7 @@ import type {
     TrainingStyle,
     VarietyPreference,
     LoadingPreference,
+    RestrictionFlag,
 } from '@/lib/pulse/types';
 import { assertUuid, assertOwnsRoutine, assertOwnsRoutineExercise } from './_shared';
 import { loadHiddenExerciseIds } from '@/lib/pulse/queries';
@@ -396,6 +397,7 @@ interface ExercisePoolRow {
     fatigue: number | null;
     substitution_class: string | null;
     unilateral: boolean | null;
+    contraindications: RestrictionFlag[] | null;
 }
 
 export async function generateAndSaveRoutine(
@@ -407,6 +409,7 @@ export async function generateAndSaveRoutine(
     trainingStyle?: TrainingStyle,
     varietyPreference?: VarietyPreference,
     loadingLean?: LoadingPreference,
+    movementRestrictions?: RestrictionFlag[],
 ): Promise<WorkoutRoutine> {
     if (!trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error('Invalid training days');
 
@@ -424,6 +427,11 @@ export async function generateAndSaveRoutine(
         throw new Error('Invalid data');
     const LOADING_LEAN_VALUES = ['barbell', 'dumbbell', 'machine', 'cable'] as const;
     if (loadingLean !== undefined && !LOADING_LEAN_VALUES.includes(loadingLean)) throw new Error('Invalid data');
+    if (
+        movementRestrictions !== undefined &&
+        (!Array.isArray(movementRestrictions) || !movementRestrictions.every((r) => RESTRICTION_FLAGS.includes(r)))
+    )
+        throw new Error('Invalid data');
 
     const style = resolveStyle(styleKey, trainingDays.length);
 
@@ -440,7 +448,7 @@ export async function generateAndSaveRoutine(
 
     const { data: poolData } = await supabase
         .from('exercises')
-        .select('id, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral')
+        .select('id, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications')
         .is('user_id', null);
 
     // The persisted muscle priority tilts each session's emphasis toward that
@@ -449,7 +457,7 @@ export async function generateAndSaveRoutine(
     // effect without requiring a visit to Profile.
     const { data: profileRow } = await supabase
         .from('profiles')
-        .select('priority_muscle, gender, training_style, variety_preference, loading_lean')
+        .select('priority_muscle, gender, training_style, variety_preference, loading_lean, movement_restrictions')
         .eq('id', user.id)
         .maybeSingle();
     const priority = resolvePriority(profileRow?.priority_muscle ?? genderDefault(profileRow?.gender ?? null));
@@ -460,6 +468,9 @@ export async function generateAndSaveRoutine(
     // Param wins over stored value; null stored value = no preference (identity).
     const resolvedLoadingLean: LoadingPreference | undefined =
         loadingLean ?? (profileRow?.loading_lean as LoadingPreference) ?? undefined;
+    // Param wins over the stored value; absent param falls back to stored, then [].
+    const resolvedRestrictions: RestrictionFlag[] =
+        movementRestrictions ?? (profileRow?.movement_restrictions as RestrictionFlag[]) ?? [];
     const rationale = buildRationale(answers, sessionTime, style, priority, resolvedTrainingStyle);
 
     // Exclude the user's hidden exercises so generation never surfaces them. The
@@ -477,7 +488,7 @@ export async function generateAndSaveRoutine(
             is_compound: row.is_compound,
             substitution_class: row.substitution_class,
             unilateral: row.unilateral ?? false,
-            contraindications: [],
+            contraindications: row.contraindications ?? [],
             ...(row.fatigue !== null ? { fatigue: row.fatigue } : {}),
         }));
 
@@ -491,6 +502,7 @@ export async function generateAndSaveRoutine(
         trainingStyle: resolvedTrainingStyle,
         varietyPreference: resolvedVariety,
         loadingLean: resolvedLoadingLean,
+        restrictions: resolvedRestrictions,
         makeGroupId: () => crypto.randomUUID(),
     });
 
@@ -531,12 +543,16 @@ export async function generateAndSaveRoutine(
         if (schedErr) throw new Error('Failed to create schedule');
     }
 
-    const { error: profileErr } = await supabase
-        .from('profiles')
-        .upsert(
-            { id: user.id, active_routine_id: routine.id, training_style: resolvedTrainingStyle, variety_preference: resolvedVariety },
-            { onConflict: 'id' },
-        );
+    const profileUpsert: Record<string, unknown> = {
+        id: user.id,
+        active_routine_id: routine.id,
+        training_style: resolvedTrainingStyle,
+        variety_preference: resolvedVariety,
+    };
+    // Persist restrictions only when explicitly provided. An absent param must
+    // never clear a stored safety flag (a re-generate that omits the step).
+    if (movementRestrictions !== undefined) profileUpsert.movement_restrictions = movementRestrictions;
+    const { error: profileErr } = await supabase.from('profiles').upsert(profileUpsert, { onConflict: 'id' });
     if (profileErr) throw new Error('Failed to set active routine');
 
     revalidatePath('/pulse');
