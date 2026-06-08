@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-08)
 
-**In progress:** (none).
+**In progress:** Quick-start generation, Branch 2 (the `mode:'quick'` flow trim + post-gen "Tune your plan" panel), on `feature/quick-start-flow-trim`.
 
 **In review (on a branch, not yet merged):** (none).
 
