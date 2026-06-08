@@ -89,12 +89,16 @@ Exact per-exercise tags are derived by reading the current seed during implement
 
 ### Persistence and threading
 
-Exact `loading_lean` precedent in `generateAndSaveRoutine` (`src/app/pulse/actions/routines.ts`):
+In `generateAndSaveRoutine` (`src/app/pulse/actions/routines.ts`), following the read-fallback shape of the existing prefs but with a safety-aware write-back rule:
 
 - Add param `movementRestrictions?: RestrictionFlag[]`.
-- Resolve `movementRestrictions ?? (profileRow?.movement_restrictions) ?? []`.
+- Resolve for generation: `movementRestrictions ?? (profileRow?.movement_restrictions) ?? []`.
 - Pass the resolved set into `generateRoutine`.
-- Write the resolved value back to the profile upsert (so it becomes the next default).
+- **Write-back rule (the safety-significant part):** persist `movement_restrictions` to the profile only when the param was explicitly passed (`movementRestrictions !== undefined`). When the param is absent (a re-generate flow that does not surface the setup step), omit the column from the upsert entirely so the stored restriction is left untouched.
+
+This is a deliberate divergence from the `training_style` / `variety_preference` write-back, which always persist the resolved value (line 536 of `routines.ts`). Those are preference defaults; silently resetting one is harmless. A restriction is a safety flag: silently clearing a stored knee flag on a re-generate that happens to omit the param would be a safety regression. The `undefined` (absent) vs `[]` (explicitly empty, "I no longer have this issue") sentinel is what distinguishes the two. `undefined` never writes; `[]` does.
+
+(Note: `loading_lean` is currently read as a fallback but not written back at all from this action, so there is no single "precedent" to copy verbatim; this rule is chosen for the safety semantics, not by analogy.)
 
 Pool query (`src/lib/pulse/queries.ts` and the inline pool select in the generate action) adds `contraindications` to the column list.
 
@@ -114,6 +118,8 @@ Restrictions affect **generation only**. A hand-authored template cloned through
 
 1. `<ts>-movement-restrictions-profile.sql`: `alter table profiles add column movement_restrictions text[];` (nullable).
 2. `<ts>-exercise-contraindications.sql`: `alter table exercises add column contraindications text[] not null default '{}';` then the per-exercise `UPDATE` tags.
+
+**RLS:** no policy work. `movement_restrictions` is a new column on the already-RLS-protected `profiles` table and inherits its existing owner-scoped row policy automatically (a column add does not need a new policy). `exercises.contraindications` is read-only catalog data on the existing `exercises` table and inherits that table's existing read policy. Noted here so the pre-launch RLS audit does not have to re-derive it.
 
 ## Tests (`src/lib/pulse/__tests__/generation.test.ts`, plus action/UI as fitting)
 
