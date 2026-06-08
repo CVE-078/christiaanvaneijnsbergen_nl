@@ -31,8 +31,8 @@ Do not let either creep into this branch.
 
 Two new, mirroring `updateMovementRestrictions` exactly (validate against allowed values, `getUserOrThrow`, upsert the single column with `onConflict: 'id'`, `revalidatePath('/pulse')`):
 
-- `updateVarietyPreference(pref: VarietyPreference)` — validate `pref` is `'varied' | 'consistent'`.
-- `updateLoadingLean(pref: LoadingPreference | null)` — validate `pref` is one of `'barbell' | 'dumbbell' | 'machine' | 'cable'` **or null** (null clears the preference). Write the column as-is (null is a valid stored value, the generator treats it as no preference / identity).
+- `updateVarietyPreference(pref: VarietyPreference)`: validate `pref` is `'varied' | 'consistent'`.
+- `updateLoadingLean(pref: LoadingPreference | null)`: validate `pref` is one of `'barbell' | 'dumbbell' | 'machine' | 'cable'` **or null** (null clears the preference). Write the column as-is (null is a valid stored value, the generator treats it as no preference / identity).
 
 `updateTrainingStyle` already exists (server action + `useProfile` callback from the training-style feature, currently dormant), no new action needed.
 
@@ -46,14 +46,14 @@ Two new, mirroring `updateMovementRestrictions` exactly (validate against allowe
 
 A "Training preferences" group (one `SectionLabel` + intro line, then the four editors). Group intro copy: "Shape how Pulse builds your routines. Applies to plans you generate from now on." Each editor uses the existing Profile toggle pattern (`startTransition` / `isPending` guard / `disabled={isPending}` / `opacity` while pending), consistent with the accent and restrictions editors.
 
-- **Training style** — single-select rows from `TRAINING_STYLE_OPTIONS`. Active = `profile.training_style ?? 'balanced'`. Click → `updateTrainingStyle(key)`. Always has one active (defaults to balanced).
-- **Variety** — single-select rows from `VARIETY_OPTIONS`. Active = `profile.variety_preference ?? 'varied'`. Click → `updateVarietyPreference(key)`. Always has one active (defaults to varied).
-- **Loading lean** — rows from `LOADING_LEAN_OPTIONS` **plus an explicit "No preference" row at the top**. Active state:
+- **Training style**: single-select rows from `TRAINING_STYLE_OPTIONS`. Active = `profile.training_style ?? 'balanced'`. Click → `updateTrainingStyle(key)`. Always has one active (defaults to balanced).
+- **Variety**: single-select rows from `VARIETY_OPTIONS`. Active = `profile.variety_preference ?? 'varied'`. Click → `updateVarietyPreference(key)`. Always has one active (defaults to varied).
+- **Loading lean**: rows from `LOADING_LEAN_OPTIONS` **plus an explicit "No preference" row at the top**. Active state:
   - When `profile.loading_lean` is null → the "No preference" row is active and no equipment row is highlighted.
   - When set → that equipment row is active.
   - Selecting "No preference" → `updateLoadingLean(null)`. Selecting an equipment row → `updateLoadingLean(key)`.
   - The explicit "No preference" row is required (not tap-to-deselect alone) because this is a standing editor with no Next button, so clearing must be a visible, discoverable affordance. Null is a valid intentional state, not a missing default, so it must render distinctly (never as a stale prior value).
-- **Movement restrictions** — the existing multi-select editor, unchanged in behavior, regrouped under this heading and switched to import `RESTRICTION_OPTIONS` from the shared module instead of its current inline array.
+- **Movement restrictions**: the existing multi-select editor, unchanged in behavior, regrouped under this heading and switched to import `RESTRICTION_OPTIONS` from the shared module instead of its current inline array.
 
 ### Apply model
 
