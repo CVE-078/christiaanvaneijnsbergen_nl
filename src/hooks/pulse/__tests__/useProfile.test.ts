@@ -25,6 +25,7 @@ const defaultProfile: Profile = {
     training_style: null,
     variety_preference: null,
     loading_lean: null,
+    movement_restrictions: null,
     timezone: 'UTC',
 };
 const defaultBWLogs: BodyweightEntry[] = [];
@@ -81,6 +82,7 @@ describe('useProfile', () => {
                 training_style: null,
                 variety_preference: null,
                 loading_lean: null,
+                movement_restrictions: null,
                 timezone: 'UTC',
                 accent_color: null,
             },

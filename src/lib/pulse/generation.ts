@@ -7,6 +7,7 @@ import type {
     Focus,
     MovementPattern,
     ProgramStyle,
+    RestrictionFlag,
     SessionTime,
     Gender,
     PriorityMuscle,
@@ -516,6 +517,10 @@ export interface ExerciseMeta {
     /** True for single-limb-at-a-time lifts (Step-Up, Bulgarian Split Squat, Walking
      *  Lunge); used to cap how many land in one session so they don't crowd it out. */
     unilateral: boolean;
+    /** Joint areas this exercise commonly stresses. A user who flags one of these
+     *  has the exercise filtered out of generation. Empty for the vast majority
+     *  of exercises (DB default '{}'). */
+    contraindications: RestrictionFlag[];
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
@@ -523,6 +528,15 @@ function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
     // equipment must be owned.
     if (ex.equipment.length === 0) return true;
     return ex.equipment.every((e) => have.has(e));
+}
+
+function isContraindicated(ex: ExerciseMeta, restrictions: Set<RestrictionFlag>): boolean {
+    // Safety filter: hard, never relaxed (unlike the equipment thin-pool / heavy-
+    // dedup / unilateral relax fallbacks). A flagged lift is never re-added to
+    // fill a slot; if a pattern empties, the existing backfill covers it from
+    // safe patterns. Empty restriction set = no-op (identity).
+    if (restrictions.size === 0) return false;
+    return ex.contraindications.some((c) => restrictions.has(c));
 }
 
 // ── Exercise ordering (tier sort) ────────────────────────────────────────────
@@ -862,6 +876,9 @@ export interface GenerationInput {
     /** Which loading modality to prefer within a slot (secondary sort inside
      *  byPattern). Absent / null is the no-op identity path. */
     loadingLean?: LoadingPreference | null;
+    /** Joint areas to avoid. Absent / empty is the no-op identity path (no
+     *  exercise filtered, output byte-identical to the base generator). */
+    restrictions?: RestrictionFlag[];
     /** Generates a unique superset group id. Server passes crypto.randomUUID. */
     makeGroupId?: () => string;
 }
@@ -892,7 +909,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const { exercises: exCount, sets } = volumeFor(sessionTime, answers.experience);
     const isSuperset = sessionTime === '~30 min';
 
-    const usable = pool.filter((ex) => hasEquipment(ex, answers.equipment));
+    const restrictions = new Set(input.restrictions ?? []);
+    const usable = pool
+        .filter((ex) => hasEquipment(ex, answers.equipment))
+        .filter((ex) => !isContraindicated(ex, restrictions));
     const used = new Set<string>();
     // Routine-wide record of substitution_class values already selected, so
     // selectForSession can soft-deprioritize functionally-identical lifts that

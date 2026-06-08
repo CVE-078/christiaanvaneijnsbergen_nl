@@ -26,7 +26,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 // routes should both call the loaders below rather than duplicating queries.
 const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops';
 const PROFILE_SELECT =
-    'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle, timezone, accent_color, training_style, variety_preference, loading_lean';
+    'display_name, unit, length_unit, active_routine_id, onboarding_completed, goal_weight_kg, gender, priority_muscle, timezone, accent_color, training_style, variety_preference, loading_lean, movement_restrictions';
 const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'];
 const TRAINING_STYLE_VALUES = ['balanced', 'strength', 'bodybuilding', 'powerbuilding'];
 const VARIETY_PREFERENCE_VALUES = ['consistent', 'varied'];
@@ -93,6 +93,7 @@ export async function loadProfile(supabase: SupabaseServerClient, userId: string
             data && (LOADING_LEAN_VALUES as readonly string[]).includes(data.loading_lean as string)
                 ? (data.loading_lean as Profile['loading_lean'])
                 : null,
+        movement_restrictions: data?.movement_restrictions ?? null,
         timezone: typeof data?.timezone === 'string' && data.timezone ? data.timezone : 'UTC',
         accent_color: typeof data?.accent_color === 'string' ? data.accent_color : null,
     };

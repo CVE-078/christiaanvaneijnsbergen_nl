@@ -4,7 +4,7 @@ import { DAY_NAMES, SUGGESTED_DAYS, MAX_TRAINING_DAYS } from '@/lib/pulse/consta
 import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { PROGRAM_LENGTHS } from '@/lib/pulse/data';
 import { BTN_PRIMARY_BLOCK } from './ui';
-import type { EquipmentKey, SessionTime, Gender, TrainingStyle, VarietyPreference, LoadingPreference } from '@/lib/pulse/types';
+import type { EquipmentKey, SessionTime, Gender, TrainingStyle, VarietyPreference, LoadingPreference, RestrictionFlag } from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
 // Steps: 'gender' (only when collectGender, optional/skippable) · 1 equipment ·
@@ -13,10 +13,11 @@ import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/li
 // 'train_style' how-to-train (only when collectTrainingStyle) ·
 // 'variety' how-varied (only when collectVariety) ·
 // 'loading' which modality (only when collectLoadingLean) ·
+// 'restrictions' joint areas to avoid (only when collectRestrictions) ·
 // 'length' program length · 'start' when-to-start.
 // 'length' + 'start' are the two "shape your program" choices (program_weeks +
 // program_anchor), applied by the consumer after the routine is created.
-type Step = 'gender' | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 'train_style' | 'variety' | 'loading' | 'length' | 'start';
+type Step = 'gender' | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 'train_style' | 'variety' | 'loading' | 'restrictions' | 'length' | 'start';
 type StartChoice = 'today' | 'tomorrow' | 'monday' | 'custom';
 
 // Program-length options come from the single source in data.ts (8/10/12/16);
@@ -122,6 +123,13 @@ const LOADING_LEAN_OPTIONS: { key: LoadingPreference; label: string; desc: strin
     { key: 'cable', label: 'Cables', desc: 'Prioritise cable exercises where available.' },
 ];
 
+const RESTRICTION_OPTIONS: { key: RestrictionFlag; label: string; desc: string }[] = [
+    { key: 'knee', label: 'Knees', desc: 'Avoid deep squats, lunges, and leg extensions.' },
+    { key: 'lower_back', label: 'Lower back', desc: 'Avoid heavy deadlifts, good mornings, and bent-over rows.' },
+    { key: 'shoulder', label: 'Shoulders', desc: 'Avoid overhead barbell presses, upright rows, and dips.' },
+    { key: 'wrist', label: 'Wrists', desc: 'Avoid straight-bar presses, push-ups, and barbell curls.' },
+];
+
 const EQUIPMENT_OPTIONS: { key: EquipmentKey; label: string }[] = [
     { key: 'dumbbells', label: 'Dumbbells' },
     { key: 'barbell', label: 'Barbell & plates' },
@@ -156,6 +164,8 @@ export interface RoutineSetupResult {
     /** Chosen loading preference; null when the step is skipped or not collected.
      *  Generate consumers pass it to generateRoutine; template consumer ignores it. */
     loadingLean: LoadingPreference | null;
+    /** Joint areas to avoid in generation; [] when none chosen / step skipped. */
+    movementRestrictions: RestrictionFlag[];
 }
 
 interface Props {
@@ -185,6 +195,9 @@ interface Props {
     /** Show the "Which loading do you prefer?" step. Default true; template
      *  cloning sets this false because a template has fixed exercise selections. */
     collectLoadingLean?: boolean;
+    /** Show the "Anything we should work around?" step. Default true; template
+     *  cloning sets this false because a fixed template isn't pool-filtered. */
+    collectRestrictions?: boolean;
 }
 
 export default function RoutineSetupFlow({
@@ -197,6 +210,7 @@ export default function RoutineSetupFlow({
     collectTrainingStyle = true,
     collectVariety = true,
     collectLoadingLean = true,
+    collectRestrictions = true,
 }: Props) {
     const [step, setStep] = useState<Step>(collectGender ? 'gender' : 1);
     const [gender, setGender] = useState<Gender | null>(null);
@@ -217,6 +231,7 @@ export default function RoutineSetupFlow({
     const [trainingStyle, setTrainingStyle] = useState<TrainingStyle>('balanced');
     const [varietyPreference, setVarietyPreference] = useState<VarietyPreference>('varied');
     const [loadingLean, setLoadingLean] = useState<LoadingPreference | null>(null);
+    const [restrictions, setRestrictions] = useState<Set<RestrictionFlag>>(new Set());
     const [loading, setLoading] = useState(false);
 
     // The days-per-week answer caps how many days can be picked, so the chosen
@@ -238,17 +253,19 @@ export default function RoutineSetupFlow({
     const genderOffset = collectGender ? 1 : 0;
     // 8 always-on steps (equipment · experience · goal · days/week · which days ·
     // session time · length · start), plus the optional gender, program-style,
-    // training-style, variety, and loading steps when each is shown.
+    // training-style, variety, loading, and restrictions steps when each is shown.
     const total =
         8 +
         genderOffset +
         (showStyleStep ? 1 : 0) +
         (collectTrainingStyle ? 1 : 0) +
         (collectVariety ? 1 : 0) +
-        (collectLoadingLean ? 1 : 0);
+        (collectLoadingLean ? 1 : 0) +
+        (collectRestrictions ? 1 : 0);
     // Tail-step display numbers: start = total, length = total - 1,
-    // loading = total - 2, variety = total - 2 - (collectLoadingLean ? 1 : 0),
-    // train_style = total - 2 - (collectLoadingLean ? 1 : 0) - (collectVariety ? 1 : 0).
+    // restrictions = total - 2, loading = total - 2 - (collectRestrictions ? 1 : 0),
+    // variety = total - 2 - (collectRestrictions ? 1 : 0) - (collectLoadingLean ? 1 : 0),
+    // train_style = total - 2 - (collectRestrictions ? 1 : 0) - (collectLoadingLean ? 1 : 0) - (collectVariety ? 1 : 0).
 
     function toggleEquipment(key: EquipmentKey) {
         setEquipment((prev) => {
@@ -258,6 +275,14 @@ export default function RoutineSetupFlow({
             return next;
         });
     }
+
+    const toggleRestriction = (key: RestrictionFlag) =>
+        setRestrictions((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
 
     // Resolve the chosen start to an ISO anchor at noon UTC (program day one).
     // "Next Monday" lands on today when today is already Monday.
@@ -285,6 +310,7 @@ export default function RoutineSetupFlow({
                     trainingStyle,
                     varietyPreference,
                     loadingLean,
+                    movementRestrictions: [...restrictions],
                 });
             } finally {
                 setLoading(false);
@@ -568,7 +594,7 @@ export default function RoutineSetupFlow({
             <div className={WRAP}>
                 <div className={CARD}>
                     <Header
-                        stepNum={total - 2 - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
+                        stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
                         total={total}
                         onBack={() => setStep(7)}
                     />
@@ -588,7 +614,7 @@ export default function RoutineSetupFlow({
                         ))}
                     </div>
                     <button
-                        onClick={() => setStep(collectVariety ? 'variety' : collectLoadingLean ? 'loading' : 'length')}
+                        onClick={() => setStep(collectVariety ? 'variety' : collectLoadingLean ? 'loading' : collectRestrictions ? 'restrictions' : 'length')}
                         className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
@@ -601,7 +627,7 @@ export default function RoutineSetupFlow({
             <div className={WRAP}>
                 <div className={CARD}>
                     <Header
-                        stepNum={total - 2 - (collectLoadingLean ? 1 : 0)}
+                        stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
                         total={total}
                         onBack={() => setStep(collectTrainingStyle ? 'train_style' : 7)}
                     />
@@ -620,7 +646,7 @@ export default function RoutineSetupFlow({
                             />
                         ))}
                     </div>
-                    <button onClick={() => setStep(collectLoadingLean ? 'loading' : 'length')} className={BTN_PRIMARY_BLOCK}>
+                    <button onClick={() => setStep(collectLoadingLean ? 'loading' : collectRestrictions ? 'restrictions' : 'length')} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
                 </div>
@@ -632,7 +658,7 @@ export default function RoutineSetupFlow({
             <div className={WRAP}>
                 <div className={CARD}>
                     <Header
-                        stepNum={total - 2}
+                        stepNum={total - 2 - (collectRestrictions ? 1 : 0)}
                         total={total}
                         onBack={() => setStep(collectVariety ? 'variety' : collectTrainingStyle ? 'train_style' : 7)}
                     />
@@ -651,8 +677,69 @@ export default function RoutineSetupFlow({
                             />
                         ))}
                     </div>
-                    <button onClick={() => setStep('length')} className={BTN_PRIMARY_BLOCK}>
+                    <button onClick={() => setStep(collectRestrictions ? 'restrictions' : 'length')} className={BTN_PRIMARY_BLOCK}>
                         {loadingLean ? 'Next' : 'Skip'}
+                    </button>
+                </div>
+            </div>
+        );
+
+    if (step === 'restrictions')
+        return (
+            <div className={WRAP}>
+                <div className={CARD}>
+                    <Header
+                        stepNum={total - 2}
+                        total={total}
+                        onBack={() =>
+                            setStep(
+                                collectLoadingLean
+                                    ? 'loading'
+                                    : collectVariety
+                                      ? 'variety'
+                                      : collectTrainingStyle
+                                        ? 'train_style'
+                                        : 7,
+                            )
+                        }
+                    />
+                    <p className={Q}>Anything we should work around?</p>
+                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                        Pick any joints that bother you and Pulse will avoid the movements that commonly stress them, choosing safer alternatives. This is not medical advice. Skip if none apply.
+                    </p>
+                    <div className="flex flex-col gap-2">
+                        {RESTRICTION_OPTIONS.map(({ key, label, desc }) => (
+                            <label
+                                key={key}
+                                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                                    restrictions.has(key)
+                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                        : 'bg-pulse-surface-2 ring-0'
+                                }`}>
+                                <input
+                                    type="checkbox"
+                                    checked={restrictions.has(key)}
+                                    onChange={() => toggleRestriction(key)}
+                                    className="sr-only"
+                                />
+                                <div
+                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${restrictions.has(key) ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
+                                    {restrictions.has(key) && (
+                                        <span className="text-pulse-bg text-[10px] font-bold leading-none">✓</span>
+                                    )}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                                    <span className="font-pulse text-[0.75rem] text-pulse-dim">{desc}</span>
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                    <p className="font-pulse text-[0.75rem] text-pulse-dim">
+                        Takes effect the next time you generate a plan. To swap exercises in your current routine, use the Swap option on any exercise.
+                    </p>
+                    <button onClick={() => setStep('length')} className={BTN_PRIMARY_BLOCK}>
+                        {restrictions.size > 0 ? 'Next' : 'Skip'}
                     </button>
                 </div>
             </div>
@@ -667,13 +754,15 @@ export default function RoutineSetupFlow({
                         total={total}
                         onBack={() =>
                             setStep(
-                                collectLoadingLean
-                                    ? 'loading'
-                                    : collectVariety
-                                      ? 'variety'
-                                      : collectTrainingStyle
-                                        ? 'train_style'
-                                        : 7,
+                                collectRestrictions
+                                    ? 'restrictions'
+                                    : collectLoadingLean
+                                      ? 'loading'
+                                      : collectVariety
+                                        ? 'variety'
+                                        : collectTrainingStyle
+                                          ? 'train_style'
+                                          : 7,
                             )
                         }
                     />
@@ -762,7 +851,7 @@ export default function RoutineSetupFlow({
     return (
         <div className={WRAP}>
             <div className={CARD}>
-                <Header stepNum={total - 2 - (collectTrainingStyle ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
+                <Header stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectTrainingStyle ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
                 <p className={Q}>How long are your sessions?</p>
                 <div className="flex flex-col gap-2">
                     <OptionRow
@@ -792,7 +881,7 @@ export default function RoutineSetupFlow({
                         <p className="font-pulse text-sm text-pulse-dim leading-[1.55]">{rationalePreview}</p>
                     </div>
                 )}
-                <button onClick={() => setStep(collectTrainingStyle ? 'train_style' : collectVariety ? 'variety' : collectLoadingLean ? 'loading' : 'length')} disabled={!sessionTime} className={BTN_PRIMARY_BLOCK}>
+                <button onClick={() => setStep(collectTrainingStyle ? 'train_style' : collectVariety ? 'variety' : collectLoadingLean ? 'loading' : collectRestrictions ? 'restrictions' : 'length')} disabled={!sessionTime} className={BTN_PRIMARY_BLOCK}>
                     Next
                 </button>
             </div>

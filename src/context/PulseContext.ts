@@ -31,6 +31,7 @@ import type {
     TrainingStyle,
     VarietyPreference,
     LoadingPreference,
+    RestrictionFlag,
 } from '@/lib/pulse/types';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 
@@ -64,6 +65,7 @@ export interface PulseContextValue {
     updatePriorityMuscle: (priority: PriorityMuscle | 'balanced' | null) => Promise<void>;
     updateTimezone: (timezone: string) => Promise<void>;
     updateAccentColor: (accentColor: string) => Promise<void>;
+    updateMovementRestrictions: (restrictions: RestrictionFlag[]) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;
@@ -174,6 +176,7 @@ export interface PulseContextValue {
         trainingStyle?: TrainingStyle,
         varietyPreference?: VarietyPreference,
         loadingLean?: LoadingPreference,
+        movementRestrictions?: RestrictionFlag[],
     ) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
 
