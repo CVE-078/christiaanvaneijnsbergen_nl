@@ -159,14 +159,20 @@ describe('movement restrictions: a contraindicated exercise is excluded by name'
 });
 
 describe('movement restrictions: a single flag never empties leg work', () => {
-    it('a knee restriction still leaves squat-or-hinge leg work available', () => {
-        const pool: ExerciseMeta[] = [
-            meta('barbell-back-squat', 'squat', ['dumbbells'], true, { contraindications: ['knee'] }),
-            meta('leg-press', 'squat', ['dumbbells'], true, { contraindications: [] }),
-            meta('romanian-deadlift', 'hinge', ['dumbbells'], true, { contraindications: [] }),
-            ...deepPool().filter((e) => e.movement_pattern !== 'squat' && e.movement_pattern !== 'hinge'),
-        ];
-        const bp = generateRoutine(input({ pool, restrictions: ['knee'], trainingDays: [1, 2, 3, 4, 5, 6] }));
+    // Assert across both a 6-day split and a 3-day full-body config. The 3-day
+    // case is where pool thinning bites hardest (fewer slots, more patterns per
+    // session), so it is the more important guard.
+    const kneePool = (): ExerciseMeta[] => [
+        meta('barbell-back-squat', 'squat', ['dumbbells'], true, { contraindications: ['knee'] }),
+        meta('leg-press', 'squat', ['dumbbells'], true, { contraindications: [] }),
+        meta('romanian-deadlift', 'hinge', ['dumbbells'], true, { contraindications: [] }),
+        ...deepPool().filter((e) => e.movement_pattern !== 'squat' && e.movement_pattern !== 'hinge'),
+    ];
+    it.each([
+        { label: '6-day split', days: [1, 2, 3, 4, 5, 6] },
+        { label: '3-day full body', days: [1, 3, 5] },
+    ])('a knee restriction still leaves squat-or-hinge leg work available ($label)', ({ days }) => {
+        const bp = generateRoutine(input({ pool: kneePool(), restrictions: ['knee'], trainingDays: days }));
         const ids = new Set(bp.exercises.map((e) => e.exercise_id));
         expect(ids.has('leg-press') || ids.has('romanian-deadlift')).toBe(true);
     });
@@ -723,6 +729,8 @@ onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, 
 
 Run: `GIT_CONFIG_GLOBAL=/dev/null bun run typecheck && bun run test:run`
 Expected: clean; all tests PASS.
+
+Also manually verify the step-number arithmetic: `bun run dev`, open the generate flow, and walk to the new step. The "Step N of total" on the restrictions step should read one higher than loading and one lower than length, with no skipped or duplicated number across the whole tail (train_style → variety → loading → restrictions → length → start).
 
 - [ ] **Step 12: Commit**
 
