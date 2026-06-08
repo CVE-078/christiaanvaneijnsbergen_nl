@@ -1,13 +1,16 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { usePulse } from '@/context/PulseContext';
 import { BTN_PRIMARY } from '@/components/pulse/ui';
 import { recommendStyle } from '@/lib/pulse/generation';
 import RoutineSetupFlow from './RoutineSetupFlow';
+import TuneYourPlanPanel, { type TuneYourPlanState } from './TuneYourPlanPanel';
 
-// Reusable entry point: a button that opens the shared RoutineSetupFlow and
-// generates a routine from the answers, then jumps to Train. Used wherever
-// creating a routine should be one obvious tap (Routines tab, Plan, empty state).
+// Reusable entry point: a button that opens the shared RoutineSetupFlow,
+// generates a routine from the answers, then hands off to the "Tune your plan"
+// panel so the personalization the quick flow skipped stays one tap away.
+// Used wherever creating a routine should be one obvious tap (Routines tab,
+// Plan, empty state).
 export default function GenerateRoutineButton({
     className,
     label = 'Generate routine',
@@ -17,31 +20,53 @@ export default function GenerateRoutineButton({
 }) {
     const { generateRoutine, setProgramAnchor, updateRoutineProgramWeeks, navigate } = usePulse();
     const [open, setOpen] = useState(false);
+    const [tuning, setTuning] = useState<TuneYourPlanState | null>(null);
+    // RoutineSetupFlow always calls onClose once onComplete settles, which would
+    // otherwise close us (open = false) right as the Tune panel is handed off.
+    // Set this synchronously inside onComplete so the guarded onClose below can
+    // tell a successful handoff apart from a cancel / failure.
+    const handingOffRef = useRef(false);
+
+    function finish() {
+        setOpen(false);
+        setTuning(null);
+        handingOffRef.current = false;
+        navigate('train');
+    }
+
     return (
         <>
             <button onClick={() => setOpen(true)} className={className ?? BTN_PRIMARY}>
                 {label}
             </button>
-            {open && (
+            {open && tuning && <TuneYourPlanPanel {...tuning} onDone={finish} />}
+            {open && !tuning && (
                 <RoutineSetupFlow
-                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks, trainingStyle, varietyPreference, loadingLean, movementRestrictions }) => {
+                    mode="quick"
+                    onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks }) => {
+                        // Quick mode skips the personalization steps; pass undefined so
+                        // generateRoutine defers to the user's stored profile values.
+                        const resolvedStyleKey = styleKey ?? recommendStyle(trainingDays.length);
                         const routine = await generateRoutine(
                             answers,
                             trainingDays,
                             sessionTime,
-                            styleKey ?? recommendStyle(trainingDays.length),
+                            resolvedStyleKey,
                             undefined,
-                            trainingStyle,
-                            varietyPreference,
-                            loadingLean ?? undefined,
-                            movementRestrictions,
+                            undefined,
+                            undefined,
+                            undefined,
+                            undefined,
                         );
                         if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
                         // New routines default to 12 weeks in the DB; only write when it differs.
                         if (programWeeks !== 12) await updateRoutineProgramWeeks(routine.id, programWeeks);
-                        navigate('train');
+                        handingOffRef.current = true;
+                        setTuning({ routine, answers, trainingDays, sessionTime, styleKey: resolvedStyleKey, programWeeks, startAnchor });
                     }}
-                    onClose={() => setOpen(false)}
+                    onClose={() => {
+                        if (!handingOffRef.current) setOpen(false);
+                    }}
                 />
             )}
         </>

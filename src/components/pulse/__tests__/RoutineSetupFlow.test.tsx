@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RoutineSetupFlow from '../RoutineSetupFlow';
+import { recommendStyle } from '@/lib/pulse/generation';
+import { SUGGESTED_DAYS } from '@/lib/pulse/constants';
 import type { EquipmentKey } from '@/lib/pulse/types';
 
 const initial = {
@@ -361,5 +363,90 @@ describe('RoutineSetupFlow', () => {
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         expect(onComplete.mock.calls[0][0].loadingLean).toBeNull();
+    });
+});
+
+describe('RoutineSetupFlow quick mode', () => {
+    const quickInitial = {
+        equipment: ['dumbbells'] as EquipmentKey[],
+        experience: 'beginner' as const,
+        goal: 'build_muscle' as const,
+        days: '4' as const,
+        trainingDays: [] as number[],
+        sessionTime: '~30 min' as const,
+    };
+
+    it('trims the flow to 6 steps and auto-applies suggested days + recommended style', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        render(<RoutineSetupFlow mode="quick" initial={quickInitial} onComplete={onComplete} onClose={vi.fn()} />);
+        // 1: equipment
+        expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Next'));
+        // 2: experience
+        expect(screen.getByText(/training experience/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Next'));
+        // 3: goal
+        expect(screen.getByText(/primary goal/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Next'));
+        // 4: days/week → jumps straight past "which days" and "program style"
+        expect(screen.getByText(/how many days per week/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Next'));
+        expect(screen.queryByText(/which days will you train/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/which program style/i)).not.toBeInTheDocument();
+        // 5: session length
+        expect(screen.getByText(/how long are your sessions/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Next'));
+        // 6: start → jumps straight past gender, the four personalization steps, and program length
+        expect(screen.getByText(/when do you want to start/i)).toBeInTheDocument();
+        expect(screen.queryByText(/how long should your program be/i)).not.toBeInTheDocument();
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        const arg = onComplete.mock.calls[0][0];
+        expect(arg.trainingDays).toEqual(SUGGESTED_DAYS['4']);
+        expect(arg.styleKey).toBe(recommendStyle(arg.trainingDays.length));
+        expect(arg.programWeeks).toBe(12);
+        expect(arg.gender).toBeNull();
+    });
+
+    it('back navigation skips the trimmed steps in both directions', () => {
+        render(<RoutineSetupFlow mode="quick" initial={quickInitial} onComplete={vi.fn()} onClose={vi.fn()} />);
+        for (let i = 0; i < 4; i++) fireEvent.click(screen.getByText('Next'));
+        expect(screen.getByText(/how long are your sessions/i)).toBeInTheDocument();
+        // Back from session length returns straight to days/week, skipping which-days/style.
+        fireEvent.click(screen.getByText('←'));
+        expect(screen.getByText(/how many days per week/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Next')); // session length → start
+        expect(screen.getByText(/when do you want to start/i)).toBeInTheDocument();
+        // Back from start returns to session length, skipping program length.
+        fireEvent.click(screen.getByText('←'));
+        expect(screen.getByText(/how long are your sessions/i)).toBeInTheDocument();
+    });
+
+    it('forces every collect* prop off regardless of what the consumer passes', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        render(
+            <RoutineSetupFlow
+                mode="quick"
+                initial={quickInitial}
+                collectGender
+                collectTrainingStyle
+                collectVariety
+                collectLoadingLean
+                collectRestrictions
+                onComplete={onComplete}
+                onClose={vi.fn()}
+            />,
+        );
+        // No gender step despite collectGender: starts straight at equipment.
+        expect(screen.queryByText(/what's your gender/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
+        // 5 Next clicks reach the start step directly: the personalization steps
+        // (train_style, variety, loading, restrictions) and program length never render.
+        for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'));
+        expect(screen.getByText(/when do you want to start/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].gender).toBeNull();
     });
 });

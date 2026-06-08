@@ -18,6 +18,15 @@ import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/li
 // 'length' program length · 'start' when-to-start.
 // 'length' + 'start' are the two "shape your program" choices (program_weeks +
 // program_anchor), applied by the consumer after the routine is created.
+//
+// mode: 'quick' (fast first-generation) trims this to 6 steps -- equipment ·
+// experience · goal · days/week · 7 session time · 'start' (confirm+start) --
+// overriding every collect* prop to false. It auto-applies the suggested
+// training days (SUGGESTED_DAYS) and the recommended program style
+// (recommendStyle) when leaving the days/week step, and leaves program length
+// at its 12-week default. The personalization inputs it skips move to the
+// post-generation "Tune your plan" panel and the standing Profile editors,
+// resolving from the stored profile (param ?? profile ?? default) when absent.
 type Step = 'gender' | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 'train_style' | 'variety' | 'loading' | 'restrictions' | 'length' | 'start';
 type StartChoice = 'today' | 'tomorrow' | 'monday' | 'custom';
 
@@ -174,6 +183,11 @@ interface Props {
     /** Show the "Anything we should work around?" step. Default true; template
      *  cloning sets this false because a fixed template isn't pool-filtered. */
     collectRestrictions?: boolean;
+    /** 'quick' trims the flow to 6 steps for fast first-generation (equipment,
+     *  experience, goal, days/week, session length, confirm+start), forcing every
+     *  collect* prop off and auto-applying suggested days + recommended style.
+     *  See the Steps comment above for the full rundown. Default 'full'. */
+    mode?: 'quick' | 'full';
 }
 
 export default function RoutineSetupFlow({
@@ -187,7 +201,19 @@ export default function RoutineSetupFlow({
     collectVariety = true,
     collectLoadingLean = true,
     collectRestrictions = true,
+    mode = 'full',
 }: Props) {
+    const quick = mode === 'quick';
+    // Quick mode owns the trim outright, regardless of what the consumer passes:
+    // gender and the four personalization steps never render, their inputs live
+    // in the post-generation Tune panel / standing Profile editors instead.
+    if (quick) {
+        collectGender = false;
+        collectTrainingStyle = false;
+        collectVariety = false;
+        collectLoadingLean = false;
+        collectRestrictions = false;
+    }
     const [step, setStep] = useState<Step>(collectGender ? 'gender' : 1);
     const [gender, setGender] = useState<Gender | null>(null);
     // Tracks an explicit "Prefer not to say" pick so it can highlight like the
@@ -230,14 +256,18 @@ export default function RoutineSetupFlow({
     // 8 always-on steps (equipment · experience · goal · days/week · which days ·
     // session time · length · start), plus the optional gender, program-style,
     // training-style, variety, loading, and restrictions steps when each is shown.
-    const total =
-        8 +
-        genderOffset +
-        (showStyleStep ? 1 : 0) +
-        (collectTrainingStyle ? 1 : 0) +
-        (collectVariety ? 1 : 0) +
-        (collectLoadingLean ? 1 : 0) +
-        (collectRestrictions ? 1 : 0);
+    // Quick mode is a fixed 6: equipment · experience · goal · days/week ·
+    // session time · start (which days, style, length, and every personalization
+    // step are auto-applied or defaulted, never counted).
+    const total = quick
+        ? 6
+        : 8 +
+          genderOffset +
+          (showStyleStep ? 1 : 0) +
+          (collectTrainingStyle ? 1 : 0) +
+          (collectVariety ? 1 : 0) +
+          (collectLoadingLean ? 1 : 0) +
+          (collectRestrictions ? 1 : 0);
     // Tail-step display numbers: start = total, length = total - 1,
     // restrictions = total - 2, loading = total - 2 - (collectRestrictions ? 1 : 0),
     // variety = total - 2 - (collectRestrictions ? 1 : 0) - (collectLoadingLean ? 1 : 0),
@@ -477,6 +507,17 @@ export default function RoutineSetupFlow({
                     </div>
                     <button
                         onClick={() => {
+                            if (quick) {
+                                // Skip "which days" and "program style" outright: seed the
+                                // suggested days for this frequency and auto-pick the
+                                // recommended split for that count ("Change split" lives
+                                // in the post-generation Tune panel).
+                                const suggested = days ? (SUGGESTED_DAYS[days] ?? []) : [];
+                                setTrainingDays(suggested);
+                                setStyleKey(recommendStyle(suggested.length));
+                                setStep(7);
+                                return;
+                            }
                             if (trainingDays.length === 0) setTrainingDays(days ? (SUGGESTED_DAYS[days] ?? []) : []);
                             setStep(5);
                         }}
@@ -768,7 +809,7 @@ export default function RoutineSetupFlow({
         return (
             <div className={WRAP}>
                 <div className={CARD}>
-                    <Header stepNum={total} total={total} onBack={() => setStep('length')} />
+                    <Header stepNum={total} total={total} onBack={() => setStep(quick ? 7 : 'length')} />
                     <p className={Q}>When do you want to start?</p>
                     <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
                         Sets your program&apos;s first day. You can change it later in Plan.
@@ -827,7 +868,20 @@ export default function RoutineSetupFlow({
     return (
         <div className={WRAP}>
             <div className={CARD}>
-                <Header stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectTrainingStyle ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)} total={total} onBack={() => setStep(showStyleStep ? 6 : 5)} />
+                <Header
+                    stepNum={
+                        quick
+                            ? 5
+                            : total -
+                              2 -
+                              (collectRestrictions ? 1 : 0) -
+                              (collectTrainingStyle ? 1 : 0) -
+                              (collectVariety ? 1 : 0) -
+                              (collectLoadingLean ? 1 : 0)
+                    }
+                    total={total}
+                    onBack={() => setStep(quick ? 4 : showStyleStep ? 6 : 5)}
+                />
                 <p className={Q}>How long are your sessions?</p>
                 <div className="flex flex-col gap-2">
                     <OptionRow
@@ -857,7 +911,24 @@ export default function RoutineSetupFlow({
                         <p className="font-pulse text-sm text-pulse-dim leading-[1.55]">{rationalePreview}</p>
                     </div>
                 )}
-                <button onClick={() => setStep(collectTrainingStyle ? 'train_style' : collectVariety ? 'variety' : collectLoadingLean ? 'loading' : collectRestrictions ? 'restrictions' : 'length')} disabled={!sessionTime} className={BTN_PRIMARY_BLOCK}>
+                <button
+                    onClick={() =>
+                        setStep(
+                            quick
+                                ? 'start'
+                                : collectTrainingStyle
+                                  ? 'train_style'
+                                  : collectVariety
+                                    ? 'variety'
+                                    : collectLoadingLean
+                                      ? 'loading'
+                                      : collectRestrictions
+                                        ? 'restrictions'
+                                        : 'length',
+                        )
+                    }
+                    disabled={!sessionTime}
+                    className={BTN_PRIMARY_BLOCK}>
                     Next
                 </button>
             </div>
