@@ -3,7 +3,7 @@ import { useTransition, useState } from 'react';
 import { toDisplay, toKg, toLengthDisplay, toCm, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
-import type { BodyweightEntry, Gender, LengthUnit, PriorityMuscle } from '@/lib/pulse/types';
+import type { BodyweightEntry, Gender, LengthUnit, PriorityMuscle, RestrictionFlag } from '@/lib/pulse/types';
 import { genderDefault } from '@/lib/pulse/generation';
 import { ACCENT_PRESETS, DEFAULT_ACCENT_KEY } from '@/lib/pulse/constants';
 import SectionLabel from '../SectionLabel';
@@ -108,6 +108,7 @@ export default function ProfileView() {
         updateLengthUnit,
         updatePriorityMuscle,
         updateAccentColor,
+        updateMovementRestrictions,
         triggerOnboarding,
         handleExport,
         loading,
@@ -322,6 +323,53 @@ export default function ProfileView() {
                                                 : 'none',
                                         }}
                                     />
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Movement restrictions */}
+                    <div>
+                        <SectionLabel className="mb-2">Movement restrictions</SectionLabel>
+                        <p className="mb-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                            Joints to work around. Applies to routines you generate from now on. To change your current
+                            plan, use the Swap option on any exercise.
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            {(
+                                [
+                                    { key: 'knee', label: 'Knees' },
+                                    { key: 'lower_back', label: 'Lower back' },
+                                    { key: 'shoulder', label: 'Shoulders' },
+                                    { key: 'wrist', label: 'Wrists' },
+                                ] as { key: RestrictionFlag; label: string }[]
+                            ).map(({ key, label }) => {
+                                const active = (profile.movement_restrictions ?? []).includes(key);
+                                return (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        aria-pressed={active}
+                                        onClick={() => {
+                                            const current = profile.movement_restrictions ?? [];
+                                            const next = active
+                                                ? current.filter((r) => r !== key)
+                                                : [...current, key];
+                                            void updateMovementRestrictions(next);
+                                        }}
+                                        className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
+                                            active ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent' : 'bg-pulse-surface-2 ring-0'
+                                        }`}>
+                                        <div
+                                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 ${active ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
+                                            {active && (
+                                                <span className="text-[10px] font-bold leading-none text-pulse-bg">
+                                                    ✓
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                                    </button>
                                 );
                             })}
                         </div>
