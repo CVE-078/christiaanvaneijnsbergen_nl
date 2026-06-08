@@ -66,6 +66,9 @@ export interface PulseContextValue {
     updateTimezone: (timezone: string) => Promise<void>;
     updateAccentColor: (accentColor: string) => Promise<void>;
     updateMovementRestrictions: (restrictions: RestrictionFlag[]) => Promise<void>;
+    updateTrainingStyle: (style: TrainingStyle | null) => Promise<void>;
+    updateVarietyPreference: (pref: VarietyPreference) => Promise<void>;
+    updateLoadingLean: (pref: LoadingPreference | null) => Promise<void>;
     logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;

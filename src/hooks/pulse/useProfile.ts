@@ -7,6 +7,8 @@ import {
     updatePriorityMuscle as serverUpdatePriorityMuscle,
     updateTrainingStyle as serverUpdateTrainingStyle,
     updateMovementRestrictions as serverUpdateMovementRestrictions,
+    updateVarietyPreference as serverUpdateVarietyPreference,
+    updateLoadingLean as serverUpdateLoadingLean,
     updateTimezone as serverUpdateTimezone,
     updateAccentColor as serverUpdateAccentColor,
     logBodyWeight as serverLogBodyWeight,
@@ -23,6 +25,8 @@ import type {
     PriorityMuscle,
     TrainingStyle,
     RestrictionFlag,
+    VarietyPreference,
+    LoadingPreference,
 } from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
@@ -151,6 +155,30 @@ export function useProfile() {
         [mutateProfile, profile],
     );
 
+    const updateVarietyPreference = useCallback(
+        async (pref: VarietyPreference): Promise<void> => {
+            mutateProfile({ ...profile, variety_preference: pref }, false);
+            try {
+                await serverUpdateVarietyPreference(pref);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
+    const updateLoadingLean = useCallback(
+        async (pref: LoadingPreference | null): Promise<void> => {
+            mutateProfile({ ...profile, loading_lean: pref }, false);
+            try {
+                await serverUpdateLoadingLean(pref);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
     const updateTimezone = useCallback(
         async (timezone: string): Promise<void> => {
             mutateProfile({ ...profile, timezone }, false);
@@ -210,6 +238,8 @@ export function useProfile() {
         updatePriorityMuscle,
         updateTrainingStyle,
         updateMovementRestrictions,
+        updateVarietyPreference,
+        updateLoadingLean,
         updateTimezone,
         updateAccentColor,
         logBodyWeight,

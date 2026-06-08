@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProfileView from '../views/ProfileView';
 import { ToastProvider } from '@/lib/pulse/toast';
@@ -25,6 +25,10 @@ const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
 const mockUpdateLengthUnit = vi.fn().mockResolvedValue(undefined);
 const mockUpdatePriorityMuscle = vi.fn().mockResolvedValue(undefined);
 const mockUpdateAccentColor = vi.fn().mockResolvedValue(undefined);
+const mockUpdateTrainingStyle = vi.fn().mockResolvedValue(undefined);
+const mockUpdateVarietyPreference = vi.fn().mockResolvedValue(undefined);
+const mockUpdateLoadingLean = vi.fn().mockResolvedValue(undefined);
+const mockUpdateMovementRestrictions = vi.fn().mockResolvedValue(undefined);
 
 const defaultContext = {
     email: 'test@example.com',
@@ -37,6 +41,10 @@ const defaultContext = {
         gender: null,
         length_unit: 'cm' as const,
         priority_muscle: null,
+        training_style: null,
+        variety_preference: null,
+        loading_lean: null,
+        movement_restrictions: null,
     },
     bodyweightLogs: [],
     bodyMeasurements: [],
@@ -46,6 +54,10 @@ const defaultContext = {
     updateLengthUnit: mockUpdateLengthUnit,
     updatePriorityMuscle: mockUpdatePriorityMuscle,
     updateAccentColor: mockUpdateAccentColor,
+    updateTrainingStyle: mockUpdateTrainingStyle,
+    updateVarietyPreference: mockUpdateVarietyPreference,
+    updateLoadingLean: mockUpdateLoadingLean,
+    updateMovementRestrictions: mockUpdateMovementRestrictions,
     autoAdvance: false,
     setAutoAdvance: vi.fn(),
     logBodyWeight: mockLogBodyWeight,
@@ -55,6 +67,10 @@ const defaultContext = {
     exercises: [],
     routines: [],
     triggerOnboarding: vi.fn(),
+    handleExport: vi.fn(),
+    loading: {},
+    errors: {},
+    retry: vi.fn(),
 };
 
 const renderWithToast = (component: React.ReactElement) => {
@@ -66,6 +82,14 @@ const renderWithToast = (component: React.ReactElement) => {
     );
 };
 
+function renderWithProfile(profileOverrides: Record<string, unknown> = {}) {
+    vi.mocked(usePulse).mockReturnValue({
+        ...defaultContext,
+        profile: { ...defaultContext.profile, ...profileOverrides },
+    } as unknown as ReturnType<typeof usePulse>);
+    return renderWithToast(<ProfileView />);
+}
+
 beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
     mockUpdateProfile.mockClear();
@@ -75,6 +99,10 @@ beforeEach(() => {
     mockUpdateLengthUnit.mockClear();
     mockUpdatePriorityMuscle.mockClear();
     mockUpdateAccentColor.mockClear();
+    mockUpdateTrainingStyle.mockClear();
+    mockUpdateVarietyPreference.mockClear();
+    mockUpdateLoadingLean.mockClear();
+    mockUpdateMovementRestrictions.mockClear();
     vi.mocked(updateGoalWeight).mockClear();
 });
 
@@ -288,5 +316,91 @@ describe('ProfileView', () => {
         renderWithToast(<ProfileView />);
         expect(screen.getByText(/81 cm/)).toBeInTheDocument();
         expect(screen.getAllByText('—').length).toBe(3);
+    });
+
+    describe('Training preferences editors', () => {
+        it('renders training preference editors and reflects current values', () => {
+            renderWithProfile({
+                training_style: 'strength',
+                variety_preference: 'consistent',
+                loading_lean: 'barbell',
+            });
+            const prefsSection = screen.getByTestId('training-preferences-section');
+            expect(within(prefsSection).getByRole('button', { name: /Strength/ })).toHaveAttribute(
+                'aria-pressed',
+                'true',
+            );
+            expect(within(prefsSection).getByRole('button', { name: /Consistent/ })).toHaveAttribute(
+                'aria-pressed',
+                'true',
+            );
+            expect(within(prefsSection).getByRole('button', { name: /^Barbell/ })).toHaveAttribute(
+                'aria-pressed',
+                'true',
+            );
+        });
+
+        it('renders null loading_lean as "No preference" active with no equipment row highlighted', () => {
+            renderWithProfile({ loading_lean: null });
+            const prefsSection = screen.getByTestId('training-preferences-section');
+            expect(within(prefsSection).getByRole('button', { name: /No preference/ })).toHaveAttribute(
+                'aria-pressed',
+                'true',
+            );
+            expect(within(prefsSection).getByRole('button', { name: /^Barbell/ })).toHaveAttribute(
+                'aria-pressed',
+                'false',
+            );
+        });
+
+        it('clicking the already-active loading row is a no-op (setter not called)', async () => {
+            const user = userEvent.setup();
+            renderWithProfile({ loading_lean: 'barbell' });
+            const prefsSection = screen.getByTestId('training-preferences-section');
+            await user.click(within(prefsSection).getByRole('button', { name: /^Barbell/ }));
+            expect(mockUpdateLoadingLean).not.toHaveBeenCalled();
+        });
+
+        it('clicking "No preference" calls updateLoadingLean(null)', async () => {
+            const user = userEvent.setup();
+            renderWithProfile({ loading_lean: 'barbell' });
+            const prefsSection = screen.getByTestId('training-preferences-section');
+            await user.click(within(prefsSection).getByRole('button', { name: /No preference/ }));
+            expect(mockUpdateLoadingLean).toHaveBeenCalledWith(null);
+        });
+
+        it('clicking an inactive training style calls updateTrainingStyle', async () => {
+            const user = userEvent.setup();
+            renderWithProfile({ training_style: 'balanced' });
+            const prefsSection = screen.getByTestId('training-preferences-section');
+            await user.click(within(prefsSection).getByRole('button', { name: /Strength/ }));
+            expect(mockUpdateTrainingStyle).toHaveBeenCalledWith('strength');
+        });
+
+        it('clicking the already-active training style is a no-op', async () => {
+            const user = userEvent.setup();
+            renderWithProfile({ training_style: 'strength' });
+            const prefsSection = screen.getByTestId('training-preferences-section');
+            await user.click(within(prefsSection).getByRole('button', { name: /Strength/ }));
+            expect(mockUpdateTrainingStyle).not.toHaveBeenCalled();
+        });
+
+        it('null training_style defaults to balanced active', () => {
+            renderWithProfile({ training_style: null });
+            const prefsSection = screen.getByTestId('training-preferences-section');
+            expect(within(prefsSection).getByRole('button', { name: /Balanced/ })).toHaveAttribute(
+                'aria-pressed',
+                'true',
+            );
+        });
+
+        it('null variety_preference defaults to varied active', () => {
+            renderWithProfile({ variety_preference: null });
+            const prefsSection = screen.getByTestId('training-preferences-section');
+            expect(within(prefsSection).getByRole('button', { name: /Varied/ })).toHaveAttribute(
+                'aria-pressed',
+                'true',
+            );
+        });
     });
 });
