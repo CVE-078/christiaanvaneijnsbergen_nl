@@ -509,6 +509,13 @@ export interface ExerciseMeta {
      *  without this field are treated as neutral (3) so they neither win nor lose
      *  against well-characterised exercises on fatigue alone. */
     fatigue?: number;
+    /** Functional-role tag (e.g. 'horizontal_press', 'unilateral_leg', 'front_delt_isolation')
+     *  used to deduplicate near-identical lifts across sessions. Null when an exercise
+     *  doesn't fit a defined role (e.g. Russian Twist). */
+    substitution_class: string | null;
+    /** True for single-limb-at-a-time lifts (Step-Up, Bulgarian Split Squat, Walking
+     *  Lunge); used to cap how many land in one session so they don't crowd it out. */
+    unilateral: boolean;
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
@@ -581,28 +588,71 @@ function selectForSession(
     used: Set<string>,
     variety: VarietyPreference,
     anchors: Map<MovementPattern, string>,
+    usedSubstitutionClasses: Set<string>,
     loadingLean?: LoadingPreference | null,
 ): Selected[] {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
 
-    // Sort candidates: (1) preferred-equipment first (loading lean), (2) lower
-    // fatigue first (GQ2 tiebreak; undefined → neutral midpoint 3 so untagged
-    // exercises neither win nor lose against well-characterised ones), (3) stable
-    // alphabetical by id. When loadingLean is null/undefined the first key is a
-    // no-op; when fatigue is uniformly undefined the second key is a no-op.
+    // Session-scoped: true once a vertical_push exercise has been picked this
+    // session. Read by byPattern's front-delt-isolation suppression below;
+    // declared here (rather than alongside chosen/chosenIds) so the comparator
+    // closure can reference it without a temporal-dead-zone concern.
+    let verticalPushFilled = false;
+
+    // Sort candidates: (1) preferred-equipment first (loading lean), (2) a
+    // fresh-substitution-class preference (GQ3 cross-session dedup), (3) a
+    // post-vertical-press front-delt-isolation suppression (GQ3), (4) a
+    // role-aware fatigue tiebreak, (5) stable alphabetical by id. When
+    // loadingLean is null/undefined the first key is a no-op; when fatigue is
+    // uniformly undefined the fourth key is a no-op.
+    //
+    // (2) soft-deprioritizes (never hard-blocks) a candidate whose
+    // substitution_class already appears elsewhere in this routine, so
+    // functionally-identical lifts under different names/equipment -- Romanian
+    // Deadlift on both Pull and Legs, Walking Lunge then Bulgarian Split Squat
+    // -- don't both make the cut. Untagged exercises (substitution_class: null)
+    // are never deprioritized by this key; it only tracks named roles.
+    //
+    // (3) soft-deprioritizes Front Raise (substitution_class:
+    // 'front_delt_isolation', distinct from the legitimate lateral_raise
+    // family) once this session already has a vertical press: an Overhead /
+    // Shoulder Press already loads the front delts hard, so reaching for an
+    // isolation move that trains the same head is the lowest-value shoulder_iso
+    // pick available, not the highest. Still selectable when it's the only
+    // shoulder_iso candidate left (soft, not a hard block).
+    //
+    // (4) The fatigue tiebreak direction depends on the slot's role. Accessory /
+    // isolation patterns keep the GQ2 behaviour (lower fatigue first: a coach
+    // picks the cheaper isolation move when several train the same thing).
+    // Anchor patterns -- COMPOUND_ANCHOR_PATTERNS, the main compounds a session
+    // is built around -- invert that: higher fatigue first, because fatigue
+    // cost tracks mechanical stimulus for primary lifts (Barbell Squat costs
+    // more than Goblet Squat *because* it drives more adaptation), so
+    // lowest-first was systematically picking the weakest anchor in the pool.
+    // Untagged exercises sit at the neutral midpoint (3) either way, so they
+    // neither win nor lose against well-characterised ones.
     const FATIGUE_UNKNOWN = 3;
-    const byPattern = (p: MovementPattern) =>
-        usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => {
+    const FRONT_DELT_ISOLATION = 'front_delt_isolation';
+    const byPattern = (p: MovementPattern) => {
+        const anchorPattern = COMPOUND_ANCHOR_PATTERNS.has(p);
+        return usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => {
             if (preferredKey) {
                 const aMatch = a.equipment.includes(preferredKey) ? 0 : 1;
                 const bMatch = b.equipment.includes(preferredKey) ? 0 : 1;
                 if (aMatch !== bMatch) return aMatch - bMatch;
             }
+            const aSubUsed = a.substitution_class !== null && usedSubstitutionClasses.has(a.substitution_class) ? 1 : 0;
+            const bSubUsed = b.substitution_class !== null && usedSubstitutionClasses.has(b.substitution_class) ? 1 : 0;
+            if (aSubUsed !== bSubUsed) return aSubUsed - bSubUsed;
+            const aFrontRaise = verticalPushFilled && a.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
+            const bFrontRaise = verticalPushFilled && b.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
+            if (aFrontRaise !== bFrontRaise) return aFrontRaise - bFrontRaise;
             const aFatigue = a.fatigue ?? FATIGUE_UNKNOWN;
             const bFatigue = b.fatigue ?? FATIGUE_UNKNOWN;
-            if (aFatigue !== bFatigue) return aFatigue - bFatigue;
+            if (aFatigue !== bFatigue) return anchorPattern ? bFatigue - aFatigue : aFatigue - bFatigue;
             return a.id.localeCompare(b.id);
         });
+    };
 
     const chosen: Selected[] = [];
     const chosenIds = new Set<string>();
@@ -610,26 +660,47 @@ function selectForSession(
     // session. The cap prevents a second deadlift variant or squat compound from
     // entering via backfill while still allowing lunge and glute_iso accessories.
     const heavyPatternFilled = new Set<MovementPattern>();
+    // Mirrors heavyPatternFilled but for single-limb-at-a-time lifts (unilateral:
+    // true), capped at one per session regardless of pattern -- a session built
+    // around Walking Lunge shouldn't also reach for Bulgarian Split Squat or
+    // Step-Up. Unlike the heavy-pattern cap this isn't keyed by pattern: a
+    // unilateral pick in 'lunge' still blocks a unilateral pick in 'squat'.
+    let unilateralFilled = false;
 
     const push = (ex: ExerciseMeta, slot: MovementPattern) => {
         chosen.push({ ex, pattern: slot });
         chosenIds.add(ex.id);
         used.add(ex.id);
+        if (ex.substitution_class !== null) usedSubstitutionClasses.add(ex.substitution_class);
+        if (ex.unilateral) unilateralFilled = true;
+        if (slot === 'vertical_push') verticalPushFilled = true;
         if (HEAVY_DEDUP_PATTERNS.has(slot) && ex.is_compound) {
             heavyPatternFilled.add(slot);
         }
     };
 
-    // `relaxHeavyCap`: thin-pool fallback -- allow a second heavy compound only
-    // after a full backfill round produces nothing else.
-    const pick = (slot: MovementPattern, relaxHeavyCap = false): boolean => {
-        const candidates = byPattern(slot).filter((ex) => !chosenIds.has(ex.id));
+    // `relaxHeavyCap` / `relaxUnilateralCap`: thin-pool fallbacks -- allow a
+    // second heavy compound, or a second unilateral pick, only after a full
+    // backfill round produces nothing else.
+    const pick = (slot: MovementPattern, relaxHeavyCap = false, relaxUnilateralCap = false): boolean => {
+        let candidates = byPattern(slot).filter((ex) => !chosenIds.has(ex.id));
         if (candidates.length === 0) return false;
 
         // Heavy-compound cap: skip if this Tier-1 pattern is already filled,
         // unless the cap has been relaxed because no other option is available.
         if (!relaxHeavyCap && HEAVY_DEDUP_PATTERNS.has(slot) && heavyPatternFilled.has(slot)) {
             return false;
+        }
+
+        // Unilateral cap: once a unilateral exercise has filled this session,
+        // skip a slot whose only remaining candidates are unilateral (mirrors
+        // the heavy-compound cap's hard block), unless the cap has been relaxed
+        // because a full backfill round produced nothing else. A slot with a
+        // mix of bilateral and unilateral options simply narrows to bilateral.
+        if (unilateralFilled && !relaxUnilateralCap) {
+            const bilateral = candidates.filter((ex) => !ex.unilateral);
+            if (bilateral.length === 0) return false;
+            candidates = bilateral;
         }
 
         // Variety 'consistent': anchor the main compound lifts across sessions.
@@ -673,9 +744,11 @@ function selectForSession(
     }
 
     // Backfill: walk uncovered patterns first (breadth over depth), then revisit
-    // already-filled ones. The heavy-cap is relaxed only after a full round yields
-    // nothing, so thin equipment pools can still reach the target count.
+    // already-filled ones. The heavy-cap and unilateral-cap are each relaxed only
+    // after a full round yields nothing, so thin equipment pools can still reach
+    // the target count.
     let relaxedHeavyCap = false;
+    let relaxedUnilateralCap = false;
     let guard = 0;
     while (chosen.length < count && guard < 50) {
         guard++;
@@ -687,11 +760,13 @@ function selectForSession(
         );
         for (const slot of slotsByPriority) {
             if (chosen.length >= count) break;
-            if (pick(slot, relaxedHeavyCap)) added = true;
+            if (pick(slot, relaxedHeavyCap, relaxedUnilateralCap)) added = true;
         }
         if (!added) {
             if (!relaxedHeavyCap) {
                 relaxedHeavyCap = true; // one retry with the cap lifted
+            } else if (!relaxedUnilateralCap) {
+                relaxedUnilateralCap = true; // one retry with the unilateral cap lifted
             } else {
                 break; // pool genuinely exhausted
             }
@@ -819,6 +894,11 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
 
     const usable = pool.filter((ex) => hasEquipment(ex, answers.equipment));
     const used = new Set<string>();
+    // Routine-wide record of substitution_class values already selected, so
+    // selectForSession can soft-deprioritize functionally-identical lifts that
+    // resurface under a different name/equipment (e.g. Romanian Deadlift on
+    // both Pull and Legs). See the byPattern comparator for how it's applied.
+    const usedSubstitutionClasses = new Set<string>();
     const variety = input.varietyPreference ?? 'varied';
     // Routine-wide anchor map (per-generation, never persisted) used only under
     // 'consistent' to keep the main compounds the same across sessions.
@@ -836,7 +916,16 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';
         const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
-        const selected = selectForSession(emphasis, exCount, usable, used, variety, anchors, input.loadingLean);
+        const selected = selectForSession(
+            emphasis,
+            exCount,
+            usable,
+            used,
+            variety,
+            anchors,
+            usedSubstitutionClasses,
+            input.loadingLean,
+        );
 
         // Tier sort: present exercises in coach-standard order within each session.
         // Compounds lead (Tier 1: squat/hinge; Tier 2: push/pull/lunge), isolations
