@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-08)
 
-**In progress:** Quick-start generation + post-generation "Tune your plan" (Tier 1 #15), on `feature/quick-start-generation`. Brainstorming the design.
+**In progress:** Quick-start generation (Tier 1 #15), on `feature/quick-start-generation`. **Branch 1 done** (standing Profile editors for training style / variety / loading lean, plus the shared `generationPreferences.ts` option module and the now-exposed `updateTrainingStyle` / new `updateVarietyPreference` / `updateLoadingLean` setters; +10 tests, suite 897). **Next: Branch 2**, the `mode:'quick'` flow trim (6 steps, drop which-days + gender), then the post-gen "Tune your plan" panel.
 
 **In review (on a branch, not yet merged):** (none).
 
