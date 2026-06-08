@@ -149,11 +149,13 @@ describe('useProfile', () => {
         await act(async () => {
             await result.current.updateLoadingLean('barbell');
         });
+        expect(profileMutate).toHaveBeenCalledWith({ ...defaultProfile, loading_lean: 'barbell' }, false);
         expect(updateLoadingLean).toHaveBeenCalledWith('barbell');
 
         await act(async () => {
             await result.current.updateLoadingLean(null);
         });
+        expect(profileMutate).toHaveBeenCalledWith({ ...defaultProfile, loading_lean: null }, false);
         expect(updateLoadingLean).toHaveBeenCalledWith(null);
     });
 });

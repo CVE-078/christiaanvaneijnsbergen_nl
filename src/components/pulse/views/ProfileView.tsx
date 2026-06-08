@@ -3,7 +3,7 @@ import { useTransition, useState } from 'react';
 import { toDisplay, toKg, toLengthDisplay, toCm, getInitials, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
-import type { BodyweightEntry, Gender, LengthUnit, PriorityMuscle, RestrictionFlag, TrainingStyle, VarietyPreference, LoadingPreference } from '@/lib/pulse/types';
+import type { BodyweightEntry, Gender, LengthUnit, PriorityMuscle } from '@/lib/pulse/types';
 import { genderDefault } from '@/lib/pulse/generation';
 import { ACCENT_PRESETS, DEFAULT_ACCENT_KEY } from '@/lib/pulse/constants';
 import { TRAINING_STYLE_OPTIONS, VARIETY_OPTIONS, LOADING_LEAN_OPTIONS, RESTRICTION_OPTIONS } from '@/lib/pulse/generationPreferences';
@@ -356,7 +356,7 @@ export default function ProfileView() {
                                             onClick={() => {
                                                 if (isPending || active) return;
                                                 startTransition(async () => {
-                                                    await updateTrainingStyle(key as TrainingStyle);
+                                                    await updateTrainingStyle(key);
                                                 });
                                             }}
                                             className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
@@ -387,7 +387,7 @@ export default function ProfileView() {
                                             onClick={() => {
                                                 if (isPending || active) return;
                                                 startTransition(async () => {
-                                                    await updateVarietyPreference(key as VarietyPreference);
+                                                    await updateVarietyPreference(key);
                                                 });
                                             }}
                                             className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
@@ -436,7 +436,7 @@ export default function ProfileView() {
                                             onClick={() => {
                                                 if (isPending || active) return;
                                                 startTransition(async () => {
-                                                    await updateLoadingLean(key as LoadingPreference);
+                                                    await updateLoadingLean(key);
                                                 });
                                             }}
                                             className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
