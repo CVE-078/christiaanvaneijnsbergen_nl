@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-08)
 
-**In progress:** (none).
+**In progress:** Equipment profiles (#6), Branch A (persistence + Profile manager) on `feature/equipment-profiles-storage`.
 
 **In review (on a branch, not yet merged):** (none).
 
