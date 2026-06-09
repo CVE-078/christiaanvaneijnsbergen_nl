@@ -23,8 +23,12 @@ const REASON_LABELS: Record<SwapReason, string> = {
     crowded: 'Crowded',
 };
 
-function reasonContext(reason: SwapReason | null): string {
-    if (reason === 'pain') return 'Same movement, gentler on the joints';
+// `hasJointSignal` gates the pain claim: only promise "gentler on the joints"
+// when the candidate pool actually carries contraindication flags to rank on
+// (the catalog's flag coverage is uneven per pattern). Otherwise stay neutral, no
+// overclaim.
+function reasonContext(reason: SwapReason | null, hasJointSignal: boolean): string {
+    if (reason === 'pain') return hasJointSignal ? 'Same movement, gentler on the joints' : 'Same movement';
     if (reason === 'no_equipment' || reason === 'crowded') return 'Same movement, different gear';
     return 'Closest match';
 }
@@ -44,6 +48,7 @@ export default function ExerciseSwapPicker({
     const originalName = original.name;
 
     const ranked = rankSubstitutes(original, candidates, reason ?? undefined);
+    const hasJointSignal = candidates.some((e) => (e.contraindications?.length ?? 0) > 0);
     const q = query.trim().toLowerCase();
     const filtered = q ? ranked.filter((e) => e.name.toLowerCase().includes(q)) : ranked;
     const searching = q.length > 0;
@@ -131,7 +136,7 @@ export default function ExerciseSwapPicker({
                             {suggested.length > 0 && (
                                 <>
                                     <div className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim">
-                                        Suggested · {reasonContext(reason)}
+                                        Suggested · {reasonContext(reason, hasJointSignal)}
                                     </div>
                                     {suggested.map((e) => candidateButton(e, true))}
                                 </>

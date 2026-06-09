@@ -50,7 +50,7 @@ const DECISION_EVENTS_SELECT = 'id, routine_id, type, trigger, affected_area, we
 const EQUIPMENT_PROFILES_SELECT = 'id, name, equipment, created_at, expires_at';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at, rationale, program_weeks, program_anchor,
-            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound ) ),
+            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications ) ),
             schedule:routine_schedule ( day_of_week, workout_type, variant )
         `;
 
