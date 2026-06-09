@@ -138,6 +138,8 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         updateEquipmentProfile,
         deleteEquipmentProfile,
         setActiveEquipmentProfile,
+        startTravel,
+        endTravel,
     } = useEquipmentProfiles();
     const { hiddenExerciseIds, toggleHideExercise } = usePreferences();
     const { sessions, refreshSessions, loading: loadingSessions, error: sessionsError } = useSessions();
@@ -609,6 +611,8 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             updateEquipmentProfile,
             deleteEquipmentProfile,
             setActiveEquipmentProfile,
+            startTravel,
+            endTravel,
         }),
         [
             equipmentProfiles,
@@ -616,6 +620,8 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             updateEquipmentProfile,
             deleteEquipmentProfile,
             setActiveEquipmentProfile,
+            startTravel,
+            endTravel,
         ],
     );
     const preferencesValue = useMemo(

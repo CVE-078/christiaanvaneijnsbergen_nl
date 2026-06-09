@@ -82,10 +82,14 @@ const mockContext = {
     setSwap: vi.fn().mockResolvedValue(undefined),
     clearSwap: vi.fn().mockResolvedValue(undefined),
     equipmentProfiles: [],
-    createEquipmentProfile: vi.fn().mockResolvedValue({ id: 'ep1', name: 'Test', equipment: [], created_at: '' }),
+    createEquipmentProfile: vi
+        .fn()
+        .mockResolvedValue({ id: 'ep1', name: 'Test', equipment: [], created_at: '', expires_at: null }),
     updateEquipmentProfile: vi.fn().mockResolvedValue(undefined),
     deleteEquipmentProfile: vi.fn().mockResolvedValue(undefined),
     setActiveEquipmentProfile: vi.fn().mockResolvedValue(undefined),
+    startTravel: vi.fn().mockResolvedValue(undefined),
+    endTravel: vi.fn().mockResolvedValue(undefined),
     hiddenExerciseIds: new Set<string>(),
     toggleHideExercise: vi.fn().mockResolvedValue(undefined),
     updateTimezone: vi.fn().mockResolvedValue(undefined),
