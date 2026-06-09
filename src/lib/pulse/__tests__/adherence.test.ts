@@ -16,6 +16,7 @@ import type {
     WorkoutType,
     ProgramAdjustment,
     AdjustmentKind,
+    ProgramPause,
     ProgramPosition,
     WeekAdherence,
 } from '../types';
@@ -52,6 +53,14 @@ const adj = (kind: AdjustmentKind, effective_week: number): ProgramAdjustment =>
     effective_week,
     created_at: '2026-01-01T00:00:00Z',
     payload: {},
+});
+const pause = (paused_at: string, resumed_at: string | null = null): ProgramPause => ({
+    id: `p${idc++}`,
+    routine_id: 'r',
+    paused_at,
+    resumed_at,
+    reason: null,
+    created_at: paused_at,
 });
 
 const SCHED: ScheduleEntry[] = [
@@ -212,6 +221,7 @@ describe('computeProgramPosition', () => {
             sessions: [sess('2026-05-01T10:00:00Z', 'upper', 'A'), sess('2026-06-04T10:00:00Z', 'lower', 'A')],
             adjustments: [],
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-15T12:00:00Z',
         });
         expect(pos.daysSinceLastSession).toBe(11);
@@ -225,6 +235,7 @@ describe('computeProgramPosition', () => {
             sessions: [sess('2026-06-06T10:00:00Z', 'upper', 'A')],
             adjustments: [],
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-15T12:00:00Z',
         });
         expect(pos.daysSinceLastSession).toBe(9);
@@ -238,6 +249,7 @@ describe('computeProgramPosition', () => {
             sessions: [],
             adjustments: [],
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-05T12:00:00Z',
         });
         expect(pos.daysSinceLastSession).toBeNull();
@@ -251,6 +263,7 @@ describe('computeProgramPosition', () => {
             sessions: [],
             adjustments: [],
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-09T00:00:00Z', // 8 days later
         });
         expect(pos.calendarWeek).toBe(2);
@@ -263,6 +276,7 @@ describe('computeProgramPosition', () => {
             sessions: [],
             adjustments: [],
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-05T18:00:00Z', // same Friday, not trained yet
         });
         expect(pos.behindBy).toBe(0);
@@ -276,6 +290,7 @@ describe('computeProgramPosition', () => {
             sessions: [],
             adjustments: [],
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-03T12:00:00Z', // Wednesday, Monday passed undone
         });
         expect(pos.behindBy).toBe(1);
@@ -294,6 +309,7 @@ describe('computeProgramPosition', () => {
             ],
             adjustments: [adj('reentry_deload', 2)],
             tz: 'UTC',
+            pauses: [],
             now: '2026-05-06T12:00:00Z',
         });
         expect(pos.weekInteger).toBe(2);
@@ -309,6 +325,7 @@ describe('computeProgramPosition', () => {
             sessions: [],
             adjustments: [],
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-07T12:00:00Z',
         });
         expect(pos.behindBy).toBe(0);
@@ -322,6 +339,7 @@ describe('computeWeekAdherence', () => {
             schedule: SCHED,
             anchor: '2026-06-01T00:00:00Z',
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-05T12:00:00Z',
             sessions: [sess('2026-06-01T10:00:00Z', 'upper', 'A'), sess('2026-06-02T10:00:00Z', 'lower', 'A')],
         });
@@ -334,6 +352,7 @@ describe('computeWeekAdherence', () => {
             schedule: SCHED,
             anchor: '2026-06-01T00:00:00Z',
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-02T12:00:00Z',
             sessions: [sess('2026-05-20T10:00:00Z', 'upper', 'A')],
         });
@@ -345,6 +364,7 @@ describe('computeWeekAdherence', () => {
             schedule: SCHED,
             anchor: '2026-06-01T00:00:00Z',
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-04T12:00:00Z',
             sessions: [],
         });
@@ -356,6 +376,7 @@ describe('computeWeekAdherence', () => {
             schedule: SCHED,
             anchor: null,
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-05T12:00:00Z',
             sessions: [],
         });
@@ -371,6 +392,7 @@ describe('computeWeekAdherence', () => {
             schedule,
             anchor: '2026-06-07T00:00:00Z',
             tz: 'UTC',
+            pauses: [],
             now: '2026-06-07T12:00:00Z',
             sessions: [],
         });
@@ -390,6 +412,8 @@ describe('computeRegenSuggestion', () => {
         behindBy: 3,
         daysSinceLastSession: 12,
         status: 'lapsed',
+        isPaused: false,
+        pausedDays: null,
         nextEntry: null,
     });
     const noMiss: WeekAdherence = { missed: [], upcoming: [], done: [] };
@@ -417,6 +441,8 @@ describe('computeRegenSuggestion', () => {
             behindBy: 1,
             daysSinceLastSession: 2,
             status: 'behind',
+            isPaused: false,
+            pausedDays: null,
             nextEntry: null,
         };
         const wa: WeekAdherence = { missed: [entry(4, 'upper', 'B')], upcoming: [], done: [] };
@@ -432,8 +458,156 @@ describe('computeRegenSuggestion', () => {
             behindBy: 0,
             daysSinceLastSession: 0,
             status: 'on_track',
+            isPaused: false,
+            pausedDays: null,
             nextEntry: null,
         };
         expect(computeRegenSuggestion(pos, noMiss, [])).toBeNull();
+    });
+});
+
+describe('program pause', () => {
+    it('active pause → status paused, behindBy 0, isPaused, pausedDays counted', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T08:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [sess('2026-05-01T10:00:00Z', 'upper', 'A')],
+            adjustments: [],
+            pauses: [pause('2026-05-04T09:00:00Z')], // open, still paused
+            tz: 'UTC',
+            now: '2026-05-20T12:00:00Z',
+        });
+        expect(pos.status).toBe('paused');
+        expect(pos.isPaused).toBe(true);
+        expect(pos.behindBy).toBe(0);
+        expect(pos.pausedDays).toBe(16); // days since the pause began (05-04 → 05-20)
+    });
+
+    it('a completed pause leaves no behind-debt for its scheduled days', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-04T00:00:00Z', // a Monday
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [sess('2026-05-04T10:00:00Z', 'upper', 'A'), sess('2026-05-05T10:00:00Z', 'lower', 'A')],
+            adjustments: [],
+            pauses: [pause('2026-05-06T00:00:00Z', '2026-05-31T00:00:00Z')],
+            tz: 'UTC',
+            now: '2026-06-01T12:00:00Z',
+        });
+        expect(pos.isPaused).toBe(false); // resumed
+        expect(pos.behindBy).toBe(0); // paused days excluded from the expected count
+    });
+
+    it('resuming from a long pause still trips lapsed → ramp-back hand-off', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T08:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [sess('2026-05-02T10:00:00Z', 'upper', 'A')],
+            adjustments: [],
+            pauses: [pause('2026-05-03T00:00:00Z', '2026-06-10T00:00:00Z')],
+            tz: 'UTC',
+            now: '2026-06-11T12:00:00Z',
+        });
+        expect(pos.isPaused).toBe(false);
+        expect(pos.daysSinceLastSession).toBeGreaterThanOrEqual(10); // real gap, NOT pause-adjusted
+        expect(pos.status).toBe('lapsed');
+    });
+
+    it('calendarWeek freezes during a pause', () => {
+        // 21 days elapsed, but a 14-day pause means only 7 active days → week 2, not 4.
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T00:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [],
+            adjustments: [],
+            pauses: [pause('2026-05-08T00:00:00Z', '2026-05-22T00:00:00Z')], // 14 days paused
+            tz: 'UTC',
+            now: '2026-05-22T00:00:00Z',
+        });
+        expect(pos.calendarWeek).toBe(2);
+    });
+
+    it('computeWeekAdherence is empty while paused', () => {
+        const wa = computeWeekAdherence({
+            schedule: SCHED,
+            sessions: [],
+            anchor: '2026-05-01T00:00:00Z',
+            pauses: [pause('2026-05-02T00:00:00Z')],
+            tz: 'UTC',
+            now: '2026-05-10T12:00:00Z',
+        });
+        expect(wa).toEqual({ missed: [], upcoming: [], done: [] });
+    });
+
+    it('a regen suggestion is suppressed while paused', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T08:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [sess('2026-05-01T10:00:00Z', 'upper', 'A')],
+            adjustments: [],
+            pauses: [pause('2026-05-04T00:00:00Z')],
+            tz: 'UTC',
+            now: '2026-06-15T12:00:00Z', // would be lapsed if not paused
+        });
+        expect(computeRegenSuggestion(pos, { missed: [], upcoming: [], done: [] }, [])).toBeNull();
+    });
+
+    it('with a historical pause and an active pause, pausedDays counts only the active one', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T00:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [],
+            adjustments: [],
+            pauses: [
+                pause('2026-05-02T00:00:00Z', '2026-05-06T00:00:00Z'), // completed
+                pause('2026-05-18T00:00:00Z'), // active, open
+            ],
+            tz: 'UTC',
+            now: '2026-05-22T00:00:00Z',
+        });
+        expect(pos.status).toBe('paused');
+        expect(pos.isPaused).toBe(true);
+        expect(pos.pausedDays).toBe(4); // 05-18 → 05-22, the active pause only
+    });
+
+    it('calendarWeek subtracts multiple disjoint historical paused spans', () => {
+        // 28 days elapsed (05-01 → 05-29). Two completed pauses of 7 days each →
+        // 14 active days → week 3, exercising the interval-union math.
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T00:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [],
+            adjustments: [],
+            pauses: [
+                pause('2026-05-02T00:00:00Z', '2026-05-09T00:00:00Z'), // 05-02..05-08 = 7 days
+                pause('2026-05-15T00:00:00Z', '2026-05-22T00:00:00Z'), // 05-15..05-21 = 7 days
+            ],
+            tz: 'UTC',
+            now: '2026-05-29T00:00:00Z',
+        });
+        expect(pos.isPaused).toBe(false);
+        expect(pos.calendarWeek).toBe(3);
+    });
+
+    it('no pauses → behavior is unchanged (regression guard)', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T08:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [sess('2026-05-01T10:00:00Z', 'upper', 'A'), sess('2026-06-04T10:00:00Z', 'lower', 'A')],
+            adjustments: [],
+            pauses: [],
+            tz: 'UTC',
+            now: '2026-06-15T12:00:00Z',
+        });
+        expect(pos.status).toBe('lapsed');
+        expect(pos.isPaused).toBe(false);
+        expect(pos.pausedDays).toBeNull();
     });
 });

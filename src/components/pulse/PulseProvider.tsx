@@ -13,6 +13,7 @@ import { useSwaps } from '@/hooks/pulse/useSwaps';
 import { usePreferences } from '@/hooks/pulse/usePreferences';
 import { useSessions } from '@/hooks/pulse/useSessions';
 import { useProgramAdjustments } from '@/hooks/pulse/useProgramAdjustments';
+import { useProgramPauses } from '@/hooks/pulse/useProgramPauses';
 import { useDecisionEvents } from '@/hooks/pulse/useDecisionEvents';
 import { useOfflineSync } from '@/hooks/pulse/useOfflineSync';
 import { useToast } from '@/lib/pulse/toast';
@@ -148,6 +149,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         loading: loadingAdjustments,
         error: adjustmentsError,
     } = useProgramAdjustments();
+    const { pauses, pauseProgram, resumeProgram, loading: loadingPauses, error: pausesError } = useProgramPauses();
     const { decisions } = useDecisionEvents();
 
     // Replay any offline-queued log/note writes on mount, reconnect, and focus.
@@ -169,6 +171,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             notes: loadingNotes,
             sessions: loadingSessions,
             adjustments: loadingAdjustments,
+            pauses: loadingPauses,
         }),
         [
             loadingProfile,
@@ -179,6 +182,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             loadingNotes,
             loadingSessions,
             loadingAdjustments,
+            loadingPauses,
         ],
     );
 
@@ -192,6 +196,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             notes: !!notesError,
             sessions: !!sessionsError,
             adjustments: !!adjustmentsError,
+            pauses: !!pausesError,
         }),
         [
             profileError,
@@ -202,6 +207,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             notesError,
             sessionsError,
             adjustmentsError,
+            pausesError,
         ],
     );
 
@@ -281,8 +287,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     }, [routines.length]);
     // Gate on loaded routines so the onboarding modal does not flash before the
     // client fetch resolves (routines is [] while loading).
-    const showOnboarding =
-        onboardingOverride ?? (!loadingRoutines && routines.length === 0 && !hadRoutines.current);
+    const showOnboarding = onboardingOverride ?? (!loadingRoutines && routines.length === 0 && !hadRoutines.current);
     const triggerOnboarding = useCallback(() => setOnboardingOverride(true), []);
     const dismissOnboarding = useCallback(() => setOnboardingOverride(false), []);
 
@@ -325,6 +330,10 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         () => (activeRoutine ? adjustments.filter((a) => a.routine_id === activeRoutine.id) : []),
         [adjustments, activeRoutine],
     );
+    const routinePauses = useMemo(
+        () => (activeRoutine ? pauses.filter((p) => p.routine_id === activeRoutine.id) : []),
+        [pauses, activeRoutine],
+    );
     // The Coach feed is per active routine: a decision from another routine must
     // not show while you're training this one (same scoping as sessions/adjustments).
     const routineDecisions = useMemo(
@@ -339,21 +348,32 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             schedule: activeSchedule,
             sessions: routineSessions,
             adjustments: routineAdjustments,
+            pauses: routinePauses,
             tz: profile.timezone,
             now: nowIso,
         });
-    }, [activeRoutine, activeSchedule, routineSessions, routineAdjustments, profile.timezone, nowIso]);
+    }, [activeRoutine, activeSchedule, routineSessions, routineAdjustments, routinePauses, profile.timezone, nowIso]);
     const regenSuggestion = useMemo(() => {
         if (!activeRoutine || !programPosition) return null;
         const weekAdherence = computeWeekAdherence({
             schedule: activeSchedule,
             sessions: routineSessions,
             anchor: activeRoutine.program_anchor,
+            pauses: routinePauses,
             tz: profile.timezone,
             now: nowIso,
         });
         return computeRegenSuggestion(programPosition, weekAdherence, routineAdjustments);
-    }, [activeRoutine, programPosition, activeSchedule, routineSessions, routineAdjustments, profile.timezone, nowIso]);
+    }, [
+        activeRoutine,
+        programPosition,
+        activeSchedule,
+        routineSessions,
+        routineAdjustments,
+        routinePauses,
+        profile.timezone,
+        nowIso,
+    ]);
     const currentWeek = programPosition?.weekInteger ?? activeWeek;
 
     // Persist the browser timezone once the profile has loaded, if it changed.
@@ -611,6 +631,8 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             acceptReentryDeload,
             dismissReentry,
             lightenThisWeek,
+            pauseProgram,
+            resumeProgram,
             refreshSessions,
             decisions: routineDecisions,
         }),
@@ -622,6 +644,8 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             acceptReentryDeload,
             dismissReentry,
             lightenThisWeek,
+            pauseProgram,
+            resumeProgram,
             refreshSessions,
             routineDecisions,
         ],
