@@ -10,8 +10,18 @@ import TuneYourPlanPanel, { type TuneYourPlanState } from './TuneYourPlanPanel';
 // plan" panel so the personalization the quick flow skipped stays one tap away.
 // Replaces the old recommend-a-template + clone flow.
 export default function OnboardingModal() {
-    const { generateRoutine, setProgramAnchor, updateRoutineProgramWeeks, completeOnboarding, dismissOnboarding, triggerOnboarding, navigate } =
-        usePulse();
+    const {
+        generateRoutine,
+        setProgramAnchor,
+        updateRoutineProgramWeeks,
+        completeOnboarding,
+        dismissOnboarding,
+        triggerOnboarding,
+        navigate,
+        profile,
+        equipmentProfiles,
+        createEquipmentProfile,
+    } = usePulse();
     const [tuning, setTuning] = useState<TuneYourPlanState | null>(null);
     // RoutineSetupFlow always calls onClose once onComplete settles (success or
     // not), but dismissing onboarding here would unmount us mid-handoff and lose
@@ -26,12 +36,28 @@ export default function OnboardingModal() {
         navigate('train');
     }
 
-    if (tuning) return <TuneYourPlanPanel {...tuning} onDone={finish} />;
+    if (tuning)
+        return (
+            <TuneYourPlanPanel
+                {...tuning}
+                onDone={finish}
+                onManageEquipment={async () => {
+                    // The routine is already created; treat "Manage in Profile" as
+                    // finishing onboarding and landing on the Profile screen.
+                    await completeOnboarding();
+                    dismissOnboarding();
+                    navigate('profile');
+                }}
+            />
+        );
 
     return (
         <RoutineSetupFlow
             completeLabel="Create my routine"
             mode="quick"
+            equipmentProfiles={equipmentProfiles}
+            activeEquipmentProfileId={profile.active_equipment_profile_id}
+            onCreateEquipmentProfile={createEquipmentProfile}
             intro="Pulse adapts as you train: miss a week, hit a plateau, or train somewhere new, and your plan adjusts so you keep moving forward."
             onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks }) => {
                 // Pin the modal open through generation: creating the first routine
@@ -57,7 +83,15 @@ export default function OnboardingModal() {
                 // New routines default to 12 weeks in the DB; only write when it differs.
                 if (programWeeks !== 12) await updateRoutineProgramWeeks(routine.id, programWeeks);
                 handingOffRef.current = true;
-                setTuning({ routine, answers, trainingDays, sessionTime, styleKey: resolvedStyleKey, programWeeks, startAnchor });
+                setTuning({
+                    routine,
+                    answers,
+                    trainingDays,
+                    sessionTime,
+                    styleKey: resolvedStyleKey,
+                    programWeeks,
+                    startAnchor,
+                });
             }}
             onClose={() => {
                 if (!handingOffRef.current) dismissOnboarding();

@@ -8,6 +8,7 @@ import {
     LOADING_LEAN_OPTIONS,
     RESTRICTION_OPTIONS,
 } from '@/lib/pulse/generationPreferences';
+import { equipmentKey } from '@/lib/pulse/utils';
 import { BTN_PRIMARY_BLOCK } from './ui';
 import type { OnboardingAnswers } from '@/lib/pulse/recommendation';
 import type {
@@ -17,6 +18,7 @@ import type {
     VarietyPreference,
     LoadingPreference,
     RestrictionFlag,
+    EquipmentKey,
 } from '@/lib/pulse/types';
 
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
@@ -45,7 +47,9 @@ function Row({
             disabled={disabled}
             onClick={onClick}
             className={`flex flex-col gap-0.5 rounded-xl p-3 text-left transition-colors ${
-                active ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent' : 'bg-pulse-surface-2 ring-0 hover:bg-pulse-surface-2/70'
+                active
+                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                    : 'bg-pulse-surface-2 ring-0 hover:bg-pulse-surface-2/70'
             } disabled:cursor-not-allowed disabled:opacity-50`}>
             <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
             {desc && <span className="font-pulse text-[0.75rem] text-pulse-dim">{desc}</span>}
@@ -69,6 +73,11 @@ export interface TuneYourPlanState {
 
 interface Props extends TuneYourPlanState {
     onDone: () => void;
+    /** Escape hatch for the equipment chip-pick: open the Profile manager to
+     *  create / edit equipment sets. The consumer clears the panel and navigates
+     *  to Profile (avoids a navigate-vs-onDone race). When absent, the link is
+     *  hidden. */
+    onManageEquipment?: () => void;
 }
 
 // Shown immediately after a quick-mode generation, before any sets exist, so a
@@ -86,12 +95,25 @@ export default function TuneYourPlanPanel({
     programWeeks,
     startAnchor,
     onDone,
+    onManageEquipment,
 }: Props) {
-    const { profile, generateRoutine, deleteRoutine, setProgramAnchor, updateRoutineProgramWeeks } = usePulse();
+    const {
+        profile,
+        generateRoutine,
+        deleteRoutine,
+        setProgramAnchor,
+        updateRoutineProgramWeeks,
+        equipmentProfiles = [],
+    } = usePulse();
     const [current, setCurrent] = useState(routine);
     const [styleKey, setStyleKey] = useState(initialStyleKey);
+    // Equipment is a chip-pick from saved profiles only (Branch B); seeded from
+    // the set the routine was generated with so the matching chip starts active.
+    const [equipment, setEquipment] = useState<Set<EquipmentKey>>(() => new Set(answers.equipment));
     const [trainingStyle, setTrainingStyle] = useState<TrainingStyle>(profile.training_style ?? 'balanced');
-    const [varietyPreference, setVarietyPreference] = useState<VarietyPreference>(profile.variety_preference ?? 'varied');
+    const [varietyPreference, setVarietyPreference] = useState<VarietyPreference>(
+        profile.variety_preference ?? 'varied',
+    );
     const [loadingLean, setLoadingLean] = useState<LoadingPreference | null>(profile.loading_lean ?? null);
     const [restrictions, setRestrictions] = useState<RestrictionFlag[]>(profile.movement_restrictions ?? []);
     const [regenerating, setRegenerating] = useState(false);
@@ -104,16 +126,19 @@ export default function TuneYourPlanPanel({
         varietyPreference: profile.variety_preference ?? 'varied',
         loadingLean: profile.loading_lean ?? null,
         restrictionsKey: [...(profile.movement_restrictions ?? [])].sort().join(','),
+        equipmentKey: equipmentKey(answers.equipment),
     });
 
     const styleOptions = STYLES[trainingDays.length] ?? [];
     const restrictionsKey = [...restrictions].sort().join(',');
+    const eqKey = equipmentKey(equipment);
     const dirty =
         styleKey !== applied.styleKey ||
         trainingStyle !== applied.trainingStyle ||
         varietyPreference !== applied.varietyPreference ||
         loadingLean !== applied.loadingLean ||
-        restrictionsKey !== applied.restrictionsKey;
+        restrictionsKey !== applied.restrictionsKey ||
+        eqKey !== applied.equipmentKey;
 
     function toggleRestriction(flag: RestrictionFlag) {
         setRestrictions((prev) => (prev.includes(flag) ? prev.filter((r) => r !== flag) : [...prev, flag]));
@@ -123,7 +148,7 @@ export default function TuneYourPlanPanel({
         setRegenerating(true);
         try {
             const next = await generateRoutine(
-                answers,
+                { ...answers, equipment },
                 trainingDays,
                 sessionTime,
                 styleKey,
@@ -137,7 +162,14 @@ export default function TuneYourPlanPanel({
             if (programWeeks !== 12) await updateRoutineProgramWeeks(next.id, programWeeks);
             await deleteRoutine(current.id);
             setCurrent(next);
-            setApplied({ styleKey, trainingStyle, varietyPreference, loadingLean, restrictionsKey });
+            setApplied({
+                styleKey,
+                trainingStyle,
+                varietyPreference,
+                loadingLean,
+                restrictionsKey,
+                equipmentKey: eqKey,
+            });
         } finally {
             setRegenerating(false);
         }
@@ -147,10 +179,14 @@ export default function TuneYourPlanPanel({
         <div className={WRAP}>
             <div className={CARD}>
                 <div>
-                    <p className="font-pulse text-lg font-medium tracking-[-0.01em] text-pulse-text">Here&apos;s your plan</p>
+                    <p className="font-pulse text-lg font-medium tracking-[-0.01em] text-pulse-text">
+                        Here&apos;s your plan
+                    </p>
                     <p className="mt-1 font-pulse text-sm text-pulse-dim">{current.name}</p>
                     {current.rationale && (
-                        <p className="mt-2 font-pulse text-[0.8125rem] leading-[1.55] text-pulse-dim">{current.rationale}</p>
+                        <p className="mt-2 font-pulse text-[0.8125rem] leading-[1.55] text-pulse-dim">
+                            {current.rationale}
+                        </p>
                     )}
                 </div>
 
@@ -158,6 +194,41 @@ export default function TuneYourPlanPanel({
                     Want to fine-tune it first? Adjust anything below and Pulse rebuilds the plan on the spot, nothing
                     is logged yet so there is nothing to lose.
                 </p>
+
+                {equipmentProfiles.length > 0 && (
+                    <div>
+                        <p className={SECTION_LABEL}>Equipment</p>
+                        <div className="flex flex-wrap gap-2">
+                            {equipmentProfiles.map((p) => {
+                                const active = equipmentKey(p.equipment) === eqKey;
+                                return (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        aria-pressed={active}
+                                        disabled={regenerating}
+                                        onClick={() => setEquipment(new Set(p.equipment))}
+                                        className={`rounded-full border px-3 py-1.5 font-pulse text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                                            active
+                                                ? 'border-pulse-accent bg-pulse-accent/10 text-pulse-accent'
+                                                : 'border-pulse-border bg-pulse-surface-2 text-pulse-dim'
+                                        }`}>
+                                        {p.name}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {onManageEquipment && (
+                            <button
+                                type="button"
+                                disabled={regenerating}
+                                onClick={onManageEquipment}
+                                className="mt-2 font-pulse text-xs text-pulse-accent disabled:opacity-50">
+                                Manage in Profile
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 {styleOptions.length > 1 && (
                     <div>

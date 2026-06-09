@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Equipment profiles, Branch B mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Sora:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --font-pulse: 'Hanken Grotesk', sans-serif;
+    --font-pulse-body: 'Sora', sans-serif;
+    --accent: #ff7d66;
+    --bg: #0e1113;
+    --surface: #161a1d;
+    --surface-2: #1c2125;
+    --border: #262c31;
+    --dim: #aab2b7;
+    --muted: #6f787e;
+    --text: #e7ebed;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-pulse);
+    padding: 32px 20px 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .lead { max-width: 1180px; margin: 0 auto 28px; }
+  .lead h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .lead p { font-size: 13px; color: var(--dim); line-height: 1.55; margin: 0; max-width: 760px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 28px; max-width: 1180px; margin: 0 auto; align-items: flex-start; }
+  .col { flex: 1 1 360px; max-width: 420px; }
+  .caption { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 0 0 10px; font-weight: 500; }
+  .subcaption { font-size: 12px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
+
+  /* card = the modal CARD */
+  .card { background: var(--surface); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .card.scroll { max-height: 620px; overflow-y: auto; }
+
+  /* progress header */
+  .hdr { display: flex; align-items: center; gap: 12px; }
+  .hdr .back { color: var(--dim); font-size: 14px; }
+  .bar { flex: 1; height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+  .hdr .count { font-size: 12px; color: var(--muted); }
+
+  .q { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+
+  /* hint line */
+  .hint { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); margin: -8px 0 0; }
+  .hint .dot { color: var(--accent); }
+
+  /* quick-pick chip row */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--font-pulse);
+    font-size: 12px; font-weight: 500;
+    padding: 6px 12px; border-radius: 999px;
+    background: var(--surface-2); color: var(--dim);
+    border: 1px solid var(--border); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); border-color: var(--accent); }
+  .chip .badge { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; }
+  .chips-label { font-size: 11px; color: var(--muted); margin: 0 0 -4px; }
+
+  /* checkbox rows */
+  .checks { display: flex; flex-direction: column; gap: 8px; }
+  .crow {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border-radius: 12px; cursor: pointer;
+    background: var(--surface-2); border: 1px solid transparent;
+  }
+  .crow.on { background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: var(--accent); }
+  .box { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--muted); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .crow.on .box { border-color: var(--accent); background: var(--accent); }
+  .box span { color: var(--bg); font-size: 10px; font-weight: 700; line-height: 1; }
+  .crow .lbl { font-family: var(--font-pulse-body); font-size: 14px; }
+
+  /* save-as affordance */
+  .saveas-link {
+    align-self: flex-start; background: none; border: none; cursor: pointer;
+    font-family: var(--font-pulse); font-size: 13px; color: var(--accent);
+    display: inline-flex; align-items: center; gap: 6px; padding: 2px 0;
+  }
+  .saveas {
+    border: 1px dashed var(--border); border-radius: 12px; padding: 14px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .saveas .title { font-size: 13px; color: var(--text); margin: 0; font-weight: 500; }
+  .saveas input {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; color: var(--text); font-family: var(--font-pulse-body); font-size: 14px; outline: none;
+  }
+  .saveas input:focus { border-color: var(--accent); }
+  .name-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .name-chip { font-size: 12px; padding: 5px 11px; border-radius: 999px; background: var(--bg); color: var(--dim); border: 1px solid var(--border); cursor: pointer; }
+  .saveas .actions { display: flex; gap: 8px; }
+  .btn-sm { font-family: var(--font-pulse); font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
+  .btn-sm.primary { background: var(--accent); color: var(--bg); }
+  .btn-sm.ghost { background: none; color: var(--dim); }
+
+  /* primary block button */
+  .btn-block { width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; font-family: var(--font-pulse); font-size: 14px; font-weight: 600; background: var(--accent); color: var(--bg); }
+  .btn-cancel { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--dim); text-align: center; }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+
+  /* tune-panel section */
+  .section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin: 0 0 8px; }
+  .tune-intro p { font-size: 13px; color: var(--dim); line-height: 1.5; margin: 0; }
+  .tune-head { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+  .tune-sub { font-size: 14px; color: var(--dim); margin: 4px 0 0; }
+  .manage-link { background: none; border: none; cursor: pointer; font-family: var(--font-pulse); font-size: 12px; color: var(--accent); align-self: flex-start; padding: 4px 0 0; }
+  .dimmed-section { opacity: 0.4; }
+  .rowbtn { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 12px; text-align: left; background: var(--surface-2); border: 1px solid transparent; cursor: pointer; }
+  .rowbtn.on { background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: var(--accent); }
+  .rowbtn .r-lbl { font-family: var(--font-pulse-body); font-size: 14px; color: var(--text); }
+  .rowbtn .r-desc { font-size: 12px; color: var(--dim); }
+  .note { font-size: 12px; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="lead">
+    <h1>Equipment profiles, Branch B (generation wiring) — visual draft</h1>
+    <p>Three new surfaces. The generation engine does not change; saved profiles only seed the equipment picker. The "From your X profile" hint and the "Save as profile" affordance are mutually exclusive: when the checkboxes exactly match a saved set you see the hint, when they match none you see the offer to save.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- Surface 1: setup flow, pre-filled from a profile -->
+    <div class="col">
+      <p class="caption">1 · Setup flow — opened pre-filled</p>
+      <p class="subcaption">Returning user. The step opens pre-filled from the active profile (resolution: active → most-recent → empty). Tapping a chip swaps the checkboxes to that set.</p>
+      <div class="card">
+        <div class="hdr"><span class="back">←</span><div class="bar"><i style="width:14%"></i></div><span class="count">1/7</span></div>
+        <p class="q">What equipment do you have access to?</p>
+
+        <p class="chips-label">Your equipment profiles</p>
+        <div class="chips">
+          <button class="chip active">Home <span class="badge">active</span></button>
+          <button class="chip">Gym</button>
+          <button class="chip">Travel</button>
+        </div>
+        <p class="hint"><span class="dot">●</span> Filled from your Home profile</p>
+
+        <div class="checks">
+          <div class="crow on"><div class="box"><span>✓</span></div><span class="lbl">Dumbbells</span></div>
+          <div class="crow"><div class="box"></div><span class="lbl">Barbell &amp; plates</span></div>
+          <div class="crow on"><div class="box"><span>✓</span></div><span class="lbl">Weight bench</span></div>
+          <div class="crow"><div class="box"></div><span class="lbl">Cable machine</span></div>
+          <div class="crow"><div class="box"></div><span class="lbl">Gym machines (leg press, lat pulldown, etc.)</span></div>
+          <div class="crow on"><div class="box"><span>✓</span></div><span class="lbl">Pull-up bar</span></div>
+        </div>
+
+        <div class="stack">
+          <button class="btn-block">Next</button>
+          <button class="btn-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Surface 2: setup flow, custom selection -> save as profile -->
+    <div class="col">
+      <p class="caption">2 · Setup flow — edited, offers to save</p>
+      <p class="subcaption">User changed the checks so they match no saved profile. No chip is highlighted, the hint is gone, and a "Save as profile" affordance appears (shown expanded). It only ever creates; overwriting is a Profile action.</p>
+      <div class="card">
+        <div class="hdr"><span class="back">←</span><div class="bar"><i style="width:14%"></i></div><span class="count">1/7</span></div>
+        <p class="q">What equipment do you have access to?</p>
+
+        <p class="chips-label">Your equipment profiles</p>
+        <div class="chips">
+          <button class="chip">Home <span class="badge">active</span></button>
+          <button class="chip">Gym</button>
+          <button class="chip">Travel</button>
+        </div>
+
+        <div class="checks">
+          <div class="crow on"><div class="box"><span>✓</span></div><span class="lbl">Dumbbells</span></div>
+          <div class="crow on"><div class="box"><span>✓</span></div><span class="lbl">Barbell &amp; plates</span></div>
+          <div class="crow on"><div class="box"><span>✓</span></div><span class="lbl">Weight bench</span></div>
+          <div class="crow"><div class="box"></div><span class="lbl">Cable machine</span></div>
+          <div class="crow"><div class="box"></div><span class="lbl">Gym machines (leg press, lat pulldown, etc.)</span></div>
+          <div class="crow"><div class="box"></div><span class="lbl">Pull-up bar</span></div>
+        </div>
+
+        <div class="saveas">
+          <p class="title">Save as a profile</p>
+          <input type="text" placeholder="Profile name" value="" />
+          <div class="name-chips">
+            <button class="name-chip">Home</button>
+            <button class="name-chip">Gym</button>
+            <button class="name-chip">Travel</button>
+          </div>
+          <div class="actions">
+            <button class="btn-sm primary">Save</button>
+            <button class="btn-sm ghost">Cancel</button>
+          </div>
+        </div>
+
+        <div class="stack">
+          <button class="btn-block">Next</button>
+          <button class="btn-cancel">Cancel</button>
+        </div>
+      </div>
+      <p class="subcaption" style="margin-top:14px;">Collapsed state (before tapping) is a single quiet link in place of the dashed box:</p>
+      <button class="saveas-link">+ Save these as a profile</button>
+    </div>
+
+    <!-- Surface 3: Tune panel equipment picker -->
+    <div class="col">
+      <p class="caption">3 · Tune your plan — equipment picker</p>
+      <p class="subcaption">Post-generation panel, before any sets are logged. Equipment is a chip-pick from saved profiles only (no checkbox grid, to keep the panel's balance), with a "Manage in Profile" escape hatch. Picking a different set and applying regenerates in place.</p>
+      <div class="card scroll">
+        <div>
+          <p class="tune-head">Here's your plan</p>
+          <p class="tune-sub">Upper / Lower — Home</p>
+        </div>
+        <div class="tune-intro"><p>Want to fine-tune it first? Adjust anything below and Pulse rebuilds the plan on the spot, nothing is logged yet so there is nothing to lose.</p></div>
+
+        <div>
+          <p class="section-label">Equipment</p>
+          <div class="chips">
+            <button class="chip active">Home</button>
+            <button class="chip">Gym</button>
+            <button class="chip">Travel</button>
+          </div>
+          <button class="manage-link">Manage in Profile</button>
+        </div>
+
+        <div class="dimmed-section">
+          <p class="section-label">Training style</p>
+          <div class="stack">
+            <div class="rowbtn on"><span class="r-lbl">Balanced</span><span class="r-desc">A mix of strength and size work</span></div>
+            <div class="rowbtn"><span class="r-lbl">Strength</span><span class="r-desc">Heavier, lower reps on the main lifts</span></div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <button class="btn-block">Apply changes</button>
+          <button class="btn-sm" style="width:100%;background:var(--surface-2);color:var(--text);padding:12px;border-radius:12px;">Looks good, let's train</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

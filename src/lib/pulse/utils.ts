@@ -41,10 +41,42 @@ import type {
     DecisionEvent,
     DecisionEventRow,
     SessionSummary,
+    EquipmentKey,
+    EquipmentProfile,
 } from './types';
 
 // UUID v4 pattern used in new log keys
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// Equipment-profile generation helpers (Branch B). The engine is unchanged;
+// these only decide which saved set seeds / matches the equipment picker.
+
+// Stable key for an equipment set: sorted, comma-joined. Two selections are the
+// same kit iff their keys match (order-independent).
+export function equipmentKey(equipment: Iterable<EquipmentKey>): string {
+    return [...equipment].sort().join(',');
+}
+
+// The id of the saved profile whose equipment exactly matches `equipment`, or
+// null when none match. Drives the "Filled from your X profile" hint + chip
+// highlight, and gates the flow's "Save as profile" affordance.
+export function matchingProfileId(profiles: EquipmentProfile[], equipment: Iterable<EquipmentKey>): string | null {
+    const key = equipmentKey(equipment);
+    return profiles.find((p) => equipmentKey(p.equipment) === key)?.id ?? null;
+}
+
+// Which saved set pre-fills the generation equipment step. Resolution order
+// (spec): active profile, else the most-recently-created (profiles arrive
+// created_at desc from the loader, so profiles[0]), else empty (no saved
+// profiles = today's behavior). Pure; the snapshot-on-open guarantee lives at
+// the call site (a useState initializer).
+export function resolveEquipmentPrefill(profiles: EquipmentProfile[], activeId: string | null): EquipmentKey[] {
+    if (activeId) {
+        const active = profiles.find((p) => p.id === activeId);
+        if (active) return active.equipment;
+    }
+    return profiles[0]?.equipment ?? [];
+}
 
 // Strip the optional `:variant` suffix off a TabKey to get its base workout type.
 export function baseWorkoutType(key: TabKey): WorkoutType {

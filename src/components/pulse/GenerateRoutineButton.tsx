@@ -18,7 +18,15 @@ export default function GenerateRoutineButton({
     className?: string;
     label?: string;
 }) {
-    const { generateRoutine, setProgramAnchor, updateRoutineProgramWeeks, navigate } = usePulse();
+    const {
+        generateRoutine,
+        setProgramAnchor,
+        updateRoutineProgramWeeks,
+        navigate,
+        profile,
+        equipmentProfiles,
+        createEquipmentProfile,
+    } = usePulse();
     const [open, setOpen] = useState(false);
     const [tuning, setTuning] = useState<TuneYourPlanState | null>(null);
     // RoutineSetupFlow always calls onClose once onComplete settles, which would
@@ -39,10 +47,24 @@ export default function GenerateRoutineButton({
             <button onClick={() => setOpen(true)} className={className ?? BTN_PRIMARY}>
                 {label}
             </button>
-            {open && tuning && <TuneYourPlanPanel {...tuning} onDone={finish} />}
+            {open && tuning && (
+                <TuneYourPlanPanel
+                    {...tuning}
+                    onDone={finish}
+                    onManageEquipment={() => {
+                        setOpen(false);
+                        setTuning(null);
+                        handingOffRef.current = false;
+                        navigate('profile');
+                    }}
+                />
+            )}
             {open && !tuning && (
                 <RoutineSetupFlow
                     mode="quick"
+                    equipmentProfiles={equipmentProfiles}
+                    activeEquipmentProfileId={profile.active_equipment_profile_id}
+                    onCreateEquipmentProfile={createEquipmentProfile}
                     onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks }) => {
                         // Quick mode skips the personalization steps; pass undefined so
                         // generateRoutine defers to the user's stored profile values.
@@ -62,7 +84,15 @@ export default function GenerateRoutineButton({
                         // New routines default to 12 weeks in the DB; only write when it differs.
                         if (programWeeks !== 12) await updateRoutineProgramWeeks(routine.id, programWeeks);
                         handingOffRef.current = true;
-                        setTuning({ routine, answers, trainingDays, sessionTime, styleKey: resolvedStyleKey, programWeeks, startAnchor });
+                        setTuning({
+                            routine,
+                            answers,
+                            trainingDays,
+                            sessionTime,
+                            styleKey: resolvedStyleKey,
+                            programWeeks,
+                            startAnchor,
+                        });
                     }}
                     onClose={() => {
                         if (!handingOffRef.current) setOpen(false);

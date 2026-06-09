@@ -46,7 +46,11 @@ import {
     sessionDecisions,
     composeCoachRead,
     computeSessionSummary,
+    resolveEquipmentPrefill,
+    equipmentKey,
+    matchingProfileId,
 } from '../utils';
+import type { EquipmentProfile } from '../types';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
 import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
 
@@ -1655,5 +1659,50 @@ describe('swapCandidates', () => {
         // machine (0 overlap) passed before dbBench (1 overlap: shares "bench")
         const out = swapCandidates(original, [machine, dbBench], { excludeIds: new Set() });
         expect(out.map((e) => e.id)).toEqual(['a', 'b']); // dbBench first by overlap
+    });
+});
+
+// Equipment-profile generation helpers (Branch B)
+const prof = (id: string, equipment: EquipmentProfile['equipment'], created_at: string): EquipmentProfile => ({
+    id,
+    name: id,
+    equipment,
+    created_at,
+});
+// The loader returns created_at desc, so the most-recent is first.
+const homeProfile = prof('home', ['dumbbells', 'bench'], '2026-06-09T02:00:00Z');
+const gymProfile = prof('gym', ['barbell', 'machines'], '2026-06-09T01:00:00Z');
+
+describe('equipmentKey', () => {
+    it('is order-independent', () => {
+        expect(equipmentKey(['bench', 'dumbbells'])).toBe(equipmentKey(['dumbbells', 'bench']));
+    });
+});
+
+describe('matchingProfileId', () => {
+    it('returns the id of the profile whose equipment set-equals the selection', () => {
+        expect(matchingProfileId([homeProfile, gymProfile], new Set(['bench', 'dumbbells']))).toBe('home');
+    });
+    it('returns null when nothing matches', () => {
+        expect(matchingProfileId([homeProfile, gymProfile], new Set(['cables']))).toBeNull();
+    });
+    it('returns null for no profiles', () => {
+        expect(matchingProfileId([], new Set(['dumbbells']))).toBeNull();
+    });
+});
+
+describe('resolveEquipmentPrefill', () => {
+    it('returns the active profile when set and present', () => {
+        expect(resolveEquipmentPrefill([homeProfile, gymProfile], 'gym')).toEqual(['barbell', 'machines']);
+    });
+    it('falls back to the most-recent (first) when none active', () => {
+        expect(resolveEquipmentPrefill([homeProfile, gymProfile], null)).toEqual(['dumbbells', 'bench']);
+    });
+    it('falls back to the most-recent when the active id is stale (deleted)', () => {
+        expect(resolveEquipmentPrefill([homeProfile, gymProfile], 'deleted-id')).toEqual(['dumbbells', 'bench']);
+    });
+    it('returns empty when there are no profiles (today\'s behavior)', () => {
+        expect(resolveEquipmentPrefill([], null)).toEqual([]);
+        expect(resolveEquipmentPrefill([], 'anything')).toEqual([]);
     });
 });

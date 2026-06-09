@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RoutineSetupFlow from '../RoutineSetupFlow';
 import { recommendStyle } from '@/lib/pulse/generation';
 import { SUGGESTED_DAYS } from '@/lib/pulse/constants';
-import type { EquipmentKey } from '@/lib/pulse/types';
+import type { EquipmentKey, EquipmentProfile } from '@/lib/pulse/types';
 
 const initial = {
     equipment: ['dumbbells'] as EquipmentKey[],
@@ -255,7 +255,14 @@ describe('RoutineSetupFlow', () => {
     it('collectTrainingStyle=false skips the train_style step and train_style still in result', async () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
-        render(<RoutineSetupFlow initial={single} collectTrainingStyle={false} onComplete={onComplete} onClose={vi.fn()} />);
+        render(
+            <RoutineSetupFlow
+                initial={single}
+                collectTrainingStyle={false}
+                onComplete={onComplete}
+                onClose={vi.fn()}
+            />,
+        );
         // With no train_style step (variety + loading + restrictions still show): equipment,
         // experience, goal, days, which days, session, variety, loading → Skip → restrictions → Skip → length → start.
         for (let i = 0; i < 7; i++) fireEvent.click(screen.getByText('Next'));
@@ -352,7 +359,9 @@ describe('RoutineSetupFlow', () => {
     it('collectLoadingLean=false skips the loading step and loadingLean defaults to null', async () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] };
-        render(<RoutineSetupFlow initial={single} collectLoadingLean={false} onComplete={onComplete} onClose={vi.fn()} />);
+        render(
+            <RoutineSetupFlow initial={single} collectLoadingLean={false} onComplete={onComplete} onClose={vi.fn()} />,
+        );
         // With no loading step (restrictions still shows): equipment, experience, goal,
         // days, which days, session, train_style, variety, restrictions → Skip → length → start.
         for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
@@ -448,5 +457,104 @@ describe('RoutineSetupFlow quick mode', () => {
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         expect(onComplete.mock.calls[0][0].gender).toBeNull();
+    });
+});
+
+describe('RoutineSetupFlow equipment profiles (Branch B)', () => {
+    const profiles: EquipmentProfile[] = [
+        { id: 'home', name: 'Home', equipment: ['dumbbells', 'bench'], created_at: '2026-06-09T02:00:00Z' },
+        { id: 'gym', name: 'Gym', equipment: ['barbell', 'machines'], created_at: '2026-06-09T01:00:00Z' },
+    ];
+
+    it('pre-fills the equipment step from the active profile', () => {
+        render(
+            <RoutineSetupFlow
+                onComplete={vi.fn()}
+                onClose={vi.fn()}
+                equipmentProfiles={profiles}
+                activeEquipmentProfileId="gym"
+            />,
+        );
+        expect(screen.getByRole('checkbox', { name: /Barbell/ })).toBeChecked();
+        expect(screen.getByRole('checkbox', { name: /Gym machines/ })).toBeChecked();
+        expect(screen.getByRole('checkbox', { name: /Dumbbells/ })).not.toBeChecked();
+        expect(screen.getByText(/Filled from your Gym profile/i)).toBeInTheDocument();
+    });
+
+    it('pre-fills from the most-recent profile when none is active', () => {
+        render(
+            <RoutineSetupFlow
+                onComplete={vi.fn()}
+                onClose={vi.fn()}
+                equipmentProfiles={profiles}
+                activeEquipmentProfileId={null}
+            />,
+        );
+        expect(screen.getByRole('checkbox', { name: /Dumbbells/ })).toBeChecked();
+        expect(screen.getByRole('checkbox', { name: /Weight bench/ })).toBeChecked();
+        expect(screen.getByText(/Filled from your Home profile/i)).toBeInTheDocument();
+    });
+
+    it("with no profiles, shows just the checkboxes (today's behavior)", () => {
+        render(<RoutineSetupFlow onComplete={vi.fn()} onClose={vi.fn()} />);
+        expect(screen.queryByText(/your equipment profiles/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Filled from your/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: /Dumbbells/ })).not.toBeChecked();
+    });
+
+    it('tapping a profile chip fills the checkboxes from that profile', () => {
+        render(
+            <RoutineSetupFlow
+                onComplete={vi.fn()}
+                onClose={vi.fn()}
+                equipmentProfiles={profiles}
+                activeEquipmentProfileId="home"
+            />,
+        );
+        fireEvent.click(screen.getByRole('button', { name: /Gym/ }));
+        expect(screen.getByRole('checkbox', { name: /Barbell/ })).toBeChecked();
+        expect(screen.getByRole('checkbox', { name: /Dumbbells/ })).not.toBeChecked();
+        expect(screen.getByText(/Filled from your Gym profile/i)).toBeInTheDocument();
+    });
+
+    it('offers "Save as profile" only when the selection matches no saved set, and saving creates', async () => {
+        const onCreate = vi
+            .fn()
+            .mockResolvedValue({ id: 'new', name: 'Custom', equipment: ['dumbbells'], created_at: 'x' });
+        render(
+            <RoutineSetupFlow
+                onComplete={vi.fn()}
+                onClose={vi.fn()}
+                equipmentProfiles={profiles}
+                activeEquipmentProfileId="home"
+                onCreateEquipmentProfile={onCreate}
+            />,
+        );
+        // Starts matching Home, so no save-as.
+        expect(screen.queryByText(/Save these as a profile/i)).not.toBeInTheDocument();
+        // Add Barbell so the selection (dumbbells + bench + barbell) matches no profile.
+        fireEvent.click(screen.getByRole('checkbox', { name: /Barbell/ }));
+        fireEvent.click(screen.getByText(/Save these as a profile/i));
+        fireEvent.change(screen.getByPlaceholderText(/profile name/i), { target: { value: 'Custom' } });
+        fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+        await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+        expect(onCreate.mock.calls[0][0]).toBe('Custom');
+        expect([...onCreate.mock.calls[0][1]].sort()).toEqual(['barbell', 'bench', 'dumbbells']);
+    });
+
+    it('a suggested-name chip fills the name field', () => {
+        render(
+            <RoutineSetupFlow
+                onComplete={vi.fn()}
+                onClose={vi.fn()}
+                equipmentProfiles={profiles}
+                activeEquipmentProfileId="home"
+                onCreateEquipmentProfile={vi.fn()}
+            />,
+        );
+        fireEvent.click(screen.getByRole('checkbox', { name: /Barbell/ })); // diverge from Home
+        fireEvent.click(screen.getByText(/Save these as a profile/i));
+        fireEvent.click(screen.getByRole('button', { name: /^Travel$/ }));
+        expect(screen.getByPlaceholderText(/profile name/i)).toHaveValue('Travel');
     });
 });
