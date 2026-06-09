@@ -526,8 +526,8 @@ describe('RoutineSetupFlow quick mode', () => {
 
 describe('RoutineSetupFlow equipment profiles (Branch B)', () => {
     const profiles: EquipmentProfile[] = [
-        { id: 'home', name: 'Home', equipment: ['dumbbells', 'bench'], created_at: '2026-06-09T02:00:00Z' },
-        { id: 'gym', name: 'Gym', equipment: ['barbell', 'machines'], created_at: '2026-06-09T01:00:00Z' },
+        { id: 'home', name: 'Home', equipment: ['dumbbells', 'bench'], created_at: '2026-06-09T02:00:00Z', expires_at: null },
+        { id: 'gym', name: 'Gym', equipment: ['barbell', 'machines'], created_at: '2026-06-09T01:00:00Z', expires_at: null },
     ];
 
     it('pre-fills the equipment step from the active profile', () => {

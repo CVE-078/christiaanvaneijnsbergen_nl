@@ -33,7 +33,7 @@ export async function createEquipmentProfile(name: string, equipment: EquipmentK
     const { data, error } = await supabase
         .from('equipment_profiles')
         .insert({ user_id: user.id, name: cleanName, equipment: cleanEquipment })
-        .select('id, name, equipment, created_at')
+        .select('id, name, equipment, created_at, expires_at')
         .single();
     if (isUniqueViolation(error)) throw new Error(`You already have a profile called ${cleanName}`);
     if (error || !data) throw new Error('Failed to create equipment profile');
@@ -43,6 +43,7 @@ export async function createEquipmentProfile(name: string, equipment: EquipmentK
         name: data.name,
         equipment: (data.equipment ?? []) as EquipmentKey[],
         created_at: data.created_at,
+        expires_at: data.expires_at ?? null,
     };
 }
 
