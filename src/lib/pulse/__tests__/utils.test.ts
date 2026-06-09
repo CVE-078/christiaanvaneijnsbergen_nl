@@ -29,6 +29,7 @@ import {
     swapKey,
     resolveExercise,
     swapCandidates,
+    rankSubstitutes,
     computeStrengthByWeek,
     computeRecompSignal,
     toLengthDisplay,
@@ -53,7 +54,7 @@ import {
 } from '../utils';
 import type { EquipmentProfile } from '../types';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
-import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement } from '../types';
+import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement, DbExercise } from '../types';
 
 describe('computePlateau', () => {
     const h = (...e1rms: number[]) => e1rms.map((e1rm, i) => ({ week: i + 1, e1rm }));
@@ -1698,6 +1699,64 @@ describe('swapCandidates', () => {
         // machine (0 overlap) passed before dbBench (1 overlap: shares "bench")
         const out = swapCandidates(original, [machine, dbBench], { excludeIds: new Set() });
         expect(out.map((e) => e.id)).toEqual(['a', 'b']); // dbBench first by overlap
+    });
+});
+
+describe('rankSubstitutes', () => {
+    const ex = (id: string, over: Partial<DbExercise> = {}): DbExercise => ({
+        id,
+        name: id,
+        category: 'chest',
+        default_sets: '3',
+        default_reps: '8',
+        user_id: null,
+        movement_pattern: 'horizontal_push',
+        equipment: [],
+        is_compound: true,
+        substitution_class: null,
+        contraindications: [],
+        ...over,
+    });
+    const original = ex('orig', { substitution_class: 'horizontal_press', equipment: ['barbell', 'bench'] });
+
+    it('same substitution_class wins over a different class regardless of reason/equipment', () => {
+        const sameClass = ex('same', { substitution_class: 'horizontal_press', equipment: [] });
+        const diffClass = ex('diff', { substitution_class: 'other', equipment: ['barbell', 'bench'] });
+        for (const reason of [undefined, 'pain', 'no_equipment', 'crowded'] as const) {
+            expect(rankSubstitutes(original, [diffClass, sameClass], reason)[0].id).toBe('same');
+        }
+    });
+
+    it('preference (no reason) prefers most equipment overlap within a class tier', () => {
+        const more = ex('more', { equipment: ['barbell', 'bench'] });
+        const less = ex('less', { equipment: ['dumbbells'] });
+        expect(rankSubstitutes(original, [less, more]).map((e) => e.id)).toEqual(['more', 'less']);
+    });
+
+    it('no_equipment / crowded prefer the fewest shared equipment keys', () => {
+        const shares = ex('shares', { equipment: ['barbell'] });
+        const none = ex('none', { equipment: ['dumbbells'] });
+        expect(rankSubstitutes(original, [shares, none], 'no_equipment').map((e) => e.id)).toEqual(['none', 'shares']);
+        expect(rankSubstitutes(original, [shares, none], 'crowded').map((e) => e.id)).toEqual(['none', 'shares']);
+    });
+
+    it('pain prefers the fewest contraindication flags', () => {
+        const flagged = ex('flagged', { contraindications: ['shoulder'] });
+        const clean = ex('clean', { contraindications: [] });
+        expect(rankSubstitutes(original, [flagged, clean], 'pain').map((e) => e.id)).toEqual(['clean', 'flagged']);
+    });
+
+    it('name is the deterministic tiebreak regardless of input order', () => {
+        const a = ex('a-ex', { name: 'Alpha', equipment: ['barbell', 'bench'] });
+        const b = ex('b-ex', { name: 'Beta', equipment: ['barbell', 'bench'] });
+        expect(rankSubstitutes(original, [b, a]).map((e) => e.name)).toEqual(['Alpha', 'Beta']);
+    });
+
+    it('degrades gracefully when substitution_class is absent', () => {
+        const noClassOrig = ex('o2', { substitution_class: null, equipment: ['barbell'] });
+        const x = ex('x', { equipment: ['barbell'] });
+        const y = ex('y', { equipment: [] });
+        expect(rankSubstitutes(noClassOrig, [y, x]).map((e) => e.id)).toEqual(['x', 'y']); // overlap desc
     });
 });
 
