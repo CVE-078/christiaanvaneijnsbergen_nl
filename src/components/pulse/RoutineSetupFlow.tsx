@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { DAY_NAMES, SUGGESTED_DAYS, MAX_TRAINING_DAYS } from '@/lib/pulse/constants';
 import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { PROGRAM_LENGTHS } from '@/lib/pulse/data';
@@ -81,6 +81,20 @@ function toYmd(d: Date): string {
     return `${y}-${m}-${day}`;
 }
 
+// Short, locale-aware label for the start-date options, e.g. "Tue, Jun 9".
+const START_DATE_FMT = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+// Resolve a non-custom start choice to its concrete calendar date. "Next Monday"
+// is strictly the next one (never today, even when today is Monday) so the date
+// shown by the option is unambiguous. Shared by the label and the anchor so they
+// can never disagree.
+function startDateFor(choice: 'today' | 'tomorrow' | 'monday'): Date {
+    const d = new Date();
+    if (choice === 'tomorrow') d.setDate(d.getDate() + 1);
+    else if (choice === 'monday') d.setDate(d.getDate() + (((1 - d.getDay() + 7) % 7) || 7));
+    return d;
+}
+
 const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
 const CARD = 'bg-pulse-surface rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
 const Q = 'font-pulse text-lg font-medium text-pulse-text tracking-[-0.01em]';
@@ -121,11 +135,14 @@ function Header({ stepNum, total, onBack }: { stepNum: number; total: number; on
 function OptionRow({
     label,
     desc,
+    sub,
     active,
     onClick,
 }: {
     label: string;
     desc?: string;
+    /** Right-aligned secondary text, e.g. the resolved date on the start step. */
+    sub?: string;
     active: boolean;
     onClick: () => void;
 }) {
@@ -138,6 +155,7 @@ function OptionRow({
                     : 'bg-pulse-surface-2 ring-0 hover:bg-pulse-surface-2/70'
             }`}>
             <span className="font-pulse text-sm font-medium text-pulse-text flex-1">{label}</span>
+            {sub && <span className="font-pulse text-xs text-pulse-dim tabular-nums">{sub}</span>}
             {desc && <span className="font-pulse text-xs text-pulse-dim">{desc}</span>}
         </button>
     );
@@ -283,6 +301,9 @@ export default function RoutineSetupFlow({
     const [styleKey, setStyleKey] = useState<string | null>(null);
     const [startChoice, setStartChoice] = useState<StartChoice>('today');
     const [customDate, setCustomDate] = useState('');
+    // The date input is always mounted (visually hidden until "Pick a date") so
+    // selecting that option can open the native picker immediately via showPicker().
+    const dateRef = useRef<HTMLInputElement>(null);
     const [programWeeks, setProgramWeeks] = useState<number>(DEFAULT_PROGRAM_WEEKS);
     const [trainingStyle, setTrainingStyle] = useState<TrainingStyle>('balanced');
     const [varietyPreference, setVarietyPreference] = useState<VarietyPreference>('varied');
@@ -375,14 +396,11 @@ export default function RoutineSetupFlow({
             return next;
         });
 
-    // Resolve the chosen start to an ISO anchor at noon UTC (program day one).
-    // "Next Monday" lands on today when today is already Monday.
+    // Resolve the chosen start to an ISO anchor at noon UTC (program day one),
+    // reusing startDateFor so the anchor matches the date shown on the option.
     function startAnchorISO(): string {
         if (startChoice === 'custom') return `${customDate}T12:00:00.000Z`;
-        const d = new Date();
-        if (startChoice === 'tomorrow') d.setDate(d.getDate() + 1);
-        else if (startChoice === 'monday') d.setDate(d.getDate() + ((1 - d.getDay() + 7) % 7));
-        return `${toYmd(d)}T12:00:00.000Z`;
+        return `${toYmd(startDateFor(startChoice))}T12:00:00.000Z`;
     }
 
     function handleComplete() {
@@ -1020,35 +1038,51 @@ export default function RoutineSetupFlow({
                     <div className="flex flex-col gap-2">
                         <OptionRow
                             label="Today"
+                            sub={START_DATE_FMT.format(startDateFor('today'))}
                             active={startChoice === 'today'}
                             onClick={() => setStartChoice('today')}
                         />
                         <OptionRow
                             label="Tomorrow"
+                            sub={START_DATE_FMT.format(startDateFor('tomorrow'))}
                             active={startChoice === 'tomorrow'}
                             onClick={() => setStartChoice('tomorrow')}
                         />
                         <OptionRow
                             label="Next Monday"
+                            sub={START_DATE_FMT.format(startDateFor('monday'))}
                             active={startChoice === 'monday'}
                             onClick={() => setStartChoice('monday')}
                         />
                         <OptionRow
                             label="Pick a date"
+                            sub={customDate ? START_DATE_FMT.format(new Date(`${customDate}T12:00:00`)) : 'Choose…'}
                             active={startChoice === 'custom'}
-                            onClick={() => setStartChoice('custom')}
+                            onClick={() => {
+                                setStartChoice('custom');
+                                // Open the native calendar straight away (kept in the same
+                                // user gesture so showPicker keeps its activation). The
+                                // input is already mounted (sr-only), so the ref is ready.
+                                dateRef.current?.showPicker?.();
+                            }}
                         />
                     </div>
-                    {startChoice === 'custom' && (
-                        <input
-                            type="date"
-                            aria-label="Start date"
-                            value={customDate}
-                            min={toYmd(new Date())}
-                            onChange={(e) => setCustomDate(e.target.value)}
-                            className="w-full rounded-xl border border-pulse-border bg-pulse-surface-2 px-3 py-2.5 font-pulse text-sm text-pulse-text outline-none [color-scheme:dark] focus:border-pulse-accent/50"
-                        />
-                    )}
+                    <input
+                        ref={dateRef}
+                        type="date"
+                        aria-label="Start date"
+                        value={customDate}
+                        min={toYmd(new Date())}
+                        onChange={(e) => {
+                            setStartChoice('custom');
+                            setCustomDate(e.target.value);
+                        }}
+                        className={
+                            startChoice === 'custom'
+                                ? 'w-full rounded-xl border border-pulse-border bg-pulse-surface-2 px-3 py-2.5 font-pulse text-sm text-pulse-text outline-none [color-scheme:dark] focus:border-pulse-accent/50'
+                                : 'sr-only'
+                        }
+                    />
                     <button
                         onClick={handleComplete}
                         disabled={loading || (startChoice === 'custom' && !customDate)}
