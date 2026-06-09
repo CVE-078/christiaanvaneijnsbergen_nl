@@ -20,8 +20,25 @@ export async function setExerciseSwap(
     const exUserId = (exercise as { user_id: string | null }).user_id;
     if (exUserId !== null && exUserId !== user.id) throw new Error('Unauthorized');
 
+    // Capture what this swap replaces (the slot's current catalog exercise) so
+    // behavior learning (#7) has a reliable "from"; routine_exercises.exercise_id
+    // is mutable (a permanent swap overwrites it), so it must be snapshotted now,
+    // not recovered later.
+    const { data: slot } = await supabase
+        .from('routine_exercises')
+        .select('exercise_id')
+        .eq('id', routineExerciseId)
+        .single();
+    const fromExerciseId = (slot as { exercise_id: string } | null)?.exercise_id ?? null;
+
     const { error } = await supabase.from('exercise_swaps').upsert(
-        { user_id: user.id, routine_exercise_id: routineExerciseId, week, exercise_id: exerciseId },
+        {
+            user_id: user.id,
+            routine_exercise_id: routineExerciseId,
+            week,
+            exercise_id: exerciseId,
+            from_exercise_id: fromExerciseId,
+        },
         { onConflict: 'user_id,routine_exercise_id,week' },
     );
     if (error) throw new Error('Failed to save swap');
