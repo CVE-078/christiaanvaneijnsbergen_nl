@@ -3,9 +3,24 @@ import { useState } from 'react';
 import { DAY_NAMES, SUGGESTED_DAYS, MAX_TRAINING_DAYS } from '@/lib/pulse/constants';
 import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { PROGRAM_LENGTHS } from '@/lib/pulse/data';
-import { TRAINING_STYLE_OPTIONS, VARIETY_OPTIONS, LOADING_LEAN_OPTIONS, RESTRICTION_OPTIONS } from '@/lib/pulse/generationPreferences';
+import {
+    TRAINING_STYLE_OPTIONS,
+    VARIETY_OPTIONS,
+    LOADING_LEAN_OPTIONS,
+    RESTRICTION_OPTIONS,
+} from '@/lib/pulse/generationPreferences';
+import { resolveEquipmentPrefill, matchingProfileId } from '@/lib/pulse/utils';
 import { BTN_PRIMARY_BLOCK } from './ui';
-import type { EquipmentKey, SessionTime, Gender, TrainingStyle, VarietyPreference, LoadingPreference, RestrictionFlag } from '@/lib/pulse/types';
+import type {
+    EquipmentKey,
+    EquipmentProfile,
+    SessionTime,
+    Gender,
+    TrainingStyle,
+    VarietyPreference,
+    LoadingPreference,
+    RestrictionFlag,
+} from '@/lib/pulse/types';
 import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
 // Steps: 'gender' (only when collectGender, optional/skippable) · 1 equipment ·
@@ -27,7 +42,21 @@ import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/li
 // at its 12-week default. The personalization inputs it skips move to the
 // post-generation "Tune your plan" panel and the standing Profile editors,
 // resolving from the stored profile (param ?? profile ?? default) when absent.
-type Step = 'gender' | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 'train_style' | 'variety' | 'loading' | 'restrictions' | 'length' | 'start';
+type Step =
+    | 'gender'
+    | 1
+    | 2
+    | 3
+    | 4
+    | 5
+    | 6
+    | 7
+    | 'train_style'
+    | 'variety'
+    | 'loading'
+    | 'restrictions'
+    | 'length'
+    | 'start';
 type StartChoice = 'today' | 'tomorrow' | 'monday' | 'custom';
 
 // Program-length options come from the single source in data.ts (8/10/12/16);
@@ -114,7 +143,6 @@ function OptionRow({
     );
 }
 
-
 const EQUIPMENT_OPTIONS: { key: EquipmentKey; label: string }[] = [
     { key: 'dumbbells', label: 'Dumbbells' },
     { key: 'barbell', label: 'Barbell & plates' },
@@ -188,6 +216,18 @@ interface Props {
      *  collect* prop off and auto-applying suggested days + recommended style.
      *  See the Steps comment above for the full rundown. Default 'full'. */
     mode?: 'quick' | 'full';
+    /** Saved equipment profiles (Branch B). When non-empty, the equipment step
+     *  shows a quick-pick chip row, pre-fills from the resolution rule, and (with
+     *  onCreateEquipmentProfile) offers "Save as profile". Empty (default) = today's
+     *  behavior, just the checkboxes; template cloning omits it so it stays unchanged. */
+    equipmentProfiles?: EquipmentProfile[];
+    /** Active equipment-profile id; drives the pre-fill resolution and the
+     *  "active" chip marker. */
+    activeEquipmentProfileId?: string | null;
+    /** Create a new equipment profile from the current selection. When provided
+     *  (and profiles exist), the step shows the "Save as profile" create path. It
+     *  only ever creates; overwriting is a Profile-manager action. */
+    onCreateEquipmentProfile?: (name: string, equipment: EquipmentKey[]) => Promise<EquipmentProfile>;
 }
 
 export default function RoutineSetupFlow({
@@ -202,6 +242,9 @@ export default function RoutineSetupFlow({
     collectLoadingLean = true,
     collectRestrictions = true,
     mode = 'full',
+    equipmentProfiles = [],
+    activeEquipmentProfileId = null,
+    onCreateEquipmentProfile,
 }: Props) {
     const quick = mode === 'quick';
     // Quick mode owns the trim outright, regardless of what the consumer passes:
@@ -220,7 +263,18 @@ export default function RoutineSetupFlow({
     // other options. gender stays null in that case (and when untouched), which
     // is what the consumer treats as "no gender" (neutral strength standard).
     const [genderDeclined, setGenderDeclined] = useState(false);
-    const [equipment, setEquipment] = useState<Set<EquipmentKey>>(new Set(initial?.equipment ?? []));
+    // Pre-fill the equipment step from the resolution rule (active -> most-recent
+    // -> empty), snapshotted on open so deleting the active profile mid-flow can't
+    // change an in-progress selection. v1 keeps the step visible but pre-filled;
+    // disappearing the step entirely for returning users is the v2 upgrade.
+    const [equipment, setEquipment] = useState<Set<EquipmentKey>>(
+        () => new Set(initial?.equipment ?? resolveEquipmentPrefill(equipmentProfiles, activeEquipmentProfileId)),
+    );
+    // Save-as-profile inline form (Branch B). null name + closed by default.
+    const [savingProfile, setSavingProfile] = useState(false);
+    const [profileName, setProfileName] = useState('');
+    const [savingBusy, setSavingBusy] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
     const [experience, setExperience] = useState<ExperienceLevel | null>(initial?.experience ?? null);
     const [goal, setGoal] = useState<Goal | null>(initial?.goal ?? null);
     const [days, setDays] = useState<DaysPerWeek | null>(initial?.days ?? null);
@@ -280,6 +334,37 @@ export default function RoutineSetupFlow({
             else next.add(key);
             return next;
         });
+    }
+
+    // Equipment-profile derived state + handlers (Branch B). Re-derived each render
+    // against the live profiles prop and the local equipment snapshot.
+    const showProfiles = equipmentProfiles.length > 0;
+    const matchedProfileId = matchingProfileId(equipmentProfiles, equipment);
+    const matchedProfile = equipmentProfiles.find((p) => p.id === matchedProfileId) ?? null;
+    const canSaveProfile = profileName.trim().length > 0 && equipment.size > 0 && !savingBusy;
+
+    function pickProfile(p: EquipmentProfile) {
+        setEquipment(new Set(p.equipment));
+        // The selection now matches a saved set, so any open save-as form is moot.
+        setSavingProfile(false);
+        setSaveError(null);
+    }
+
+    async function saveProfile() {
+        if (!canSaveProfile || !onCreateEquipmentProfile) return;
+        setSavingBusy(true);
+        setSaveError(null);
+        try {
+            await onCreateEquipmentProfile(profileName.trim(), [...equipment]);
+            // On success the new profile arrives via props; the selection now matches
+            // it, so the hint replaces the form. Collapse + reset.
+            setSavingProfile(false);
+            setProfileName('');
+        } catch (e) {
+            setSaveError(e instanceof Error ? e.message : 'Could not save profile');
+        } finally {
+            setSavingBusy(false);
+        }
     }
 
     const toggleRestriction = (key: RestrictionFlag) =>
@@ -386,6 +471,42 @@ export default function RoutineSetupFlow({
                     />
                     {!collectGender && introBlock}
                     <p className={Q}>What equipment do you have access to?</p>
+                    {showProfiles && (
+                        <div className="-mt-1 flex flex-col gap-2">
+                            <p className="font-pulse text-[0.6875rem] uppercase tracking-[0.12em] text-pulse-muted">
+                                Your equipment profiles
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {equipmentProfiles.map((p) => {
+                                    const active = p.id === matchedProfileId;
+                                    return (
+                                        <button
+                                            key={p.id}
+                                            type="button"
+                                            aria-pressed={active}
+                                            onClick={() => pickProfile(p)}
+                                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-pulse text-xs font-medium transition-colors ${
+                                                active
+                                                    ? 'border-pulse-accent bg-pulse-accent/10 text-pulse-accent'
+                                                    : 'border-pulse-border bg-pulse-surface-2 text-pulse-dim'
+                                            }`}>
+                                            {p.name}
+                                            {p.id === activeEquipmentProfileId && (
+                                                <span className="text-[0.5625rem] uppercase tracking-wide opacity-80">
+                                                    active
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {matchedProfile && (
+                                <p className="font-pulse text-xs text-pulse-dim">
+                                    Filled from your {matchedProfile.name} profile
+                                </p>
+                            )}
+                        </div>
+                    )}
                     <div className="flex flex-col gap-2">
                         {EQUIPMENT_OPTIONS.map(({ key, label }) => (
                             <label
@@ -411,6 +532,62 @@ export default function RoutineSetupFlow({
                             </label>
                         ))}
                     </div>
+                    {showProfiles &&
+                        onCreateEquipmentProfile &&
+                        equipment.size > 0 &&
+                        !matchedProfileId &&
+                        (savingProfile ? (
+                            <div className="flex flex-col gap-3 rounded-xl border border-dashed border-pulse-border p-3.5">
+                                <p className="font-pulse text-[0.8125rem] font-medium text-pulse-text">
+                                    Save as a profile
+                                </p>
+                                <input
+                                    type="text"
+                                    value={profileName}
+                                    maxLength={40}
+                                    onChange={(e) => setProfileName(e.target.value)}
+                                    placeholder="Profile name"
+                                    className="rounded-lg bg-pulse-bg px-3 py-2 font-pulse-body text-sm text-pulse-text outline-none ring-1 ring-pulse-border focus:ring-pulse-accent"
+                                />
+                                <div className="flex flex-wrap gap-2">
+                                    {['Home', 'Gym', 'Travel'].map((s) => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => setProfileName(s)}
+                                            className="rounded-full bg-pulse-bg px-3 py-1 font-pulse text-xs text-pulse-dim ring-1 ring-pulse-border">
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                                {saveError && <p className="font-pulse text-xs text-pulse-accent">{saveError}</p>}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={!canSaveProfile}
+                                        onClick={saveProfile}
+                                        className={`rounded-lg px-4 py-2 font-pulse-body text-sm ${canSaveProfile ? 'bg-pulse-accent text-pulse-bg' : 'cursor-not-allowed bg-pulse-surface-2 text-pulse-muted'}`}>
+                                        Save
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSavingProfile(false);
+                                            setSaveError(null);
+                                        }}
+                                        className="rounded-lg px-4 py-2 font-pulse-body text-sm text-pulse-dim">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setSavingProfile(true)}
+                                className="self-start font-pulse text-[0.8125rem] text-pulse-accent">
+                                + Save these as a profile
+                            </button>
+                        ))}
                     <div className="flex flex-col gap-2">
                         <button
                             onClick={() => setStep(2)}
@@ -611,7 +788,13 @@ export default function RoutineSetupFlow({
             <div className={WRAP}>
                 <div className={CARD}>
                     <Header
-                        stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
+                        stepNum={
+                            total -
+                            2 -
+                            (collectRestrictions ? 1 : 0) -
+                            (collectVariety ? 1 : 0) -
+                            (collectLoadingLean ? 1 : 0)
+                        }
                         total={total}
                         onBack={() => setStep(7)}
                     />
@@ -631,7 +814,17 @@ export default function RoutineSetupFlow({
                         ))}
                     </div>
                     <button
-                        onClick={() => setStep(collectVariety ? 'variety' : collectLoadingLean ? 'loading' : collectRestrictions ? 'restrictions' : 'length')}
+                        onClick={() =>
+                            setStep(
+                                collectVariety
+                                    ? 'variety'
+                                    : collectLoadingLean
+                                      ? 'loading'
+                                      : collectRestrictions
+                                        ? 'restrictions'
+                                        : 'length',
+                            )
+                        }
                         className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
@@ -650,7 +843,8 @@ export default function RoutineSetupFlow({
                     />
                     <p className={Q}>How varied should it be?</p>
                     <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        Consistency builds your main lifts; variety keeps training fresh. You can change this anytime you regenerate.
+                        Consistency builds your main lifts; variety keeps training fresh. You can change this anytime
+                        you regenerate.
                     </p>
                     <div className="flex flex-col gap-2">
                         {VARIETY_OPTIONS.map((o) => (
@@ -663,7 +857,11 @@ export default function RoutineSetupFlow({
                             />
                         ))}
                     </div>
-                    <button onClick={() => setStep(collectLoadingLean ? 'loading' : collectRestrictions ? 'restrictions' : 'length')} className={BTN_PRIMARY_BLOCK}>
+                    <button
+                        onClick={() =>
+                            setStep(collectLoadingLean ? 'loading' : collectRestrictions ? 'restrictions' : 'length')
+                        }
+                        className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
                 </div>
@@ -681,7 +879,8 @@ export default function RoutineSetupFlow({
                     />
                     <p className={Q}>Which equipment do you prefer to use?</p>
                     <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        Pulse will lean toward that type when filling each slot. Only applies to what you actually own. Skip to let it choose freely.
+                        Pulse will lean toward that type when filling each slot. Only applies to what you actually own.
+                        Skip to let it choose freely.
                     </p>
                     <div className="flex flex-col gap-2">
                         {LOADING_LEAN_OPTIONS.map((o) => (
@@ -694,7 +893,9 @@ export default function RoutineSetupFlow({
                             />
                         ))}
                     </div>
-                    <button onClick={() => setStep(collectRestrictions ? 'restrictions' : 'length')} className={BTN_PRIMARY_BLOCK}>
+                    <button
+                        onClick={() => setStep(collectRestrictions ? 'restrictions' : 'length')}
+                        className={BTN_PRIMARY_BLOCK}>
                         {loadingLean ? 'Next' : 'Skip'}
                     </button>
                 </div>
@@ -722,7 +923,8 @@ export default function RoutineSetupFlow({
                     />
                     <p className={Q}>Anything we should work around?</p>
                     <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        Pick any joints that bother you and Pulse will avoid the movements that commonly stress them, choosing safer alternatives. This is not medical advice. Skip if none apply.
+                        Pick any joints that bother you and Pulse will avoid the movements that commonly stress them,
+                        choosing safer alternatives. This is not medical advice. Skip if none apply.
                     </p>
                     <div className="flex flex-col gap-2">
                         {RESTRICTION_OPTIONS.map(({ key, label, desc }) => (
@@ -753,7 +955,8 @@ export default function RoutineSetupFlow({
                         ))}
                     </div>
                     <p className="font-pulse text-[0.75rem] text-pulse-dim">
-                        Takes effect the next time you generate a plan. To swap exercises in your current routine, use the Swap option on any exercise.
+                        Takes effect the next time you generate a plan. To swap exercises in your current routine, use
+                        the Swap option on any exercise.
                     </p>
                     <button onClick={() => setStep('length')} className={BTN_PRIMARY_BLOCK}>
                         {restrictions.size > 0 ? 'Next' : 'Skip'}

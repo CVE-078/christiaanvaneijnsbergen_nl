@@ -75,4 +75,31 @@ describe('GenerateRoutineButton', () => {
         expect(navigate).toHaveBeenCalledWith('train');
         expect(screen.queryByText('Push Pull Legs')).not.toBeInTheDocument();
     });
+
+    it('seeds the equipment step from the saved profiles when present', () => {
+        (usePulse as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+            generateRoutine,
+            setProgramAnchor,
+            updateRoutineProgramWeeks,
+            deleteRoutine,
+            navigate,
+            profile: {
+                training_style: null,
+                variety_preference: null,
+                loading_lean: null,
+                movement_restrictions: null,
+                active_equipment_profile_id: 'home',
+            },
+            equipmentProfiles: [
+                { id: 'home', name: 'Home', equipment: ['dumbbells', 'bench'], created_at: '2026-06-09T02:00:00Z' },
+            ],
+            createEquipmentProfile: vi.fn(),
+        });
+        render(<GenerateRoutineButton />);
+        fireEvent.click(screen.getByText('Generate routine'));
+        // The saved profile shows as a quick-pick chip and pre-fills the checkboxes.
+        expect(screen.getByRole('button', { name: /Home/ })).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: /Dumbbells/ })).toBeChecked();
+        expect(screen.getByText(/Filled from your Home profile/i)).toBeInTheDocument();
+    });
 });
