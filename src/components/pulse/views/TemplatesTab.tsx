@@ -188,6 +188,7 @@ export default function TemplatesTab() {
                             trainingDays,
                             sessionTime,
                             answers.experience,
+                            startAnchor,
                         );
                         if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
                         // New routines default to 12 weeks in the DB; only write when it differs.

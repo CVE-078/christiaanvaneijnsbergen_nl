@@ -7,6 +7,7 @@ import {
     recommendStyle,
     resolveStyle,
     generateRoutine,
+    orderTrainingDays,
     applyTemplateVolume,
     buildRationale,
     genderDefault,
@@ -441,6 +442,71 @@ describe('schedule variant pin', () => {
             input({ style: STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle, trainingDays: [1, 3, 5] }),
         );
         expect(bp.schedule.every((s) => s.variant === null)).toBe(true);
+    });
+});
+
+// ── Anchor-aware day ordering (#7 schedule rotation) ─────────────────────────
+
+describe('orderTrainingDays', () => {
+    const MWThSu = [1, 3, 4, 0]; // Mon, Wed, Thu, Sun (insertion order, unsorted)
+
+    it('rotates the week so the first day is the first selected day on/after the anchor', () => {
+        // Tue anchor: Wed is the first trained day on/after Tuesday.
+        expect(orderTrainingDays(MWThSu, 2)).toEqual([3, 4, 0, 1]); // Wed, Thu, Sun, Mon
+    });
+
+    it('a Monday anchor keeps Monday first and pushes Sunday last (kills the Sunday-first artifact)', () => {
+        // Naive ascending sort would put Sunday (0) first; anchored on Monday it is last.
+        expect(orderTrainingDays(MWThSu, 1)).toEqual([1, 3, 4, 0]); // Mon, Wed, Thu, Sun
+        expect(orderTrainingDays(MWThSu, 1)[0]).toBe(1);
+    });
+
+    it('for every anchor weekday, the first ordered day is the first selected day on/after the anchor', () => {
+        for (let anchor = 0; anchor <= 6; anchor++) {
+            const ordered = orderTrainingDays(MWThSu, anchor);
+            const expectedFirst = [...MWThSu].sort(
+                (a, b) => ((a - anchor + 7) % 7) - ((b - anchor + 7) % 7),
+            )[0];
+            expect(ordered[0]).toBe(expectedFirst);
+            // The ordered set is a permutation of the input (no day lost or added).
+            expect([...ordered].sort()).toEqual([...MWThSu].sort());
+        }
+    });
+
+    it('is a no-op for a Sunday-free, Monday-inclusive set on a Monday anchor (existing routines unchanged)', () => {
+        expect(orderTrainingDays([1, 2, 4, 5], 1)).toEqual([1, 2, 4, 5]);
+        expect(orderTrainingDays([1, 3, 5], 1)).toEqual([1, 3, 5]);
+    });
+});
+
+describe('generateRoutine anchor-aware schedule', () => {
+    it('PPL + Full Body, Mon/Wed/Thu/Sun, Tuesday start → Wednesday is Push', () => {
+        const style = STYLES[4].find((s) => s.key === 'ppl-fb-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 4, 0], anchorDow: 2 }));
+        const wed = bp.schedule.find((s) => s.day_of_week === 3);
+        expect(wed?.workout_type).toBe('push'); // session A (Push) lands on the first trained day after Tue
+        // Sequence runs Wed→Thu→Sun→Mon = Push, Pull, Legs, Full Body.
+        expect(bp.schedule.map((s) => [s.day_of_week, s.workout_type])).toEqual([
+            [3, 'push'],
+            [4, 'pull'],
+            [0, 'legs'],
+            [1, 'full_body'],
+        ]);
+    });
+
+    it('PPL + Full Body, Mon/Wed/Thu/Sun, Monday start → Push is on Monday, not Sunday', () => {
+        const style = STYLES[4].find((s) => s.key === 'ppl-fb-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 4, 0], anchorDow: 1 }));
+        const push = bp.schedule.find((s) => s.workout_type === 'push');
+        expect(push?.day_of_week).toBe(1); // Monday, not Sunday (the pre-fix artifact)
+        expect(bp.schedule.find((s) => s.day_of_week === 0)?.workout_type).not.toBe('push');
+    });
+
+    it('defaults to a Monday week-start when no anchor is given', () => {
+        const style = STYLES[4].find((s) => s.key === 'ppl-fb-4') as ProgramStyle;
+        const withDefault = generateRoutine(input({ style, trainingDays: [1, 3, 4, 0] }));
+        const withMonday = generateRoutine(input({ style, trainingDays: [1, 3, 4, 0], anchorDow: 1 }));
+        expect(withDefault.schedule).toEqual(withMonday.schedule);
     });
 });
 

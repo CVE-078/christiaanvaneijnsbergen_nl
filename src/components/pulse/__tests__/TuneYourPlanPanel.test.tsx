@@ -133,6 +133,7 @@ describe('TuneYourPlanPanel', () => {
             'varied',
             undefined,
             [],
+            '2026-06-09T12:00:00.000Z',
         );
         expect(setProgramAnchor).toHaveBeenCalledWith('routine-2', '2026-06-09T12:00:00.000Z');
         expect(deleteRoutine).toHaveBeenCalledWith('routine-1');
@@ -179,6 +180,7 @@ describe('TuneYourPlanPanel', () => {
             'varied',
             undefined,
             ['knee'],
+            undefined,
         );
     });
 
@@ -217,6 +219,7 @@ describe('TuneYourPlanPanel', () => {
             'varied',
             undefined,
             [],
+            undefined,
         );
     });
 

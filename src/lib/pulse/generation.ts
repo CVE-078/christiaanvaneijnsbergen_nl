@@ -879,6 +879,11 @@ export interface GenerationInput {
     /** Joint areas to avoid. Absent / empty is the no-op identity path (no
      *  exercise filtered, output byte-identical to the base generator). */
     restrictions?: RestrictionFlag[];
+    /** The program's start weekday (JS getDay, 0=Sun..6=Sat). Sessions are
+     *  ordered from this day forward (wrapping the week) so session A lands on
+     *  the first trained day on/after the start date. Absent = Monday (1), the
+     *  conventional week start. */
+    anchorDow?: number;
     /** Generates a unique superset group id. Server passes crypto.randomUUID. */
     makeGroupId?: () => string;
 }
@@ -902,10 +907,27 @@ function defaultGroupId(): string {
     return `superset-${groupCounter}`;
 }
 
+/**
+ * Order selected weekday numbers (0=Sun..6=Sat) starting from the program's
+ * anchor weekday and wrapping the week, so session A lands on the first trained
+ * day on/after the start date. A naive ascending sort instead pins session A to
+ * the lowest weekday number (Sunday whenever it is selected), which matches
+ * neither the user's week start nor a non-Monday start date.
+ *
+ * Example: days [1,3,4,0] (Mon/Wed/Thu/Sun), anchor Tue(2) → [3,4,0,1]
+ * (Wed,Thu,Sun,Mon), so the first session lands on Wednesday.
+ */
+export function orderTrainingDays(trainingDays: number[], anchorDow: number): number[] {
+    return [...trainingDays].sort((a, b) => ((a - anchorDow + 7) % 7) - ((b - anchorDow + 7) % 7));
+}
+
 export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const { style, answers, sessionTime, trainingDays, pool } = input;
     const makeGroupId = input.makeGroupId ?? defaultGroupId;
-    const days = [...trainingDays].sort((a, b) => a - b);
+    // Order from the start weekday so session A falls on the first trained day
+    // on/after the anchor. Default Monday (1) keeps the conventional week start
+    // for callers that don't pass an anchor.
+    const days = orderTrainingDays(trainingDays, input.anchorDow ?? 1);
     const { exercises: exCount, sets } = volumeFor(sessionTime, answers.experience);
     const isSuperset = sessionTime === '~30 min';
 

@@ -6,6 +6,7 @@ import {
     applyTemplateVolume,
     buildRationale,
     generateRoutine,
+    orderTrainingDays,
     resolveStyle,
     resolvePriority,
     genderDefault,
@@ -309,6 +310,7 @@ export async function cloneTemplate(
     trainingDays?: number[],
     sessionTime?: string,
     experience?: ExperienceLevel,
+    startAnchor?: string,
 ): Promise<WorkoutRoutine> {
     if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid slug');
     // Harden the client-supplied shaping inputs (mirrors generateAndSaveRoutine):
@@ -319,6 +321,8 @@ export async function cloneTemplate(
     if (sessionTime !== undefined && !SESSION_TIMES.includes(sessionTime as SessionTime))
         throw new Error('Invalid session time');
     if (experience !== undefined && !EXPERIENCE_LEVELS.includes(experience)) throw new Error('Invalid experience');
+    if (startAnchor !== undefined && (typeof startAnchor !== 'string' || isNaN(new Date(startAnchor).getTime())))
+        throw new Error('Invalid start date');
 
     const { supabase, user } = await getUserOrThrow();
 
@@ -367,7 +371,11 @@ export async function cloneTemplate(
     const daysToUse = trainingDays ?? defaultDays;
 
     if (daysToUse.length > 0 && pattern.length > 0) {
-        const sortedDays = [...daysToUse].sort((a, b) => a - b);
+        // Order from the start weekday (default Monday) so the pattern's first
+        // session lands on the first trained day on/after the start date, not on
+        // the lowest weekday number (which would pin it to Sunday when selected).
+        const anchorDow = startAnchor ? new Date(startAnchor).getUTCDay() : new Date().getUTCDay();
+        const sortedDays = orderTrainingDays(daysToUse, anchorDow);
         const scheduleRows = sortedDays.map((day, i) => ({
             routine_id: routine.id,
             day_of_week: day,
@@ -410,6 +418,7 @@ export async function generateAndSaveRoutine(
     varietyPreference?: VarietyPreference,
     loadingLean?: LoadingPreference,
     movementRestrictions?: RestrictionFlag[],
+    startAnchor?: string,
 ): Promise<WorkoutRoutine> {
     if (!trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error('Invalid training days');
 
@@ -432,6 +441,12 @@ export async function generateAndSaveRoutine(
         (!Array.isArray(movementRestrictions) || !movementRestrictions.every((r) => RESTRICTION_FLAGS.includes(r)))
     )
         throw new Error('Invalid data');
+    if (startAnchor !== undefined && (typeof startAnchor !== 'string' || isNaN(new Date(startAnchor).getTime())))
+        throw new Error('Invalid data');
+
+    // The start date's weekday drives session ordering so session A lands on the
+    // first trained day on/after the anchor. Absent anchor falls back to today.
+    const anchorDow = startAnchor ? new Date(startAnchor).getUTCDay() : new Date().getUTCDay();
 
     const style = resolveStyle(styleKey, trainingDays.length);
 
@@ -503,6 +518,7 @@ export async function generateAndSaveRoutine(
         varietyPreference: resolvedVariety,
         loadingLean: resolvedLoadingLean,
         restrictions: resolvedRestrictions,
+        anchorDow,
         makeGroupId: () => crypto.randomUUID(),
     });
 
