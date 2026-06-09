@@ -39,9 +39,10 @@ describe('OnboardingModal', () => {
         expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
     });
 
-    it('Cancel dismisses onboarding without generating', () => {
+    it('the close button dismisses onboarding without generating', () => {
         render(<OnboardingModal />);
-        fireEvent.click(screen.getByText('Cancel'));
+        // First step closes immediately (no progress), so onClose → dismissOnboarding.
+        fireEvent.click(screen.getByRole('button', { name: /close setup/i }));
         expect(dismissOnboarding).toHaveBeenCalledTimes(1);
         expect(generateRoutine).not.toHaveBeenCalled();
     });
