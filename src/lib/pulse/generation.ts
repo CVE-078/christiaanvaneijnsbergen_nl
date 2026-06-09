@@ -18,6 +18,7 @@ import type {
     WorkoutVariant,
 } from './types';
 import type { ExperienceLevel, Goal, OnboardingAnswers } from './recommendation';
+import { EMPTY_BEHAVIOR, type BehaviorSignal } from './behavior';
 
 export type { Focus };
 
@@ -604,8 +605,11 @@ function selectForSession(
     anchors: Map<MovementPattern, string>,
     usedSubstitutionClasses: Set<string>,
     loadingLean?: LoadingPreference | null,
+    behavior: BehaviorSignal = EMPTY_BEHAVIOR,
 ): Selected[] {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
+    // Behavior demote (#7): O(1) membership for the sort layer below.
+    const demoteSet = new Set(behavior.demote);
 
     // Session-scoped: true once a vertical_push exercise has been picked this
     // session. Read by byPattern's front-delt-isolation suppression below;
@@ -650,6 +654,15 @@ function selectForSession(
     const byPattern = (p: MovementPattern) => {
         const anchorPattern = COMPOUND_ANCHOR_PATTERNS.has(p);
         return usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => {
+            // Behavior demote (#7): sink rejected exercises within their pattern
+            // group, but ONLY on non-anchor patterns so the main compounds are
+            // never learned away. Empty demoteSet or an anchor pattern -> both 0,
+            // falls through, base ordering preserved (golden test).
+            if (!anchorPattern) {
+                const aDemote = demoteSet.has(a.id) ? 1 : 0;
+                const bDemote = demoteSet.has(b.id) ? 1 : 0;
+                if (aDemote !== bDemote) return aDemote - bDemote;
+            }
             if (preferredKey) {
                 const aMatch = a.equipment.includes(preferredKey) ? 0 : 1;
                 const bMatch = b.equipment.includes(preferredKey) ? 0 : 1;
@@ -879,6 +892,11 @@ export interface GenerationInput {
     /** Joint areas to avoid. Absent / empty is the no-op identity path (no
      *  exercise filtered, output byte-identical to the base generator). */
     restrictions?: RestrictionFlag[];
+    /** Behavior-learned bias (#7). `demote` exercise_ids sink within their
+     *  movement-pattern group, but ONLY on non-anchor patterns so the main
+     *  compounds are never learned away. Absent / empty demote is the no-op
+     *  identity path (output byte-identical to base). */
+    behavior?: BehaviorSignal;
     /** The program's start weekday (JS getDay, 0=Sun..6=Sat). Sessions are
      *  ordered from this day forward (wrapping the week) so session A lands on
      *  the first trained day on/after the start date. Absent = Monday (1), the
@@ -967,6 +985,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             anchors,
             usedSubstitutionClasses,
             input.loadingLean,
+            input.behavior ?? EMPTY_BEHAVIOR,
         );
 
         // Tier sort: present exercises in coach-standard order within each session.
@@ -1051,6 +1070,7 @@ export function buildRationale(
     style: ProgramStyle,
     priority?: PriorityMuscle | null,
     trainingStyle?: TrainingStyle,
+    demotedNames: string[] = [],
 ): string {
     const goal = GOAL_LABELS[answers.goal] ?? answers.goal;
     const base = `${style.name} for ${answers.experience} lifters · ${answers.days} days/week · ${goal} · ${sessionTime} sessions. ${style.bestFor}`;
@@ -1058,5 +1078,12 @@ export function buildRationale(
     const withPriority = priority
         ? `${base} Every session leans a bit harder into ${priority}, the muscle you want to grow.`
         : base;
-    return `${withPriority}${styleClause}`;
+    // Behavior-learned bias (#7): name the lifts the plan leans away from, so the
+    // adaptation is inspectable. Soft wording ("leans away from"), nothing is
+    // dropped outright.
+    const behaviorClause =
+        demotedNames.length > 0
+            ? ` Tuned to your history: leans away from ${demotedNames.join(', ')} (you keep swapping them out).`
+            : '';
+    return `${withPriority}${styleClause}${behaviorClause}`;
 }
