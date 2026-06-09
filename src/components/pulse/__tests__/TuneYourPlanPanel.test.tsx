@@ -12,7 +12,13 @@ const updateRoutineProgramWeeks = vi.fn().mockResolvedValue(undefined);
 const onDone = vi.fn();
 
 const baseState: TuneYourPlanState = {
-    routine: { id: 'routine-1', user_id: 'u1', name: 'Push Pull Legs', created_at: '2026-06-01T00:00:00.000Z', rationale: 'Built for your goals.' },
+    routine: {
+        id: 'routine-1',
+        user_id: 'u1',
+        name: 'Push Pull Legs',
+        created_at: '2026-06-01T00:00:00.000Z',
+        rationale: 'Built for your goals.',
+    },
     answers: {
         equipment: new Set(['barbell', 'dumbbells']),
         experience: 'intermediate',
@@ -27,7 +33,13 @@ const baseState: TuneYourPlanState = {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    generateRoutine.mockResolvedValue({ id: 'routine-2', user_id: 'u1', name: 'Upper Lower', created_at: '2026-06-08T00:00:00.000Z', rationale: 'Refit plan.' });
+    generateRoutine.mockResolvedValue({
+        id: 'routine-2',
+        user_id: 'u1',
+        name: 'Upper Lower',
+        created_at: '2026-06-08T00:00:00.000Z',
+        rationale: 'Refit plan.',
+    });
     (usePulse as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
         profile: {
             training_style: null,
@@ -39,8 +51,23 @@ beforeEach(() => {
         deleteRoutine,
         setProgramAnchor,
         updateRoutineProgramWeeks,
+        equipmentProfiles: [],
     });
 });
+
+// Reusable mock with saved equipment profiles for the Branch B picker tests.
+const gymProfile = { id: 'gym', name: 'Gym', equipment: ['barbell', 'dumbbells'], created_at: '2026-06-09T02:00:00Z' };
+const travelProfile = { id: 'travel', name: 'Travel', equipment: ['dumbbells'], created_at: '2026-06-09T01:00:00Z' };
+function mockWithProfiles() {
+    (usePulse as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+        profile: { training_style: null, variety_preference: null, loading_lean: null, movement_restrictions: null },
+        generateRoutine,
+        deleteRoutine,
+        setProgramAnchor,
+        updateRoutineProgramWeeks,
+        equipmentProfiles: [gymProfile, travelProfile],
+    });
+}
 
 describe('TuneYourPlanPanel', () => {
     it('shows the freshly generated routine name and rationale', () => {
@@ -153,5 +180,51 @@ describe('TuneYourPlanPanel', () => {
             undefined,
             ['knee'],
         );
+    });
+
+    it('shows no Equipment section when there are no saved profiles', () => {
+        render(<TuneYourPlanPanel {...baseState} onDone={onDone} />);
+        expect(screen.queryByText('Equipment')).not.toBeInTheDocument();
+    });
+
+    it('shows the equipment chip-pick when profiles exist, with the matching set active', () => {
+        mockWithProfiles();
+        render(<TuneYourPlanPanel {...baseState} onDone={onDone} />);
+        expect(screen.getByText('Equipment')).toBeInTheDocument();
+        // baseState.answers.equipment = {barbell, dumbbells} -> the Gym set matches.
+        expect(screen.getByRole('button', { name: /Gym/ })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: /Travel/ })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('picking a different equipment profile marks dirty and regenerates with that set', async () => {
+        mockWithProfiles();
+        render(<TuneYourPlanPanel {...baseState} onDone={onDone} />);
+        const apply = screen.getByRole('button', { name: 'Apply changes' });
+        expect(apply).toBeDisabled();
+
+        fireEvent.click(screen.getByRole('button', { name: /Travel/ }));
+        expect(apply).toBeEnabled();
+
+        fireEvent.click(apply);
+        await waitFor(() => expect(deleteRoutine).toHaveBeenCalledTimes(1));
+        expect(generateRoutine).toHaveBeenCalledWith(
+            expect.objectContaining({ equipment: new Set(['dumbbells']) }),
+            baseState.trainingDays,
+            baseState.sessionTime,
+            baseState.styleKey,
+            undefined,
+            'balanced',
+            'varied',
+            undefined,
+            [],
+        );
+    });
+
+    it('"Manage in Profile" calls onManageEquipment', () => {
+        mockWithProfiles();
+        const onManageEquipment = vi.fn();
+        render(<TuneYourPlanPanel {...baseState} onDone={onDone} onManageEquipment={onManageEquipment} />);
+        fireEvent.click(screen.getByRole('button', { name: /Manage in Profile/i }));
+        expect(onManageEquipment).toHaveBeenCalledTimes(1);
     });
 });

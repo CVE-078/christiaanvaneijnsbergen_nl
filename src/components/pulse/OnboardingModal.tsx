@@ -36,7 +36,20 @@ export default function OnboardingModal() {
         navigate('train');
     }
 
-    if (tuning) return <TuneYourPlanPanel {...tuning} onDone={finish} />;
+    if (tuning)
+        return (
+            <TuneYourPlanPanel
+                {...tuning}
+                onDone={finish}
+                onManageEquipment={async () => {
+                    // The routine is already created; treat "Manage in Profile" as
+                    // finishing onboarding and landing on the Profile screen.
+                    await completeOnboarding();
+                    dismissOnboarding();
+                    navigate('profile');
+                }}
+            />
+        );
 
     return (
         <RoutineSetupFlow

@@ -47,7 +47,18 @@ export default function GenerateRoutineButton({
             <button onClick={() => setOpen(true)} className={className ?? BTN_PRIMARY}>
                 {label}
             </button>
-            {open && tuning && <TuneYourPlanPanel {...tuning} onDone={finish} />}
+            {open && tuning && (
+                <TuneYourPlanPanel
+                    {...tuning}
+                    onDone={finish}
+                    onManageEquipment={() => {
+                        setOpen(false);
+                        setTuning(null);
+                        handingOffRef.current = false;
+                        navigate('profile');
+                    }}
+                />
+            )}
             {open && !tuning && (
                 <RoutineSetupFlow
                     mode="quick"
