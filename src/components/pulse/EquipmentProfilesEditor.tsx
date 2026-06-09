@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
-import { EQUIPMENT_LABELS } from '@/lib/pulse/constants';
+import { EQUIPMENT_LABELS, TRAVEL_DAY_PRESETS, MAX_TRAVEL_DAYS } from '@/lib/pulse/constants';
+import {
+    activeTravelProfile,
+    defaultProfile,
+    travelDaysLeft,
+    computeTravelExpiry,
+} from '@/lib/pulse/utils';
 import type { EquipmentKey, EquipmentProfile } from '@/lib/pulse/types';
 import EquipmentSelector from './EquipmentSelector';
 
@@ -23,6 +29,8 @@ export default function EquipmentProfilesEditor() {
         updateEquipmentProfile,
         deleteEquipmentProfile,
         setActiveEquipmentProfile,
+        startTravel,
+        endTravel,
     } = usePulse();
     const toast = useToast();
 
@@ -34,14 +42,43 @@ export default function EquipmentProfilesEditor() {
     // Local inline error so the message is visible in this component's DOM tree
     // without requiring a ToastContainer ancestor.
     const [inlineError, setInlineError] = useState<string | null>(null);
+    // Which row has its "Use until…" travel picker open (null = none).
+    const [travelFor, setTravelFor] = useState<string | null>(null);
 
     const activeId = profile.active_equipment_profile_id;
 
-    function openCreate() {
+    // Travel mode (#322): an active overlay is the effective set; `def` is the
+    // untouched revert target. Read-time, so derive on each render.
+    const tz = profile.timezone ?? 'UTC';
+    const now = new Date().toISOString();
+    const overlay = activeTravelProfile(equipmentProfiles, now, tz);
+    const def = defaultProfile(equipmentProfiles, activeId, now, tz);
+    const defName = def?.name ?? 'your default';
+    // date-input bounds: tomorrow through the max horizon (local calendar dates).
+    const isoDay = (offsetDays: number) => new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10);
+
+    function openCreate(initialName = '') {
         setEditing('new');
-        setName('');
+        setName(initialName);
         setEquipment(new Set());
         setInlineError(null);
+    }
+
+    async function handleStartTravel(id: string, expiresAt: string) {
+        setTravelFor(null);
+        try {
+            await startTravel(id, expiresAt);
+        } catch (e) {
+            toast.show(e instanceof Error ? e.message : 'Could not start travel mode');
+        }
+    }
+
+    async function handleEndTravel() {
+        try {
+            await endTravel();
+        } catch {
+            toast.show('Could not end travel mode');
+        }
     }
 
     function openEdit(p: EquipmentProfile) {
@@ -115,25 +152,50 @@ export default function EquipmentProfilesEditor() {
 
             <div className="flex flex-col gap-2">
                 {equipmentProfiles.map((p) => {
-                    const isActive = p.id === activeId;
+                    const isOverlay = overlay?.id === p.id;
+                    const isDefault = p.id === activeId;
+                    const daysLeft = isOverlay ? travelDaysLeft(p, now, tz) : 0;
+                    const canUseUntil = isOverlay || (!isDefault && equipmentProfiles.length >= 2);
                     return (
                         <div key={p.id} className="rounded-xl bg-pulse-surface-2 p-3">
                             <div className="flex items-center justify-between gap-3">
                                 <div className="flex min-w-0 flex-col">
                                     <span className="flex items-center gap-2 font-pulse-body text-sm text-pulse-text">
                                         {p.name}
-                                        {isActive && (
+                                        {isOverlay ? (
                                             <span className="rounded-full bg-pulse-accent/15 px-2 py-0.5 font-pulse text-[0.625rem] uppercase tracking-wide text-pulse-accent">
-                                                Active
+                                                ✈ In use · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left · reverts to{' '}
+                                                {defName}
                                             </span>
-                                        )}
+                                        ) : isDefault ? (
+                                            <span
+                                                className={`rounded-full px-2 py-0.5 font-pulse text-[0.625rem] uppercase tracking-wide ${overlay ? 'bg-pulse-surface text-pulse-dim' : 'bg-pulse-accent/15 text-pulse-accent'}`}>
+                                                {overlay ? 'Default' : 'Active'}
+                                            </span>
+                                        ) : null}
                                     </span>
                                     <span className="truncate font-pulse text-[0.75rem] text-pulse-dim">
                                         {summary(p.equipment)}
                                     </span>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2">
-                                    {!isActive && (
+                                    {isOverlay && (
+                                        <button
+                                            type="button"
+                                            onClick={handleEndTravel}
+                                            className="font-pulse text-[0.75rem] text-pulse-accent">
+                                            End travel
+                                        </button>
+                                    )}
+                                    {canUseUntil && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setTravelFor(travelFor === p.id ? null : p.id)}
+                                            className="font-pulse text-[0.75rem] text-pulse-dim">
+                                            Use until…
+                                        </button>
+                                    )}
+                                    {!isDefault && (
                                         <button
                                             type="button"
                                             onClick={() => activate(p.id)}
@@ -156,6 +218,47 @@ export default function EquipmentProfilesEditor() {
                                     </button>
                                 </div>
                             </div>
+
+                            {isOverlay && (
+                                <p className="mt-2 font-pulse text-[0.6875rem] text-pulse-muted">
+                                    Deleting this set ends travel mode.
+                                </p>
+                            )}
+
+                            {travelFor === p.id && (
+                                <div className="mt-3 rounded-lg bg-pulse-bg p-3">
+                                    <div className="mb-2 font-pulse text-[0.75rem] text-pulse-dim">
+                                        Back home in, then reverts to {defName}:
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {TRAVEL_DAY_PRESETS.map((d) => (
+                                            <button
+                                                key={d}
+                                                type="button"
+                                                onClick={() =>
+                                                    handleStartTravel(p.id, computeTravelExpiry(now, tz, d))
+                                                }
+                                                className="rounded-full bg-pulse-surface-2 px-3 py-1 font-pulse text-[0.75rem] text-pulse-text ring-1 ring-pulse-border">
+                                                {d}d
+                                            </button>
+                                        ))}
+                                        <input
+                                            type="date"
+                                            aria-label="Return date"
+                                            min={isoDay(1)}
+                                            max={isoDay(MAX_TRAVEL_DAYS)}
+                                            onChange={(e) =>
+                                                e.target.value &&
+                                                handleStartTravel(
+                                                    p.id,
+                                                    new Date(`${e.target.value}T12:00:00Z`).toISOString(),
+                                                )
+                                            }
+                                            className="rounded-lg bg-pulse-surface-2 px-2 py-1 font-pulse text-[0.75rem] text-pulse-text ring-1 ring-pulse-border"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {editing === p.id && (
                                 <EditForm
@@ -191,12 +294,25 @@ export default function EquipmentProfilesEditor() {
                     />
                 </div>
             ) : (
-                <button
-                    type="button"
-                    onClick={openCreate}
-                    className="mt-2 w-full rounded-xl border border-dashed border-pulse-border p-3 font-pulse-body text-sm text-pulse-dim">
-                    New profile
-                </button>
+                <>
+                    {/* Travel mode needs a default plus a distinct travel set; with
+                        only one profile there is nothing to switch back to, so guide
+                        the user to make one (pre-named "Travel"). */}
+                    {equipmentProfiles.length < 2 && (
+                        <button
+                            type="button"
+                            onClick={() => openCreate('Travel')}
+                            className="mt-2 w-full rounded-xl border border-dashed border-pulse-border p-3 font-pulse-body text-sm text-pulse-dim">
+                            Going away? Create a travel set
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => openCreate()}
+                        className="mt-2 w-full rounded-xl border border-dashed border-pulse-border p-3 font-pulse-body text-sm text-pulse-dim">
+                        New profile
+                    </button>
+                </>
             )}
         </div>
     );

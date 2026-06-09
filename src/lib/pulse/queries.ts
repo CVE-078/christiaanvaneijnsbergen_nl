@@ -46,7 +46,7 @@ const SESSIONS_SELECT =
 const ADJUSTMENTS_SELECT = 'id, routine_id, kind, effective_week, created_at, payload';
 const PAUSES_SELECT = 'id, routine_id, paused_at, resumed_at, reason, created_at';
 const DECISION_EVENTS_SELECT = 'id, routine_id, type, trigger, affected_area, week, magnitude, confidence, created_at';
-const EQUIPMENT_PROFILES_SELECT = 'id, name, equipment, created_at';
+const EQUIPMENT_PROFILES_SELECT = 'id, name, equipment, created_at, expires_at';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at, rationale, program_weeks, program_anchor,
             exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound ) ),
@@ -125,6 +125,7 @@ export async function loadEquipmentProfiles(
         name: r.name,
         equipment: (r.equipment ?? []) as EquipmentKey[],
         created_at: r.created_at,
+        expires_at: r.expires_at ?? null,
     }));
 }
 

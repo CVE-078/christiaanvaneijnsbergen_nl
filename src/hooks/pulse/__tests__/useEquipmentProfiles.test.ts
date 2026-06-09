@@ -22,7 +22,7 @@ import { useEquipmentProfiles } from '../useEquipmentProfiles';
 import type { EquipmentProfile } from '@/lib/pulse/types';
 
 const PROFILE_KEY = '/api/pulse/profile';
-const home: EquipmentProfile = { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', equipment: ['dumbbells'], created_at: '2026-06-09T00:00:00Z' };
+const home: EquipmentProfile = { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', equipment: ['dumbbells'], created_at: '2026-06-09T00:00:00Z', expires_at: null };
 const mutate = vi.fn();
 
 beforeEach(() => {

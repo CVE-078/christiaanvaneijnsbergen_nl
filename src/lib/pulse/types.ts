@@ -84,6 +84,9 @@ export interface EquipmentProfile {
     name: string;
     equipment: EquipmentKey[];
     created_at: string;
+    // Travel mode (#322): a future expires_at marks this as the active travel
+    // overlay (auto-reverts to the default at read time). null for normal sets.
+    expires_at: string | null;
 }
 
 export interface BodyMeasurement {

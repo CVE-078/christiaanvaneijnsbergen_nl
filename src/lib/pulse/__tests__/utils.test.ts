@@ -1707,6 +1707,7 @@ const prof = (id: string, equipment: EquipmentProfile['equipment'], created_at: 
     name: id,
     equipment,
     created_at,
+    expires_at: null,
 });
 // The loader returns created_at desc, so the most-recent is first.
 const homeProfile = prof('home', ['dumbbells', 'bench'], '2026-06-09T02:00:00Z');

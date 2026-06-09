@@ -259,15 +259,27 @@ describe('loadEquipmentProfiles', () => {
     it('selects the canonical columns scoped to the user and maps rows', async () => {
         const { client, calls } = makeClient({
             data: [
-                { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', equipment: ['dumbbells'], created_at: '2026-06-09T00:00:00Z' },
+                {
+                    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                    name: 'Home',
+                    equipment: ['dumbbells'],
+                    created_at: '2026-06-09T00:00:00Z',
+                    expires_at: null,
+                },
             ],
             error: null,
         });
         const profiles = await loadEquipmentProfiles(client, UID);
         expect(calls.table).toBe('equipment_profiles');
-        expect(calls.select).toBe('id, name, equipment, created_at');
+        expect(calls.select).toBe('id, name, equipment, created_at, expires_at');
         expect(profiles).toEqual([
-            { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', equipment: ['dumbbells'], created_at: '2026-06-09T00:00:00Z' },
+            {
+                id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                name: 'Home',
+                equipment: ['dumbbells'],
+                created_at: '2026-06-09T00:00:00Z',
+                expires_at: null,
+            },
         ]);
     });
 

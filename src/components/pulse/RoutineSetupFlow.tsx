@@ -279,6 +279,10 @@ interface Props {
      *  (and profiles exist), the step shows the "Save as profile" create path. It
      *  only ever creates; overwriting is a Profile-manager action. */
     onCreateEquipmentProfile?: (name: string, equipment: EquipmentKey[]) => Promise<EquipmentProfile>;
+    /** User IANA timezone. When provided, the equipment pre-fill becomes travel-aware
+     *  (#322): an active travel overlay seeds the step. Omitted (default) skips overlay
+     *  resolution, so template cloning and existing tests stay byte-identical. */
+    timezone?: string;
 }
 
 export default function RoutineSetupFlow({
@@ -296,6 +300,7 @@ export default function RoutineSetupFlow({
     equipmentProfiles = [],
     activeEquipmentProfileId = null,
     onCreateEquipmentProfile,
+    timezone,
 }: Props) {
     const quick = mode === 'quick';
     // Quick mode owns the trim outright, regardless of what the consumer passes:
@@ -319,7 +324,16 @@ export default function RoutineSetupFlow({
     // change an in-progress selection. v1 keeps the step visible but pre-filled;
     // disappearing the step entirely for returning users is the v2 upgrade.
     const [equipment, setEquipment] = useState<Set<EquipmentKey>>(
-        () => new Set(initial?.equipment ?? resolveEquipmentPrefill(equipmentProfiles, activeEquipmentProfileId)),
+        () =>
+            new Set(
+                initial?.equipment ??
+                    resolveEquipmentPrefill(
+                        equipmentProfiles,
+                        activeEquipmentProfileId,
+                        timezone ? new Date().toISOString() : undefined,
+                        timezone,
+                    ),
+            ),
     );
     // Save-as-profile inline form (Branch B). null name + closed by default.
     const [savingProfile, setSavingProfile] = useState(false);

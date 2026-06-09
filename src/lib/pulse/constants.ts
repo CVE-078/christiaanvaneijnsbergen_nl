@@ -133,3 +133,9 @@ export function tabKeyLabel(key: TabKey): string {
     }
     return WORKOUT_TYPE_LABELS[key as WorkoutType];
 }
+
+// Travel mode (#322).
+export const MAX_TRAVEL_DAYS = 90;
+export const TRAVEL_DAY_PRESETS = [3, 7, 14] as const;
+// How long the post-expiry "regenerate your home routine?" nudge lingers.
+export const ENDED_NUDGE_DAYS = 14;

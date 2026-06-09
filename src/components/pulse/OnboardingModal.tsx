@@ -58,6 +58,7 @@ export default function OnboardingModal() {
             equipmentProfiles={equipmentProfiles}
             activeEquipmentProfileId={profile.active_equipment_profile_id}
             onCreateEquipmentProfile={createEquipmentProfile}
+            timezone={profile.timezone}
             intro="Pulse adapts as you train: miss a week, hit a plateau, or train somewhere new, and your plan adjusts so you keep moving forward."
             onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks }) => {
                 // Pin the modal open through generation: creating the first routine

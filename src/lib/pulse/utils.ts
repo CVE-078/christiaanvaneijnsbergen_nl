@@ -1,4 +1,5 @@
 import { buildProgram } from './data';
+import { dayIndex } from './dates';
 import { secondarySets, PATTERN_MUSCLE_MAP } from './muscleMap';
 import {
     BARBELL_KG,
@@ -9,6 +10,7 @@ import {
     DELOAD_FACTOR,
     DELOAD_REBUILD_WEEKS,
     DELOAD_DROP_THRESHOLD,
+    ENDED_NUDGE_DAYS,
 } from './constants';
 import type {
     Phase,
@@ -93,17 +95,107 @@ export function matchingProfileId(profiles: EquipmentProfile[], equipment: Itera
     return profiles.find((p) => equipmentKey(p.equipment) === key)?.id ?? null;
 }
 
-// Which saved set pre-fills the generation equipment step. Resolution order
-// (spec): active profile, else the most-recently-created (profiles arrive
-// created_at desc from the loader, so profiles[0]), else empty (no saved
-// profiles = today's behavior). Pure; the snapshot-on-open guarantee lives at
-// the call site (a useState initializer).
-export function resolveEquipmentPrefill(profiles: EquipmentProfile[], activeId: string | null): EquipmentKey[] {
+// Which saved set pre-fills the generation equipment step. Travel-aware: an
+// active travel overlay wins; otherwise the legacy rule (active profile, else
+// the most-recently-created since the loader returns created_at desc, so
+// profiles[0], else empty). When nowIso/tz are omitted (legacy 2-arg callers
+// and tests) overlay resolution is skipped, so the result is byte-identical to
+// before. REGRESSION GUARD: an active overlay must win here even if generation
+// later resolves equipment inline (see travel.test.ts). Pure; the
+// snapshot-on-open guarantee lives at the call site (a useState initializer).
+export function resolveEquipmentPrefill(
+    profiles: EquipmentProfile[],
+    activeId: string | null,
+    nowIso?: string,
+    tz?: string,
+): EquipmentKey[] {
+    if (nowIso && tz) {
+        const overlay = activeTravelProfile(profiles, nowIso, tz);
+        if (overlay) return overlay.equipment;
+    }
     if (activeId) {
         const active = profiles.find((p) => p.id === activeId);
         if (active) return active.equipment;
     }
     return profiles[0]?.equipment ?? [];
+}
+
+// ── Travel mode (#322): a temporary equipment overlay that auto-reverts ──────
+// Read-time expiry, no background job. A profile is "in travel" while its
+// expires_at is a FUTURE calendar day in the user's tz; equality (the return
+// day itself) is inactive, so you are back on your default gear that day.
+
+export function isTravelActive(p: EquipmentProfile, nowIso: string, tz: string): boolean {
+    return p.expires_at != null && dayIndex(nowIso, tz) < dayIndex(p.expires_at, tz);
+}
+
+// The active overlay. The DB partial unique index allows only one; if two ever
+// coexist, prefer the latest expiry (most remaining) deterministically.
+export function activeTravelProfile(
+    profiles: EquipmentProfile[],
+    nowIso: string,
+    tz: string,
+): EquipmentProfile | null {
+    return (
+        profiles
+            .filter((p) => isTravelActive(p, nowIso, tz))
+            // Descending by expiry (ISO strings sort lexicographically), so the
+            // one with the most time remaining wins.
+            .sort((a, b) => b.expires_at!.localeCompare(a.expires_at!))[0] ?? null
+    );
+}
+
+// The revert target: the active/default profile when it is not itself the
+// overlay, else the most-recent non-overlay (loader order = created_at desc, so
+// the first non-overlay), else null.
+export function defaultProfile(
+    profiles: EquipmentProfile[],
+    activeId: string | null,
+    nowIso: string,
+    tz: string,
+): EquipmentProfile | null {
+    if (activeId) {
+        const active = profiles.find((p) => p.id === activeId);
+        if (active && !isTravelActive(active, nowIso, tz)) return active;
+    }
+    return profiles.find((p) => !isTravelActive(p, nowIso, tz)) ?? null;
+}
+
+export function travelDaysLeft(p: EquipmentProfile, nowIso: string, tz: string): number {
+    return p.expires_at == null ? 0 : dayIndex(p.expires_at, tz) - dayIndex(nowIso, tz);
+}
+
+// The local calendar date (YYYY-MM-DD in tz) the overlay reverts on.
+export function travelReturnDate(p: EquipmentProfile, tz: string): string {
+    if (p.expires_at == null) return '';
+    const fmt = (zone: string) =>
+        new Intl.DateTimeFormat('en-CA', {
+            timeZone: zone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).format(new Date(p.expires_at!));
+    try {
+        return fmt(tz);
+    } catch {
+        return fmt('UTC');
+    }
+}
+
+// True for a recently-expired overlay (drives the post-expiry "regenerate?"
+// nudge): 0 means it expired today, the upper bound hides a stale nudge.
+export function travelEndedRecently(p: EquipmentProfile, nowIso: string, tz: string): boolean {
+    if (p.expires_at == null) return false;
+    const past = dayIndex(nowIso, tz) - dayIndex(p.expires_at, tz);
+    return past >= 0 && past < ENDED_NUDGE_DAYS;
+}
+
+// Noon-UTC of (today + days) in tz. Noon is offset/DST-safe (it maps to the
+// same calendar date for the user's tz), so the stored instant's tz calendar
+// day is exactly the intended return day. Used by both the presets and a custom
+// date (a custom date passes its own day count).
+export function computeTravelExpiry(nowIso: string, tz: string, days: number): string {
+    return new Date((dayIndex(nowIso, tz) + days) * 86400000 + 12 * 3600000).toISOString();
 }
 
 // Strip the optional `:variant` suffix off a TabKey to get its base workout type.

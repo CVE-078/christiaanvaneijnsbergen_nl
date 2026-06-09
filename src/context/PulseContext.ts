@@ -92,6 +92,9 @@ export interface PulseContextValue {
     updateEquipmentProfile: (id: string, name: string, equipment: EquipmentKey[]) => Promise<void>;
     deleteEquipmentProfile: (id: string) => Promise<void>;
     setActiveEquipmentProfile: (id: string | null) => Promise<void>;
+    // Travel mode (#322): a temporary equipment overlay that auto-reverts.
+    startTravel: (id: string, expiresAt: string) => Promise<void>;
+    endTravel: () => Promise<void>;
 
     // UI state
     navigate: (view: View) => void;
