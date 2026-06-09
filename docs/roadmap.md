@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-09)
 
-**In progress:** (none).
+**In progress:** Program pause / injury mode (Tier 3 #14) on `feature/program-pause`.
 
 **In review (on a branch, not yet merged):** Equipment profiles (#6) **Branch B** (generation wiring) on `feature/equipment-profiles-generation`. Branch A (persistence + Profile manager) merged as #99.
 
