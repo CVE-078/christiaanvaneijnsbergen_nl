@@ -51,6 +51,10 @@ export interface Profile {
     unit: Unit;
     length_unit: LengthUnit;
     active_routine_id: string | null;
+    // Active equipment-profile pointer (equipment_profiles.id); null = none, which
+    // is the pre-equipment-profiles behavior (generation equipment step starts
+    // empty). See the equipment_profiles table.
+    active_equipment_profile_id: string | null;
     onboarding_completed: boolean;
     goal_weight_kg: number | null;
     gender: Gender | null;
@@ -69,6 +73,17 @@ export interface Profile {
     // Chosen accent preset key (see ACCENT_PRESETS in constants.ts); null/absent
     // = the default coral. Applied by overriding the pulse-accent CSS vars.
     accent_color?: string | null;
+}
+
+// A named, reusable equipment set (Home / Gym / Travel). Equipment is a subset of
+// EQUIPMENT_KEYS. Persisted in the equipment_profiles table; seeds generation's
+// equipment picker (Branch B). created_at is also the recency tiebreak for the
+// pre-fill resolution rule.
+export interface EquipmentProfile {
+    id: string;
+    name: string;
+    equipment: EquipmentKey[];
+    created_at: string;
 }
 
 export interface BodyMeasurement {

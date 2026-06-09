@@ -12,6 +12,7 @@ export async function GET() {
         unit: 'kg',
         length_unit: 'cm',
         active_routine_id: null,
+        active_equipment_profile_id: null,
         onboarding_completed: false,
         goal_weight_kg: null,
         gender: null,

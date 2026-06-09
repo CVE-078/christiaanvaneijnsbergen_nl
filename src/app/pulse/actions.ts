@@ -11,3 +11,4 @@ export * from './actions/session';
 export * from './actions/swaps';
 export * from './actions/adjustments';
 export * from './actions/decisions';
+export * from './actions/equipment';

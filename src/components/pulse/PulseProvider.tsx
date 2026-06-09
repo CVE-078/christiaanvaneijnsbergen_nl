@@ -5,6 +5,7 @@ import { PulseContext } from '@/context/PulseContext';
 import { useWorkoutLogs } from '@/hooks/pulse/useWorkoutLogs';
 import { useProfile } from '@/hooks/pulse/useProfile';
 import { useRoutines } from '@/hooks/pulse/useRoutines';
+import { useEquipmentProfiles } from '@/hooks/pulse/useEquipmentProfiles';
 import { useUIState } from '@/hooks/pulse/useUIState';
 import { useRestTimer } from '@/hooks/pulse/useRestTimer';
 import { useNotes } from '@/hooks/pulse/useNotes';
@@ -130,6 +131,13 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     const { timerTrigger, timerDuration, fireTrigger } = useRestTimer();
     const { notes, saveNote, deleteNote, loading: loadingNotes, error: notesError } = useNotes(userId);
     const { swaps, setSwap, clearSwap } = useSwaps();
+    const {
+        equipmentProfiles,
+        createEquipmentProfile,
+        updateEquipmentProfile,
+        deleteEquipmentProfile,
+        setActiveEquipmentProfile,
+    } = useEquipmentProfiles();
     const { hiddenExerciseIds, toggleHideExercise } = usePreferences();
     const { sessions, refreshSessions, loading: loadingSessions, error: sessionsError } = useSessions();
     const {
@@ -565,6 +573,22 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     );
     const notesValue = useMemo(() => ({ notes, saveNote, deleteNote }), [notes, saveNote, deleteNote]);
     const swapsValue = useMemo(() => ({ swaps, setSwap, clearSwap }), [swaps, setSwap, clearSwap]);
+    const equipmentValue = useMemo(
+        () => ({
+            equipmentProfiles,
+            createEquipmentProfile,
+            updateEquipmentProfile,
+            deleteEquipmentProfile,
+            setActiveEquipmentProfile,
+        }),
+        [
+            equipmentProfiles,
+            createEquipmentProfile,
+            updateEquipmentProfile,
+            deleteEquipmentProfile,
+            setActiveEquipmentProfile,
+        ],
+    );
     const preferencesValue = useMemo(
         () => ({ hiddenExerciseIds, toggleHideExercise }),
         [hiddenExerciseIds, toggleHideExercise],
@@ -605,6 +629,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             ...routinesValue,
             ...notesValue,
             ...swapsValue,
+            ...equipmentValue,
             ...preferencesValue,
             ...regenValue,
             ...loadingValue,
@@ -618,6 +643,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             routinesValue,
             notesValue,
             swapsValue,
+            equipmentValue,
             preferencesValue,
             regenValue,
             loadingValue,

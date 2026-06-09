@@ -6,8 +6,14 @@ import { useToast } from '@/lib/pulse/toast';
 import type { BodyweightEntry, Gender, LengthUnit, PriorityMuscle } from '@/lib/pulse/types';
 import { genderDefault } from '@/lib/pulse/generation';
 import { ACCENT_PRESETS, DEFAULT_ACCENT_KEY } from '@/lib/pulse/constants';
-import { TRAINING_STYLE_OPTIONS, VARIETY_OPTIONS, LOADING_LEAN_OPTIONS, RESTRICTION_OPTIONS } from '@/lib/pulse/generationPreferences';
+import {
+    TRAINING_STYLE_OPTIONS,
+    VARIETY_OPTIONS,
+    LOADING_LEAN_OPTIONS,
+    RESTRICTION_OPTIONS,
+} from '@/lib/pulse/generationPreferences';
 import SectionLabel from '../SectionLabel';
+import EquipmentProfilesEditor from '../EquipmentProfilesEditor';
 import PageTitle from '../PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import { INPUT, BTN_PRIMARY } from '../ui';
@@ -360,7 +366,9 @@ export default function ProfileView() {
                                                 });
                                             }}
                                             className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                                active ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent' : 'bg-pulse-surface-2 ring-0'
+                                                active
+                                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                                    : 'bg-pulse-surface-2 ring-0'
                                             } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
                                             <div className="flex flex-col">
                                                 <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
@@ -391,7 +399,9 @@ export default function ProfileView() {
                                                 });
                                             }}
                                             className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                                active ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent' : 'bg-pulse-surface-2 ring-0'
+                                                active
+                                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                                    : 'bg-pulse-surface-2 ring-0'
                                             } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
                                             <div className="flex flex-col">
                                                 <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
@@ -418,11 +428,15 @@ export default function ProfileView() {
                                         });
                                     }}
                                     className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                        profile.loading_lean == null ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent' : 'bg-pulse-surface-2 ring-0'
+                                        profile.loading_lean == null
+                                            ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                            : 'bg-pulse-surface-2 ring-0'
                                     } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
                                     <div className="flex flex-col">
                                         <span className="font-pulse-body text-sm text-pulse-text">No preference</span>
-                                        <span className="font-pulse text-[0.75rem] text-pulse-dim">Pulse chooses freely from what you own.</span>
+                                        <span className="font-pulse text-[0.75rem] text-pulse-dim">
+                                            Pulse chooses freely from what you own.
+                                        </span>
                                     </div>
                                 </button>
                                 {LOADING_LEAN_OPTIONS.map(({ key, label, desc }) => {
@@ -440,7 +454,9 @@ export default function ProfileView() {
                                                 });
                                             }}
                                             className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                                active ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent' : 'bg-pulse-surface-2 ring-0'
+                                                active
+                                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                                    : 'bg-pulse-surface-2 ring-0'
                                             } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
                                             <div className="flex flex-col">
                                                 <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
@@ -450,6 +466,12 @@ export default function ProfileView() {
                                     );
                                 })}
                             </div>
+                        </div>
+
+                        {/* Equipment profiles */}
+                        <div>
+                            <SectionLabel className="mb-2">Equipment profiles</SectionLabel>
+                            <EquipmentProfilesEditor />
                         </div>
 
                         {/* Movement restrictions */}
@@ -479,7 +501,9 @@ export default function ProfileView() {
                                                 });
                                             }}
                                             className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                                active ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent' : 'bg-pulse-surface-2 ring-0'
+                                                active
+                                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                                    : 'bg-pulse-surface-2 ring-0'
                                             } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
                                             <div
                                                 className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 ${active ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
