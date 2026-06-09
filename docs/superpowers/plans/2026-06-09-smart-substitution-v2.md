@@ -92,6 +92,7 @@ git commit -m "feat(pulse): SwapReason + enrich DbExercise with substitution_cla
 
 ```ts
 import { rankSubstitutes } from '@/lib/pulse/utils';
+import type { DbExercise } from '@/lib/pulse/types'; // utils.test.ts does not import DbExercise yet, add it
 // ... in the new describe:
 const ex = (id: string, over: Partial<DbExercise> = {}): DbExercise => ({
     id, name: id, category: 'chest', default_sets: '3', default_reps: '8', user_id: null,
@@ -272,7 +273,7 @@ git commit -m "feat(pulse): thread swap reason through action/hook/context (#8)"
 
 **Files:** Modify `src/components/pulse/ExerciseSwapPicker.tsx`, callers `src/components/pulse/views/LogView.tsx` (~313-337) + `src/components/pulse/views/ProgramView.tsx` (~383); Test `src/components/pulse/__tests__/ExerciseSwapPicker.test.tsx`
 
-- [ ] **Step 1: Write failing component tests.** Cover: (a) with `captureReason`, the three chips render and toggle; (b) choosing a constraint reason re-ranks (the suggested top changes); (c) `onSelect` is called with `(exerciseId, reason)`; (d) WITHOUT `captureReason`, no chips render; (e) the existing onSelect/revert/empty/search tests still pass with the new `original` prop. Build `original` as a full `DbExercise`. Mock nothing beyond props (the picker is presentational). Follow the existing `ExerciseSwapPicker.test.tsx` setup (the `mk(id, name)` helper, extend it with `substitution_class`/`equipment`).
+- [ ] **Step 1: Write failing component tests + repair the existing ones.** The prop change `originalName: string` -> `original: DbExercise` breaks the existing test, which passes `originalName` in THREE places: the `setup` helper default (~line 15) and two inline `rerender(...)` renders (~lines 37, 42). **Rewrite all three to pass `original={mk('orig', 'Barbell Bench')}`** (the existing `mk(id, name)` already returns a `DbExercise`). Then add new cases: (a) with `captureReason`, the three chips render and toggle; (b) choosing a constraint reason re-ranks (the suggested top changes); (c) `onSelect` is called with `(exerciseId, reason)`; (d) WITHOUT `captureReason`, no chips render. Extend `mk` with optional `substitution_class`/`equipment`/`contraindications` for the re-rank case. The picker is presentational, mock nothing beyond props.
 
 - [ ] **Step 2: Run, verify fail.**
 
@@ -379,7 +380,7 @@ Expected: all green (was 1014; +~12 new). Fix straggler fixtures inline (any ful
 
 - [ ] **Step 2: em-dash sweep**
 
-Run: `git diff main...HEAD --name-only | grep -E '\.(ts|tsx|md|sql)$' | xargs grep -l "[em-dash]"` (none in newly authored prose/code).
+Run: `git diff main...HEAD --name-only | grep -E '\.(ts|tsx|md|sql)$' | xargs grep -l "—"` (the actual U+2014 glyph; expect none in newly authored prose/code).
 
 ---
 
