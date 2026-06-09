@@ -16,6 +16,7 @@ import type {
     ScheduleEntry,
     WorkoutSession,
     ProgramAdjustment,
+    ProgramPause,
     ProgramPosition,
     WeekAdherence,
     RegenSuggestion,
@@ -66,6 +67,87 @@ function countWeekdayInRange(start: number, end: number, wd: number): number {
         if ((startWd + i) % 7 === wd) extra++;
     }
     return Math.floor(total / 7) + extra;
+}
+
+// ── Pause spans ─────────────────────────────────────────────────────────────
+// A pause is a date span, not a per-week ease. While a pause is active the
+// program calendar is frozen (no behind/lapsed penalty, no missed-week hit), but
+// detraining time keeps ticking, so a long pause still hands off to ramp-back on
+// resume (daysSinceLastSession is left as the real gap, never pause-adjusted).
+
+// The active (unresolved) pause for this set, or null. At most one by DB design.
+export function activePause(pauses: ProgramPause[]): ProgramPause | null {
+    return pauses.find((p) => p.resumed_at === null) ?? null;
+}
+
+// A pause as an inclusive day-number interval clipped to "not after today". An
+// open pause runs to today; a resumed pause ends the day before resume (the
+// resume day is active again). Returns null if it hasn't started by `now`.
+function pauseInterval(p: ProgramPause, tz: string, now: string): [number, number] | null {
+    const startDay = dayIndex(p.paused_at, tz);
+    const today = dayIndex(now, tz);
+    if (startDay > today) return null;
+    const endDay = p.resumed_at === null ? today : dayIndex(p.resumed_at, tz) - 1;
+    return [startDay, Math.min(endDay, today)];
+}
+
+// Union of all pause intervals clipped to [rangeStart, rangeEnd], as disjoint,
+// sorted [a,b] day-number intervals. Merging avoids double-counting overlaps.
+function pausedIntervals(
+    pauses: ProgramPause[],
+    rangeStart: number,
+    rangeEnd: number,
+    tz: string,
+    now: string,
+): [number, number][] {
+    const raw: [number, number][] = [];
+    for (const p of pauses) {
+        const iv = pauseInterval(p, tz, now);
+        if (!iv) continue;
+        const a = Math.max(iv[0], rangeStart);
+        const b = Math.min(iv[1], rangeEnd);
+        if (a <= b) raw.push([a, b]);
+    }
+    raw.sort((x, y) => x[0] - y[0]);
+    const merged: [number, number][] = [];
+    for (const [a, b] of raw) {
+        const last = merged[merged.length - 1];
+        if (last && a <= last[1] + 1) last[1] = Math.max(last[1], b);
+        else merged.push([a, b]);
+    }
+    return merged;
+}
+
+// Count of distinct paused day-numbers in [rangeStart, rangeEnd].
+function pausedDayCount(pauses: ProgramPause[], rangeStart: number, rangeEnd: number, tz: string, now: string): number {
+    return pausedIntervals(pauses, rangeStart, rangeEnd, tz, now).reduce((sum, [a, b]) => sum + (b - a + 1), 0);
+}
+
+// Scheduled sessions whose date fell within a paused span in [rangeStart, rangeEnd].
+function pausedExpectedSessions(
+    schedule: ScheduleEntry[],
+    pauses: ProgramPause[],
+    rangeStart: number,
+    rangeEnd: number,
+    tz: string,
+    now: string,
+): number {
+    const ivs = pausedIntervals(pauses, rangeStart, rangeEnd, tz, now);
+    let total = 0;
+    for (const [a, b] of ivs) {
+        for (const e of schedule) total += countWeekdayInRange(a, b, e.day_of_week);
+    }
+    return total;
+}
+
+// Set of paused day-numbers in [rangeStart, rangeEnd] (range is small, e.g. a
+// single week window, so materializing the set is cheap).
+function pausedDaySet(pauses: ProgramPause[], rangeStart: number, rangeEnd: number, tz: string, now: string): Set<number> {
+    const set = new Set<number>();
+    for (const [a, b] of pausedIntervals(pauses, rangeStart, rangeEnd, tz, now)) {
+        for (let d = a; d <= b; d++) set.add(d);
+    }
+    return set;
 }
 
 // ── Session → program-week attribution (ordinal) ────────────────────────────
@@ -175,10 +257,11 @@ export function computeProgramPosition(args: {
     schedule: ScheduleEntry[];
     sessions: WorkoutSession[]; // scoped to the routine
     adjustments: ProgramAdjustment[];
+    pauses: ProgramPause[]; // scoped to the routine
     tz: string;
     now: string;
 }): ProgramPosition {
-    const { anchor, schedule, sessions, adjustments, tz, now } = args;
+    const { anchor, schedule, sessions, adjustments, pauses, tz, now } = args;
     const completed = sessions.filter((s) => s.completed_at);
     const { weekInteger, completedCount, nextEntry } = attributeSessions(schedule, completed);
     const { progressionIndex, isRampBack } = progressionInfo(weekInteger, adjustments);
@@ -186,23 +269,36 @@ export function computeProgramPosition(args: {
     const today = dayIndex(now, tz);
     const start = anchor ? dayIndex(anchor, tz) : today;
     const daysElapsed = Math.max(0, today - start);
-    const calendarWeek = Math.floor(daysElapsed / 7) + 1;
+    // Program time freezes during a pause: subtract paused days from elapsed so
+    // calendarWeek reflects active training time, not wall-clock time off.
+    const pausedElapsed = pausedDayCount(pauses, start, today, tz, now);
+    const calendarWeek = Math.floor(Math.max(0, daysElapsed - pausedElapsed) / 7) + 1;
 
     let lastIdx: number | null = null;
     for (const s of completed) {
         const di = dayIndex(s.completed_at as string, tz);
         if (lastIdx === null || di > lastIdx) lastIdx = di;
     }
+    // Real gap, deliberately NOT pause-adjusted: a long pause still detrains you,
+    // so resuming from one hands off to the existing ramp-back nudge.
     const daysSinceLastSession = lastIdx === null ? null : Math.max(0, today - lastIdx);
 
     // Count only days strictly before today as expected: a session due today is
     // not "overdue" until its day has fully passed (matches computeWeekAdherence's
     // strict `< today`), so a mid-week start never reads as "behind" on day one.
+    // Sessions that fell within a paused span are excluded, so a deliberate break
+    // leaves no permanent behind-debt once resumed.
     const expectedSessions = schedule.reduce((sum, e) => sum + countWeekdayInRange(start, today - 1, e.day_of_week), 0);
-    const behindBy = Math.max(0, expectedSessions - completedCount);
+    const pausedExpected = pausedExpectedSessions(schedule, pauses, start, today - 1, tz, now);
+    const behindBy = Math.max(0, expectedSessions - pausedExpected - completedCount);
+
+    const active = activePause(pauses);
+    const isPaused = active !== null;
+    const pausedDays = active ? Math.max(0, today - dayIndex(active.paused_at, tz)) : null;
 
     let status: AdherenceStatus;
-    if (daysSinceLastSession !== null && daysSinceLastSession >= GAP_DAYS) status = 'lapsed';
+    if (isPaused) status = 'paused';
+    else if (daysSinceLastSession !== null && daysSinceLastSession >= GAP_DAYS) status = 'lapsed';
     else if (behindBy > 0) status = 'behind';
     else status = 'on_track';
 
@@ -215,6 +311,8 @@ export function computeProgramPosition(args: {
         behindBy,
         daysSinceLastSession,
         status,
+        isPaused,
+        pausedDays,
         nextEntry,
     };
 }
@@ -225,11 +323,14 @@ export function computeWeekAdherence(args: {
     schedule: ScheduleEntry[];
     sessions: WorkoutSession[];
     anchor: string | null | undefined;
+    pauses: ProgramPause[];
     tz: string;
     now: string;
 }): WeekAdherence {
-    const { schedule, sessions, anchor, tz, now } = args;
+    const { schedule, sessions, anchor, pauses, tz, now } = args;
     if (schedule.length === 0 || !anchor) return { missed: [], upcoming: [], done: [] };
+    // Nothing is missed while the program is paused.
+    if (activePause(pauses) !== null) return { missed: [], upcoming: [], done: [] };
 
     const today = dayIndex(now, tz);
     const start = dayIndex(anchor, tz);
@@ -237,6 +338,9 @@ export function computeWeekAdherence(args: {
     const winStart = start + (calendarWeek - 1) * 7;
     const winEnd = winStart + 6;
     const winStartWd = weekdayOf(winStart);
+    // Days the program was paused within this week (e.g. a pause that ended
+    // mid-week): a scheduled day that fell in one is not "missed".
+    const pausedInWindow = pausedDaySet(pauses, winStart, winEnd, tz, now);
 
     const remaining = sessions.filter((s) => {
         if (!s.completed_at) return false;
@@ -264,6 +368,8 @@ export function computeWeekAdherence(args: {
         if (i !== -1) {
             remaining.splice(i, 1);
             done.push(e);
+        } else if (pausedInWindow.has(scheduledDate)) {
+            continue; // a day the program was paused is not "missed"
         } else if (scheduledDate < today) {
             // Only "missed" once the scheduled day has fully passed; a session
             // due today but not yet logged stays "upcoming".
@@ -283,6 +389,7 @@ export function computeRegenSuggestion(
     adjustments: ProgramAdjustment[],
 ): RegenSuggestion {
     const { status, weekInteger, daysSinceLastSession } = position;
+    if (position.isPaused) return null; // no nudges while paused
     if (status === 'lapsed') {
         const decided = adjustments.some(
             (a) => a.effective_week === weekInteger && (a.kind === 'reentry_deload' || a.kind === 'reentry_dismissed'),

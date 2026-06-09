@@ -332,6 +332,22 @@ export interface ProgramAdjustment {
     payload: { volumeFactor?: number; rirBonus?: number; daysAway?: number };
 }
 
+// ── Program pause / injury mode ─────────────────────────────────────────────
+// A deliberate, user-initiated break in a routine's program calendar. A date
+// span, not a per-week ease: resumed_at IS NULL means the pause is active (at
+// most one per routine, enforced by a partial unique index). The engine reads
+// these to freeze program time (no behind/lapsed penalty, no missed-week hit)
+// while a pause runs; detraining time (daysSinceLastSession) keeps ticking, so a
+// long pause still hands off to the existing ramp-back on resume.
+export interface ProgramPause {
+    id: string;
+    routine_id: string;
+    paused_at: string; // ISO; when the pause began
+    resumed_at: string | null; // ISO; when resumed. null = still paused.
+    reason: string | null; // optional (injury / illness / travel / life); v1 always null
+    created_at: string;
+}
+
 // ── DecisionEvent log ───────────────────────────────────────────────────────
 // The unified, append/upsert log of every adaptive decision the engine makes.
 // Ramp-back also persists in program_adjustments (its operational prescription
@@ -367,7 +383,7 @@ export interface DecisionEventRow extends DecisionEvent {
     created_at: string;
 }
 
-export type AdherenceStatus = 'on_track' | 'behind' | 'lapsed';
+export type AdherenceStatus = 'on_track' | 'behind' | 'lapsed' | 'paused';
 
 // Derived program position. weekInteger is completion-paced (advances when a
 // scheduled microcycle is completed); progressionIndex is weekInteger minus any
@@ -381,6 +397,10 @@ export interface ProgramPosition {
     behindBy: number;
     daysSinceLastSession: number | null;
     status: AdherenceStatus;
+    // True when a pause is currently active for this routine (status === 'paused').
+    isPaused: boolean;
+    // Days the active pause has run (inclusive), or null when not paused.
+    pausedDays: number | null;
     nextEntry: ScheduleEntry | null;
 }
 
