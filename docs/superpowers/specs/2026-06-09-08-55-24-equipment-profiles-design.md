@@ -65,14 +65,26 @@ New table `equipment_profiles`:
 |--------------|---------------|--------------------------------------------------------------|
 | `id`         | `uuid` pk     | `gen_random_uuid()` default                                  |
 | `user_id`    | `uuid`        | FK to `auth.users(id)` `ON DELETE CASCADE`, RLS-scoped       |
-| `name`       | `text`        | not null, non-empty, trimmed, max 40 chars                   |
+| `name`       | `text`        | not null; `CHECK (char_length(btrim(name)) BETWEEN 1 AND 40)`|
 | `equipment`  | `text[]`      | subset of the six `EQUIPMENT_KEYS`, at least one required    |
 | `created_at` | `timestamptz` | `now()` default; also the recency tiebreak for pre-fill      |
 
-RLS policies in the migration (select / insert / update / delete restricted to
+The `name` length cap is enforced at the DB with a `CHECK` constraint, not just in the action, so
+a direct Supabase write or a future action that skips the validator cannot insert an overlong or
+empty name. RLS policies in the migration (select / insert / update / delete restricted to
 `auth.uid() = user_id`), matching every other Pulse table. Migration filename carries the full
 timestamp prefix and lands in `docs/migrations/`. Applied by hand against Supabase (no runner in
-this repo).
+this repo). The migration carries a SQL comment noting that travel mode (#322) will extend this
+table with an `expires_at` column and an auto-revert, so the next person sees the planned shape.
+
+**Name uniqueness (soft, case-insensitive).** Names are user-facing labels, so a duplicate
+("Home Gym" twice) is confusing in the manager. Enforced as a soft guard in the create / update
+action: reject a name that case-insensitively matches another of the user's profiles, with a
+clear error ("You already have a profile called X"). Deliberately *not* a DB unique index: a hard
+constraint throws an opaque PG error the action would have to translate anyway, and travel mode
+may later want a transient same-named copy. The action-level check gives the better message and
+keeps the model flexible. (DB `UNIQUE (user_id, lower(name))` was considered and set aside for
+these reasons.)
 
 New nullable column on `profiles`:
 
@@ -85,31 +97,41 @@ New nullable column on `profiles`:
 The equipment the flow opens with is resolved in order:
 
 1. The active profile (`active_equipment_profile_id`), if set.
-2. Else, if any saved profiles exist, the most-recently-created one (`created_at` desc). This
-   closes the gap where a user has profiles but none is marked active (e.g. created two, then
-   deactivated both); "starts empty" would be confusing there.
+2. Else, if any saved profiles exist, the most-recently-created one (`created_at` desc, with
+   `id` desc as a deterministic tiebreak for equal timestamps). This closes the gap where a user
+   has profiles but none is marked active (e.g. created two, then deactivated both); "starts
+   empty" would be confusing there.
 3. Else empty (no saved profiles), which is today's behavior unchanged.
 
-No extra column is needed; rule 2 uses `created_at`.
+No extra column is needed; rule 2 uses `created_at` (with `id` as tiebreak). When rule 2 finds no
+rows it falls through cleanly to rule 3 (empty), which is the path exercised after deleting the
+last profile; that three-branch resolution gets a dedicated test.
 
 ## Branch A: persistence + manager
 
 ### Server actions (`src/app/pulse/actions/equipment.ts`, new)
 
 - `createEquipmentProfile(name: string, equipment: EquipmentKey[]): Promise<EquipmentProfile>`
-- `renameEquipmentProfile(id: string, name: string): Promise<void>`
-- `updateEquipmentProfileEquipment(id: string, equipment: EquipmentKey[]): Promise<void>`
+- `updateEquipmentProfile(id: string, name: string, equipment: EquipmentKey[]): Promise<void>`
 - `deleteEquipmentProfile(id: string): Promise<void>`
 - `setActiveEquipmentProfile(id: string | null): Promise<void>` (writes `profiles.active_equipment_profile_id`)
 
-Each validates: name trimmed, non-empty, <= 40 chars; equipment a non-empty subset of
-`EQUIPMENT_KEYS`. Each scopes the write to the authed user via the standard `getUserOrThrow`
-plus RLS. Mutations call `revalidate` paths consistent with the other actions.
+Edits are **atomic**: a single `updateEquipmentProfile` writes name and equipment together (one
+"Save" in the editor), rather than separate rename / set-equipment actions, so the editor never
+leaves a profile half-saved. Each validates: name trimmed, non-empty, <= 40 chars, and not a
+case-insensitive duplicate of another of the user's profiles (the soft-uniqueness guard above);
+equipment a non-empty subset of `EQUIPMENT_KEYS`. Each scopes the write to the authed user via the
+standard `getUserOrThrow` plus RLS. Mutations call `revalidate` paths consistent with the other
+actions. Activation (`setActiveEquipmentProfile`) stays a distinct, single-field action (it is the
+tap-to-activate affordance, not part of an edit).
 
 ### Read path
 
 - GET handler `src/app/api/pulse/equipment-profiles/route.ts` reusing a loader in
-  `src/lib/pulse/queries.ts` (returns the user's profiles ordered `created_at` desc).
+  `src/lib/pulse/queries.ts` (returns the user's profiles ordered `created_at` desc, `id` desc).
+  The loader runs on the authed Supabase server client and is scoped to the user (RLS plus an
+  explicit `eq('user_id', user.id)`); the SWR cache is the existing per-user, cleared-on-logout
+  cache, so there is no cross-user cache-key leak. A loader test asserts the user scoping.
 - Hook `src/hooks/pulse/useEquipmentProfiles.ts` mirroring the other data hooks: `useSWR` keyed
   on the endpoint, stable empty-array default, optimistic mutations (`mutate(next, false)` then
   await action then `mutate()`), exposed through `PulseProvider` / `PulseContext`. The active
@@ -127,8 +149,10 @@ A card in ProfileView's existing "Training preferences" group:
 
 - Lists saved profiles: name + a compact equipment summary (reusing `EQUIPMENT_LABELS`), with an
   "Active" marker on the active one and a tap-to-activate affordance per row.
-- Per-row edit (name + equipment) and delete (delete of the active row optimistically clears the
-  active marker, matching `ON DELETE SET NULL`).
+- Per-row edit opens an atomic editor (name + equipment, single "Save" via
+  `updateEquipmentProfile`) and delete (delete of the active row optimistically clears the active
+  marker, matching `ON DELETE SET NULL`). The manager is the place to *overwrite* an existing
+  profile; "Save as profile" in the flow (Branch B) only ever *creates*.
 - "New profile" entry: name input with suggested-name chips (Home / Gym / Travel as one-tap
   suggestions, not auto-seeded rows) plus the same six-checkbox equipment selector the setup flow
   uses. Save is disabled until name is non-empty and at least one equipment item is checked
@@ -147,18 +171,30 @@ self-contained.
 
 - Above the equipment checkboxes, a saved-profiles quick-pick row: each saved profile is a chip;
   tapping one fills the checkboxes from that profile's equipment. The step opens pre-filled per
-  the resolution rule above (active, else most-recent, else empty). A comment at this site states
-  that pre-fill is the v1 mechanism and that disappearing the step is the v2 upgrade.
+  the resolution rule above (active, else most-recent, else empty), and shows a small, explicit
+  hint when it pre-filled from a profile ("From your Home profile") so the user sees the app
+  remembered their setup rather than wondering if the checks are stale. A comment at this site
+  states that pre-fill is the v1 mechanism and that disappearing the step is the v2 upgrade.
 - A "Save as profile" affordance appears when the current checkbox selection matches no saved
-  profile, opening the same name + suggested-chips create path as the manager.
+  profile, opening the same name + suggested-chips create path as the manager. It only ever
+  **creates** a new profile; overwriting an existing one is a manager action.
 - When no profiles exist, the step is exactly today's (just the checkboxes), so onboarding for a
   brand-new user is unchanged.
+- **Stale-state edge case:** the flow snapshots equipment into local state on open (it already
+  does: `useState(new Set(initial?.equipment ?? []))`). So if the active profile is deleted while
+  a generation flow is open, the in-progress flow keeps its already-filled checkboxes and
+  generates from that local snapshot; the next open re-resolves. No special handling needed, and
+  this is called out so the safety is intentional, not accidental.
 
 ### Tune panel (`TuneYourPlanPanel`)
 
-- Add an equipment-profile picker alongside the existing personalization pickers. Picking a
-  different profile and applying regenerates in place, exactly as the panel already does for the
-  other inputs, and only before any sets are logged (the panel's existing precondition).
+- Add an equipment-profile picker alongside the existing personalization pickers. Because the
+  other Tune pickers are all single-value selects and equipment is six checkboxes, the panel
+  picker is a **chip-pick from saved profiles only** (no inline checkbox grid, which would break
+  the panel's visual balance), with a "Manage in Profile" link as the escape hatch for creating a
+  new set. Picking a different profile and applying regenerates in place, exactly as the panel
+  already does for the other inputs, and only before any sets are logged (the panel's existing
+  precondition).
 
 ### Switching and regeneration
 
@@ -179,16 +215,21 @@ Per this repo's conventions (no server-action test harness; actions hit Supabase
 lives in hook / component tests).
 
 **Branch A:**
-- Manager component: renders the saved list, create requires name + >= 1 equipment, delete of the
+- Manager component: renders the saved list, create requires name + >= 1 equipment, create rejects
+  a case-insensitive duplicate name, atomic edit saves name + equipment together, delete of the
   active profile clears the active marker optimistically, activate updates the marker.
-- `useEquipmentProfiles` hook: optimistic create / rename / update / delete shape.
+- `useEquipmentProfiles` hook: optimistic create / update / delete shape.
+- Loader: scopes to the authed user (no other user's rows returned).
 - Type-level: `EquipmentProfile` and the new `Profile` field compile and are threaded through
   context.
 
 **Branch B:**
 - Setup flow: opens pre-filled from the active profile; pre-fills from most-recent when none
-  active; picking a chip fills the checkboxes; "Save as profile" appears only when the selection
-  matches no saved set; no-profiles case renders today's checkboxes unchanged.
+  active; falls through to empty when no profiles exist; picking a chip fills the checkboxes;
+  "Save as profile" appears only when the selection matches no saved set and only creates;
+  no-profiles case renders today's checkboxes unchanged.
+- Pre-fill resolution: dedicated test of the three branches, including the delete-the-last-profile
+  path (rule 2 finds nothing, falls to rule 3 empty).
 - Tune panel: switching the equipment profile and applying triggers an in-place regenerate.
 - Generation golden / identity tests stay green (no engine change).
 
@@ -204,3 +245,34 @@ Full suite must stay green after each branch (run `bun run test:run` and `bun ru
 - **Optimistic-cache coherence** between `useEquipmentProfiles` (list) and `useProfile` (active
   pointer). Setting active touches the profile cache; deleting the active row touches both. Tests
   cover the delete-active path.
+- **Stale active profile mid-flow.** Resolved by the on-open local snapshot (see Branch B,
+  stale-state edge case); no special handling required.
+
+## Adopted vs dismissed from review (2026-06-09)
+
+Reviewed by Claude.ai (product / science lens) and Perplexity (architecture / maintainability
+lens). Both approved the shape; the actionable points and their disposition:
+
+**Adopted into this spec:**
+- DB-level `CHECK` on `name` length, not just action validation (Claude.ai).
+- Tune-panel picker is a chip-pick from saved profiles only, not an inline checkbox grid, with a
+  "Manage in Profile" escape hatch (Claude.ai).
+- Dedicated test for the delete-the-last-profile -> empty resolution path (Claude.ai).
+- Edits are atomic: a single `updateEquipmentProfile(id, name, equipment)` replaces the split
+  rename / set-equipment actions (Perplexity).
+- "Save as profile" creates only; overwrite is a manager action (Perplexity).
+- Deterministic `id` desc tiebreak alongside `created_at` desc (Perplexity).
+- Loader is user-scoped and the SWR cache is per-user; a loader test asserts it (Perplexity).
+- A SQL comment documenting travel mode (#322) as the planned `expires_at` extension (Perplexity).
+- An explicit "From your X profile" pre-fill hint so the remembered setup is visible (Perplexity).
+- The stale-active-profile-mid-flow edge case is called out as safe-by-snapshot (Perplexity).
+
+**Resolved from first principles (not taken verbatim):**
+- **Name uniqueness** (Perplexity wanted a uniqueness rule). Adopted as a *soft, case-insensitive*
+  guard in the action, not a DB unique index, for better error messages and future travel-mode
+  flexibility. See "Name uniqueness" in the data model.
+
+**Re-affirmed (no change needed):**
+- Keep Branch A free of regeneration wiring; non-destructive switching; "profiles only seed the
+  picker"; the shared checkbox component; the dedicated-table data model. Both reviewers endorsed
+  these as already correct.
