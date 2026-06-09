@@ -208,8 +208,9 @@ export function useRoutines(activeRoutineId: string | null = null) {
             trainingDays?: number[],
             sessionTime?: string,
             experience?: ExperienceLevel,
+            startAnchor?: string,
         ): Promise<WorkoutRoutine> => {
-            const routine = await serverCloneTemplate(slug, trainingDays, sessionTime, experience);
+            const routine = await serverCloneTemplate(slug, trainingDays, sessionTime, experience, startAnchor);
             await mutateRoutines();
             await globalMutate(PROFILE_KEY);
             return routine;
@@ -228,6 +229,7 @@ export function useRoutines(activeRoutineId: string | null = null) {
             varietyPreference?: VarietyPreference,
             loadingLean?: LoadingPreference,
             movementRestrictions?: RestrictionFlag[],
+            startAnchor?: string,
         ): Promise<WorkoutRoutine> => {
             const routine = await serverGenerateRoutine(
                 answers,
@@ -239,6 +241,7 @@ export function useRoutines(activeRoutineId: string | null = null) {
                 varietyPreference,
                 loadingLean,
                 movementRestrictions,
+                startAnchor,
             );
             await mutateRoutines();
             await globalMutate(PROFILE_KEY);

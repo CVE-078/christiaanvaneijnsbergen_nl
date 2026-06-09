@@ -78,6 +78,7 @@ export default function OnboardingModal() {
                     undefined,
                     undefined,
                     undefined,
+                    startAnchor,
                 );
                 if (startAnchor) await setProgramAnchor(routine.id, startAnchor);
                 // New routines default to 12 weeks in the DB; only write when it differs.

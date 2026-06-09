@@ -71,7 +71,11 @@ describe('OnboardingModal', () => {
         // Pinned open through generation so the routines.length flip can't unmount us.
         expect(triggerOnboarding).toHaveBeenCalledTimes(1);
         // Quick mode passes undefined so generateRoutine defers to the stored profile.
-        expect(generateRoutine.mock.calls[0].slice(4)).toEqual([undefined, undefined, undefined, undefined, undefined]);
+        // Args 5-9 (name..restrictions) stay undefined; arg 10 is the start anchor
+        // (defaults to the chosen start date, a string) threaded in for day ordering.
+        const genArgs = generateRoutine.mock.calls[0].slice(4);
+        expect(genArgs.slice(0, 5)).toEqual([undefined, undefined, undefined, undefined, undefined]);
+        expect(typeof genArgs[5]).toBe('string');
 
         // Handed off to the Tune panel rather than finishing onboarding outright.
         expect(await screen.findByText(/Looks good/)).toBeInTheDocument();

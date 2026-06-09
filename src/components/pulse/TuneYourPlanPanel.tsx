@@ -157,6 +157,7 @@ export default function TuneYourPlanPanel({
                 varietyPreference,
                 loadingLean ?? undefined,
                 restrictions,
+                startAnchor,
             );
             if (startAnchor) await setProgramAnchor(next.id, startAnchor);
             if (programWeeks !== 12) await updateRoutineProgramWeeks(next.id, programWeeks);

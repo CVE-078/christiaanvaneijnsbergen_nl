@@ -179,6 +179,7 @@ export interface PulseContextValue {
         trainingDays?: number[],
         sessionTime?: string,
         experience?: ExperienceLevel,
+        startAnchor?: string,
     ) => Promise<WorkoutRoutine>;
     generateRoutine: (
         answers: OnboardingAnswers,
@@ -190,6 +191,7 @@ export interface PulseContextValue {
         varietyPreference?: VarietyPreference,
         loadingLean?: LoadingPreference,
         movementRestrictions?: RestrictionFlag[],
+        startAnchor?: string,
     ) => Promise<WorkoutRoutine>;
     completeOnboarding: () => Promise<void>;
 
