@@ -33,7 +33,9 @@ import type {
     RestrictionFlag,
 } from '@/lib/pulse/types';
 import { assertUuid, assertOwnsRoutine, assertOwnsRoutineExercise } from './_shared';
-import { loadHiddenExerciseIds } from '@/lib/pulse/queries';
+import { loadHiddenExerciseIds, loadSwapHistory } from '@/lib/pulse/queries';
+import { analyzeSwapBehavior, EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
+import { BEHAVIOR_MIN_SWAPS, BEHAVIOR_RECENCY_DAYS } from '@/lib/pulse/constants';
 
 // Allowed session-time values (matches the SessionTime union).
 const SESSION_TIMES: readonly SessionTime[] = ['~30 min', '45–60 min', '90+ min'];
@@ -398,6 +400,7 @@ export async function cloneTemplate(
 // Shape of an exercise pool row used to seed the generator.
 interface ExercisePoolRow {
     id: string;
+    name: string;
     category: ExerciseMeta['category'];
     equipment: EquipmentKey[] | null;
     movement_pattern: ExerciseMeta['movement_pattern'];
@@ -463,7 +466,7 @@ export async function generateAndSaveRoutine(
 
     const { data: poolData } = await supabase
         .from('exercises')
-        .select('id, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications')
+        .select('id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications')
         .is('user_id', null);
 
     // The persisted muscle priority tilts each session's emphasis toward that
@@ -486,7 +489,6 @@ export async function generateAndSaveRoutine(
     // Param wins over the stored value; absent param falls back to stored, then [].
     const resolvedRestrictions: RestrictionFlag[] =
         movementRestrictions ?? (profileRow?.movement_restrictions as RestrictionFlag[]) ?? [];
-    const rationale = buildRationale(answers, sessionTime, style, priority, resolvedTrainingStyle);
 
     // Exclude the user's hidden exercises so generation never surfaces them. The
     // smaller pool flows through the existing equipment filter + thin-pool
@@ -507,6 +509,24 @@ export async function generateAndSaveRoutine(
             ...(row.fatigue !== null ? { fatigue: row.fatigue } : {}),
         }));
 
+    // Behavior-driven adaptation (#7): learn from recent repeated swaps and
+    // soft-deprioritize exercises the user keeps rejecting. Never block
+    // generation on the learning layer.
+    let behavior = EMPTY_BEHAVIOR;
+    try {
+        const swapRows = await loadSwapHistory(supabase, user.id);
+        behavior = analyzeSwapBehavior(swapRows, {
+            minCount: BEHAVIOR_MIN_SWAPS,
+            recencyMs: BEHAVIOR_RECENCY_DAYS * 86400000,
+            nowMs: Date.now(),
+        });
+    } catch {
+        behavior = EMPTY_BEHAVIOR;
+    }
+    const nameById = new Map(((poolData ?? []) as ExercisePoolRow[]).map((r) => [r.id, r.name]));
+    const demotedNames = behavior.demote.map((id) => nameById.get(id)).filter((n): n is string => !!n);
+    const rationale = buildRationale(answers, sessionTime, style, priority, resolvedTrainingStyle, demotedNames);
+
     const blueprint = generateRoutine({
         style,
         answers,
@@ -518,6 +538,7 @@ export async function generateAndSaveRoutine(
         varietyPreference: resolvedVariety,
         loadingLean: resolvedLoadingLean,
         restrictions: resolvedRestrictions,
+        behavior,
         anchorDow,
         makeGroupId: () => crypto.randomUUID(),
     });
