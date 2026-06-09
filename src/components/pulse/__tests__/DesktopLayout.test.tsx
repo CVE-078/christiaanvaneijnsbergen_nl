@@ -18,6 +18,7 @@ const mockContext = {
         length_unit: 'cm' as const,
         display_name: null,
         active_routine_id: null,
+        active_equipment_profile_id: null,
         onboarding_completed: false,
         goal_weight_kg: null,
         gender: null,
