@@ -19,6 +19,7 @@ import { usePulse } from '@/context/PulseContext';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import RegenNudge from '../RegenNudge';
 import CoachPanel from '../CoachPanel';
+import TravelPill from '../TravelPill';
 import WorkoutTabs from '../WorkoutTabs';
 import DayTabs from '../DayTabs';
 import ExerciseCard from '../ExerciseCard';
@@ -336,6 +337,7 @@ export default function LogView() {
                 })()}
 
             <div className="px-4 pt-6 pb-3 max-w-[600px] lg:max-w-[820px] mx-auto">
+                <TravelPill />
                 <RegenNudge />
                 {/* Coach decisions: inline on mobile only, desktop shows it in the right rail. */}
                 <div className="lg:hidden">
