@@ -523,7 +523,11 @@ export async function generateAndSaveRoutine(
     } catch {
         behavior = EMPTY_BEHAVIOR;
     }
-    const nameById = new Map(((poolData ?? []) as ExercisePoolRow[]).map((r) => [r.id, r.name]));
+    // Names for the rationale, from the same catalog rows minus hidden ones, so
+    // we never name a lift the generator could not have surfaced anyway.
+    const nameById = new Map(
+        ((poolData ?? []) as ExercisePoolRow[]).filter((r) => !hidden.has(r.id)).map((r) => [r.id, r.name]),
+    );
     const demotedNames = behavior.demote.map((id) => nameById.get(id)).filter((n): n is string => !!n);
     const rationale = buildRationale(answers, sessionTime, style, priority, resolvedTrainingStyle, demotedNames);
 

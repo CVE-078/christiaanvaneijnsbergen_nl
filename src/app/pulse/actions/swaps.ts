@@ -38,6 +38,9 @@ export async function setExerciseSwap(
             week,
             exercise_id: exerciseId,
             from_exercise_id: fromExerciseId,
+            // Refresh on re-swap so behavior learning's recency window (#7) dates
+            // from the latest swap, not the first time this slot/week was touched.
+            created_at: new Date().toISOString(),
         },
         { onConflict: 'user_id,routine_exercise_id,week' },
     );
