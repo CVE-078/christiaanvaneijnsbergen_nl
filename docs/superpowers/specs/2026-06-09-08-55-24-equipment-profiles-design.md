@@ -66,25 +66,28 @@ New table `equipment_profiles`:
 | `id`         | `uuid` pk     | `gen_random_uuid()` default                                  |
 | `user_id`    | `uuid`        | FK to `auth.users(id)` `ON DELETE CASCADE`, RLS-scoped       |
 | `name`       | `text`        | not null; `CHECK (char_length(btrim(name)) BETWEEN 1 AND 40)`|
-| `equipment`  | `text[]`      | subset of the six `EQUIPMENT_KEYS`, at least one required    |
+| `equipment`  | `text[]`      | not null; `CHECK (cardinality(equipment) >= 1)`; subset of the six `EQUIPMENT_KEYS` enforced in the action |
 | `created_at` | `timestamptz` | `now()` default; also the recency tiebreak for pre-fill      |
 
-The `name` length cap is enforced at the DB with a `CHECK` constraint, not just in the action, so
-a direct Supabase write or a future action that skips the validator cannot insert an overlong or
-empty name. RLS policies in the migration (select / insert / update / delete restricted to
+The `name` length cap and the non-empty `equipment` rule are enforced at the DB with `CHECK`
+constraints, not just in the action, so a direct Supabase write or a future action that skips the
+validator cannot insert bad data. (Note `cardinality(equipment) >= 1`, not `array_length(...) >= 1`:
+`array_length` returns NULL for an empty array and a NULL `CHECK` passes, so the empty array would
+slip through.) RLS policies in the migration (select / insert / update / delete restricted to
 `auth.uid() = user_id`), matching every other Pulse table. Migration filename carries the full
 timestamp prefix and lands in `docs/migrations/`. Applied by hand against Supabase (no runner in
 this repo). The migration carries a SQL comment noting that travel mode (#322) will extend this
 table with an `expires_at` column and an auto-revert, so the next person sees the planned shape.
 
-**Name uniqueness (soft, case-insensitive).** Names are user-facing labels, so a duplicate
-("Home Gym" twice) is confusing in the manager. Enforced as a soft guard in the create / update
-action: reject a name that case-insensitively matches another of the user's profiles, with a
-clear error ("You already have a profile called X"). Deliberately *not* a DB unique index: a hard
-constraint throws an opaque PG error the action would have to translate anyway, and travel mode
-may later want a transient same-named copy. The action-level check gives the better message and
-keeps the model flexible. (DB `UNIQUE (user_id, lower(name))` was considered and set aside for
-these reasons.)
+**Name uniqueness (DB-enforced, case-insensitive).** Names are user-facing labels, so a duplicate
+("Home Gym" twice) is confusing in the manager. Enforced by a case-insensitive partial unique
+index `(user_id, lower(name))`; the create / update action catches the unique-violation (Postgres
+`23505`) and rethrows the friendly message ("You already have a profile called X"). This closes
+the TOCTOU window a pure app-level check would leave open under concurrent creates, and removes a
+round trip. (An earlier draft used a soft app-level check and deliberately avoided the index; both
+spec reviewers flagged the race, and since Pulse is heading public, the DB guarantee is the sound
+choice. Reversed 2026-06-09.) If travel mode (#322) ever needs a transient same-named copy, that is
+a future migration decision for that feature, not a reason to weaken the guarantee now.
 
 New nullable column on `profiles`:
 
@@ -118,9 +121,9 @@ last profile; that three-branch resolution gets a dedicated test.
 
 Edits are **atomic**: a single `updateEquipmentProfile` writes name and equipment together (one
 "Save" in the editor), rather than separate rename / set-equipment actions, so the editor never
-leaves a profile half-saved. Each validates: name trimmed, non-empty, <= 40 chars, and not a
-case-insensitive duplicate of another of the user's profiles (the soft-uniqueness guard above);
-equipment a non-empty subset of `EQUIPMENT_KEYS`. Each scopes the write to the authed user via the
+leaves a profile half-saved. Each validates: name trimmed, non-empty, <= 40 chars; equipment a
+non-empty subset of `EQUIPMENT_KEYS`. Name collisions are caught from the DB unique index (catch
+`23505` -> friendly message), not a pre-check. Each scopes the write to the authed user via the
 standard `getUserOrThrow` plus RLS. Mutations call `revalidate` paths consistent with the other
 actions. Activation (`setActiveEquipmentProfile`) stays a distinct, single-field action (it is the
 tap-to-activate affordance, not part of an edit).
@@ -268,11 +271,36 @@ lens). Both approved the shape; the actionable points and their disposition:
 - The stale-active-profile-mid-flow edge case is called out as safe-by-snapshot (Perplexity).
 
 **Resolved from first principles (not taken verbatim):**
-- **Name uniqueness** (Perplexity wanted a uniqueness rule). Adopted as a *soft, case-insensitive*
-  guard in the action, not a DB unique index, for better error messages and future travel-mode
-  flexibility. See "Name uniqueness" in the data model.
+- **Name uniqueness** (Perplexity wanted a uniqueness rule). First adopted as a *soft, case-insensitive*
+  action-level guard, then **reversed to a DB partial unique index** at the plan-review stage (see
+  the next section). See "Name uniqueness" in the data model for the final design.
 
 **Re-affirmed (no change needed):**
 - Keep Branch A free of regeneration wiring; non-destructive switching; "profiles only seed the
   picker"; the shared checkbox component; the dedicated-table data model. Both reviewers endorsed
   these as already correct.
+
+## Adopted vs dismissed from PLAN review (2026-06-09)
+
+The Branch A implementation plan (`docs/superpowers/plans/2026-06-09-equipment-profiles-storage.md`)
+was reviewed by the same two lenses. Dispositions:
+
+**Adopted (real bugs / sound):**
+- `cardinality(equipment) >= 1` instead of `array_length(...) >= 1` (the latter passes empty
+  arrays, since `array_length` is NULL for empty and a NULL `CHECK` passes) (Claude.ai).
+- Optimistic update / delete wrap the server call in `try/finally` so a server error still
+  revalidates back to truth (Claude.ai).
+- **Name uniqueness reversed to a DB partial unique index** `(user_id, lower(name))` + catch
+  `23505` -> friendly message; the soft app-level pre-check is dropped (both reviewers flagged the
+  TOCTOU race; app is heading public). This supersedes the spec-review resolution above.
+- Test coverage: assert `globalMutate(profile)` in delete / set-active, add `setActive(null)`, add
+  manager edit-flow + create-error-toast tests (Claude.ai).
+- Manager closes its inline editor when the row being edited is deleted (Perplexity / Claude.ai).
+- Explicit cross-cutting acceptance rules for cache invalidation, ordering (no active-pin in v1),
+  RLS + explicit filter, cross-tab-sync-out-of-scope, and type-ripple-first sequencing (Perplexity).
+
+**Dismissed with evidence:**
+- "Use `update` not `upsert` for set-active" (Claude.ai). Every sibling setter in
+  `actions/profile.ts` (`updateTrainingStyle`, `updateLoadingLean`, ...) uses
+  `upsert({ id, ... }, { onConflict: 'id' })`; the authed user always has a profiles row. Keeping
+  `upsert` matches the established convention; switching would make this the lone outlier.

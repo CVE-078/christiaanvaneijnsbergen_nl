@@ -17,6 +17,15 @@
   `GIT_CONFIG_GLOBAL=/dev/null git -c user.email=christiaanvaneijnsbergen@gmail.com -c user.name="Christiaan van Eijnsbergen" commit -m "..."`
 - Run a single test file: `bun run test:run <path>`. Typecheck: `bun run typecheck`. Full suite: `bun run test:run`.
 
+**Cross-cutting acceptance rules (settled with reviewers, 2026-06-09):**
+- **Cache invalidation.** After any mutation, revalidate the equipment-profile list (`mutate()`); after **delete** and **set-active**, also revalidate the profile cache (`globalMutate('/api/pulse/profile')`) because the active pointer lives there. Optimistic patches (update, delete) run inside `try/finally` so a server error still revalidates back to the truth.
+- **Name uniqueness.** Enforced at the DB by a case-insensitive partial unique index `(user_id, lower(name))`; the action catches `23505` and rethrows the friendly message. No app-level pre-check (no TOCTOU window). (This reverses the spec's earlier soft-only decision after both reviewers flagged the race; the spec has been updated to match.)
+- **Active profile disappears.** `profile.active_equipment_profile_id` is always nullable; `ON DELETE SET NULL` plus the post-delete profile revalidation means the active marker clears on its own. The manager closes its inline editor if the row it was editing is deleted.
+- **Ordering.** The list renders `created_at` desc (newest first). `id` desc is only a deterministic (not chronological, UUID v4 is random) tiebreak for equal timestamps. The active profile is **not** pinned to the top in v1; the "Active" marker is enough.
+- **RLS + explicit filter.** The GET loader is scoped by RLS (primary) **and** an explicit `eq('user_id', userId)` (defense-in-depth, matching every other loader).
+- **Cross-tab sync is out of scope.** `SWR_READ_OPTS` sets `revalidateOnFocus: false` repo-wide, so the manager syncs within a tab via the explicit post-mutation `mutate()`, not across tabs/sessions until a navigation refetch. Accepted (no global SWR change for this feature).
+- **Sequencing.** Do Task 2 (the `Profile` type field) before any hook/component work: it surfaces every full `Profile` literal that needs the new field, via the compiler, before those literals are depended on.
+
 ---
 
 ### Task 1: Database migration (table + RLS + active pointer)
@@ -41,11 +50,19 @@ create table if not exists equipment_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null check (char_length(btrim(name)) between 1 and 40),
-  equipment text[] not null check (array_length(equipment, 1) >= 1),
+  -- cardinality() returns 0 for an empty array, so this rejects '{}'. (array_length
+  -- returns NULL for empty, and a NULL CHECK passes, which would let '{}' through.)
+  equipment text[] not null check (cardinality(equipment) >= 1),
   created_at timestamptz not null default now()
 );
 
 create index if not exists equipment_profiles_user_idx on equipment_profiles (user_id);
+
+-- Case-insensitive name uniqueness per user, enforced at the DB so a concurrent
+-- create cannot slip a duplicate past the app-level check (TOCTOU). The action
+-- catches the unique-violation (23505) and rethrows the friendly message.
+create unique index if not exists equipment_profiles_name_ci_user_idx
+  on equipment_profiles (user_id, lower(name));
 
 alter table equipment_profiles enable row level security;
 
@@ -184,7 +201,6 @@ Create `src/app/pulse/actions/equipment.ts`:
 import { revalidatePath } from 'next/cache';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { assertUuid } from './_shared';
-import type { SupabaseServerClient } from './_shared';
 import { EQUIPMENT_KEYS } from '@/lib/pulse/types';
 import type { EquipmentKey, EquipmentProfile } from '@/lib/pulse/types';
 
@@ -202,30 +218,23 @@ function validEquipment(equipment: EquipmentKey[]): EquipmentKey[] {
     return unique;
 }
 
-// Reject a name that case-insensitively matches another of the user's profiles.
-// Soft uniqueness (action-level, not a DB constraint) for clearer errors; see the
-// design doc. `exceptId` skips the row being edited.
-async function assertNameFree(
-    supabase: SupabaseServerClient,
-    userId: string,
-    name: string,
-    exceptId?: string,
-): Promise<void> {
-    const { data } = await supabase.from('equipment_profiles').select('id, name').eq('user_id', userId);
-    const clash = (data ?? []).some((r) => r.name.toLowerCase() === name.toLowerCase() && r.id !== exceptId);
-    if (clash) throw new Error(`You already have a profile called ${name}`);
+// Postgres unique-violation. The case-insensitive name index raises this when a
+// name collides; convert it to the friendly message. Race-proof (no TOCTOU) and
+// one fewer round trip than a pre-check.
+function isUniqueViolation(error: { code?: string } | null): boolean {
+    return error?.code === '23505';
 }
 
 export async function createEquipmentProfile(name: string, equipment: EquipmentKey[]): Promise<EquipmentProfile> {
     const cleanName = validName(name);
     const cleanEquipment = validEquipment(equipment);
     const { supabase, user } = await getUserOrThrow();
-    await assertNameFree(supabase, user.id, cleanName);
     const { data, error } = await supabase
         .from('equipment_profiles')
         .insert({ user_id: user.id, name: cleanName, equipment: cleanEquipment })
         .select('id, name, equipment, created_at')
         .single();
+    if (isUniqueViolation(error)) throw new Error(`You already have a profile called ${cleanName}`);
     if (error || !data) throw new Error('Failed to create equipment profile');
     revalidatePath('/pulse');
     return {
@@ -241,12 +250,12 @@ export async function updateEquipmentProfile(id: string, name: string, equipment
     const cleanName = validName(name);
     const cleanEquipment = validEquipment(equipment);
     const { supabase, user } = await getUserOrThrow();
-    await assertNameFree(supabase, user.id, cleanName, id);
     const { error } = await supabase
         .from('equipment_profiles')
         .update({ name: cleanName, equipment: cleanEquipment })
         .eq('id', id)
         .eq('user_id', user.id);
+    if (isUniqueViolation(error)) throw new Error(`You already have a profile called ${cleanName}`);
     if (error) throw new Error('Failed to update equipment profile');
     revalidatePath('/pulse');
 }
@@ -272,6 +281,9 @@ export async function setActiveEquipmentProfile(id: string | null): Promise<void
             .single();
         if (!data) throw new Error('Equipment profile not found');
     }
+    // upsert (not update) to match every sibling profile setter in this file
+    // (updateTrainingStyle / updateLoadingLean / ...): the authed user always has
+    // a profiles row, and onConflict keeps the call idempotent.
     const { error } = await supabase
         .from('profiles')
         .upsert(
@@ -282,6 +294,8 @@ export async function setActiveEquipmentProfile(id: string | null): Promise<void
     revalidatePath('/pulse');
 }
 ```
+
+(Note: `assertNameFree` and the `SupabaseServerClient` import are intentionally gone; the DB unique index plus the `23505` catch replace them.)
 
 - [ ] **Step 2: Re-export from the barrel**
 
@@ -314,7 +328,7 @@ GIT_CONFIG_GLOBAL=/dev/null git -c user.email=christiaanvaneijnsbergen@gmail.com
 
 - [ ] **Step 1: Write the failing loader test**
 
-In `src/lib/pulse/__tests__/queries.test.ts`, add `loadEquipmentProfiles` to the import at the top, then add this block at the end of the file:
+In `src/lib/pulse/__tests__/queries.test.ts`, add `loadEquipmentProfiles` to the import at the top, then add this block at the end of the file. (The shared `makeClient` fake does not record `.eq()` arguments, so the explicit `eq('user_id', userId)` filter is verified by code inspection plus the RLS + explicit-filter acceptance rule, not by an assertion here; do not rework the shared fake just for this.)
 
 ```ts
 describe('loadEquipmentProfiles', () => {
@@ -434,7 +448,9 @@ Create `src/hooks/pulse/__tests__/useEquipmentProfiles.test.ts`:
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-vi.mock('swr', () => ({ default: vi.fn(), useSWRConfig: () => ({ mutate: vi.fn() }) }));
+// Stable globalMutate spy so tests can assert the profile cache is revalidated.
+const globalMutate = vi.fn();
+vi.mock('swr', () => ({ default: vi.fn(), useSWRConfig: () => ({ mutate: globalMutate }) }));
 vi.mock('@/app/pulse/actions', () => ({
     createEquipmentProfile: vi.fn(),
     updateEquipmentProfile: vi.fn().mockResolvedValue(undefined),
@@ -452,12 +468,14 @@ import {
 import { useEquipmentProfiles } from '../useEquipmentProfiles';
 import type { EquipmentProfile } from '@/lib/pulse/types';
 
+const PROFILE_KEY = '/api/pulse/profile';
 const home: EquipmentProfile = { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', equipment: ['dumbbells'], created_at: '2026-06-09T00:00:00Z' };
 const mutate = vi.fn();
 
 beforeEach(() => {
     vi.mocked(useSWR).mockReturnValue({ data: [home], mutate, isLoading: false, error: undefined } as unknown as ReturnType<typeof useSWR>);
     mutate.mockClear();
+    globalMutate.mockClear();
     vi.mocked(serverCreate).mockClear();
     vi.mocked(serverUpdate).mockClear();
     vi.mocked(serverDelete).mockClear();
@@ -493,21 +511,41 @@ describe('useEquipmentProfiles', () => {
         expect(serverUpdate).toHaveBeenCalledWith(home.id, 'Home Gym', ['dumbbells', 'bench']);
     });
 
-    it('delete optimistically removes then persists', async () => {
+    it('update revalidates even when the server action throws', async () => {
+        vi.mocked(serverUpdate).mockRejectedValueOnce(new Error('boom'));
+        const { result } = renderHook(() => useEquipmentProfiles());
+        await act(async () => {
+            await expect(result.current.updateEquipmentProfile(home.id, 'Gym', ['barbell'])).rejects.toThrow('boom');
+        });
+        // The finally-block mutate() ran (optimistic patch + the revalidate = 2 calls).
+        expect(mutate).toHaveBeenCalledTimes(2);
+    });
+
+    it('delete optimistically removes then persists and refreshes the profile cache', async () => {
         const { result } = renderHook(() => useEquipmentProfiles());
         await act(async () => {
             await result.current.deleteEquipmentProfile(home.id);
         });
         expect(typeof mutate.mock.calls[0][0]).toBe('function');
         expect(serverDelete).toHaveBeenCalledWith(home.id);
+        expect(globalMutate).toHaveBeenCalledWith(PROFILE_KEY);
     });
 
-    it('setActive calls the server action', async () => {
+    it('setActive calls the server action and refreshes the profile cache', async () => {
         const { result } = renderHook(() => useEquipmentProfiles());
         await act(async () => {
             await result.current.setActiveEquipmentProfile(home.id);
         });
         expect(serverSetActive).toHaveBeenCalledWith(home.id);
+        expect(globalMutate).toHaveBeenCalledWith(PROFILE_KEY);
+    });
+
+    it('setActive(null) clears the active pointer', async () => {
+        const { result } = renderHook(() => useEquipmentProfiles());
+        await act(async () => {
+            await result.current.setActiveEquipmentProfile(null);
+        });
+        expect(serverSetActive).toHaveBeenCalledWith(null);
     });
 });
 ```
@@ -562,8 +600,14 @@ export function useEquipmentProfiles() {
                 (prev?: EquipmentProfile[]) => prev?.map((p) => (p.id === id ? { ...p, name, equipment } : p)),
                 false,
             );
-            await serverUpdate(id, name, equipment);
-            await mutate();
+            // try/finally so a server error still revalidates, rolling the
+            // optimistic patch back to the real server state (the caller surfaces
+            // the thrown error as a toast).
+            try {
+                await serverUpdate(id, name, equipment);
+            } finally {
+                await mutate();
+            }
         },
         [mutate],
     );
@@ -571,11 +615,14 @@ export function useEquipmentProfiles() {
     const deleteEquipmentProfile = useCallback(
         async (id: string): Promise<void> => {
             await mutate((prev?: EquipmentProfile[]) => prev?.filter((p) => p.id !== id), false);
-            await serverDelete(id);
-            await mutate();
-            // Deleting the active profile clears the pointer (ON DELETE SET NULL);
-            // refresh the profile cache so the active marker updates.
-            await globalMutate(PROFILE_KEY);
+            try {
+                await serverDelete(id);
+            } finally {
+                await mutate();
+                // Deleting the active profile clears the pointer (ON DELETE SET NULL);
+                // refresh the profile cache so the active marker updates.
+                await globalMutate(PROFILE_KEY);
+            }
         },
         [mutate, globalMutate],
     );
@@ -701,6 +748,8 @@ GIT_CONFIG_GLOBAL=/dev/null git -c user.email=christiaanvaneijnsbergen@gmail.com
 ### Task 7: Shared `EquipmentSelector` component
 
 The six-checkbox picker, extracted so the manager (this branch) and the setup flow (Branch B) render the identical control. Branch A is the first consumer; the flow adopts it in Branch B.
+
+> **Precondition (confirmed):** `EQUIPMENT_LABELS` already exists in `src/lib/pulse/constants.ts` as `Record<EquipmentKey, string>` with all six keys, and `EQUIPMENT_KEYS` is exported from `src/lib/pulse/types.ts`. Both components below import from those. No creation step needed; if a future refactor moves them, update the imports.
 
 **Files:**
 - Create: `src/components/pulse/EquipmentSelector.tsx`
@@ -918,8 +967,32 @@ describe('EquipmentProfilesEditor', () => {
         await userEvent.click(screen.getByRole('button', { name: /Delete Home/i }));
         expect(del).toHaveBeenCalledWith(home.id);
     });
+
+    it('edit opens a prefilled atomic form and saves name + equipment together', async () => {
+        renderEditor();
+        await userEvent.click(screen.getByRole('button', { name: /^Edit$/ }));
+        const nameInput = screen.getByPlaceholderText(/profile name/i);
+        expect(nameInput).toHaveValue('Home'); // prefilled from the row
+        await userEvent.clear(nameInput);
+        await userEvent.type(nameInput, 'Home Gym');
+        await userEvent.click(screen.getByRole('button', { name: /Bench/ })); // add equipment
+        await userEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+        expect(update).toHaveBeenCalledWith(home.id, 'Home Gym', ['dumbbells', 'bench']);
+    });
+
+    it('shows a toast when the create action rejects', async () => {
+        create.mockRejectedValueOnce(new Error('You already have a profile called Gym'));
+        renderEditor();
+        await userEvent.click(screen.getByRole('button', { name: /New profile/i }));
+        await userEvent.type(screen.getByPlaceholderText(/profile name/i), 'Gym');
+        await userEvent.click(screen.getByRole('button', { name: /Barbell/ }));
+        await userEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+        expect(await screen.findByText(/already have a profile called Gym/i)).toBeInTheDocument();
+    });
 });
 ```
+
+(Note: the edit test asserts `update` is called with the equipment in `EQUIPMENT_KEYS` order, `['dumbbells', 'bench']`, because the component builds the list with `[...equipment]` over a Set seeded from the row then toggled. If the rendered order differs, assert with `expect.arrayContaining` instead.)
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -1020,6 +1093,9 @@ export default function EquipmentProfilesEditor() {
     }
 
     async function remove(p: EquipmentProfile) {
+        // Close the inline editor if it was open on the row being deleted, so the
+        // form never lingers over a row that no longer exists.
+        if (editing === p.id) close();
         try {
             await deleteEquipmentProfile(p.id);
         } catch {
@@ -1258,9 +1334,9 @@ GIT_CONFIG_GLOBAL=/dev/null git -c user.email=christiaanvaneijnsbergen@gmail.com
 **Spec coverage:**
 - Dedicated table + RLS + `ON DELETE SET NULL` active pointer, name `CHECK`, travel-mode SQL comment -> Task 1.
 - `EquipmentProfile` type + `Profile` field -> Task 2.
-- Soft case-insensitive name uniqueness, atomic `updateEquipmentProfile`, create/delete/set-active, equipment subset + >=1 validation -> Task 3.
-- User-scoped loader (`created_at` desc, `id` desc) + GET route + scoping test -> Task 4.
-- Hook with optimistic create/update/delete + set-active touching the profile cache -> Task 5.
+- DB-enforced case-insensitive name uniqueness (`23505` -> friendly message), atomic `updateEquipmentProfile`, create/delete/set-active, equipment subset + >=1 validation -> Task 1 (index) + Task 3 (actions).
+- User-scoped loader (`created_at` desc, `id` desc tiebreak) + GET route + loader test -> Task 4.
+- Hook with optimistic create/update/delete (revalidate-in-`finally`) + set-active touching the profile cache -> Task 5.
 - Context exposure -> Task 6.
 - Shared `EquipmentSelector` -> Task 7.
 - Manager card (list, active marker, tap-to-activate, atomic edit, delete, suggested-name chips, >=1 guard) -> Task 8.
