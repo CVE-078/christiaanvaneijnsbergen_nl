@@ -134,6 +134,7 @@ function Consumer() {
             <span data-testid="active-tab">{ctx.activeTab}</span>
             <span data-testid="has-isloading">{String('isLoading' in ctx)}</span>
             <span data-testid="decisions-count">{ctx.decisions.length}</span>
+            <span data-testid="show-onboarding">{String(ctx.showOnboarding)}</span>
         </div>
     );
 }
@@ -184,6 +185,37 @@ describe('PulseProvider', () => {
             </PulseProvider>,
         );
         expect(screen.getByTestId('decisions-count').textContent).toBe('1');
+    });
+
+    it('auto-opens onboarding for a genuinely new user (zero routines from the start)', () => {
+        activeRoutine = null; // routines === []
+        render(
+            <PulseProvider {...baseProps}>
+                <Consumer />
+            </PulseProvider>,
+        );
+        expect(screen.getByTestId('show-onboarding').textContent).toBe('true');
+    });
+
+    it('does NOT re-open onboarding after the last routine is deleted', () => {
+        // Start with a routine: onboarding stays closed and hadRoutines latches true.
+        activeRoutine = mockRoutine([mockExercise('e1', 'push')]);
+        const { rerender } = render(
+            <PulseProvider {...baseProps}>
+                <Consumer />
+            </PulseProvider>,
+        );
+        expect(screen.getByTestId('show-onboarding').textContent).toBe('false');
+
+        // Delete the last routine: routines drops to []. Because this session has
+        // held a routine, onboarding must NOT auto-open (the bug being fixed).
+        activeRoutine = null;
+        rerender(
+            <PulseProvider {...baseProps}>
+                <Consumer />
+            </PulseProvider>,
+        );
+        expect(screen.getByTestId('show-onboarding').textContent).toBe('false');
     });
 
     it('does not expose isLoading on the context value', () => {
