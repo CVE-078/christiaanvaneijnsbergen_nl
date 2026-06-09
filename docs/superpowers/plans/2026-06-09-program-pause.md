@@ -10,7 +10,7 @@
 
 ---
 
-## Design decisions (the "anchor-semantics rethink" — sanity-check these)
+## Design decisions (the "anchor-semantics rethink" - sanity-check these)
 
 The roadmap flagged this as needing a deliberate rethink of anchor semantics. Here is the model I chose and why.
 
@@ -24,7 +24,7 @@ The roadmap flagged this as needing a deliberate rethink of anchor semantics. He
 
 4. **New status `'paused'` short-circuits.** While a pause is active: `status = 'paused'`, `behindBy = 0`, `computeWeekAdherence` returns empty, and `computeRegenSuggestion` returns `null` (no nudges while paused). `weekInteger`/`progressionIndex` are completion-paced and untouched by the pause, so progression is exactly where the user left it.
 
-5. **`progressionInfo` needs no change** — it depends only on `weekInteger` + adjustments, with no calendar/time input.
+5. **`progressionInfo` needs no change** - it depends only on `weekInteger` + adjustments, with no calendar/time input.
 
 6. **`reason` column included but no v1 picker.** A nullable `reason` is in the table (future-proof for the Coach Timeline + an injury/illness/travel picker) but the v1 UI pauses without collecting it (passes `null`). Pure UI to add later.
 
@@ -34,17 +34,17 @@ The roadmap flagged this as needing a deliberate rethink of anchor semantics. He
 
 ## File structure
 
-- **New:** `docs/migrations/<ts>-program-pauses.sql` — the table + RLS + partial unique index.
-- **New:** `src/app/api/pulse/pauses/route.ts` — GET handler.
-- **New:** `src/app/pulse/actions/pause.ts` — `pauseProgram` / `resumeProgram` server actions.
-- **New:** `src/hooks/pulse/useProgramPauses.ts` — SWR read + optimistic pause/resume.
-- **Modify:** `src/lib/pulse/types.ts` — `ProgramPause`, `AdherenceStatus`, `ProgramPosition`.
-- **Modify:** `src/lib/pulse/adherence.ts` — pure helpers + thread pauses into the two compute fns + regen guard.
-- **Modify:** `src/lib/pulse/queries.ts` — `loadPauses` + `PAUSES_SELECT`.
-- **Modify:** `src/app/pulse/actions.ts` — re-export `./actions/pause`.
-- **Modify:** `src/components/pulse/PulseProvider.tsx` — consume, filter, thread, expose, loading/errors.
-- **Modify:** `src/context/PulseContext.ts` — `pauseProgram`/`resumeProgram` + `pauses` loading/errors keys.
-- **Modify:** `src/components/pulse/views/LogView.tsx` — Pause/Resume control.
+- **New:** `docs/migrations/<ts>-program-pauses.sql` - the table + RLS + partial unique index.
+- **New:** `src/app/api/pulse/pauses/route.ts` - GET handler.
+- **New:** `src/app/pulse/actions/pause.ts` - `pauseProgram` / `resumeProgram` server actions.
+- **New:** `src/hooks/pulse/useProgramPauses.ts` - SWR read + optimistic pause/resume.
+- **Modify:** `src/lib/pulse/types.ts` - `ProgramPause`, `AdherenceStatus`, `ProgramPosition`.
+- **Modify:** `src/lib/pulse/adherence.ts` - pure helpers + thread pauses into the two compute fns + regen guard.
+- **Modify:** `src/lib/pulse/queries.ts` - `loadPauses` + `PAUSES_SELECT`.
+- **Modify:** `src/app/pulse/actions.ts` - re-export `./actions/pause`.
+- **Modify:** `src/components/pulse/PulseProvider.tsx` - consume, filter, thread, expose, loading/errors.
+- **Modify:** `src/context/PulseContext.ts` - `pauseProgram`/`resumeProgram` + `pauses` loading/errors keys.
+- **Modify:** `src/components/pulse/views/LogView.tsx` - Pause/Resume control.
 - **Tests:** `src/lib/pulse/__tests__/adherence.test.ts` (engine), and extend `RegenNudge` / hook tests if needed.
 
 ---
@@ -89,11 +89,11 @@ export interface ProgramPause {
 }
 ```
 
-- [ ] **Step 4:** `bun run typecheck` — expect errors in `adherence.ts` (the two compute fns now need `isPaused`/`pausedDays`) which Task 2 fixes. Commit after Task 2.
+- [ ] **Step 4:** `bun run typecheck` - expect errors in `adherence.ts` (the two compute fns now need `isPaused`/`pausedDays`) which Task 2 fixes. Commit after Task 2.
 
 ---
 
-## Task 2: Engine (adherence.ts) — TDD
+## Task 2: Engine (adherence.ts) - TDD
 
 **Files:** Modify `src/lib/pulse/adherence.ts`, test `src/lib/pulse/__tests__/adherence.test.ts`
 
@@ -381,7 +381,7 @@ function pausedDaySetInRange(pauses: ProgramPause[], rangeStart: number, rangeEn
 
 (Use `pausedDaySetInRange`; the window is ≤ 7 days so the loop is cheap.)
 
-- [ ] **Step 6: Guard `computeRegenSuggestion`** — add an explicit early return:
+- [ ] **Step 6: Guard `computeRegenSuggestion`** - add an explicit early return:
 
 ```ts
 export function computeRegenSuggestion(
@@ -396,9 +396,9 @@ export function computeRegenSuggestion(
 
 - [ ] **Step 7: Import `ProgramPause`** in adherence.ts's type import block.
 
-- [ ] **Step 8: Run engine tests** — `bun run test:run src/lib/pulse/__tests__/adherence.test.ts`. Expect PASS. Fix any existing test that calls the two fns without `pauses` (add `pauses: []`).
+- [ ] **Step 8: Run engine tests** - `bun run test:run src/lib/pulse/__tests__/adherence.test.ts`. Expect PASS. Fix any existing test that calls the two fns without `pauses` (add `pauses: []`).
 
-- [ ] **Step 9: `bun run typecheck`** — expect failures only in PulseProvider (fixed in Task 8). Engine + types clean.
+- [ ] **Step 9: `bun run typecheck`** - expect failures only in PulseProvider (fixed in Task 8). Engine + types clean.
 
 - [ ] **Step 10: Commit** `feat(pulse): pause-aware adherence engine + ProgramPause type`.
 
@@ -645,7 +645,7 @@ const routinePauses = useMemo(
 
 - [ ] **Step 5:** Add `pauseProgram`, `resumeProgram` to the `regenValue` memo (+ deps).
 
-- [ ] **Step 6:** `bun run typecheck` — expect a PulseContext error until Task 9.
+- [ ] **Step 6:** `bun run typecheck` - expect a PulseContext error until Task 9.
 
 ---
 
@@ -653,7 +653,7 @@ const routinePauses = useMemo(
 
 **Files:** Modify `src/context/PulseContext.ts`
 
-- [ ] **Step 1:** Import `ProgramPause` (if exposing `pauses`; we expose actions + the derived `programPosition.isPaused`, so `pauses` array is optional — expose it for symmetry). Add to the regen section:
+- [ ] **Step 1:** Import `ProgramPause` (if exposing `pauses`; we expose actions + the derived `programPosition.isPaused`, so `pauses` array is optional - expose it for symmetry). Add to the regen section:
 
 ```ts
     // Program pause / injury mode. isPaused/pausedDays live on programPosition.
@@ -705,9 +705,9 @@ const routinePauses = useMemo(
 )}
 ```
 
-Placement: directly after the existing "Go easier this week" block (lines ~453-474). When paused, that block's `isRampBack`/"Go easier" controls should be hidden — guard them with `!isPaused` so the screen shows only the Paused banner.
+Placement: directly after the existing "Go easier this week" block (lines ~453-474). When paused, that block's `isRampBack`/"Go easier" controls should be hidden - guard them with `!isPaused` so the screen shows only the Paused banner.
 
-- [ ] **Step 3:** `bun run typecheck` + `bun run lint`. Manually reason about RegenNudge: while paused, `regenSuggestion` is null, so it renders nothing — confirm no extra guard needed.
+- [ ] **Step 3:** `bun run typecheck` + `bun run lint`. Manually reason about RegenNudge: while paused, `regenSuggestion` is null, so it renders nothing - confirm no extra guard needed.
 
 - [ ] **Step 4: Commit** `feat(pulse): pause/resume control on Train`.
 
@@ -715,7 +715,7 @@ Placement: directly after the existing "Go easier this week" block (lines ~453-4
 
 ## Task 11: Verify + finish
 
-- [ ] **Step 1:** `bun run test:run` (full suite) — all green. Fix any fixture that calls the two engine fns without `pauses: []` (search `computeProgramPosition(` / `computeWeekAdherence(` across tests).
+- [ ] **Step 1:** `bun run test:run` (full suite) - all green. Fix any fixture that calls the two engine fns without `pauses: []` (search `computeProgramPosition(` / `computeWeekAdherence(` across tests).
 - [ ] **Step 2:** `bun run typecheck` clean; `bun run lint` clean; `bun run format` the touched files.
 - [ ] **Step 3:** Code review the full diff (code-reviewer subagent or `/code-review`).
 - [ ] **Step 4:** Roadmap FINISH ritual: move #14 to Shipped (dated bullet), clear `In progress:` to `(none)`, set the In-review line to this branch, update the test count, sync the "Pulse architecture" / domain-model notes in `CLAUDE.md` (new `program_pauses` table, `useProgramPauses`, the pause engine semantics). Commit `docs(roadmap): ship program pause / injury mode`.

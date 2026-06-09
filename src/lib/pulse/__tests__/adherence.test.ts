@@ -556,6 +556,45 @@ describe('program pause', () => {
         expect(computeRegenSuggestion(pos, { missed: [], upcoming: [], done: [] }, [])).toBeNull();
     });
 
+    it('with a historical pause and an active pause, pausedDays counts only the active one', () => {
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T00:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [],
+            adjustments: [],
+            pauses: [
+                pause('2026-05-02T00:00:00Z', '2026-05-06T00:00:00Z'), // completed
+                pause('2026-05-18T00:00:00Z'), // active, open
+            ],
+            tz: 'UTC',
+            now: '2026-05-22T00:00:00Z',
+        });
+        expect(pos.status).toBe('paused');
+        expect(pos.isPaused).toBe(true);
+        expect(pos.pausedDays).toBe(4); // 05-18 → 05-22, the active pause only
+    });
+
+    it('calendarWeek subtracts multiple disjoint historical paused spans', () => {
+        // 28 days elapsed (05-01 → 05-29). Two completed pauses of 7 days each →
+        // 14 active days → week 3, exercising the interval-union math.
+        const pos = computeProgramPosition({
+            anchor: '2026-05-01T00:00:00Z',
+            programWeeks: 12,
+            schedule: SCHED,
+            sessions: [],
+            adjustments: [],
+            pauses: [
+                pause('2026-05-02T00:00:00Z', '2026-05-09T00:00:00Z'), // 05-02..05-08 = 7 days
+                pause('2026-05-15T00:00:00Z', '2026-05-22T00:00:00Z'), // 05-15..05-21 = 7 days
+            ],
+            tz: 'UTC',
+            now: '2026-05-29T00:00:00Z',
+        });
+        expect(pos.isPaused).toBe(false);
+        expect(pos.calendarWeek).toBe(3);
+    });
+
     it('no pauses → behavior is unchanged (regression guard)', () => {
         const pos = computeProgramPosition({
             anchor: '2026-05-01T08:00:00Z',
