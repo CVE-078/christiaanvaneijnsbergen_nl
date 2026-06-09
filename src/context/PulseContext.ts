@@ -32,6 +32,8 @@ import type {
     VarietyPreference,
     LoadingPreference,
     RestrictionFlag,
+    EquipmentProfile,
+    EquipmentKey,
 } from '@/lib/pulse/types';
 import type { ExperienceLevel, OnboardingAnswers } from '@/lib/pulse/recommendation';
 
@@ -82,6 +84,14 @@ export interface PulseContextValue {
     swaps: Swaps;
     setSwap: (week: number, routineExerciseId: string, exerciseId: string) => Promise<void>;
     clearSwap: (week: number, routineExerciseId: string) => Promise<void>;
+
+    // Equipment profiles (named reusable equipment sets; storage + manager only,
+    // generation wiring is Branch B). active pointer lives on `profile`.
+    equipmentProfiles: EquipmentProfile[];
+    createEquipmentProfile: (name: string, equipment: EquipmentKey[]) => Promise<EquipmentProfile>;
+    updateEquipmentProfile: (id: string, name: string, equipment: EquipmentKey[]) => Promise<void>;
+    deleteEquipmentProfile: (id: string) => Promise<void>;
+    setActiveEquipmentProfile: (id: string | null) => Promise<void>;
 
     // UI state
     navigate: (view: View) => void;
