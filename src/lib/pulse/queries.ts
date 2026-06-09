@@ -1,6 +1,7 @@
 import type { createClient } from '@/lib/supabase/server';
 import { validateLogs } from '@/lib/pulse/validation';
 import { logKey } from '@/lib/pulse/utils';
+import type { SwapHistoryRow } from './behavior';
 import type {
     Logs,
     Notes,
@@ -232,6 +233,21 @@ export async function loadSwaps(supabase: SupabaseServerClient, userId: string):
         swaps[`${row.week}-${row.routine_exercise_id}`] = row.exercise_id;
     }
     return swaps;
+}
+
+// Swap history for behavior learning (#7): the recorded from-exercise of each
+// swap, user-scoped. Drops rows with a null from (historical rows pre-dating the
+// from_exercise_id column).
+export async function loadSwapHistory(supabase: SupabaseServerClient, userId: string): Promise<SwapHistoryRow[]> {
+    const { data, error } = await supabase
+        .from('exercise_swaps')
+        .select('from_exercise_id, created_at')
+        .eq('user_id', userId)
+        .not('from_exercise_id', 'is', null);
+    if (error) throw error;
+    return (data ?? [])
+        .filter((r) => r.from_exercise_id != null)
+        .map((r) => ({ fromExerciseId: r.from_exercise_id as string, createdAt: r.created_at as string }));
 }
 
 export async function loadHiddenExerciseIds(supabase: SupabaseServerClient, userId: string): Promise<string[]> {
