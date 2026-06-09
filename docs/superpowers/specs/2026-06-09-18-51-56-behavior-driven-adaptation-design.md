@@ -114,6 +114,7 @@ export const BEHAVIOR_RECENCY_DAYS = 120; // ~one to two training blocks; older 
 ## Out of scope (v1.5), honest phasing
 - **Promote (swap-to) learning.** Deferred: comfort-ratchet + logistics confound. v1.6, ideally gated behind reason-tagged swaps (#8).
 - **Anchor-pattern learning** (e.g. barbell bench -> dumbbell bench within horizontal_push). Safe only once swap *reasons* (#8) let us exclude constraint-swaps; until then the anchor patterns are protected wholesale.
+- **Permanent swaps as a signal.** `swapRoutineExercisePermanently` (the strongest "I reject this" action) writes no `exercise_swaps` row, so v1.5 learns only from temporary per-week swaps. Capturing the permanent swap (arguably a stronger demote) is a follow-on; it needs its own signal write, not the swap log.
 - **Skip signal.** Extends the `demote` set on the same seam, but needs `workout_sessions` + schedule attribution and a trust model. v1.6.
 - **Volume -> emphasis.** A **separate signal path**: it must tilt `tiltEmphasis` weights per muscle/pattern, not reorder exercise ids in `byPattern`. It will add a sibling field/path, NOT reuse `demote`. (Correcting the earlier claim that all three share one seam: swaps + skips share the demote seam; volume does not.)
 - **A generation-time `DecisionEvent`.** Generation writes none by design, and the `swap` `DecisionEventType` is sourced from `exercise_swaps`. v1.5 inspectability is the specific named rationale clause; a Coach-Timeline "learned-preference" event is a documented follow-on (it is a different event from the raw swap).
