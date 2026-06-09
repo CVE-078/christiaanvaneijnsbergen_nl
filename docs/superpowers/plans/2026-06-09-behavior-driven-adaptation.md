@@ -241,7 +241,7 @@ export async function loadSwapHistory(
 }
 ```
 
-(Check the existing `SupabaseServerClient` type name used by sibling loaders in `queries.ts` and match it. If `loadSwaps`'s test mock chains `.not(...)`, confirm the test `makeClient` builder returns `this` from `.not`; if not, extend the mock builder to support `.not` returning the data, mirroring how it already supports `.eq`/`.order`.)
+**Mock builder extension (required):** the `makeBuilder` in `queries.test.ts` (~line 7-23) has no `.not` (no loader used it before). Add `builder.not = chain;` beside `builder.limit = chain;` so the chained `.not('from_exercise_id', 'is', null)` resolves. Without this the test throws `builder.not is not a function`. (`SupabaseServerClient` is the correct loader type name in `queries.ts:26`.)
 
 - [ ] **Step 4: Run, verify pass**
 
@@ -276,13 +276,19 @@ describe('behavior-driven demote (#7)', () => {
     });
 
     it('sinks a demoted exercise on a NON-anchor pattern', () => {
-        // baseline picks biceps_iso-1 before biceps_iso-2 (alphabetical tiebreak)
+        // triceps_iso occupies exactly ONE slot in Classic Upper/Lower (upper_delts_arms),
+        // so demoting it cleanly swaps -1 for -2. (biceps_iso/chest_iso/lunge/glute_iso/
+        // calf/core each occupy two slots, where demoting -1 only moves which session
+        // takes it, never removing it, so they are NOT usable for this assertion.)
+        // In deepPool all candidates tie on every existing key (uniform fatigue,
+        // null sub-class, no preferredKey), so the terminal alphabetical tiebreak
+        // makes -1 the base pick; the demote layer flips it to -2.
         const base = generateRoutine(input());
-        expect(ids(base)).toContain('biceps_iso-1');
-        const demoted = generateRoutine(input({ behavior: { demote: ['biceps_iso-1'] } }));
-        // with -1 demoted, the slot that took it now takes -2 instead
-        expect(ids(demoted)).toContain('biceps_iso-2');
-        expect(ids(demoted)).not.toContain('biceps_iso-1');
+        expect(ids(base)).toContain('triceps_iso-1');
+        expect(ids(base)).not.toContain('triceps_iso-2');
+        const demoted = generateRoutine(input({ behavior: { demote: ['triceps_iso-1'] } }));
+        expect(ids(demoted)).toContain('triceps_iso-2');
+        expect(ids(demoted)).not.toContain('triceps_iso-1');
     });
 
     it('does NOT reorder an ANCHOR pattern even if the exercise is demoted', () => {
@@ -305,7 +311,7 @@ describe('behavior-driven demote (#7)', () => {
 });
 ```
 
-NOTE: the second test assumes the Classic Upper/Lower style requests a `biceps_iso` slot and that with two equal candidates the alphabetical tiebreak picks `-1`. If the style does not surface `biceps_iso`, switch to a non-anchor pattern the style does use (inspect a `generateRoutine(input())` blueprint's patterns first via a scratch assertion, then pick a non-anchor pattern present in it, e.g. `triceps_iso` or `shoulder_iso`). Keep the anchor test on a guaranteed anchor pattern (`squat`/`horizontal_push`).
+NOTE: `triceps_iso` is verified to occupy exactly one slot in Classic Upper/Lower (so the demote cleanly removes `-1`); `back_iso` and `shoulder_iso` also work if needed. Patterns that occupy two slots (`biceps_iso`, `chest_iso`, `lunge`, `glute_iso`, `calf`, `core`) cannot be used (demoting `-1` only swaps which session takes it). Keep the anchor test on a guaranteed anchor pattern (`squat`/`horizontal_push`).
 
 - [ ] **Step 2: Run, verify fail**
 
@@ -419,7 +425,9 @@ Remove the original `const rationale = buildRationale(...)` at line 489.
         behavior,
 ```
 
-Add imports at the top of `routines.ts`: `import { loadSwapHistory } from '@/lib/pulse/queries';` (or extend the existing queries import), `import { analyzeSwapBehavior, EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';`, and `import { BEHAVIOR_MIN_SWAPS, BEHAVIOR_RECENCY_DAYS } from '@/lib/pulse/constants';` (extend existing constants import if present). If `ExercisePoolRow` is a declared type, add `name?: string` to it.
+Add imports at the top of `routines.ts`: `loadSwapHistory` (extend the existing `@/lib/pulse/queries` import), `import { analyzeSwapBehavior, EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';`, and a NEW `import { BEHAVIOR_MIN_SWAPS, BEHAVIOR_RECENCY_DAYS } from '@/lib/pulse/constants';` (routines.ts has no existing constants import). `ExercisePoolRow` is a declared interface (`routines.ts:399-409`); add `name: string;` to it so the `name` select column is typed.
+
+NOTE: `buildRationale`'s other caller, the client-side preview in `RoutineSetupFlow.tsx`, cannot load swap history, so the behavior clause appears only on the persisted rationale (Task 6), which matches the spec's "inspectability via the persisted rationale" intent. This is expected, not a gap.
 
 - [ ] **Step 2: Verify** `bun run typecheck`. Expected: 0 errors.
 
