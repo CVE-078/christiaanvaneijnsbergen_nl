@@ -65,6 +65,7 @@ export default function GenerateRoutineButton({
                     equipmentProfiles={equipmentProfiles}
                     activeEquipmentProfileId={profile.active_equipment_profile_id}
                     onCreateEquipmentProfile={createEquipmentProfile}
+                    timezone={profile.timezone}
                     onComplete={async ({ answers, trainingDays, sessionTime, styleKey, startAnchor, programWeeks }) => {
                         // Quick mode skips the personalization steps; pass undefined so
                         // generateRoutine defers to the user's stored profile values.
