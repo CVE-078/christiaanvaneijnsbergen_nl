@@ -29,6 +29,10 @@ const mockUpdateTrainingStyle = vi.fn().mockResolvedValue(undefined);
 const mockUpdateVarietyPreference = vi.fn().mockResolvedValue(undefined);
 const mockUpdateLoadingLean = vi.fn().mockResolvedValue(undefined);
 const mockUpdateMovementRestrictions = vi.fn().mockResolvedValue(undefined);
+const mockCreateEquipmentProfile = vi.fn().mockResolvedValue(undefined);
+const mockUpdateEquipmentProfile = vi.fn().mockResolvedValue(undefined);
+const mockDeleteEquipmentProfile = vi.fn().mockResolvedValue(undefined);
+const mockSetActiveEquipmentProfile = vi.fn().mockResolvedValue(undefined);
 
 const defaultContext = {
     email: 'test@example.com',
@@ -45,7 +49,13 @@ const defaultContext = {
         variety_preference: null,
         loading_lean: null,
         movement_restrictions: null,
+        active_equipment_profile_id: null,
     },
+    equipmentProfiles: [],
+    createEquipmentProfile: mockCreateEquipmentProfile,
+    updateEquipmentProfile: mockUpdateEquipmentProfile,
+    deleteEquipmentProfile: mockDeleteEquipmentProfile,
+    setActiveEquipmentProfile: mockSetActiveEquipmentProfile,
     bodyweightLogs: [],
     bodyMeasurements: [],
     refreshMeasurements: vi.fn(),
@@ -103,6 +113,10 @@ beforeEach(() => {
     mockUpdateVarietyPreference.mockClear();
     mockUpdateLoadingLean.mockClear();
     mockUpdateMovementRestrictions.mockClear();
+    mockCreateEquipmentProfile.mockClear();
+    mockUpdateEquipmentProfile.mockClear();
+    mockDeleteEquipmentProfile.mockClear();
+    mockSetActiveEquipmentProfile.mockClear();
     vi.mocked(updateGoalWeight).mockClear();
 });
 
