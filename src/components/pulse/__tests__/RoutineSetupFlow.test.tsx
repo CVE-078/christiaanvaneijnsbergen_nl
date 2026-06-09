@@ -22,10 +22,32 @@ describe('RoutineSetupFlow', () => {
         expect(screen.getByText(/equipment do you have access to/i)).toBeInTheDocument();
     });
 
-    it('Cancel calls onClose', () => {
+    it('the close (X) button calls onClose immediately on the first step', () => {
         const onClose = vi.fn();
         render(<RoutineSetupFlow onComplete={vi.fn()} onClose={onClose} />);
-        fireEvent.click(screen.getByText('Cancel'));
+        // First step has no progress to lose, so X closes without a confirm.
+        fireEvent.click(screen.getByRole('button', { name: /close setup/i }));
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('closing after advancing confirms before discarding', () => {
+        const onClose = vi.fn();
+        render(<RoutineSetupFlow initial={initial} onComplete={vi.fn()} onClose={onClose} />);
+        fireEvent.click(screen.getByText('Next')); // advance past the entry step → dirty
+        const confirm = vi.spyOn(window, 'confirm');
+        confirm.mockReturnValueOnce(false); // declined → stays open
+        fireEvent.click(screen.getByRole('button', { name: /close setup/i }));
+        expect(onClose).not.toHaveBeenCalled();
+        confirm.mockReturnValueOnce(true); // accepted → closes
+        fireEvent.click(screen.getByRole('button', { name: /close setup/i }));
+        expect(onClose).toHaveBeenCalledTimes(1);
+        confirm.mockRestore();
+    });
+
+    it('Escape closes the flow from the first step (nothing to discard)', () => {
+        const onClose = vi.fn();
+        render(<RoutineSetupFlow onComplete={vi.fn()} onClose={onClose} />);
+        fireEvent.keyDown(window, { key: 'Escape' });
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
