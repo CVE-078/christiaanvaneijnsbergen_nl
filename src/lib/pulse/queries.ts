@@ -16,6 +16,8 @@ import type {
     DecisionEventRow,
     DecisionEventType,
     DecisionTrigger,
+    EquipmentProfile,
+    EquipmentKey,
 } from '@/lib/pulse/types';
 
 // Canonical Supabase server client type. Both the layout and the GET route
@@ -42,6 +44,7 @@ const SESSIONS_SELECT =
     'id, user_id, routine_id, workout_type, variant, started_at, completed_at, session_rpe, session_note';
 const ADJUSTMENTS_SELECT = 'id, routine_id, kind, effective_week, created_at, payload';
 const DECISION_EVENTS_SELECT = 'id, routine_id, type, trigger, affected_area, week, magnitude, confidence, created_at';
+const EQUIPMENT_PROFILES_SELECT = 'id, name, equipment, created_at';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at, rationale, program_weeks, program_anchor,
             exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound ) ),
@@ -98,6 +101,29 @@ export async function loadProfile(supabase: SupabaseServerClient, userId: string
         timezone: typeof data?.timezone === 'string' && data.timezone ? data.timezone : 'UTC',
         accent_color: typeof data?.accent_color === 'string' ? data.accent_color : null,
     };
+}
+
+// The user's equipment profiles, most-recently-created first (id desc as a
+// deterministic, not chronological, tiebreak for equal timestamps). Scoped to the
+// user by RLS and the explicit user_id filter (defense in depth, matching the
+// other loaders). The pre-fill resolution rule that consumes these lives in Branch B.
+export async function loadEquipmentProfiles(
+    supabase: SupabaseServerClient,
+    userId: string,
+): Promise<EquipmentProfile[]> {
+    const { data, error } = await supabase
+        .from('equipment_profiles')
+        .select(EQUIPMENT_PROFILES_SELECT)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r) => ({
+        id: r.id,
+        name: r.name,
+        equipment: (r.equipment ?? []) as EquipmentKey[],
+        created_at: r.created_at,
+    }));
 }
 
 export async function loadBodyweight(supabase: SupabaseServerClient, userId: string): Promise<BodyweightEntry[]> {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loadLogs, loadProfile, loadBodyweight, loadExercises, loadRoutines, loadNotes, loadSwaps } from '../queries';
+import { loadLogs, loadProfile, loadBodyweight, loadExercises, loadRoutines, loadNotes, loadSwaps, loadEquipmentProfiles } from '../queries';
 
 // A minimal fake of the chainable Supabase query builder. Every chain method
 // returns the same object, and the builder is awaitable so it resolves to
@@ -252,5 +252,27 @@ describe('loadSwaps', () => {
         const swaps = await loadSwaps(client, UID);
         expect(calls.table).toBe('exercise_swaps');
         expect(swaps[`4-${REID}`]).toBe('sub-1');
+    });
+});
+
+describe('loadEquipmentProfiles', () => {
+    it('selects the canonical columns scoped to the user and maps rows', async () => {
+        const { client, calls } = makeClient({
+            data: [
+                { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', equipment: ['dumbbells'], created_at: '2026-06-09T00:00:00Z' },
+            ],
+            error: null,
+        });
+        const profiles = await loadEquipmentProfiles(client, UID);
+        expect(calls.table).toBe('equipment_profiles');
+        expect(calls.select).toBe('id, name, equipment, created_at');
+        expect(profiles).toEqual([
+            { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', equipment: ['dumbbells'], created_at: '2026-06-09T00:00:00Z' },
+        ]);
+    });
+
+    it('throws on query error', async () => {
+        const { client } = makeClient({ data: null, error: new Error('boom') });
+        await expect(loadEquipmentProfiles(client, UID)).rejects.toThrow('boom');
     });
 });
