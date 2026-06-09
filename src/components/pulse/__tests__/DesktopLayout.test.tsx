@@ -101,6 +101,8 @@ const mockContext = {
     acceptReentryDeload: vi.fn().mockResolvedValue(undefined),
     dismissReentry: vi.fn().mockResolvedValue(undefined),
     lightenThisWeek: vi.fn().mockResolvedValue(undefined),
+    pauseProgram: vi.fn().mockResolvedValue(undefined),
+    resumeProgram: vi.fn().mockResolvedValue(undefined),
     refreshSessions: vi.fn(),
     decisions: [],
     loading: {
@@ -112,6 +114,7 @@ const mockContext = {
         notes: false,
         sessions: false,
         adjustments: false,
+        pauses: false,
     },
     errors: {
         profile: false,
@@ -122,6 +125,7 @@ const mockContext = {
         notes: false,
         sessions: false,
         adjustments: false,
+        pauses: false,
     },
     retry: vi.fn(),
 };

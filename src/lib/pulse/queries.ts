@@ -13,6 +13,7 @@ import type {
     WorkoutSession,
     ProgramAdjustment,
     AdjustmentKind,
+    ProgramPause,
     DecisionEventRow,
     DecisionEventType,
     DecisionTrigger,
@@ -43,6 +44,7 @@ const HIDDEN_PREFS_SELECT = 'exercise_id';
 const SESSIONS_SELECT =
     'id, user_id, routine_id, workout_type, variant, started_at, completed_at, session_rpe, session_note';
 const ADJUSTMENTS_SELECT = 'id, routine_id, kind, effective_week, created_at, payload';
+const PAUSES_SELECT = 'id, routine_id, paused_at, resumed_at, reason, created_at';
 const DECISION_EVENTS_SELECT = 'id, routine_id, type, trigger, affected_area, week, magnitude, confidence, created_at';
 const EQUIPMENT_PROFILES_SELECT = 'id, name, equipment, created_at';
 const ROUTINES_SELECT = `
@@ -282,6 +284,25 @@ export async function loadAdjustments(supabase: SupabaseServerClient, userId: st
         effective_week: Number(r.effective_week),
         created_at: r.created_at,
         payload: (r.payload ?? {}) as ProgramAdjustment['payload'],
+    }));
+}
+
+// Program pauses for the user, oldest first. The engine scopes them per routine.
+export async function loadPauses(supabase: SupabaseServerClient, userId: string): Promise<ProgramPause[]> {
+    const { data, error } = await supabase
+        .from('program_pauses')
+        .select(PAUSES_SELECT)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+    if (error) throw error;
+
+    return (data ?? []).map((r) => ({
+        id: r.id,
+        routine_id: r.routine_id,
+        paused_at: r.paused_at,
+        resumed_at: r.resumed_at ?? null,
+        reason: r.reason ?? null,
+        created_at: r.created_at,
     }));
 }
 

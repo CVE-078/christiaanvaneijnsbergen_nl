@@ -135,6 +135,7 @@ export interface PulseContextValue {
         notes: boolean;
         sessions: boolean;
         adjustments: boolean;
+        pauses: boolean;
     };
     errors: {
         profile: boolean;
@@ -145,6 +146,7 @@ export interface PulseContextValue {
         notes: boolean;
         sessions: boolean;
         adjustments: boolean;
+        pauses: boolean;
     };
     retry: () => void;
 
@@ -223,6 +225,10 @@ export interface PulseContextValue {
     // User-initiated "go easier this week": applies the ramp-back ease to the
     // current week without inserting/offsetting the program.
     lightenThisWeek: (routineId: string, weekInteger: number) => Promise<void>;
+    // Program pause / injury mode. isPaused / pausedDays live on programPosition;
+    // while paused the calendar is frozen (no behind/lapsed, no missed-week hit).
+    pauseProgram: (routineId: string) => Promise<void>;
+    resumeProgram: (routineId: string) => Promise<void>;
     // The unified decision log (newest first) for the Coach Decision Timeline.
     decisions: DecisionEventRow[];
     // Revalidate the sessions feed (call after completing a workout so the
