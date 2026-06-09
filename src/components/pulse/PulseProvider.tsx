@@ -271,9 +271,18 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     );
 
     const [onboardingOverride, setOnboardingOverride] = useState<boolean | null>(null);
+    // Track whether this session has ever held a routine, so auto-open onboarding
+    // fires only for a genuinely new user, not after a user deletes their last
+    // routine (which also drops routines.length to 0 but should NOT re-ambush them;
+    // they reach generation through the explicit empty-state CTA instead).
+    const hadRoutines = useRef(false);
+    useEffect(() => {
+        if (routines.length > 0) hadRoutines.current = true;
+    }, [routines.length]);
     // Gate on loaded routines so the onboarding modal does not flash before the
     // client fetch resolves (routines is [] while loading).
-    const showOnboarding = onboardingOverride ?? (!loadingRoutines && routines.length === 0);
+    const showOnboarding =
+        onboardingOverride ?? (!loadingRoutines && routines.length === 0 && !hadRoutines.current);
     const triggerOnboarding = useCallback(() => setOnboardingOverride(true), []);
     const dismissOnboarding = useCallback(() => setOnboardingOverride(false), []);
 
