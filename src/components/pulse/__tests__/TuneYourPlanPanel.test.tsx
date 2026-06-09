@@ -76,6 +76,14 @@ describe('TuneYourPlanPanel', () => {
         expect(screen.getByText('Built for your goals.')).toBeInTheDocument();
     });
 
+    it('shows a plan summary of the inputs the routine was built from', () => {
+        render(<TuneYourPlanPanel {...baseState} onDone={onDone} />);
+        expect(screen.getByText('Plan summary')).toBeInTheDocument();
+        expect(screen.getByText('Build muscle')).toBeInTheDocument(); // goal
+        expect(screen.getByText('45–60 min')).toBeInTheDocument(); // session length
+        expect(screen.getByText('12 weeks')).toBeInTheDocument(); // program length
+    });
+
     it('surfaces the four personalization sections seeded from the stored profile', () => {
         render(<TuneYourPlanPanel {...baseState} onDone={onDone} />);
         expect(screen.getByText('Training style')).toBeInTheDocument();
