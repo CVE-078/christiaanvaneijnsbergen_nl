@@ -24,9 +24,9 @@
 
 ## Status & next session (2026-06-09)
 
-**In progress:** (none).
+**In progress:** **Smart substitution v2 (Tier 3 #8)** on `feature/smart-substitution-v2` (reason-tagged swaps + reason-aware same-stimulus ranking + #7 preference-only filter). Spec: `docs/superpowers/specs/2026-06-09-21-54-49-smart-substitution-v2-design.md`.
 
-**In review (on a branch, not yet merged):** **Behavior-driven adaptation (Tier 3 #7)** on `feature/behavior-driven-adaptation` (learn from repeated swaps, demote-only, accessory patterns, recency-bounded). Apply the migration and merge. Travel mode (#322, merged #110), program pause (#14, #109), and equipment profiles Branch B (#100) are on `main`.
+**In review (on a branch, not yet merged):** (none). Behavior-driven adaptation (#7, merged #111), travel mode (#322, #110), program pause (#14, #109), and equipment profiles Branch B (#100) are all on `main`.
 
 **Ongoing (continuous, not a discrete next-action):**
 - **Validation block** (highest-leverage, gates the launch-readiness track): train Pulse with intent and run the deliberate missed-week test (skip a scheduled week to fire ramp-back), querying the `DecisionEvent` log via `docs/queries/decision-events-review.sql` (newest-first, today-only, ramp-back-only variants). Runs in parallel with build work; not a thing to "finish", a thing to keep doing until the adaptive promise is earned.
@@ -40,7 +40,7 @@
 - **Suite:** typecheck clean, **1014 tests**. Per-feature detail lives in **Shipped**; strategy + specs are frozen in the two 2026-06-06 design docs plus the equipment-profiles + travel-mode + behavior-adaptation specs/plans.
 
 **Next up, in order:**
-1. Merge behavior-driven adaptation (#7). Then the **launch-readiness track** (gated behind validation): the **auth + billing lifecycle** long pole. Other open build work: **Tier 3** #8 smart substitution v2 (reason-tagged swaps, the precursor that unlocks #7's promote + anchor-pattern learning + lets behavior learning tell preference from constraint), #9 progress photos.
+1. Finish smart substitution v2 (#8, in progress). Then the **launch-readiness track** (gated behind validation): the **auth + billing lifecycle** long pole. Other open build work: **Tier 3** #9 progress photos (the only one with real infra cost: a Supabase storage bucket + CSP `img-src`).
 
 **Launch-readiness track (gated behind validation, not due while private validation runs):** the **auth + billing lifecycle** is the long pole, then the **a11y audit**. Both detailed in "Launch floor" below.
 
