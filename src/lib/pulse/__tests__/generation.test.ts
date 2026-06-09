@@ -19,6 +19,7 @@ import {
     COMPOUND_ANCHOR_PATTERNS,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
+import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
 import type { EquipmentKey, MovementPattern, ExerciseCategory, ProgramStyle, Bias, TrainingStyle } from '@/lib/pulse/types';
 
 describe('volumeFor', () => {
@@ -1309,5 +1310,50 @@ describe('movement restrictions: two flags at once filter the union', () => {
         expect(ids.has('barbell-back-squat')).toBe(false);
         expect(ids.has('overhead-press')).toBe(false);
         expect(bp.exercises.length).toBeGreaterThan(0);
+    });
+});
+
+describe('behavior-driven demote (#7)', () => {
+    const ids = (bp: ReturnType<typeof generateRoutine>) => bp.exercises.map((e) => e.exercise_id);
+
+    it('GOLDEN: empty behavior and omitted behavior are byte-identical to base', () => {
+        const base = JSON.stringify(generateRoutine(input()));
+        expect(JSON.stringify(generateRoutine(input({ behavior: EMPTY_BEHAVIOR })))).toBe(base);
+        expect(JSON.stringify(generateRoutine(input({ behavior: { demote: [] } })))).toBe(base);
+    });
+
+    it('sinks a demoted exercise on a NON-anchor pattern', () => {
+        // triceps_iso occupies exactly ONE slot in Classic Upper/Lower, so demoting
+        // it cleanly swaps -1 for -2. In deepPool all candidates tie on every
+        // existing key, so the terminal alphabetical tiebreak makes -1 the base
+        // pick; the demote layer flips it to -2.
+        const base = generateRoutine(input());
+        expect(ids(base)).toContain('triceps_iso-1');
+        expect(ids(base)).not.toContain('triceps_iso-2');
+        const demoted = generateRoutine(input({ behavior: { demote: ['triceps_iso-1'] } }));
+        expect(ids(demoted)).toContain('triceps_iso-2');
+        expect(ids(demoted)).not.toContain('triceps_iso-1');
+    });
+
+    it('does NOT reorder an ANCHOR pattern even when the exercise is demoted', () => {
+        const base = JSON.stringify(generateRoutine(input()));
+        const demoted = JSON.stringify(
+            generateRoutine(input({ behavior: { demote: ['squat-1', 'horizontal_push-1'] } })),
+        );
+        expect(demoted).toBe(base);
+    });
+
+    it('still selects a demoted exercise when it is the only candidate for its slot', () => {
+        const thin: ExerciseMeta[] = [];
+        for (const p of ALL_PATTERNS) {
+            thin.push(meta(`${p}-only`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'));
+        }
+        const all = generateRoutine(input({ pool: thin }));
+        const demoted = generateRoutine(input({ pool: thin, behavior: { demote: ['triceps_iso-only'] } }));
+        // If the style surfaces triceps_iso at all, the soft demote must not drop
+        // the only candidate.
+        if (all.exercises.some((e) => e.exercise_id === 'triceps_iso-only')) {
+            expect(demoted.exercises.some((e) => e.exercise_id === 'triceps_iso-only')).toBe(true);
+        }
     });
 });

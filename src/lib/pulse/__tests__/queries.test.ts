@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loadLogs, loadProfile, loadBodyweight, loadExercises, loadRoutines, loadNotes, loadSwaps, loadEquipmentProfiles } from '../queries';
+import { loadLogs, loadProfile, loadBodyweight, loadExercises, loadRoutines, loadNotes, loadSwaps, loadSwapHistory, loadEquipmentProfiles } from '../queries';
 
 // A minimal fake of the chainable Supabase query builder. Every chain method
 // returns the same object, and the builder is awaitable so it resolves to
@@ -14,6 +14,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     };
     builder.eq = chain;
     builder.or = chain;
+    builder.not = chain;
     builder.order = chain;
     builder.limit = chain;
     builder.maybeSingle = () => Promise.resolve(result);
@@ -252,6 +253,25 @@ describe('loadSwaps', () => {
         const swaps = await loadSwaps(client, UID);
         expect(calls.table).toBe('exercise_swaps');
         expect(swaps[`4-${REID}`]).toBe('sub-1');
+    });
+});
+
+describe('loadSwapHistory', () => {
+    it('selects from_exercise_id + created_at scoped to the user and maps rows', async () => {
+        const { client, calls } = makeClient({
+            data: [
+                { from_exercise_id: 'ex-a', created_at: '2026-06-01T00:00:00Z' },
+                { from_exercise_id: 'ex-b', created_at: '2026-06-02T00:00:00Z' },
+            ],
+            error: null,
+        });
+        const rows = await loadSwapHistory(client, UID);
+        expect(calls.table).toBe('exercise_swaps');
+        expect(calls.select).toBe('from_exercise_id, created_at');
+        expect(rows).toEqual([
+            { fromExerciseId: 'ex-a', createdAt: '2026-06-01T00:00:00Z' },
+            { fromExerciseId: 'ex-b', createdAt: '2026-06-02T00:00:00Z' },
+        ]);
     });
 });
 
