@@ -10,6 +10,7 @@ const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase tex
 export default function RoutineExerciseRow({
     re,
     index,
+    displayNumber,
     total,
     unit,
     onMove,
@@ -21,7 +22,11 @@ export default function RoutineExerciseRow({
     onUnpair,
 }: {
     re: RoutineExercise;
+    /** Position in the flat ordered list; drives reorder (onMove) and move-bound checks. */
     index: number;
+    /** 1-based number shown in the badge. Per-session in grouped views (matches Plan);
+     *  falls back to index + 1 (flat numbering) when omitted. */
+    displayNumber?: number;
     total: number;
     unit: Unit;
     onMove: (index: number, dir: -1 | 1) => void;
@@ -70,7 +75,7 @@ export default function RoutineExerciseRow({
         <div className="flex flex-col gap-1.5 bg-pulse-surface rounded-xl px-3 py-2.5">
             {/* Line 1: index + full exercise name */}
             <div className="flex items-center gap-3">
-                <span className="font-pulse text-xs text-pulse-muted w-5 shrink-0">{index + 1}</span>
+                <span className="font-pulse text-xs text-pulse-muted w-5 shrink-0">{displayNumber ?? index + 1}</span>
                 <span className="font-pulse text-sm text-pulse-text flex-1 min-w-0 truncate">
                     {re.exercise.name}
                     {isHidden && (
