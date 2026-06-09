@@ -213,7 +213,7 @@ export default function RoutinesTab() {
         });
     }
 
-    function renderRow(re: RoutineExercise, i: number) {
+    function renderRow(re: RoutineExercise, i: number, displayNumber: number) {
         const isPaired = re.superset_group_id !== null;
         const pairIndices = isPaired
             ? sortedActiveExercises
@@ -242,6 +242,7 @@ export default function RoutinesTab() {
                 key={re.id}
                 re={re}
                 index={i}
+                displayNumber={displayNumber}
                 total={sortedActiveExercises.length}
                 unit={unit}
                 onMove={handleMove}
@@ -363,7 +364,7 @@ export default function RoutinesTab() {
                             </div>
                         ) : sessionGroups.length <= 1 ? (
                             <div className="flex flex-col gap-2">
-                                {sortedActiveExercises.map((re, i) => renderRow(re, i))}
+                                {sortedActiveExercises.map((re, i) => renderRow(re, i, i + 1))}
                             </div>
                         ) : (
                             sessionGroups.map((group) => (
@@ -372,7 +373,9 @@ export default function RoutinesTab() {
                                         {WORKOUT_TYPE_LABELS[group.type]}
                                         {group.variant ? ` · ${group.variant}` : ''}
                                     </div>
-                                    {group.items.map(({ re, index }) => renderRow(re, index))}
+                                    {/* Per-session numbering (1..n within the section) matches Plan;
+                                        the global `index` still drives reorder/move bounds. */}
+                                    {group.items.map(({ re, index }, j) => renderRow(re, index, j + 1))}
                                 </div>
                             ))
                         )}

@@ -663,4 +663,63 @@ describe('LibraryView', () => {
         expect(screen.queryByText('Pull · A')).not.toBeInTheDocument();
         expect(screen.queryByText('Legs · A')).not.toBeInTheDocument();
     });
+
+    it('numbers exercises per session (1..n) in the routine editor while reorder still uses the global index', async () => {
+        const ex = (id: string, name: string): DbExercise => ({
+            id,
+            name,
+            category: 'chest',
+            default_sets: '3',
+            default_reps: '8-12',
+            user_id: null,
+        });
+        const re = (id: string, type: string, order: number, exercise: DbExercise) => ({
+            id,
+            routine_id: 'r1',
+            exercise_id: exercise.id,
+            workout_type: type,
+            variant: 'A' as const,
+            order,
+            sets: '3',
+            reps: '8-12',
+            starting_weight_kg: null,
+            superset_group_id: null,
+            exercise,
+        });
+        // Order interleaves the two sessions (upper@0, lower@1, upper@2, lower@3),
+        // so the global index differs from the per-session position. The old code
+        // numbered by global index (Upper 1,3 / Lower 2,4); the fix numbers per
+        // session (1,2 / 1,2), matching ProgramView on the Plan page.
+        const routine = {
+            ...activeRoutine,
+            exercises: [
+                re('a', 'upper', 0, ex('a', 'Upper One')),
+                re('b', 'lower', 1, ex('b', 'Lower One')),
+                re('c', 'upper', 2, ex('c', 'Upper Two')),
+                re('d', 'lower', 3, ex('d', 'Lower Two')),
+            ],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: routine,
+            routines: [routine, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+
+        // The second exercise of each session reads "2", not its global index (3 / 4).
+        const upperTwoRow = screen.getByText('Upper Two').closest('div') as HTMLElement;
+        expect(within(upperTwoRow).getByText('2')).toBeInTheDocument();
+        expect(within(upperTwoRow).queryByText('3')).not.toBeInTheDocument();
+        const lowerTwoRow = screen.getByText('Lower Two').closest('div') as HTMLElement;
+        expect(within(lowerTwoRow).getByText('2')).toBeInTheDocument();
+        expect(within(lowerTwoRow).queryByText('4')).not.toBeInTheDocument();
+
+        // Reorder still operates on the global index: moving the first Upper
+        // exercise down swaps it past the first Lower exercise (across sections).
+        await userEvent.click(screen.getByRole('button', { name: /move upper one down/i }));
+        await waitFor(() => {
+            expect(mocks.reorderRoutineExercises).toHaveBeenCalledWith('r1', ['b', 'a', 'c', 'd']);
+        });
+    });
 });
