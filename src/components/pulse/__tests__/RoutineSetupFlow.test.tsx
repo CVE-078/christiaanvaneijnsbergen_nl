@@ -148,6 +148,48 @@ describe('RoutineSetupFlow', () => {
         expect(onComplete.mock.calls[0][0].startAnchor).toBe('2099-01-05T12:00:00.000Z');
     });
 
+    // ── Start-date display + picker UX (#5 in the report) ────────────────────
+    const startFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    function reachStartStep() {
+        const single = { ...initial, trainingDays: [1, 4] }; // 2 days → no style step
+        render(<RoutineSetupFlow initial={single} onComplete={vi.fn()} onClose={vi.fn()} />);
+        for (let i = 0; i < 8; i++) fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Skip')); // loading → restrictions
+        fireEvent.click(screen.getByText('Skip')); // restrictions → program length
+        fireEvent.click(screen.getByText('Next')); // program length → start
+    }
+
+    it('shows the actual resolved dates next to Today and Tomorrow', () => {
+        reachStartStep();
+        const today = new Date();
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        expect(screen.getByText(startFmt.format(today))).toBeInTheDocument();
+        expect(screen.getByText(startFmt.format(tomorrow))).toBeInTheDocument();
+    });
+
+    it('shows a "Next Monday" date that is never today', () => {
+        reachStartStep();
+        const today = new Date();
+        const monday = new Date();
+        monday.setDate(monday.getDate() + (((1 - monday.getDay() + 7) % 7) || 7));
+        expect(startFmt.format(monday)).not.toBe(startFmt.format(today));
+        expect(screen.getByText(startFmt.format(monday))).toBeInTheDocument();
+    });
+
+    it('opens the native date picker immediately when "Pick a date" is clicked', () => {
+        const showPicker = vi.fn();
+        // jsdom has no showPicker; define it so the optional call reaches our spy.
+        (HTMLInputElement.prototype as unknown as { showPicker: () => void }).showPicker = showPicker;
+        try {
+            reachStartStep();
+            fireEvent.click(screen.getByText('Pick a date'));
+            expect(showPicker).toHaveBeenCalledTimes(1);
+        } finally {
+            delete (HTMLInputElement.prototype as unknown as { showPicker?: () => void }).showPicker;
+        }
+    });
+
     it('shows the program-length step before the start step and defaults to 12 weeks', async () => {
         const onComplete = vi.fn().mockResolvedValue(undefined);
         const single = { ...initial, trainingDays: [1, 4] }; // no style step
