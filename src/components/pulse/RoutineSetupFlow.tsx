@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { DAY_NAMES, SUGGESTED_DAYS, MAX_TRAINING_DAYS } from '@/lib/pulse/constants';
 import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { PROGRAM_LENGTHS } from '@/lib/pulse/data';
@@ -91,12 +91,13 @@ const START_DATE_FMT = new Intl.DateTimeFormat(undefined, { weekday: 'short', mo
 function startDateFor(choice: 'today' | 'tomorrow' | 'monday'): Date {
     const d = new Date();
     if (choice === 'tomorrow') d.setDate(d.getDate() + 1);
-    else if (choice === 'monday') d.setDate(d.getDate() + (((1 - d.getDay() + 7) % 7) || 7));
+    else if (choice === 'monday') d.setDate(d.getDate() + ((1 - d.getDay() + 7) % 7 || 7));
     return d;
 }
 
-const WRAP = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4';
-const CARD = 'bg-pulse-surface rounded-2xl w-full max-w-[420px] flex flex-col gap-5 p-6';
+// Full-screen flow shell: fixed top bar + scrollable body + fixed footer, so the
+// chrome never shifts between steps (the old centered card resized with content).
+const SCREEN = 'fixed inset-0 z-50 flex flex-col bg-pulse-bg';
 const Q = 'font-pulse text-lg font-medium text-pulse-text tracking-[-0.01em]';
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
@@ -110,24 +111,56 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
     );
 }
 
-function Header({ stepNum, total, onBack }: { stepNum: number; total: number; onBack?: () => void }) {
+// Shared full-screen chrome. Fixed top bar (back · progress · step count · close)
+// and a fixed footer for the step's actions; the step content scrolls between
+// them. Every step renders through this, so the close (✕) is always reachable.
+function FlowFrame({
+    stepNum,
+    total,
+    onBack,
+    onClose,
+    footer,
+    children,
+}: {
+    stepNum: number;
+    total: number;
+    onBack?: () => void;
+    onClose: () => void;
+    footer: ReactNode;
+    children: ReactNode;
+}) {
     return (
-        <div className="flex items-center gap-3">
-            {onBack ? (
+        <div className={SCREEN} role="dialog" aria-modal="true" aria-label="Routine setup">
+            <header className="flex h-14 items-center gap-3 border-b border-pulse-border px-4 shrink-0">
+                {onBack ? (
+                    <button
+                        onClick={onBack}
+                        aria-label="Back"
+                        className="text-pulse-dim cursor-pointer bg-transparent border-none p-0 font-pulse text-base shrink-0">
+                        ←
+                    </button>
+                ) : (
+                    <div className="w-5 shrink-0" />
+                )}
+                <div className="flex-1">
+                    <ProgressBar current={stepNum} total={total} />
+                </div>
+                <span className="font-pulse text-xs text-pulse-muted shrink-0 tabular-nums">
+                    {stepNum}/{total}
+                </span>
                 <button
-                    onClick={onBack}
-                    className="text-pulse-dim cursor-pointer bg-transparent border-none p-0 font-pulse text-sm">
-                    ←
+                    onClick={onClose}
+                    aria-label="Close setup"
+                    className="text-pulse-dim cursor-pointer bg-transparent border-none p-0 font-pulse text-base shrink-0">
+                    ✕
                 </button>
-            ) : (
-                <div className="w-5" />
-            )}
-            <div className="flex-1">
-                <ProgressBar current={stepNum} total={total} />
-            </div>
-            <span className="font-pulse text-xs text-pulse-muted shrink-0">
-                {stepNum}/{total}
-            </span>
+            </header>
+            <main className="flex-1 overflow-y-auto px-4 py-6">
+                <div className="mx-auto flex w-full max-w-[480px] flex-col gap-5">{children}</div>
+            </main>
+            <footer className="border-t border-pulse-border px-4 py-3 shrink-0">
+                <div className="mx-auto w-full max-w-[480px]">{footer}</div>
+            </footer>
         </div>
     );
 }
@@ -311,6 +344,25 @@ export default function RoutineSetupFlow({
     const [restrictions, setRestrictions] = useState<Set<RestrictionFlag>>(new Set());
     const [loading, setLoading] = useState(false);
 
+    // Closing mid-flow discards the in-progress answers, so confirm once the user
+    // has moved past the first step. On the first step there is nothing to lose,
+    // so the ✕ closes straight away. Escape mirrors the ✕.
+    const entryStep: Step = collectGender ? 'gender' : 1;
+    const dirty = step !== entryStep;
+    const requestClose = () => {
+        if (dirty && !window.confirm('Discard setup? Your selections will be lost.')) return;
+        onClose();
+    };
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            if (dirty && !window.confirm('Discard setup? Your selections will be lost.')) return;
+            onClose();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [dirty, onClose]);
+
     // The days-per-week answer caps how many days can be picked, so the chosen
     // frequency (not the raw day selection) drives the routine's session count.
     const maxDays = days ? MAX_TRAINING_DAYS[days] : 7;
@@ -435,271 +487,263 @@ export default function RoutineSetupFlow({
 
     if (step === 'gender')
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header stepNum={1} total={total} />
-                    {introBlock}
-                    <p className={Q}>What&apos;s your gender?</p>
-                    <p className="font-pulse text-xs text-pulse-dim -mt-3">
-                        Used for strength standards and a light program nudge. Optional, you can skip it.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                        <OptionRow
-                            label="Male"
-                            active={gender === 'male'}
-                            onClick={() => {
-                                setGender('male');
-                                setGenderDeclined(false);
-                            }}
-                        />
-                        <OptionRow
-                            label="Female"
-                            active={gender === 'female'}
-                            onClick={() => {
-                                setGender('female');
-                                setGenderDeclined(false);
-                            }}
-                        />
-                        <OptionRow
-                            label="Prefer not to say"
-                            active={genderDeclined}
-                            onClick={() => {
-                                setGender(null);
-                                setGenderDeclined(true);
-                            }}
-                        />
-                    </div>
-                    {/* Next is always enabled: no gender is a valid choice, so the
-                        score and program fall back to their neutral defaults. */}
+            <FlowFrame
+                stepNum={1}
+                total={total}
+                onClose={requestClose}
+                footer={
+                    // Next is always enabled: no gender is a valid choice, so the
+                    // score and program fall back to their neutral defaults.
                     <button onClick={() => setStep(1)} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                {introBlock}
+                <p className={Q}>What&apos;s your gender?</p>
+                <p className="font-pulse text-xs text-pulse-dim -mt-3">
+                    Used for strength standards and a light program nudge. Optional, you can skip it.
+                </p>
+                <div className="flex flex-col gap-2">
+                    <OptionRow
+                        label="Male"
+                        active={gender === 'male'}
+                        onClick={() => {
+                            setGender('male');
+                            setGenderDeclined(false);
+                        }}
+                    />
+                    <OptionRow
+                        label="Female"
+                        active={gender === 'female'}
+                        onClick={() => {
+                            setGender('female');
+                            setGenderDeclined(false);
+                        }}
+                    />
+                    <OptionRow
+                        label="Prefer not to say"
+                        active={genderDeclined}
+                        onClick={() => {
+                            setGender(null);
+                            setGenderDeclined(true);
+                        }}
+                    />
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 1)
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header
-                        stepNum={1 + genderOffset}
-                        total={total}
-                        onBack={collectGender ? () => setStep('gender') : undefined}
-                    />
-                    {!collectGender && introBlock}
-                    <p className={Q}>What equipment do you have access to?</p>
-                    {showProfiles && (
-                        <div className="-mt-1 flex flex-col gap-2">
-                            <p className="font-pulse text-[0.6875rem] uppercase tracking-[0.12em] text-pulse-muted">
-                                Your equipment profiles
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {equipmentProfiles.map((p) => {
-                                    const active = p.id === matchedProfileId;
-                                    return (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            aria-pressed={active}
-                                            onClick={() => pickProfile(p)}
-                                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-pulse text-xs font-medium transition-colors ${
+            <FlowFrame
+                stepNum={1 + genderOffset}
+                total={total}
+                onBack={collectGender ? () => setStep('gender') : undefined}
+                onClose={requestClose}
+                footer={
+                    <button onClick={() => setStep(2)} disabled={equipment.size === 0} className={BTN_PRIMARY_BLOCK}>
+                        Next
+                    </button>
+                }>
+                {!collectGender && introBlock}
+                <p className={Q}>What equipment do you have access to?</p>
+                {showProfiles && (
+                    <div className="-mt-1 flex flex-col gap-2">
+                        <p className="font-pulse text-[0.6875rem] uppercase tracking-[0.12em] text-pulse-muted">
+                            Your equipment profiles
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {equipmentProfiles.map((p) => {
+                                const active = p.id === matchedProfileId;
+                                return (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        aria-pressed={active}
+                                        onClick={() => pickProfile(p)}
+                                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-pulse text-xs font-medium transition-colors ${
+                                            active
+                                                ? 'border-pulse-accent bg-pulse-accent/10 text-pulse-accent'
+                                                : 'border-pulse-border bg-pulse-surface-2 text-pulse-dim'
+                                        }`}>
+                                        {p.name}
+                                        {p.id === activeEquipmentProfileId && (
+                                            <span className="text-[0.5625rem] uppercase tracking-wide opacity-80">
                                                 active
-                                                    ? 'border-pulse-accent bg-pulse-accent/10 text-pulse-accent'
-                                                    : 'border-pulse-border bg-pulse-surface-2 text-pulse-dim'
-                                            }`}>
-                                            {p.name}
-                                            {p.id === activeEquipmentProfileId && (
-                                                <span className="text-[0.5625rem] uppercase tracking-wide opacity-80">
-                                                    active
-                                                </span>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            {matchedProfile && (
-                                <p className="font-pulse text-xs text-pulse-dim">
-                                    Filled from your {matchedProfile.name} profile
-                                </p>
-                            )}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
-                    )}
-                    <div className="flex flex-col gap-2">
-                        {EQUIPMENT_OPTIONS.map(({ key, label }) => (
-                            <label
-                                key={key}
-                                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
-                                    equipment.has(key)
-                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                        : 'bg-pulse-surface-2 ring-0'
-                                }`}>
-                                <input
-                                    type="checkbox"
-                                    checked={equipment.has(key)}
-                                    onChange={() => toggleEquipment(key)}
-                                    className="sr-only"
-                                />
-                                <div
-                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${equipment.has(key) ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
-                                    {equipment.has(key) && (
-                                        <span className="text-pulse-bg text-[10px] font-bold leading-none">✓</span>
-                                    )}
-                                </div>
-                                <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                            </label>
-                        ))}
+                        {matchedProfile && (
+                            <p className="font-pulse text-xs text-pulse-dim">
+                                Filled from your {matchedProfile.name} profile
+                            </p>
+                        )}
                     </div>
-                    {showProfiles &&
-                        onCreateEquipmentProfile &&
-                        equipment.size > 0 &&
-                        !matchedProfileId &&
-                        (savingProfile ? (
-                            <div className="flex flex-col gap-3 rounded-xl border border-dashed border-pulse-border p-3.5">
-                                <p className="font-pulse text-[0.8125rem] font-medium text-pulse-text">
-                                    Save as a profile
-                                </p>
-                                <input
-                                    type="text"
-                                    value={profileName}
-                                    maxLength={40}
-                                    onChange={(e) => setProfileName(e.target.value)}
-                                    placeholder="Profile name"
-                                    className="rounded-lg bg-pulse-bg px-3 py-2 font-pulse-body text-sm text-pulse-text outline-none ring-1 ring-pulse-border focus:ring-pulse-accent"
-                                />
-                                <div className="flex flex-wrap gap-2">
-                                    {['Home', 'Gym', 'Travel'].map((s) => (
-                                        <button
-                                            key={s}
-                                            type="button"
-                                            onClick={() => setProfileName(s)}
-                                            className="rounded-full bg-pulse-bg px-3 py-1 font-pulse text-xs text-pulse-dim ring-1 ring-pulse-border">
-                                            {s}
-                                        </button>
-                                    ))}
-                                </div>
-                                {saveError && <p className="font-pulse text-xs text-pulse-accent">{saveError}</p>}
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        disabled={!canSaveProfile}
-                                        onClick={saveProfile}
-                                        className={`rounded-lg px-4 py-2 font-pulse-body text-sm ${canSaveProfile ? 'bg-pulse-accent text-pulse-bg' : 'cursor-not-allowed bg-pulse-surface-2 text-pulse-muted'}`}>
-                                        Save
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSavingProfile(false);
-                                            setSaveError(null);
-                                        }}
-                                        className="rounded-lg px-4 py-2 font-pulse-body text-sm text-pulse-dim">
-                                        Cancel
-                                    </button>
-                                </div>
+                )}
+                <div className="flex flex-col gap-2">
+                    {EQUIPMENT_OPTIONS.map(({ key, label }) => (
+                        <label
+                            key={key}
+                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                                equipment.has(key)
+                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                    : 'bg-pulse-surface-2 ring-0'
+                            }`}>
+                            <input
+                                type="checkbox"
+                                checked={equipment.has(key)}
+                                onChange={() => toggleEquipment(key)}
+                                className="sr-only"
+                            />
+                            <div
+                                className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${equipment.has(key) ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
+                                {equipment.has(key) && (
+                                    <span className="text-pulse-bg text-[10px] font-bold leading-none">✓</span>
+                                )}
                             </div>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => setSavingProfile(true)}
-                                className="self-start font-pulse text-[0.8125rem] text-pulse-accent">
-                                + Save these as a profile
-                            </button>
-                        ))}
-                    <div className="flex flex-col gap-2">
-                        <button
-                            onClick={() => setStep(2)}
-                            disabled={equipment.size === 0}
-                            className={BTN_PRIMARY_BLOCK}>
-                            Next
-                        </button>
-                        <button
-                            onClick={onClose}
-                            className="font-pulse text-xs text-pulse-dim text-center bg-transparent border-none cursor-pointer">
-                            Cancel
-                        </button>
-                    </div>
+                            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                        </label>
+                    ))}
                 </div>
-            </div>
+                {showProfiles &&
+                    onCreateEquipmentProfile &&
+                    equipment.size > 0 &&
+                    !matchedProfileId &&
+                    (savingProfile ? (
+                        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-pulse-border p-3.5">
+                            <p className="font-pulse text-[0.8125rem] font-medium text-pulse-text">Save as a profile</p>
+                            <input
+                                type="text"
+                                value={profileName}
+                                maxLength={40}
+                                onChange={(e) => setProfileName(e.target.value)}
+                                placeholder="Profile name"
+                                className="rounded-lg bg-pulse-bg px-3 py-2 font-pulse-body text-sm text-pulse-text outline-none ring-1 ring-pulse-border focus:ring-pulse-accent"
+                            />
+                            <div className="flex flex-wrap gap-2">
+                                {['Home', 'Gym', 'Travel'].map((s) => (
+                                    <button
+                                        key={s}
+                                        type="button"
+                                        onClick={() => setProfileName(s)}
+                                        className="rounded-full bg-pulse-bg px-3 py-1 font-pulse text-xs text-pulse-dim ring-1 ring-pulse-border">
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                            {saveError && <p className="font-pulse text-xs text-pulse-accent">{saveError}</p>}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    disabled={!canSaveProfile}
+                                    onClick={saveProfile}
+                                    className={`rounded-lg px-4 py-2 font-pulse-body text-sm ${canSaveProfile ? 'bg-pulse-accent text-pulse-bg' : 'cursor-not-allowed bg-pulse-surface-2 text-pulse-muted'}`}>
+                                    Save
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSavingProfile(false);
+                                        setSaveError(null);
+                                    }}
+                                    className="rounded-lg px-4 py-2 font-pulse-body text-sm text-pulse-dim">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setSavingProfile(true)}
+                            className="self-start font-pulse text-[0.8125rem] text-pulse-accent">
+                            + Save these as a profile
+                        </button>
+                    ))}
+            </FlowFrame>
         );
 
     if (step === 2)
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header stepNum={2 + genderOffset} total={total} onBack={() => setStep(1)} />
-                    <p className={Q}>What&apos;s your training experience?</p>
-                    <div className="flex flex-col gap-2">
-                        <OptionRow
-                            label="Beginner"
-                            desc="< 1 year lifting"
-                            active={experience === 'beginner'}
-                            onClick={() => setExperience('beginner')}
-                        />
-                        <OptionRow
-                            label="Intermediate"
-                            desc="1–3 years"
-                            active={experience === 'intermediate'}
-                            onClick={() => setExperience('intermediate')}
-                        />
-                        <OptionRow
-                            label="Advanced"
-                            desc="3+ years"
-                            active={experience === 'advanced'}
-                            onClick={() => setExperience('advanced')}
-                        />
-                    </div>
+            <FlowFrame
+                stepNum={2 + genderOffset}
+                total={total}
+                onBack={() => setStep(1)}
+                onClose={requestClose}
+                footer={
                     <button onClick={() => setStep(3)} disabled={!experience} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                <p className={Q}>What&apos;s your training experience?</p>
+                <div className="flex flex-col gap-2">
+                    <OptionRow
+                        label="Beginner"
+                        desc="< 1 year lifting"
+                        active={experience === 'beginner'}
+                        onClick={() => setExperience('beginner')}
+                    />
+                    <OptionRow
+                        label="Intermediate"
+                        desc="1–3 years"
+                        active={experience === 'intermediate'}
+                        onClick={() => setExperience('intermediate')}
+                    />
+                    <OptionRow
+                        label="Advanced"
+                        desc="3+ years"
+                        active={experience === 'advanced'}
+                        onClick={() => setExperience('advanced')}
+                    />
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 3)
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header stepNum={3 + genderOffset} total={total} onBack={() => setStep(2)} />
-                    <p className={Q}>What&apos;s your primary goal?</p>
-                    <div className="flex flex-col gap-2">
-                        <OptionRow
-                            label="Build muscle"
-                            desc="Maximise size and strength"
-                            active={goal === 'build_muscle'}
-                            onClick={() => setGoal('build_muscle')}
-                        />
-                        <OptionRow
-                            label="Lose fat"
-                            desc="Preserve muscle while cutting"
-                            active={goal === 'lose_fat'}
-                            onClick={() => setGoal('lose_fat')}
-                        />
-                        <OptionRow
-                            label="General fitness"
-                            desc="Move well and feel good"
-                            active={goal === 'general_fitness'}
-                            onClick={() => setGoal('general_fitness')}
-                        />
-                    </div>
+            <FlowFrame
+                stepNum={3 + genderOffset}
+                total={total}
+                onBack={() => setStep(2)}
+                onClose={requestClose}
+                footer={
                     <button onClick={() => setStep(4)} disabled={!goal} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                <p className={Q}>What&apos;s your primary goal?</p>
+                <div className="flex flex-col gap-2">
+                    <OptionRow
+                        label="Build muscle"
+                        desc="Maximise size and strength"
+                        active={goal === 'build_muscle'}
+                        onClick={() => setGoal('build_muscle')}
+                    />
+                    <OptionRow
+                        label="Lose fat"
+                        desc="Preserve muscle while cutting"
+                        active={goal === 'lose_fat'}
+                        onClick={() => setGoal('lose_fat')}
+                    />
+                    <OptionRow
+                        label="General fitness"
+                        desc="Move well and feel good"
+                        active={goal === 'general_fitness'}
+                        onClick={() => setGoal('general_fitness')}
+                    />
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 4)
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header stepNum={4 + genderOffset} total={total} onBack={() => setStep(3)} />
-                    <p className={Q}>How many days per week can you train?</p>
-                    <div className="flex flex-col gap-2">
-                        <OptionRow label="2–3 days" active={days === '2-3'} onClick={() => chooseDays('2-3')} />
-                        <OptionRow label="4 days" active={days === '4'} onClick={() => chooseDays('4')} />
-                        <OptionRow label="5–6 days" active={days === '5-6'} onClick={() => chooseDays('5-6')} />
-                    </div>
+            <FlowFrame
+                stepNum={4 + genderOffset}
+                total={total}
+                onBack={() => setStep(3)}
+                onClose={requestClose}
+                footer={
                     <button
                         onClick={() => {
                             if (quick) {
@@ -720,44 +764,24 @@ export default function RoutineSetupFlow({
                         className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                <p className={Q}>How many days per week can you train?</p>
+                <div className="flex flex-col gap-2">
+                    <OptionRow label="2–3 days" active={days === '2-3'} onClick={() => chooseDays('2-3')} />
+                    <OptionRow label="4 days" active={days === '4'} onClick={() => chooseDays('4')} />
+                    <OptionRow label="5–6 days" active={days === '5-6'} onClick={() => chooseDays('5-6')} />
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 5)
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header stepNum={5 + genderOffset} total={total} onBack={() => setStep(4)} />
-                    <p className={Q}>Which days will you train?</p>
-                    <p className="font-pulse text-[0.8125rem] text-pulse-dim -mt-3">
-                        Pick up to {maxDays} day{maxDays === 1 ? '' : 's'}.
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                        {[1, 2, 3, 4, 5, 6, 0].map((d) => {
-                            const selected = trainingDays.includes(d);
-                            const atCap = !selected && trainingDays.length >= maxDays;
-                            return (
-                                <button
-                                    key={d}
-                                    disabled={atCap}
-                                    onClick={() =>
-                                        setTrainingDays((prev) =>
-                                            prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
-                                        )
-                                    }
-                                    className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border-none transition-colors ${
-                                        selected
-                                            ? 'bg-pulse-accent text-pulse-bg cursor-pointer'
-                                            : atCap
-                                              ? 'bg-pulse-surface-2 text-pulse-muted opacity-40 cursor-not-allowed'
-                                              : 'bg-pulse-surface-2 text-pulse-dim cursor-pointer'
-                                    }`}>
-                                    {DAY_NAMES[d]}
-                                </button>
-                            );
-                        })}
-                    </div>
+            <FlowFrame
+                stepNum={5 + genderOffset}
+                total={total}
+                onBack={() => setStep(4)}
+                onClose={requestClose}
+                footer={
                     <button
                         onClick={() => {
                             // Pre-select the recommended style for this count so the
@@ -769,68 +793,80 @@ export default function RoutineSetupFlow({
                         className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                <p className={Q}>Which days will you train?</p>
+                <p className="font-pulse text-[0.8125rem] text-pulse-dim -mt-3">
+                    Pick up to {maxDays} day{maxDays === 1 ? '' : 's'}.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                    {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                        const selected = trainingDays.includes(d);
+                        const atCap = !selected && trainingDays.length >= maxDays;
+                        return (
+                            <button
+                                key={d}
+                                disabled={atCap}
+                                onClick={() =>
+                                    setTrainingDays((prev) =>
+                                        prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+                                    )
+                                }
+                                className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border-none transition-colors ${
+                                    selected
+                                        ? 'bg-pulse-accent text-pulse-bg cursor-pointer'
+                                        : atCap
+                                          ? 'bg-pulse-surface-2 text-pulse-muted opacity-40 cursor-not-allowed'
+                                          : 'bg-pulse-surface-2 text-pulse-dim cursor-pointer'
+                                }`}>
+                                {DAY_NAMES[d]}
+                            </button>
+                        );
+                    })}
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 6 && showStyleStep)
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header stepNum={6 + genderOffset} total={total} onBack={() => setStep(5)} />
-                    <p className={Q}>Which program style?</p>
-                    <div className="flex flex-col gap-2">
-                        {styleOptions.map((s) => (
-                            <button
-                                key={s.key}
-                                onClick={() => setStyleKey(s.key)}
-                                className={`flex flex-col gap-1 p-3 text-left rounded-xl cursor-pointer transition-colors w-full ${
-                                    styleKey === s.key
-                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                        : 'bg-pulse-surface-2 ring-0 hover:bg-pulse-surface-2/70'
-                                }`}>
-                                <span className="font-pulse text-sm font-medium text-pulse-text">{s.name}</span>
-                                <span className="font-pulse text-xs text-pulse-dim">{s.bestFor}</span>
-                            </button>
-                        ))}
-                    </div>
+            <FlowFrame
+                stepNum={6 + genderOffset}
+                total={total}
+                onBack={() => setStep(5)}
+                onClose={requestClose}
+                footer={
                     <button onClick={() => setStep(7)} disabled={!styleKey} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                <p className={Q}>Which program style?</p>
+                <div className="flex flex-col gap-2">
+                    {styleOptions.map((s) => (
+                        <button
+                            key={s.key}
+                            onClick={() => setStyleKey(s.key)}
+                            className={`flex flex-col gap-1 p-3 text-left rounded-xl cursor-pointer transition-colors w-full ${
+                                styleKey === s.key
+                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                    : 'bg-pulse-surface-2 ring-0 hover:bg-pulse-surface-2/70'
+                            }`}>
+                            <span className="font-pulse text-sm font-medium text-pulse-text">{s.name}</span>
+                            <span className="font-pulse text-xs text-pulse-dim">{s.bestFor}</span>
+                        </button>
+                    ))}
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 'train_style')
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header
-                        stepNum={
-                            total -
-                            2 -
-                            (collectRestrictions ? 1 : 0) -
-                            (collectVariety ? 1 : 0) -
-                            (collectLoadingLean ? 1 : 0)
-                        }
-                        total={total}
-                        onBack={() => setStep(7)}
-                    />
-                    <p className={Q}>How do you want to train?</p>
-                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        Same plan, tuned to your style. You can change this anytime you regenerate.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                        {TRAINING_STYLE_OPTIONS.map((o) => (
-                            <OptionRow
-                                key={o.key}
-                                label={o.label}
-                                desc={o.desc}
-                                active={trainingStyle === o.key}
-                                onClick={() => setTrainingStyle(o.key)}
-                            />
-                        ))}
-                    </div>
+            <FlowFrame
+                stepNum={
+                    total - 2 - (collectRestrictions ? 1 : 0) - (collectVariety ? 1 : 0) - (collectLoadingLean ? 1 : 0)
+                }
+                total={total}
+                onBack={() => setStep(7)}
+                onClose={requestClose}
+                footer={
                     <button
                         onClick={() =>
                             setStep(
@@ -846,35 +882,33 @@ export default function RoutineSetupFlow({
                         className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                <p className={Q}>How do you want to train?</p>
+                <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                    Same plan, tuned to your style. You can change this anytime you regenerate.
+                </p>
+                <div className="flex flex-col gap-2">
+                    {TRAINING_STYLE_OPTIONS.map((o) => (
+                        <OptionRow
+                            key={o.key}
+                            label={o.label}
+                            desc={o.desc}
+                            active={trainingStyle === o.key}
+                            onClick={() => setTrainingStyle(o.key)}
+                        />
+                    ))}
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 'variety')
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header
-                        stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
-                        total={total}
-                        onBack={() => setStep(collectTrainingStyle ? 'train_style' : 7)}
-                    />
-                    <p className={Q}>How varied should it be?</p>
-                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        Consistency builds your main lifts; variety keeps training fresh. You can change this anytime
-                        you regenerate.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                        {VARIETY_OPTIONS.map((o) => (
-                            <OptionRow
-                                key={o.key}
-                                label={o.label}
-                                desc={o.desc}
-                                active={varietyPreference === o.key}
-                                onClick={() => setVarietyPreference(o.key)}
-                            />
-                        ))}
-                    </div>
+            <FlowFrame
+                stepNum={total - 2 - (collectRestrictions ? 1 : 0) - (collectLoadingLean ? 1 : 0)}
+                total={total}
+                onBack={() => setStep(collectTrainingStyle ? 'train_style' : 7)}
+                onClose={requestClose}
+                footer={
                     <button
                         onClick={() =>
                             setStep(collectLoadingLean ? 'loading' : collectRestrictions ? 'restrictions' : 'length')
@@ -882,215 +916,231 @@ export default function RoutineSetupFlow({
                         className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                <p className={Q}>How varied should it be?</p>
+                <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                    Consistency builds your main lifts; variety keeps training fresh. You can change this anytime you
+                    regenerate.
+                </p>
+                <div className="flex flex-col gap-2">
+                    {VARIETY_OPTIONS.map((o) => (
+                        <OptionRow
+                            key={o.key}
+                            label={o.label}
+                            desc={o.desc}
+                            active={varietyPreference === o.key}
+                            onClick={() => setVarietyPreference(o.key)}
+                        />
+                    ))}
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 'loading')
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header
-                        stepNum={total - 2 - (collectRestrictions ? 1 : 0)}
-                        total={total}
-                        onBack={() => setStep(collectVariety ? 'variety' : collectTrainingStyle ? 'train_style' : 7)}
-                    />
-                    <p className={Q}>Which equipment do you prefer to use?</p>
-                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        Pulse will lean toward that type when filling each slot. Only applies to what you actually own.
-                        Skip to let it choose freely.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                        {LOADING_LEAN_OPTIONS.map((o) => (
-                            <OptionRow
-                                key={o.key}
-                                label={o.label}
-                                desc={o.desc}
-                                active={loadingLean === o.key}
-                                onClick={() => setLoadingLean((prev) => (prev === o.key ? null : o.key))}
-                            />
-                        ))}
-                    </div>
+            <FlowFrame
+                stepNum={total - 2 - (collectRestrictions ? 1 : 0)}
+                total={total}
+                onBack={() => setStep(collectVariety ? 'variety' : collectTrainingStyle ? 'train_style' : 7)}
+                onClose={requestClose}
+                footer={
                     <button
                         onClick={() => setStep(collectRestrictions ? 'restrictions' : 'length')}
                         className={BTN_PRIMARY_BLOCK}>
                         {loadingLean ? 'Next' : 'Skip'}
                     </button>
+                }>
+                <p className={Q}>Which equipment do you prefer to use?</p>
+                <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                    Pulse will lean toward that type when filling each slot. Only applies to what you actually own. Skip
+                    to let it choose freely.
+                </p>
+                <div className="flex flex-col gap-2">
+                    {LOADING_LEAN_OPTIONS.map((o) => (
+                        <OptionRow
+                            key={o.key}
+                            label={o.label}
+                            desc={o.desc}
+                            active={loadingLean === o.key}
+                            onClick={() => setLoadingLean((prev) => (prev === o.key ? null : o.key))}
+                        />
+                    ))}
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 'restrictions')
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header
-                        stepNum={total - 2}
-                        total={total}
-                        onBack={() =>
-                            setStep(
-                                collectLoadingLean
-                                    ? 'loading'
-                                    : collectVariety
-                                      ? 'variety'
-                                      : collectTrainingStyle
-                                        ? 'train_style'
-                                        : 7,
-                            )
-                        }
-                    />
-                    <p className={Q}>Anything we should work around?</p>
-                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        Pick any joints that bother you and Pulse will avoid the movements that commonly stress them,
-                        choosing safer alternatives. This is not medical advice. Skip if none apply.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                        {RESTRICTION_OPTIONS.map(({ key, label, desc }) => (
-                            <label
-                                key={key}
-                                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
-                                    restrictions.has(key)
-                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                        : 'bg-pulse-surface-2 ring-0'
-                                }`}>
-                                <input
-                                    type="checkbox"
-                                    checked={restrictions.has(key)}
-                                    onChange={() => toggleRestriction(key)}
-                                    className="sr-only"
-                                />
-                                <div
-                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${restrictions.has(key) ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
-                                    {restrictions.has(key) && (
-                                        <span className="text-pulse-bg text-[10px] font-bold leading-none">✓</span>
-                                    )}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                    <span className="font-pulse text-[0.75rem] text-pulse-dim">{desc}</span>
-                                </div>
-                            </label>
-                        ))}
-                    </div>
-                    <p className="font-pulse text-[0.75rem] text-pulse-dim">
-                        Takes effect the next time you generate a plan. To swap exercises in your current routine, use
-                        the Swap option on any exercise.
-                    </p>
+            <FlowFrame
+                stepNum={total - 2}
+                total={total}
+                onBack={() =>
+                    setStep(
+                        collectLoadingLean
+                            ? 'loading'
+                            : collectVariety
+                              ? 'variety'
+                              : collectTrainingStyle
+                                ? 'train_style'
+                                : 7,
+                    )
+                }
+                onClose={requestClose}
+                footer={
                     <button onClick={() => setStep('length')} className={BTN_PRIMARY_BLOCK}>
                         {restrictions.size > 0 ? 'Next' : 'Skip'}
                     </button>
+                }>
+                <p className={Q}>Anything we should work around?</p>
+                <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                    Pick any joints that bother you and Pulse will avoid the movements that commonly stress them,
+                    choosing safer alternatives. This is not medical advice. Skip if none apply.
+                </p>
+                <div className="flex flex-col gap-2">
+                    {RESTRICTION_OPTIONS.map(({ key, label, desc }) => (
+                        <label
+                            key={key}
+                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                                restrictions.has(key)
+                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                    : 'bg-pulse-surface-2 ring-0'
+                            }`}>
+                            <input
+                                type="checkbox"
+                                checked={restrictions.has(key)}
+                                onChange={() => toggleRestriction(key)}
+                                className="sr-only"
+                            />
+                            <div
+                                className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${restrictions.has(key) ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
+                                {restrictions.has(key) && (
+                                    <span className="text-pulse-bg text-[10px] font-bold leading-none">✓</span>
+                                )}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                                <span className="font-pulse text-[0.75rem] text-pulse-dim">{desc}</span>
+                            </div>
+                        </label>
+                    ))}
                 </div>
-            </div>
+                <p className="font-pulse text-[0.75rem] text-pulse-dim">
+                    Takes effect the next time you generate a plan. To swap exercises in your current routine, use the
+                    Swap option on any exercise.
+                </p>
+            </FlowFrame>
         );
 
     if (step === 'length')
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header
-                        stepNum={total - 1}
-                        total={total}
-                        onBack={() =>
-                            setStep(
-                                collectRestrictions
-                                    ? 'restrictions'
-                                    : collectLoadingLean
-                                      ? 'loading'
-                                      : collectVariety
-                                        ? 'variety'
-                                        : collectTrainingStyle
-                                          ? 'train_style'
-                                          : 7,
-                            )
-                        }
-                    />
-                    <p className={Q}>How long should your program be?</p>
-                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        How long a training block runs before it repeats with a deload. You can change it later in Plan.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                        {PROGRAM_LENGTHS.map((n) => (
-                            <OptionRow
-                                key={n}
-                                label={`${n} weeks`}
-                                desc={PROGRAM_LENGTH_DESC[n]}
-                                active={programWeeks === n}
-                                onClick={() => setProgramWeeks(n)}
-                            />
-                        ))}
-                    </div>
+            <FlowFrame
+                stepNum={total - 1}
+                total={total}
+                onBack={() =>
+                    setStep(
+                        collectRestrictions
+                            ? 'restrictions'
+                            : collectLoadingLean
+                              ? 'loading'
+                              : collectVariety
+                                ? 'variety'
+                                : collectTrainingStyle
+                                  ? 'train_style'
+                                  : 7,
+                    )
+                }
+                onClose={requestClose}
+                footer={
                     <button onClick={() => setStep('start')} className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
+                }>
+                <p className={Q}>How long should your program be?</p>
+                <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                    How long a training block runs before it repeats with a deload. You can change it later in Plan.
+                </p>
+                <div className="flex flex-col gap-2">
+                    {PROGRAM_LENGTHS.map((n) => (
+                        <OptionRow
+                            key={n}
+                            label={`${n} weeks`}
+                            desc={PROGRAM_LENGTH_DESC[n]}
+                            active={programWeeks === n}
+                            onClick={() => setProgramWeeks(n)}
+                        />
+                    ))}
                 </div>
-            </div>
+            </FlowFrame>
         );
 
     if (step === 'start')
         return (
-            <div className={WRAP}>
-                <div className={CARD}>
-                    <Header stepNum={total} total={total} onBack={() => setStep(quick ? 7 : 'length')} />
-                    <p className={Q}>When do you want to start?</p>
-                    <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                        Sets your program&apos;s first day. You can change it later in Plan.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                        <OptionRow
-                            label="Today"
-                            sub={START_DATE_FMT.format(startDateFor('today'))}
-                            active={startChoice === 'today'}
-                            onClick={() => setStartChoice('today')}
-                        />
-                        <OptionRow
-                            label="Tomorrow"
-                            sub={START_DATE_FMT.format(startDateFor('tomorrow'))}
-                            active={startChoice === 'tomorrow'}
-                            onClick={() => setStartChoice('tomorrow')}
-                        />
-                        <OptionRow
-                            label="Next Monday"
-                            sub={START_DATE_FMT.format(startDateFor('monday'))}
-                            active={startChoice === 'monday'}
-                            onClick={() => setStartChoice('monday')}
-                        />
-                        <OptionRow
-                            label="Pick a date"
-                            sub={customDate ? START_DATE_FMT.format(new Date(`${customDate}T12:00:00`)) : 'Choose…'}
-                            active={startChoice === 'custom'}
-                            onClick={() => {
-                                setStartChoice('custom');
-                                // Open the native calendar straight away (kept in the same
-                                // user gesture so showPicker keeps its activation). The
-                                // input is already mounted (sr-only), so the ref is ready.
-                                dateRef.current?.showPicker?.();
-                            }}
-                        />
-                    </div>
-                    <input
-                        ref={dateRef}
-                        type="date"
-                        aria-label="Start date"
-                        value={customDate}
-                        min={toYmd(new Date())}
-                        onChange={(e) => {
-                            setStartChoice('custom');
-                            setCustomDate(e.target.value);
-                        }}
-                        className={
-                            startChoice === 'custom'
-                                ? 'w-full rounded-xl border border-pulse-border bg-pulse-surface-2 px-3 py-2.5 font-pulse text-sm text-pulse-text outline-none [color-scheme:dark] focus:border-pulse-accent/50'
-                                : 'sr-only'
-                        }
-                    />
+            <FlowFrame
+                stepNum={total}
+                total={total}
+                onBack={() => setStep(quick ? 7 : 'length')}
+                onClose={requestClose}
+                footer={
                     <button
                         onClick={handleComplete}
                         disabled={loading || (startChoice === 'custom' && !customDate)}
                         className={BTN_PRIMARY_BLOCK}>
                         {loading ? 'Building your routine…' : completeLabel}
                     </button>
+                }>
+                <p className={Q}>When do you want to start?</p>
+                <p className="-mt-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                    Sets your program&apos;s first day. You can change it later in Plan.
+                </p>
+                <div className="flex flex-col gap-2">
+                    <OptionRow
+                        label="Today"
+                        sub={START_DATE_FMT.format(startDateFor('today'))}
+                        active={startChoice === 'today'}
+                        onClick={() => setStartChoice('today')}
+                    />
+                    <OptionRow
+                        label="Tomorrow"
+                        sub={START_DATE_FMT.format(startDateFor('tomorrow'))}
+                        active={startChoice === 'tomorrow'}
+                        onClick={() => setStartChoice('tomorrow')}
+                    />
+                    <OptionRow
+                        label="Next Monday"
+                        sub={START_DATE_FMT.format(startDateFor('monday'))}
+                        active={startChoice === 'monday'}
+                        onClick={() => setStartChoice('monday')}
+                    />
+                    <OptionRow
+                        label="Pick a date"
+                        sub={customDate ? START_DATE_FMT.format(new Date(`${customDate}T12:00:00`)) : 'Choose…'}
+                        active={startChoice === 'custom'}
+                        onClick={() => {
+                            setStartChoice('custom');
+                            // Open the native calendar straight away (kept in the same
+                            // user gesture so showPicker keeps its activation). The
+                            // input is already mounted (sr-only), so the ref is ready.
+                            dateRef.current?.showPicker?.();
+                        }}
+                    />
                 </div>
-            </div>
+                <input
+                    ref={dateRef}
+                    type="date"
+                    aria-label="Start date"
+                    value={customDate}
+                    min={toYmd(new Date())}
+                    onChange={(e) => {
+                        setStartChoice('custom');
+                        setCustomDate(e.target.value);
+                    }}
+                    className={
+                        startChoice === 'custom'
+                            ? 'w-full rounded-xl border border-pulse-border bg-pulse-surface-2 px-3 py-2.5 font-pulse text-sm text-pulse-text outline-none [color-scheme:dark] focus:border-pulse-accent/50'
+                            : 'sr-only'
+                    }
+                />
+            </FlowFrame>
         );
 
     // Session-time step + a live rationale preview built from the chosen inputs,
@@ -1103,51 +1153,21 @@ export default function RoutineSetupFlow({
             : null;
 
     return (
-        <div className={WRAP}>
-            <div className={CARD}>
-                <Header
-                    stepNum={
-                        quick
-                            ? 5
-                            : total -
-                              2 -
-                              (collectRestrictions ? 1 : 0) -
-                              (collectTrainingStyle ? 1 : 0) -
-                              (collectVariety ? 1 : 0) -
-                              (collectLoadingLean ? 1 : 0)
-                    }
-                    total={total}
-                    onBack={() => setStep(quick ? 4 : showStyleStep ? 6 : 5)}
-                />
-                <p className={Q}>How long are your sessions?</p>
-                <div className="flex flex-col gap-2">
-                    <OptionRow
-                        label="~30 min"
-                        desc="Short and focused"
-                        active={sessionTime === '~30 min'}
-                        onClick={() => setSessionTime('~30 min')}
-                    />
-                    <OptionRow
-                        label="45–60 min"
-                        desc="A solid training session"
-                        active={sessionTime === '45–60 min'}
-                        onClick={() => setSessionTime('45–60 min')}
-                    />
-                    <OptionRow
-                        label="90+ min"
-                        desc="Full volume, no rush"
-                        active={sessionTime === '90+ min'}
-                        onClick={() => setSessionTime('90+ min')}
-                    />
-                </div>
-                {rationalePreview && (
-                    <div className="rounded-xl bg-pulse-surface px-4 py-3">
-                        <div className="font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-pulse-muted mb-1">
-                            Why this plan
-                        </div>
-                        <p className="font-pulse text-sm text-pulse-dim leading-[1.55]">{rationalePreview}</p>
-                    </div>
-                )}
+        <FlowFrame
+            stepNum={
+                quick
+                    ? 5
+                    : total -
+                      2 -
+                      (collectRestrictions ? 1 : 0) -
+                      (collectTrainingStyle ? 1 : 0) -
+                      (collectVariety ? 1 : 0) -
+                      (collectLoadingLean ? 1 : 0)
+            }
+            total={total}
+            onBack={() => setStep(quick ? 4 : showStyleStep ? 6 : 5)}
+            onClose={requestClose}
+            footer={
                 <button
                     onClick={() =>
                         setStep(
@@ -1168,7 +1188,36 @@ export default function RoutineSetupFlow({
                     className={BTN_PRIMARY_BLOCK}>
                     Next
                 </button>
+            }>
+            <p className={Q}>How long are your sessions?</p>
+            <div className="flex flex-col gap-2">
+                <OptionRow
+                    label="~30 min"
+                    desc="Short and focused"
+                    active={sessionTime === '~30 min'}
+                    onClick={() => setSessionTime('~30 min')}
+                />
+                <OptionRow
+                    label="45–60 min"
+                    desc="A solid training session"
+                    active={sessionTime === '45–60 min'}
+                    onClick={() => setSessionTime('45–60 min')}
+                />
+                <OptionRow
+                    label="90+ min"
+                    desc="Full volume, no rush"
+                    active={sessionTime === '90+ min'}
+                    onClick={() => setSessionTime('90+ min')}
+                />
             </div>
-        </div>
+            {rationalePreview && (
+                <div className="rounded-xl bg-pulse-surface px-4 py-3">
+                    <div className="font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-pulse-muted mb-1">
+                        Why this plan
+                    </div>
+                    <p className="font-pulse text-sm text-pulse-dim leading-[1.55]">{rationalePreview}</p>
+                </div>
+            )}
+        </FlowFrame>
     );
 }

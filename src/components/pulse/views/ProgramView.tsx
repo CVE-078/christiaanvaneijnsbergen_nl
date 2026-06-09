@@ -1,7 +1,7 @@
 ﻿'use client';
 import { useMemo, useState } from 'react';
 import { WEEK_NOTES, buildProgram, PROGRAM_LENGTHS } from '@/lib/pulse/data';
-import { getPhase, sessionTypeFor, weekInBlock, swapCandidates } from '@/lib/pulse/utils';
+import { getPhase, sessionTypeFor, weekInBlock, swapCandidates, exerciseReason } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { WORKOUT_TYPE_LABELS, EQUIPMENT_LABELS } from '@/lib/pulse/constants';
 import type { WorkoutType, WorkoutVariant, RoutineExercise } from '@/lib/pulse/types';
@@ -299,6 +299,17 @@ export default function ProgramView() {
                                         <div className="font-pulse-body text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-1">
                                             {re.sets} sets · {re.reps} reps
                                         </div>
+                                        {/* Why the coach chose this slot, derived from the exercise's
+                                            movement pattern + role + the muscles it credits (no stored
+                                            reason). Omitted for exercises without pattern metadata. */}
+                                        {(() => {
+                                            const reason = re.exercise ? exerciseReason(re.exercise) : null;
+                                            return reason ? (
+                                                <div className="font-pulse text-pulse-muted text-[0.6875rem] tracking-[0.02em] mt-1">
+                                                    {reason}
+                                                </div>
+                                            ) : null;
+                                        })()}
                                         {/* Resolved equipment per exercise, so an equipment mis-tag
                                             (e.g. a bench-only lift in a no-bench setup) is visible here,
                                             not only by reading the seed. */}
@@ -343,7 +354,13 @@ export default function ProgramView() {
                                                     aria-hidden>
                                                     <circle cx="8" cy="8" r="6.5" />
                                                     <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
-                                                    <circle cx="8" cy="4.75" r="0.6" fill="currentColor" stroke="none" />
+                                                    <circle
+                                                        cx="8"
+                                                        cy="4.75"
+                                                        r="0.6"
+                                                        fill="currentColor"
+                                                        stroke="none"
+                                                    />
                                                 </svg>
                                             </button>
                                         )}
@@ -369,9 +386,8 @@ export default function ProgramView() {
                     week={activeWeek}
                     candidates={swapCandidates(swapTarget.exercise, exercises, {
                         excludeIds: new Set(
-                            activeRoutine?.exercises
-                                .filter((r) => r.id !== swapTarget.id)
-                                .map((r) => r.exercise_id) ?? [],
+                            activeRoutine?.exercises.filter((r) => r.id !== swapTarget.id).map((r) => r.exercise_id) ??
+                                [],
                         ),
                     })}
                     isSwapped={false}
