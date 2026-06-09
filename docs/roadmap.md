@@ -24,9 +24,9 @@
 
 ## Status & next session (2026-06-09)
 
-**In progress:** (none).
+**In progress:** **Behavior-driven adaptation (Tier 3 #7)** on `feature/behavior-driven-adaptation` (learn from repeated swaps, demote-only, accessory patterns, recency-bounded). Spec: `docs/superpowers/specs/2026-06-09-18-51-56-behavior-driven-adaptation-design.md`.
 
-**In review (on a branch, not yet merged):** **Travel mode (#322)** on `feature/travel-mode` (the `expires_at` overlay + read-time auto-revert; manager controls + Train pill). Apply the migration and merge. Program pause (#14, #109) and equipment profiles Branch B (#100) are on `main`.
+**In review (on a branch, not yet merged):** (none). Travel mode (#322, merged #110), program pause (#14, #109), and equipment profiles Branch B (#100) are all on `main`.
 
 **Ongoing (continuous, not a discrete next-action):**
 - **Validation block** (highest-leverage, gates the launch-readiness track): train Pulse with intent and run the deliberate missed-week test (skip a scheduled week to fire ramp-back), querying the `DecisionEvent` log via `docs/queries/decision-events-review.sql` (newest-first, today-only, ramp-back-only variants). Runs in parallel with build work; not a thing to "finish", a thing to keep doing until the adaptive promise is earned.
@@ -40,7 +40,7 @@
 - **Suite:** typecheck clean, **1003 tests**. Per-feature detail lives in **Shipped**; strategy + specs are frozen in the two 2026-06-06 design docs plus the equipment-profiles + travel-mode specs/plans.
 
 **Next up, in order:**
-1. Merge travel mode (#322), then the **launch-readiness track** (gated behind validation) is the next major lane: the **auth + billing lifecycle** long pole. Otherwise the open build work is **Tier 3** (#7 behavior-driven adaptation, #8 smart substitution v2, #9 progress photos).
+1. Finish behavior-driven adaptation (#7, in progress). Then the **launch-readiness track** (gated behind validation): the **auth + billing lifecycle** long pole. Other open build work: **Tier 3** #8 smart substitution v2 (the reason-tagged-swap precursor that unlocks #7's promote + anchor-pattern learning), #9 progress photos.
 
 **Launch-readiness track (gated behind validation, not due while private validation runs):** the **auth + billing lifecycle** is the long pole, then the **a11y audit**. Both detailed in "Launch floor" below.
 
