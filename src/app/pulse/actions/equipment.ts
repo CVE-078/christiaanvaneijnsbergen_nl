@@ -108,8 +108,10 @@ export async function setActiveEquipmentProfile(id: string | null): Promise<void
 // JS client cannot express that, so this clears every other profile's expiry
 // first and then sets the target's. The partial unique index
 // (equipment_profiles_one_overlay_per_user) still guarantees only one non-null
-// overlay, and at this scale concurrent starts are not a real risk. If a SQL RPC
-// is added later, collapse to one CASE statement.
+// overlay, and at this scale concurrent starts are not a real risk. If the set
+// step fails after the clear succeeds, the user is left with no overlay (safe,
+// reverts to default) and the hook's revalidate-in-finally rolls the optimistic
+// patch back to that truth. If a SQL RPC is added later, collapse to one CASE.
 export async function startTravel(profileId: string, expiresAt: string): Promise<void> {
     assertUuid(profileId);
     if (typeof expiresAt !== 'string' || Number.isNaN(Date.parse(expiresAt))) {

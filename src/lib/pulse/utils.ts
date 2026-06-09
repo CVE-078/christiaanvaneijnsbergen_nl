@@ -139,7 +139,9 @@ export function activeTravelProfile(
     return (
         profiles
             .filter((p) => isTravelActive(p, nowIso, tz))
-            .sort((a, b) => (a.expires_at! < b.expires_at! ? 1 : -1))[0] ?? null
+            // Descending by expiry (ISO strings sort lexicographically), so the
+            // one with the most time remaining wins.
+            .sort((a, b) => b.expires_at!.localeCompare(a.expires_at!))[0] ?? null
     );
 }
 
