@@ -319,12 +319,13 @@ export default function LogView() {
                     const swapped = !!swaps[swapKey(activeWeek, swapTarget.id)];
                     return (
                         <ExerciseSwapPicker
-                            originalName={original.name}
+                            original={original}
                             week={activeWeek}
                             candidates={candidates}
                             isSwapped={swapped}
-                            onSelect={(exId) => {
-                                setSwap(activeWeek, swapTarget.id, exId);
+                            captureReason
+                            onSelect={(exId, reason) => {
+                                setSwap(activeWeek, swapTarget.id, exId, reason ?? undefined);
                                 setSwapTarget(null);
                             }}
                             onRevert={() => {

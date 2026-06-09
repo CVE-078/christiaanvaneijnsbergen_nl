@@ -1,31 +1,69 @@
 'use client';
 import { useState } from 'react';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
-import type { DbExercise } from '@/lib/pulse/types';
+import { rankSubstitutes, exerciseReason } from '@/lib/pulse/utils';
+import { SWAP_REASONS, type DbExercise, type SwapReason } from '@/lib/pulse/types';
 
 interface Props {
-    originalName: string;
+    original: DbExercise;
     week: number;
     candidates: DbExercise[];
     isSwapped: boolean;
-    onSelect: (exerciseId: string) => void;
+    onSelect: (exerciseId: string, reason: SwapReason | null) => void;
     onRevert: () => void;
     onClose: () => void;
+    // Smart substitution v2 (#8): show the reason chips and capture the chosen
+    // reason. Off for permanent (ProgramView) swaps, which do not persist a reason.
+    captureReason?: boolean;
+}
+
+const REASON_LABELS: Record<SwapReason, string> = {
+    pain: 'Pain',
+    no_equipment: 'No equipment',
+    crowded: 'Crowded',
+};
+
+function reasonContext(reason: SwapReason | null): string {
+    if (reason === 'pain') return 'Same movement, gentler on the joints';
+    if (reason === 'no_equipment' || reason === 'crowded') return 'Same movement, different gear';
+    return 'Closest match';
 }
 
 export default function ExerciseSwapPicker({
-    originalName,
+    original,
     week,
     candidates,
     isSwapped,
     onSelect,
     onRevert,
     onClose,
+    captureReason = false,
 }: Props) {
     const [query, setQuery] = useState('');
-    const filtered = query.trim()
-        ? candidates.filter((e) => e.name.toLowerCase().includes(query.trim().toLowerCase()))
-        : candidates;
+    const [reason, setReason] = useState<SwapReason | null>(null);
+    const originalName = original.name;
+
+    const ranked = rankSubstitutes(original, candidates, reason ?? undefined);
+    const q = query.trim().toLowerCase();
+    const filtered = q ? ranked.filter((e) => e.name.toLowerCase().includes(q)) : ranked;
+    const searching = q.length > 0;
+    const suggested = searching ? [] : filtered.slice(0, 3);
+    const rest = searching ? filtered : filtered.slice(3);
+
+    const candidateButton = (e: DbExercise, showWhy: boolean) => {
+        const why = showWhy ? exerciseReason(e) : null;
+        return (
+            <button
+                key={e.id}
+                onClick={() => onSelect(e.id, reason)}
+                className="text-left bg-pulse-bg rounded-lg px-3.5 py-3 border-none cursor-pointer hover:bg-pulse-surface-2">
+                <div className="font-pulse text-[0.9375rem] font-medium text-pulse-text">{e.name}</div>
+                <div className="font-pulse text-[0.6875rem] tracking-[0.04em] uppercase text-pulse-muted mt-0.5">
+                    {why ?? WORKOUT_TYPE_LABELS[e.category as keyof typeof WORKOUT_TYPE_LABELS] ?? e.category}
+                </div>
+            </button>
+        );
+    };
 
     return (
         <div
@@ -50,6 +88,26 @@ export default function ExerciseSwapPicker({
                     Your week-{week} weight carries over as a starting point.
                 </p>
 
+                {captureReason && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                        {SWAP_REASONS.map((r) => {
+                            const active = reason === r;
+                            return (
+                                <button
+                                    key={r}
+                                    onClick={() => setReason(active ? null : r)}
+                                    className={`font-pulse text-[0.75rem] rounded-full px-3 py-1 border-none cursor-pointer ${
+                                        active
+                                            ? 'bg-pulse-accent/15 text-pulse-accent'
+                                            : 'bg-pulse-bg text-pulse-dim ring-1 ring-pulse-border'
+                                    }`}>
+                                    {REASON_LABELS[r]}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
                 {isSwapped && (
                     <button
                         onClick={onRevert}
@@ -67,21 +125,28 @@ export default function ExerciseSwapPicker({
 
                 <div className="flex-1 overflow-y-auto flex flex-col gap-1.5">
                     {filtered.length === 0 ? (
-                        <p className="font-pulse text-sm text-pulse-muted py-6 text-center">
-                            No alternatives available.
-                        </p>
+                        <p className="font-pulse text-sm text-pulse-muted py-6 text-center">No alternatives available.</p>
                     ) : (
-                        filtered.map((e) => (
-                            <button
-                                key={e.id}
-                                onClick={() => onSelect(e.id)}
-                                className="text-left bg-pulse-bg rounded-lg px-3.5 py-3 border-none cursor-pointer hover:bg-pulse-surface-2">
-                                <div className="font-pulse text-[0.9375rem] font-medium text-pulse-text">{e.name}</div>
-                                <div className="font-pulse text-[0.6875rem] tracking-[0.04em] uppercase text-pulse-muted mt-0.5">
-                                    {WORKOUT_TYPE_LABELS[e.category as keyof typeof WORKOUT_TYPE_LABELS] ?? e.category}
-                                </div>
-                            </button>
-                        ))
+                        <>
+                            {suggested.length > 0 && (
+                                <>
+                                    <div className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim">
+                                        Suggested · {reasonContext(reason)}
+                                    </div>
+                                    {suggested.map((e) => candidateButton(e, true))}
+                                </>
+                            )}
+                            {rest.length > 0 && (
+                                <>
+                                    {!searching && (
+                                        <div className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim mt-1.5">
+                                            All alternatives
+                                        </div>
+                                    )}
+                                    {rest.map((e) => candidateButton(e, false))}
+                                </>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
