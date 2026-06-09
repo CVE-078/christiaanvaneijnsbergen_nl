@@ -4,6 +4,11 @@ import { analyzeSwapBehavior, EMPTY_BEHAVIOR, type SwapHistoryRow } from '@/lib/
 const NOW = Date.parse('2026-06-09T12:00:00Z');
 const daysAgo = (d: number) => new Date(NOW - d * 86400000).toISOString();
 const row = (fromExerciseId: string, d: number): SwapHistoryRow => ({ fromExerciseId, createdAt: daysAgo(d) });
+const rowR = (fromExerciseId: string, d: number, reason: string | null): SwapHistoryRow => ({
+    fromExerciseId,
+    createdAt: daysAgo(d),
+    reason,
+});
 const opts = { minCount: 3, recencyMs: 120 * 86400000, nowMs: NOW };
 
 describe('analyzeSwapBehavior', () => {
@@ -35,6 +40,20 @@ describe('analyzeSwapBehavior', () => {
             row('a', 2),
             row('a', 3),
         ];
+        expect(analyzeSwapBehavior(rows, opts)).toEqual({ demote: ['a'] });
+    });
+
+    // Smart substitution v2 (#8): constraint-reason swaps must not teach a demote.
+    it('excludes constraint-reason swaps from demote', () => {
+        const rows = [rowR('a', 1, 'pain'), rowR('a', 2, 'no_equipment'), rowR('a', 3, 'crowded')];
+        expect(analyzeSwapBehavior(rows, opts)).toEqual({ demote: [] });
+    });
+    it('a single constraint row keeps an exercise under the threshold', () => {
+        const rows = [row('a', 1), row('a', 2), rowR('a', 3, 'pain')]; // only 2 count
+        expect(analyzeSwapBehavior(rows, opts)).toEqual({ demote: [] });
+    });
+    it('null-reason (preference) rows still count', () => {
+        const rows = [rowR('a', 1, null), rowR('a', 2, null), rowR('a', 3, null)];
         expect(analyzeSwapBehavior(rows, opts)).toEqual({ demote: ['a'] });
     });
 });

@@ -171,7 +171,7 @@ describe('loadExercises', () => {
         const exercises = await loadExercises(client, UID);
         expect(calls.table).toBe('exercises');
         expect(calls.select).toBe(
-            'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound',
+            'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications',
         );
         expect(exercises.map((e) => e.name)).toEqual(['Bench', 'Squat', 'Curl']);
     });
@@ -257,20 +257,20 @@ describe('loadSwaps', () => {
 });
 
 describe('loadSwapHistory', () => {
-    it('selects from_exercise_id + created_at scoped to the user and maps rows', async () => {
+    it('selects from_exercise_id + created_at + reason scoped to the user and maps rows', async () => {
         const { client, calls } = makeClient({
             data: [
-                { from_exercise_id: 'ex-a', created_at: '2026-06-01T00:00:00Z' },
-                { from_exercise_id: 'ex-b', created_at: '2026-06-02T00:00:00Z' },
+                { from_exercise_id: 'ex-a', created_at: '2026-06-01T00:00:00Z', reason: null },
+                { from_exercise_id: 'ex-b', created_at: '2026-06-02T00:00:00Z', reason: 'pain' },
             ],
             error: null,
         });
         const rows = await loadSwapHistory(client, UID);
         expect(calls.table).toBe('exercise_swaps');
-        expect(calls.select).toBe('from_exercise_id, created_at');
+        expect(calls.select).toBe('from_exercise_id, created_at, reason');
         expect(rows).toEqual([
-            { fromExerciseId: 'ex-a', createdAt: '2026-06-01T00:00:00Z' },
-            { fromExerciseId: 'ex-b', createdAt: '2026-06-02T00:00:00Z' },
+            { fromExerciseId: 'ex-a', createdAt: '2026-06-01T00:00:00Z', reason: null },
+            { fromExerciseId: 'ex-b', createdAt: '2026-06-02T00:00:00Z', reason: 'pain' },
         ]);
     });
 });

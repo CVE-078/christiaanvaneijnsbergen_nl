@@ -241,13 +241,17 @@ export async function loadSwaps(supabase: SupabaseServerClient, userId: string):
 export async function loadSwapHistory(supabase: SupabaseServerClient, userId: string): Promise<SwapHistoryRow[]> {
     const { data, error } = await supabase
         .from('exercise_swaps')
-        .select('from_exercise_id, created_at')
+        .select('from_exercise_id, created_at, reason')
         .eq('user_id', userId)
         .not('from_exercise_id', 'is', null);
     if (error) throw error;
     return (data ?? [])
         .filter((r) => r.from_exercise_id != null)
-        .map((r) => ({ fromExerciseId: r.from_exercise_id as string, createdAt: r.created_at as string }));
+        .map((r) => ({
+            fromExerciseId: r.from_exercise_id as string,
+            createdAt: r.created_at as string,
+            reason: (r.reason ?? null) as string | null,
+        }));
 }
 
 export async function loadHiddenExerciseIds(supabase: SupabaseServerClient, userId: string): Promise<string[]> {
