@@ -12,21 +12,26 @@ const home = {
     name: 'Home',
     equipment: ['dumbbells'],
     created_at: '2026-06-09T00:00:00Z',
+    expires_at: null,
 };
 
 const create = vi.fn().mockResolvedValue({ ...home, id: 'new', name: 'Gym' });
 const update = vi.fn().mockResolvedValue(undefined);
 const del = vi.fn().mockResolvedValue(undefined);
 const setActive = vi.fn().mockResolvedValue(undefined);
+const startTravel = vi.fn().mockResolvedValue(undefined);
+const endTravel = vi.fn().mockResolvedValue(undefined);
 
 function setContext(over: Record<string, unknown> = {}) {
     vi.mocked(usePulse).mockReturnValue({
         equipmentProfiles: [home],
-        profile: { active_equipment_profile_id: null },
+        profile: { active_equipment_profile_id: null, timezone: 'Europe/Amsterdam' },
         createEquipmentProfile: create,
         updateEquipmentProfile: update,
         deleteEquipmentProfile: del,
         setActiveEquipmentProfile: setActive,
+        startTravel,
+        endTravel,
         ...over,
     } as unknown as ReturnType<typeof usePulse>);
 }
@@ -44,6 +49,8 @@ beforeEach(() => {
     update.mockClear();
     del.mockClear();
     setActive.mockClear();
+    startTravel.mockClear();
+    endTravel.mockClear();
     setContext();
 });
 
@@ -113,5 +120,50 @@ describe('EquipmentProfilesEditor', () => {
         await userEvent.click(screen.getByRole('button', { name: /Barbell/ }));
         await userEvent.click(screen.getByRole('button', { name: /^Save$/ }));
         expect(await screen.findByText(/already have a profile called Gym/i)).toBeInTheDocument();
+    });
+});
+
+const hotel = {
+    id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    name: 'Hotel',
+    equipment: ['dumbbells'],
+    created_at: '2026-06-08T00:00:00Z',
+    expires_at: null,
+};
+
+describe('EquipmentProfilesEditor travel mode (#322)', () => {
+    it('shows "Use until" on a non-default set and starts travel from a preset', async () => {
+        setContext({
+            equipmentProfiles: [hotel, home],
+            profile: { active_equipment_profile_id: home.id, timezone: 'Europe/Amsterdam' },
+        });
+        renderEditor();
+        await userEvent.click(screen.getByRole('button', { name: /Use until/i }));
+        await userEvent.click(screen.getByRole('button', { name: /^7d$/ }));
+        expect(startTravel).toHaveBeenCalledTimes(1);
+        expect(startTravel.mock.calls[0][0]).toBe(hotel.id);
+        expect(startTravel.mock.calls[0][1]).toContain('T12:00:00');
+    });
+
+    it('marks the active overlay with a revert hint and ends travel', async () => {
+        const overlay = { ...hotel, expires_at: '2099-01-01T12:00:00Z' };
+        setContext({
+            equipmentProfiles: [overlay, home],
+            profile: { active_equipment_profile_id: home.id, timezone: 'Europe/Amsterdam' },
+        });
+        renderEditor();
+        expect(screen.getByText(/In use/i)).toBeInTheDocument();
+        expect(screen.getByText(/reverts to Home/i)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /End travel/i }));
+        expect(endTravel).toHaveBeenCalledTimes(1);
+    });
+
+    it('offers a "create a travel set" path when only one profile exists', () => {
+        setContext({
+            equipmentProfiles: [home],
+            profile: { active_equipment_profile_id: home.id, timezone: 'Europe/Amsterdam' },
+        });
+        renderEditor();
+        expect(screen.getByRole('button', { name: /create a travel set/i })).toBeInTheDocument();
     });
 });
