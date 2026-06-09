@@ -142,7 +142,13 @@ function pausedExpectedSessions(
 
 // Set of paused day-numbers in [rangeStart, rangeEnd] (range is small, e.g. a
 // single week window, so materializing the set is cheap).
-function pausedDaySet(pauses: ProgramPause[], rangeStart: number, rangeEnd: number, tz: string, now: string): Set<number> {
+function pausedDaySet(
+    pauses: ProgramPause[],
+    rangeStart: number,
+    rangeEnd: number,
+    tz: string,
+    now: string,
+): Set<number> {
     const set = new Set<number>();
     for (const [a, b] of pausedIntervals(pauses, rangeStart, rangeEnd, tz, now)) {
         for (let d = a; d <= b; d++) set.add(d);

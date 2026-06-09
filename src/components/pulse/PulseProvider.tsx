@@ -287,8 +287,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
     }, [routines.length]);
     // Gate on loaded routines so the onboarding modal does not flash before the
     // client fetch resolves (routines is [] while loading).
-    const showOnboarding =
-        onboardingOverride ?? (!loadingRoutines && routines.length === 0 && !hadRoutines.current);
+    const showOnboarding = onboardingOverride ?? (!loadingRoutines && routines.length === 0 && !hadRoutines.current);
     const triggerOnboarding = useCallback(() => setOnboardingOverride(true), []);
     const dismissOnboarding = useCallback(() => setOnboardingOverride(false), []);
 

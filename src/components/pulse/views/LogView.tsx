@@ -46,6 +46,8 @@ export default function LogView() {
         currentWeek,
         programPosition,
         lightenThisWeek,
+        pauseProgram,
+        resumeProgram,
         refreshSessions,
         routineExercisesByTabKey,
         navigate,
@@ -93,13 +95,16 @@ export default function LogView() {
     // A manually-lightened week reads differently from a gap-driven re-entry.
     const isManualLighten =
         isRampBack && routineAdjustments.some((a) => a.kind === 'manual_deload' && a.effective_week === activeWeek);
+    const isPaused = programPosition?.isPaused ?? false;
     const statusLabel =
         programPosition && programPosition.status !== 'on_track'
-            ? programPosition.status === 'lapsed'
-                ? `Back after ${programPosition.daysSinceLastSession ?? 0}d`
-                : programPosition.behindBy === 1
-                  ? '1 session behind'
-                  : `${programPosition.behindBy} sessions behind`
+            ? programPosition.status === 'paused'
+                ? 'Paused'
+                : programPosition.status === 'lapsed'
+                  ? `Back after ${programPosition.daysSinceLastSession ?? 0}d`
+                  : programPosition.behindBy === 1
+                    ? '1 session behind'
+                    : `${programPosition.behindBy} sessions behind`
             : null;
     const unit = profile.unit;
     const routineExercises: RoutineExercise[] = useMemo(
@@ -450,7 +455,24 @@ export default function LogView() {
                         ))}
                     <div className="mt-4">{activeSchedule.length > 0 ? <DayTabs /> : <WorkoutTabs />}</div>
                 </div>
-                {isRampBack ? (
+                {isPaused ? (
+                    <div className="mt-3 rounded-2xl border border-pulse-accent/30 bg-pulse-surface px-4 py-3">
+                        <p className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent">Program paused</p>
+                        <p className="mt-1 font-pulse text-[0.78125rem] text-pulse-dim">
+                            {programPosition?.pausedDays != null && programPosition.pausedDays > 0
+                                ? `Paused for ${programPosition.pausedDays} ${programPosition.pausedDays === 1 ? 'day' : 'days'}. Your program is frozen, nothing counts as missed. Pick up right where you left off.`
+                                : 'Your program is frozen, nothing counts as missed. Pick up right where you left off.'}
+                        </p>
+                        {activeRoutine && (
+                            <button
+                                type="button"
+                                onClick={() => resumeProgram(activeRoutine.id)}
+                                className="mt-2.5 cursor-pointer rounded-lg border-none bg-pulse-accent px-3.5 py-1.5 font-pulse text-xs font-semibold text-pulse-bg transition-opacity hover:opacity-90">
+                                Resume program
+                            </button>
+                        )}
+                    </div>
+                ) : isRampBack ? (
                     <div className="mt-3 rounded-2xl border border-pulse-accent/30 bg-pulse-surface px-4 py-3">
                         <p className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent">
                             {isManualLighten ? 'Lighter week' : 'Ramp-back week'}
@@ -464,12 +486,20 @@ export default function LogView() {
                 ) : (
                     activeRoutine &&
                     routineExercises.length > 0 && (
-                        <button
-                            type="button"
-                            onClick={() => lightenThisWeek(activeRoutine.id, activeWeek)}
-                            className="mt-3 cursor-pointer rounded-xl border border-pulse-border bg-transparent px-3.5 py-2 font-pulse text-[0.78125rem] font-medium text-pulse-dim transition-colors hover:border-pulse-accent/40 hover:text-pulse-text">
-                            Go easier this week
-                        </button>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => lightenThisWeek(activeRoutine.id, activeWeek)}
+                                className="cursor-pointer rounded-xl border border-pulse-border bg-transparent px-3.5 py-2 font-pulse text-[0.78125rem] font-medium text-pulse-dim transition-colors hover:border-pulse-accent/40 hover:text-pulse-text">
+                                Go easier this week
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => pauseProgram(activeRoutine.id)}
+                                className="cursor-pointer rounded-xl border border-pulse-border bg-transparent px-3.5 py-2 font-pulse text-[0.78125rem] font-medium text-pulse-dim transition-colors hover:border-pulse-accent/40 hover:text-pulse-text">
+                                Pause program
+                            </button>
+                        </div>
                     )
                 )}
             </div>
