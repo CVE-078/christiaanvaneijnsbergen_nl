@@ -139,3 +139,7 @@ export const MAX_TRAVEL_DAYS = 90;
 export const TRAVEL_DAY_PRESETS = [3, 7, 14] as const;
 // How long the post-expiry "regenerate your home routine?" nudge lingers.
 export const ENDED_NUDGE_DAYS = 14;
+
+// Behavior-driven adaptation (#7).
+export const BEHAVIOR_MIN_SWAPS = 3; // recent swap-weeks away from a lift before it is demoted
+export const BEHAVIOR_RECENCY_DAYS = 120; // ~one to two training blocks; older swaps decay out
