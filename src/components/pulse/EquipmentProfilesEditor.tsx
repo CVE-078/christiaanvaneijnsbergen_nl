@@ -79,9 +79,10 @@ export default function EquipmentProfilesEditor() {
             else if (editing) await updateEquipmentProfile(editing, name, list);
             close();
         } catch (e) {
-            const msg = e instanceof Error ? e.message : 'Could not save profile';
-            toast.show(msg);
-            setInlineError(msg);
+            // Save errors (name taken, validation) show inline next to the form,
+            // not as a transient toast. activate / remove have no open form, so
+            // those still use a toast.
+            setInlineError(e instanceof Error ? e.message : 'Could not save profile');
         } finally {
             setBusy(false);
         }

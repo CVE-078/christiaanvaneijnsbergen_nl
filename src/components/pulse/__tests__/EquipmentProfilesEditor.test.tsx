@@ -105,7 +105,7 @@ describe('EquipmentProfilesEditor', () => {
         expect(update).toHaveBeenCalledWith(home.id, 'Home Gym', ['dumbbells', 'bench']);
     });
 
-    it('shows a toast when the create action rejects', async () => {
+    it('shows an inline error when the create action rejects', async () => {
         create.mockRejectedValueOnce(new Error('You already have a profile called Gym'));
         renderEditor();
         await userEvent.click(screen.getByRole('button', { name: /New profile/i }));
