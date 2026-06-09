@@ -38,7 +38,7 @@ const LOADING_LEAN_VALUES = ['barbell', 'dumbbell', 'machine', 'cable'];
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
 const MEASUREMENTS_SELECT = 'id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm';
 const EXERCISES_SELECT =
-    'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound';
+    'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications';
 const NOTES_SELECT = 'week, routine_exercise_id, note';
 const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
@@ -50,7 +50,7 @@ const DECISION_EVENTS_SELECT = 'id, routine_id, type, trigger, affected_area, we
 const EQUIPMENT_PROFILES_SELECT = 'id, name, equipment, created_at, expires_at';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at, rationale, program_weeks, program_anchor,
-            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound ) ),
+            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications ) ),
             schedule:routine_schedule ( day_of_week, workout_type, variant )
         `;
 
@@ -241,13 +241,17 @@ export async function loadSwaps(supabase: SupabaseServerClient, userId: string):
 export async function loadSwapHistory(supabase: SupabaseServerClient, userId: string): Promise<SwapHistoryRow[]> {
     const { data, error } = await supabase
         .from('exercise_swaps')
-        .select('from_exercise_id, created_at')
+        .select('from_exercise_id, created_at, reason')
         .eq('user_id', userId)
         .not('from_exercise_id', 'is', null);
     if (error) throw error;
     return (data ?? [])
         .filter((r) => r.from_exercise_id != null)
-        .map((r) => ({ fromExerciseId: r.from_exercise_id as string, createdAt: r.created_at as string }));
+        .map((r) => ({
+            fromExerciseId: r.from_exercise_id as string,
+            createdAt: r.created_at as string,
+            reason: (r.reason ?? null) as string | null,
+        }));
 }
 
 export async function loadHiddenExerciseIds(supabase: SupabaseServerClient, userId: string): Promise<string[]> {

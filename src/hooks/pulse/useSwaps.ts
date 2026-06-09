@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { setExerciseSwap, clearExerciseSwap } from '@/app/pulse/actions';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import { swapKey } from '@/lib/pulse/utils';
-import type { Swaps } from '@/lib/pulse/types';
+import type { Swaps, SwapReason } from '@/lib/pulse/types';
 
 const SWAPS_KEY = '/api/pulse/swaps';
 
@@ -16,9 +16,9 @@ export function useSwaps() {
     const swaps = data ?? EMPTY_SWAPS;
 
     const setSwap = useCallback(
-        async (week: number, routineExerciseId: string, exerciseId: string): Promise<void> => {
+        async (week: number, routineExerciseId: string, exerciseId: string, reason?: SwapReason): Promise<void> => {
             mutate({ ...swaps, [swapKey(week, routineExerciseId)]: exerciseId }, false);
-            await setExerciseSwap(routineExerciseId, week, exerciseId);
+            await setExerciseSwap(routineExerciseId, week, exerciseId, reason);
             mutate();
         },
         [swaps, mutate],

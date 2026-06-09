@@ -3,6 +3,7 @@ import type {
     Logs,
     Notes,
     Swaps,
+    SwapReason,
     Profile,
     BodyweightEntry,
     BodyMeasurement,
@@ -82,7 +83,7 @@ export interface PulseContextValue {
 
     // Swaps
     swaps: Swaps;
-    setSwap: (week: number, routineExerciseId: string, exerciseId: string) => Promise<void>;
+    setSwap: (week: number, routineExerciseId: string, exerciseId: string, reason?: SwapReason) => Promise<void>;
     clearSwap: (week: number, routineExerciseId: string) => Promise<void>;
 
     // Equipment profiles (named reusable equipment sets; storage + manager only,

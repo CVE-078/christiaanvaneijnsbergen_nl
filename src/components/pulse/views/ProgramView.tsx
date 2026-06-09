@@ -4,7 +4,7 @@ import { WEEK_NOTES, buildProgram, PROGRAM_LENGTHS } from '@/lib/pulse/data';
 import { getPhase, sessionTypeFor, weekInBlock, swapCandidates, exerciseReason } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { WORKOUT_TYPE_LABELS, EQUIPMENT_LABELS } from '@/lib/pulse/constants';
-import type { WorkoutType, WorkoutVariant, RoutineExercise } from '@/lib/pulse/types';
+import type { WorkoutType, WorkoutVariant, RoutineExercise, SwapReason } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
 import GenerateRoutineButton from '../GenerateRoutineButton';
 import PageTitle from '@/components/pulse/PageTitle';
@@ -36,7 +36,10 @@ export default function ProgramView() {
     const [instructionFor, setInstructionFor] = useState<{ id: string; name: string } | null>(null);
     const [swapTarget, setSwapTarget] = useState<RoutineExercise | null>(null);
 
-    async function handlePermanentSwap(newExerciseId: string) {
+    // Permanent (plan-level) swaps do not capture a reason; the picker's
+    // captureReason is off here, so the second arg is always null. It exists to
+    // match the picker's onSelect signature.
+    async function handlePermanentSwap(newExerciseId: string, _reason?: SwapReason | null) {
         if (!swapTarget) return;
         await swapRoutineExercisePermanently(swapTarget.id, newExerciseId);
         setSwapTarget(null);
@@ -382,7 +385,7 @@ export default function ProgramView() {
 
             {swapTarget && swapTarget.exercise && (
                 <ExerciseSwapPicker
-                    originalName={swapTarget.exercise.name}
+                    original={swapTarget.exercise}
                     week={activeWeek}
                     candidates={swapCandidates(swapTarget.exercise, exercises, {
                         excludeIds: new Set(

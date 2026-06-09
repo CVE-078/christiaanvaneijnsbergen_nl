@@ -35,6 +35,7 @@ import type {
     ExerciseItem,
     LastSession,
     DbExercise,
+    SwapReason,
     Swaps,
     Trend,
     RecompReadout,
@@ -459,6 +460,39 @@ export function swapCandidates(
             const d = overlap(b) - overlap(a);
             return d !== 0 ? d : a.name.localeCompare(b.name);
         });
+}
+
+// Reason-aware re-rank of swap candidates (Smart substitution v2, #8). Assumes
+// `candidates` are ALREADY same-pattern-filtered (e.g. by swapCandidates); this
+// only reorders, it does not filter. A tiered total order so same-stimulus always
+// wins, then the reason term, then name:
+//   1. same substitution_class as the original (only when the original has one) --
+//      a same-stimulus candidate can never be out-ranked by a different one, so no
+//      reason floats a worse substitute to the top.
+//   2. reason: preference (none) = equipment overlap desc (closest like-for-like);
+//      no_equipment/crowded = overlap asc (prefer gear you can skip);
+//      pain = contraindication-flag count asc (the catalog's gentlest option).
+//   3. name asc -- deterministic, owned here (not reliant on input order).
+export function rankSubstitutes(original: DbExercise, candidates: DbExercise[], reason?: SwapReason): DbExercise[] {
+    const origClass = original.substitution_class ?? null;
+    const origEquip = new Set(original.equipment ?? []);
+    const overlap = (e: DbExercise) => (e.equipment ?? []).filter((x) => origEquip.has(x)).length;
+    const flags = (e: DbExercise) => (e.contraindications ?? []).length;
+    return [...candidates].sort((a, b) => {
+        if (origClass) {
+            const aC = a.substitution_class === origClass ? 0 : 1;
+            const bC = b.substitution_class === origClass ? 0 : 1;
+            if (aC !== bC) return aC - bC;
+        }
+        if (reason === 'no_equipment' || reason === 'crowded') {
+            if (overlap(a) !== overlap(b)) return overlap(a) - overlap(b);
+        } else if (reason === 'pain') {
+            if (flags(a) !== flags(b)) return flags(a) - flags(b);
+        } else {
+            if (overlap(a) !== overlap(b)) return overlap(b) - overlap(a);
+        }
+        return a.name.localeCompare(b.name);
+    });
 }
 
 // Resolve the exercise a slot displays for a given week. A week-scoped swap
