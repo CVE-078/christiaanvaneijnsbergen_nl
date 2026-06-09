@@ -1,16 +1,21 @@
 'use server';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { UUID_RE } from '@/lib/pulse/utils';
+import { SWAP_REASONS, type SwapReason } from '@/lib/pulse/types';
 import { assertOwnsRoutineExercise } from './_shared';
 
 export async function setExerciseSwap(
     routineExerciseId: string,
     week: number,
     exerciseId: string,
+    reason?: SwapReason,
 ): Promise<void> {
     if (!Number.isInteger(week) || week < 1 || week > 52) throw new Error('Invalid week');
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid routine exercise id');
     if (!UUID_RE.test(exerciseId)) throw new Error('Invalid exercise id');
+    if (reason !== undefined && !(SWAP_REASONS as readonly string[]).includes(reason)) {
+        throw new Error('Invalid swap reason');
+    }
 
     const { supabase, user } = await getUserOrThrow();
     await assertOwnsRoutineExercise(supabase, routineExerciseId, user.id);
@@ -41,6 +46,8 @@ export async function setExerciseSwap(
             // Refresh on re-swap so behavior learning's recency window (#7) dates
             // from the latest swap, not the first time this slot/week was touched.
             created_at: new Date().toISOString(),
+            // #8: an un-tagged re-swap clears any prior reason (latest intent wins).
+            reason: reason ?? null,
         },
         { onConflict: 'user_id,routine_exercise_id,week' },
     );
