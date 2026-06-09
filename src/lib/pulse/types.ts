@@ -260,6 +260,11 @@ export interface DbExercise {
     equipment?: EquipmentKey[];
     movement_pattern?: MovementPattern | null;
     is_compound?: boolean;
+    // Smart substitution v2 (#8): same-stimulus family + per-exercise joint-stress
+    // flags, used to rank swap alternatives. Optional (additive; not every caller
+    // selects them).
+    substitution_class?: string | null;
+    contraindications?: RestrictionFlag[];
 }
 
 export interface WorkoutRoutine {
@@ -476,6 +481,12 @@ export type LoadingPreference = 'barbell' | 'dumbbell' | 'machine' | 'cable';
  *  never diagnoses or rehabs. Extensible: add a flag here + tag exercises. */
 export const RESTRICTION_FLAGS = ['knee', 'lower_back', 'shoulder', 'wrist'] as const;
 export type RestrictionFlag = (typeof RESTRICTION_FLAGS)[number];
+
+/** Why a user swapped an exercise (Smart substitution v2, #8). Optional; null /
+ *  absent = unspecified, treated as a preference (counts toward #7 learning).
+ *  These three constraints are excluded from #7's demote. */
+export const SWAP_REASONS = ['pain', 'no_equipment', 'crowded'] as const;
+export type SwapReason = (typeof SWAP_REASONS)[number];
 
 /** Which session focus a scheduled day trains. */
 export type Focus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs';

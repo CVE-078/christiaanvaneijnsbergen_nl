@@ -38,7 +38,7 @@ const LOADING_LEAN_VALUES = ['barbell', 'dumbbell', 'machine', 'cable'];
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
 const MEASUREMENTS_SELECT = 'id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm';
 const EXERCISES_SELECT =
-    'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound';
+    'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications';
 const NOTES_SELECT = 'week, routine_exercise_id, note';
 const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
