@@ -1,5 +1,5 @@
 import { buildProgram } from './data';
-import { secondarySets } from './muscleMap';
+import { secondarySets, PATTERN_MUSCLE_MAP } from './muscleMap';
 import {
     BARBELL_KG,
     DUMBBELL_HANDLE_KG,
@@ -47,6 +47,34 @@ import type {
 
 // UUID v4 pattern used in new log keys
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// Human-readable label for a movement pattern, e.g. 'horizontal_push' →
+// 'Horizontal push', 'chest_iso' → 'Chest isolation'.
+function patternLabel(pattern: MovementPattern): string {
+    const spaced = pattern.replace('_iso', ' isolation').replace(/_/g, ' ');
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+// A plain-language "why this exercise" caption derived purely from the exercise's
+// already-loaded metadata (no extra query, no stored reason): the movement pattern,
+// whether it is a compound or isolation lift, and the one or two muscles it credits
+// most via the PATTERN_MUSCLE_MAP bridge. Returns null when the pattern is unknown
+// (e.g. a user-created exercise without metadata), so callers can omit the caption.
+// Example: 'Horizontal push · compound · chest, triceps'.
+export function exerciseReason(ex: {
+    movement_pattern?: MovementPattern | null;
+    is_compound?: boolean;
+}): string | null {
+    const pattern = ex.movement_pattern;
+    if (!pattern || !PATTERN_MUSCLE_MAP[pattern]) return null;
+    const role = ex.is_compound ? 'compound' : 'isolation';
+    const muscles = (Object.entries(PATTERN_MUSCLE_MAP[pattern]) as [ExerciseCategory, number][])
+        .filter(([, weight]) => weight >= 0.2)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([cat]) => cat);
+    return `${patternLabel(pattern)} · ${role} · ${muscles.join(', ')}`;
+}
 
 // Equipment-profile generation helpers (Branch B). The engine is unchanged;
 // these only decide which saved set seeds / matches the equipment picker.

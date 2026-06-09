@@ -27,6 +27,13 @@ const SECTION_LABEL = 'mb-2 font-pulse text-[0.6875rem] font-medium uppercase tr
 const BTN_SECONDARY_BLOCK =
     'font-pulse w-full py-3 rounded-xl bg-pulse-surface-2 text-pulse-text font-semibold text-sm cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed';
 
+const GOAL_LABELS: Record<string, string> = {
+    build_muscle: 'Build muscle',
+    lose_fat: 'Lose fat',
+    general_fitness: 'General fitness',
+};
+const RECAP_DATE_FMT = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
 function Row({
     label,
     desc,
@@ -140,6 +147,19 @@ export default function TuneYourPlanPanel({
         restrictionsKey !== applied.restrictionsKey ||
         eqKey !== applied.equipmentKey;
 
+    // Transparency: the fixed inputs this plan was built from. The four tunable
+    // personalization inputs (training style / variety / loading / restrictions)
+    // are intentionally NOT repeated here, they show right below as live, active
+    // pickers; the recap covers the choices that aren't editable in this panel.
+    const summary: { label: string; value: string }[] = [
+        { label: 'Goal', value: GOAL_LABELS[answers.goal] ?? answers.goal },
+        { label: 'Days / week', value: String(trainingDays.length) },
+        { label: 'Session', value: sessionTime },
+        { label: 'Split', value: styleOptions.find((s) => s.key === styleKey)?.name ?? styleKey },
+        { label: 'Length', value: `${programWeeks} weeks` },
+        { label: 'Start', value: startAnchor ? RECAP_DATE_FMT.format(new Date(startAnchor)) : 'Today' },
+    ];
+
     function toggleRestriction(flag: RestrictionFlag) {
         setRestrictions((prev) => (prev.includes(flag) ? prev.filter((r) => r !== flag) : [...prev, flag]));
     }
@@ -189,6 +209,18 @@ export default function TuneYourPlanPanel({
                             {current.rationale}
                         </p>
                     )}
+                </div>
+
+                <div>
+                    <p className={SECTION_LABEL}>Plan summary</p>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-xl bg-pulse-surface-2 p-3">
+                        {summary.map((item) => (
+                            <div key={item.label} className="flex justify-between gap-2">
+                                <dt className="font-pulse text-xs text-pulse-muted">{item.label}</dt>
+                                <dd className="font-pulse text-xs text-pulse-text text-right">{item.value}</dd>
+                            </div>
+                        ))}
+                    </dl>
                 </div>
 
                 <p className="font-pulse text-[0.8125rem] text-pulse-dim">

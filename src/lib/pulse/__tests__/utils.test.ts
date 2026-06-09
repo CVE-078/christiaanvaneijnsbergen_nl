@@ -49,6 +49,7 @@ import {
     resolveEquipmentPrefill,
     equipmentKey,
     matchingProfileId,
+    exerciseReason,
 } from '../utils';
 import type { EquipmentProfile } from '../types';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
@@ -1381,7 +1382,18 @@ describe('computeSessionTonnage', () => {
 // ── sessionDecisions ──────────────────────────────────────────────────────────
 describe('sessionDecisions', () => {
     const d = (over: Partial<any>) =>
-        ({ type: 'progression', trigger: 'targets_hit', affectedArea: 'a', week: 1, magnitude: {}, confidence: null, id: 'x', routine_id: 'r', created_at: '' , ...over }) as any;
+        ({
+            type: 'progression',
+            trigger: 'targets_hit',
+            affectedArea: 'a',
+            week: 1,
+            magnitude: {},
+            confidence: null,
+            id: 'x',
+            routine_id: 'r',
+            created_at: '',
+            ...over,
+        }) as any;
     it('buckets by type, scoped to the week and the session exercises', () => {
         const decisions = [
             d({ type: 'progression', affectedArea: 'a', week: 1 }),
@@ -1400,7 +1412,9 @@ describe('sessionDecisions', () => {
 // ── composeCoachRead ──────────────────────────────────────────────────────────
 describe('composeCoachRead', () => {
     it('ramp-back wins over everything', () => {
-        expect(composeCoachRead({ prCount: 2, progressionCount: 3, deloadCount: 1, rampBack: true })).toMatch(/ramp-back/i);
+        expect(composeCoachRead({ prCount: 2, progressionCount: 3, deloadCount: 1, rampBack: true })).toMatch(
+            /ramp-back/i,
+        );
     });
     it('celebrates PRs and progressions with the deload clause', () => {
         const s = composeCoachRead({ prCount: 1, progressionCount: 3, deloadCount: 1, rampBack: false });
@@ -1409,10 +1423,14 @@ describe('composeCoachRead', () => {
         expect(s).toMatch(/backed off/i);
     });
     it('frames a deload-only session as a smart call', () => {
-        expect(composeCoachRead({ prCount: 0, progressionCount: 0, deloadCount: 1, rampBack: false })).toMatch(/smart/i);
+        expect(composeCoachRead({ prCount: 0, progressionCount: 0, deloadCount: 1, rampBack: false })).toMatch(
+            /smart/i,
+        );
     });
     it('falls back to steady on-plan when nothing happened', () => {
-        expect(composeCoachRead({ prCount: 0, progressionCount: 0, deloadCount: 0, rampBack: false })).toMatch(/steady/i);
+        expect(composeCoachRead({ prCount: 0, progressionCount: 0, deloadCount: 0, rampBack: false })).toMatch(
+            /steady/i,
+        );
     });
 });
 
@@ -1420,14 +1438,35 @@ describe('composeCoachRead', () => {
 const T7_UUID_A = 'aaaaaaaa-1111-4111-8111-111111111111';
 
 describe('computeSessionSummary', () => {
-    const session = { id: 's', user_id: 'u', routine_id: 'r', workout_type: 'push', variant: 'A', started_at: '2026-05-30T10:00:00Z', completed_at: null, session_rpe: null, session_note: null } as any;
-    const exFull = (id: string, cat: string) => ({ id, sets: '3', reps: '8-12', exercise: { name: id, category: cat } }) as any;
+    const session = {
+        id: 's',
+        user_id: 'u',
+        routine_id: 'r',
+        workout_type: 'push',
+        variant: 'A',
+        started_at: '2026-05-30T10:00:00Z',
+        completed_at: null,
+        session_rpe: null,
+        session_note: null,
+    } as any;
+    const exFull = (id: string, cat: string) =>
+        ({ id, sets: '3', reps: '8-12', exercise: { name: id, category: cat } }) as any;
     it('composes stats, tonnage, muscles, decisions and a coach read', () => {
         const exercises = [exFull(T7_UUID_A, 'chest')];
         const logs = { [`1-${T7_UUID_A}-0`]: { kg: 100, reps: 10, rir: 2, saved: true } } as any;
         const prMap = {} as any;
         const decisions = [
-            { type: 'progression', trigger: 'targets_hit', affectedArea: T7_UUID_A, week: 1, magnitude: {}, confidence: null, id: 'd1', routine_id: 'r', created_at: '' },
+            {
+                type: 'progression',
+                trigger: 'targets_hit',
+                affectedArea: T7_UUID_A,
+                week: 1,
+                magnitude: {},
+                confidence: null,
+                id: 'd1',
+                routine_id: 'r',
+                created_at: '',
+            },
         ] as any;
         const out = computeSessionSummary(session, '2026-05-30T11:00:00Z', exercises, logs, prMap, 1, 'kg', decisions);
         expect(out.workoutLabel).toMatch(/Variant A/);
@@ -1701,8 +1740,31 @@ describe('resolveEquipmentPrefill', () => {
     it('falls back to the most-recent when the active id is stale (deleted)', () => {
         expect(resolveEquipmentPrefill([homeProfile, gymProfile], 'deleted-id')).toEqual(['dumbbells', 'bench']);
     });
-    it('returns empty when there are no profiles (today\'s behavior)', () => {
+    it("returns empty when there are no profiles (today's behavior)", () => {
         expect(resolveEquipmentPrefill([], null)).toEqual([]);
         expect(resolveEquipmentPrefill([], 'anything')).toEqual([]);
+    });
+});
+
+describe('exerciseReason', () => {
+    it('derives pattern, role, and the top muscles for a compound', () => {
+        // horizontal_push → chest 0.55, triceps 0.25, shoulders 0.2; top two kept.
+        expect(exerciseReason({ movement_pattern: 'horizontal_push', is_compound: true })).toBe(
+            'Horizontal push · compound · chest, triceps',
+        );
+    });
+
+    it('labels isolation lifts and single-muscle patterns', () => {
+        expect(exerciseReason({ movement_pattern: 'biceps_iso', is_compound: false })).toBe(
+            'Biceps isolation · isolation · biceps',
+        );
+        expect(exerciseReason({ movement_pattern: 'squat', is_compound: true })).toBe(
+            'Squat · compound · legs, glutes',
+        );
+    });
+
+    it('returns null when there is no movement pattern (user-created exercise)', () => {
+        expect(exerciseReason({ movement_pattern: null, is_compound: false })).toBeNull();
+        expect(exerciseReason({})).toBeNull();
     });
 });
