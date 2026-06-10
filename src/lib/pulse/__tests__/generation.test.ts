@@ -460,6 +460,16 @@ describe('styles', () => {
         expect(new Set(fb.schedule.map((s) => s.variant))).toEqual(new Set(['A', 'B', 'C', 'D']));
     });
 
+    it('the 3-day picker drops fb-emphasis-3 (a 1x-frequency body-part split mislabeled full body)', () => {
+        // Item 3: fb-emphasis-3 trained each muscle group ~1x/week (fb_chest_back has
+        // no legs, fb_legs no upper) under a "Full Body" label. Removed so the 3-day
+        // options are all genuinely sound; the recommended default is unchanged.
+        const keys = STYLES[3].map((s) => s.key);
+        expect(keys).not.toContain('fb-emphasis-3');
+        expect(keys).toEqual(['fb-3', 'ppl-3', 'ulf-3']);
+        expect(recommendStyle(3)).toBe('fb-3');
+    });
+
     it('every emphasis key referenced by a style exists in the EMPHASES library', () => {
         for (const styles of Object.values(STYLES)) {
             for (const style of styles) {

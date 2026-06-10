@@ -246,16 +246,6 @@ export const STYLES: Record<number, ProgramStyle[]> = {
             ],
         },
         {
-            key: 'fb-emphasis-3',
-            name: 'Full Body - Emphasis Days',
-            bestFor: 'Full body, but each day leans into one region.',
-            sessions: [
-                { focus: 'full_body', emphasis: 'fb_chest_back', variant: 'A' },
-                { focus: 'full_body', emphasis: 'fb_legs', variant: 'B' },
-                { focus: 'full_body', emphasis: 'fb_delts_arms', variant: 'C' },
-            ],
-        },
-        {
             key: 'ppl-3',
             name: 'Push / Pull / Legs',
             bestFor: 'Classic split, each muscle group once a week.',
