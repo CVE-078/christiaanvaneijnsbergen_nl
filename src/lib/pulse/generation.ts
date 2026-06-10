@@ -630,6 +630,21 @@ function patternTier(pattern: MovementPattern, isCompound: boolean): number {
 // are intentionally excluded -- Back Squat + Bulgarian Split Squat is valid.
 const HEAVY_DEDUP_PATTERNS: ReadonlySet<MovementPattern> = new Set(['hinge', 'squat']);
 
+// ── Unilateral cap scope ──────────────────────────────────────────────────────
+// The unilateral cap (at most one single-limb-at-a-time lift per session) governs
+// single-limb COMPOUND work -- Walking Lunge, Bulgarian Split Squat, Step-Up --
+// where stacking two front-loads balance-demanding fatigue without adding variety.
+// Isolation / finisher patterns are EXEMPT: a unilateral Cable Kickback or
+// Single-Leg Calf Raise is trivial accessory work that should neither consume the
+// budget nor be blocked by it. Without this exemption a fresh unilateral glute_iso
+// (the only fresh glute option once the bilateral ones are used) would set the flag
+// and starve the session's primary lunge slot -- the lower_post "missing lunge"
+// bug (2026-06-10). Isolation patterns are exactly the non-compound slots, so this
+// matches the patternTier Tier-3/4 definition (`_iso` / calf / core).
+function unilateralCapApplies(pattern: MovementPattern): boolean {
+    return !pattern.endsWith('_iso') && pattern !== 'calf' && pattern !== 'core';
+}
+
 // ── Loading lean: modality preference secondary sort ─────────────────────────
 // Maps a LoadingPreference to the EquipmentKey that identifies that modality.
 // Used in byPattern to float preferred-equipment exercises to the front of the
@@ -644,18 +659,22 @@ const LOADING_TO_EQUIPMENT: Record<LoadingPreference, EquipmentKey> = {
 };
 
 // ── Canonical anchor ranking (Bug 2 / roadmap P0 3.1) ────────────────────────
-// When several exercises tie on fatigue within an anchor pattern, this picks the
-// canonical primary compound instead of falling through to id.localeCompare (which
-// is effectively random because exercise ids are UUIDs). The real seed ties this
-// fixes: horizontal_push has Barbell Bench Press AND Close-Grip Bench Press both at
-// fatigue 4; vertical_push has Barbell OHP vs Dumbbell Push Press (4); horizontal_
-// pull has Barbell Row vs T-Bar Row (4); vertical_pull has Pull-Up vs Chin-Up (4).
-// squat (Barbell Squat alone at 5) and hinge (Deadlift/Sumo at 5) already resolve on
-// fatigue, so they are deliberately NOT listed here (a rank entry would be inert).
+// The standard primary compound a session should be built around, per pattern.
+// Lower index = more canonical. Applied in byPattern BEFORE the fatigue heuristic
+// (2026-06-10): for explicitly named anchors the canonical preference is
+// authoritative, fatigue is only a general tiebreak below it. It still sits AFTER
+// loading-lean and substitution-class freshness (a user's equipment preference and
+// cross-session rotation still win) and is a no-op for nameless / unlisted
+// exercises (Infinity rank), so synthetic pools stay byte-identical to base.
 //
-// Lower index = more canonical. The rank is applied AFTER the fatigue key and BEFORE
-// the id tiebreak, so it ONLY decides otherwise-random ties and never overrides
-// fatigue / freshness / loading-lean.
+// Why canonical must beat fatigue, not just break its ties: fatigue tracks
+// mechanical cost, and for hinge the highest-fatigue lifts (Deadlift / Sumo
+// Deadlift, both 5) are NOT the right hypertrophy anchor. Romanian Deadlift (4) is
+// the standard first-hinge choice (better stimulus-to-fatigue, easier to learn);
+// Sumo is a powerlifting-specific variant. A pure fatigue sort picked a deadlift
+// every time and fell to random UUID order between Deadlift and Sumo. Listing hinge
+// here with RDL first fixes that. squat is still NOT listed (Barbell Squat alone at
+// fatigue 5 already resolves cleanly, so an entry would be inert).
 //
 // FRAGILITY: keyed by exercise NAME because ids are UUIDs (not stable across
 // environments) while seed names are. Renaming a seed exercise silently degrades its
@@ -691,6 +710,10 @@ export const CANONICAL_ANCHORS: Partial<Record<MovementPattern, string[]>> = {
         'Dumbbell Single-Arm Row',
     ],
     vertical_pull: ['Pull-Up', 'Lat Pulldown', 'Chin-Up'],
+    // RDL first (the hypertrophy default), conventional Deadlift + Rack Pull next,
+    // Sumo Deadlift last (powerlifting-specific). Hip Thrust / Good Morning stay
+    // unlisted (accessory hinges, ranked by fatigue below the named primaries).
+    hinge: ['Romanian Deadlift', 'Dumbbell Romanian Deadlift', 'Deadlift', 'Rack Pull', 'Sumo Deadlift'],
 };
 
 /** Canonical-anchor rank for an exercise within a pattern (lower = more canonical).
@@ -743,10 +766,11 @@ function selectForSession(
 
     // Sort candidates: (1) preferred-equipment first (loading lean), (2) a
     // fresh-substitution-class preference (GQ3 cross-session dedup), (3) a
-    // post-vertical-press front-delt-isolation suppression (GQ3), (4) a
-    // role-aware fatigue tiebreak, (5) stable alphabetical by id. When
-    // loadingLean is null/undefined the first key is a no-op; when fatigue is
-    // uniformly undefined the fourth key is a no-op.
+    // post-vertical-press front-delt-isolation suppression (GQ3), (4) the
+    // canonical-anchor rank (named primary compounds win, authoritative over
+    // fatigue), (5) a role-aware fatigue tiebreak, (6) stable alphabetical by id.
+    // When loadingLean is null/undefined key (1) is a no-op; for nameless pools
+    // key (4) is a no-op; when fatigue is uniformly undefined key (5) is a no-op.
     //
     // (2) soft-deprioritizes (never hard-blocks) a candidate whose
     // substitution_class already appears elsewhere in this routine, so
@@ -763,7 +787,7 @@ function selectForSession(
     // pick available, not the highest. Still selectable when it's the only
     // shoulder_iso candidate left (soft, not a hard block).
     //
-    // (4) The fatigue tiebreak direction depends on the slot's role. Accessory /
+    // (5) The fatigue tiebreak direction depends on the slot's role. Accessory /
     // isolation patterns keep the GQ2 behaviour (lower fatigue first: a coach
     // picks the cheaper isolation move when several train the same thing).
     // Anchor patterns -- COMPOUND_ANCHOR_PATTERNS, the main compounds a session
@@ -802,17 +826,23 @@ function selectForSession(
                 const aFrontRaise = verticalPushFilled && a.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
                 const bFrontRaise = verticalPushFilled && b.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
                 if (aFrontRaise !== bFrontRaise) return aFrontRaise - bFrontRaise;
-                const aFatigue = a.fatigue ?? FATIGUE_UNKNOWN;
-                const bFatigue = b.fatigue ?? FATIGUE_UNKNOWN;
-                if (aFatigue !== bFatigue) return anchorPattern ? bFatigue - aFatigue : aFatigue - bFatigue;
-                // (6) Canonical-anchor rank (Bug 2): break a fatigue tie toward the
-                // canonical primary compound (Barbell Bench Press over Close-Grip Bench
-                // Press) instead of the random UUID order. Infinity for nameless / unlisted
-                // exercises, so this is a no-op except on genuine ties between named
-                // catalog exercises (Infinity !== Infinity is false -> falls through).
+                // (5) Canonical-anchor rank (Bug 2): for explicitly named anchors the
+                // canonical primary compound is authoritative and is applied BEFORE the
+                // fatigue heuristic (2026-06-10). This lets Romanian Deadlift anchor hinge
+                // over higher-fatigue Deadlift / Sumo, and keeps Barbell Bench Press ahead
+                // of Close-Grip Bench Press. Infinity for nameless / unlisted exercises
+                // (Infinity !== Infinity is false -> falls through to fatigue), so synthetic
+                // pools stay byte-identical to base.
                 const aRank = anchorRank(a, p);
                 const bRank = anchorRank(b, p);
                 if (aRank !== bRank) return aRank - bRank;
+                // (6) Role-aware fatigue tiebreak, below canonical now. Anchor patterns
+                // prefer the higher-fatigue primary lift (fatigue tracks mechanical stimulus
+                // for main compounds); accessories prefer the lower-fatigue option. Untagged
+                // exercises sit at the neutral midpoint, so they neither win nor lose here.
+                const aFatigue = a.fatigue ?? FATIGUE_UNKNOWN;
+                const bFatigue = b.fatigue ?? FATIGUE_UNKNOWN;
+                if (aFatigue !== bFatigue) return anchorPattern ? bFatigue - aFatigue : aFatigue - bFatigue;
                 return a.id.localeCompare(b.id);
             });
     };
@@ -827,11 +857,13 @@ function selectForSession(
     // session. The cap prevents a second deadlift variant or squat compound from
     // entering via backfill while still allowing lunge and glute_iso accessories.
     const heavyPatternFilled = new Set<MovementPattern>();
-    // Mirrors heavyPatternFilled but for single-limb-at-a-time lifts (unilateral:
-    // true), capped at one per session regardless of pattern -- a session built
-    // around Walking Lunge shouldn't also reach for Bulgarian Split Squat or
-    // Step-Up. Unlike the heavy-pattern cap this isn't keyed by pattern: a
-    // unilateral pick in 'lunge' still blocks a unilateral pick in 'squat'.
+    // Mirrors heavyPatternFilled but for single-limb-at-a-time COMPOUND lifts
+    // (unilateral: true on a compound slot), capped at one per session regardless of
+    // pattern -- a session built around Walking Lunge shouldn't also reach for
+    // Bulgarian Split Squat or Step-Up. Unlike the heavy-pattern cap this isn't keyed
+    // by pattern: a unilateral pick in 'lunge' still blocks a unilateral pick in
+    // 'squat'. Isolation / finisher slots are exempt (see unilateralCapApplies), so a
+    // unilateral glute_iso / calf accessory neither sets nor is blocked by this flag.
     let unilateralFilled = false;
 
     const push = (ex: ExerciseMeta, slot: MovementPattern) => {
@@ -839,7 +871,9 @@ function selectForSession(
         chosenIds.add(ex.id);
         used.add(ex.id);
         if (ex.substitution_class !== null) usedSubstitutionClasses.add(ex.substitution_class);
-        if (ex.unilateral) unilateralFilled = true;
+        // Only a unilateral COMPOUND consumes the cap (see unilateralCapApplies): a
+        // unilateral isolation accessory must not block the session's primary lunge.
+        if (ex.unilateral && unilateralCapApplies(slot)) unilateralFilled = true;
         if (slot === 'vertical_push') verticalPushFilled = true;
         if (HEAVY_DEDUP_PATTERNS.has(slot) && ex.is_compound) {
             heavyPatternFilled.add(slot);
@@ -866,12 +900,14 @@ function selectForSession(
             return false;
         }
 
-        // Unilateral cap: once a unilateral exercise has filled this session,
-        // skip a slot whose only remaining candidates are unilateral (mirrors
-        // the heavy-compound cap's hard block), unless the cap has been relaxed
-        // because a full backfill round produced nothing else. A slot with a
-        // mix of bilateral and unilateral options simply narrows to bilateral.
-        if (unilateralFilled && !relaxUnilateralCap) {
+        // Unilateral cap: once a unilateral COMPOUND has filled this session, skip a
+        // compound slot whose only remaining candidates are unilateral (mirrors the
+        // heavy-compound cap's hard block), unless the cap has been relaxed because a
+        // full backfill round produced nothing else. A slot with a mix of bilateral
+        // and unilateral options simply narrows to bilateral. Isolation / finisher
+        // slots are exempt (unilateralCapApplies): a unilateral accessory is always
+        // selectable and never blocks them.
+        if (unilateralFilled && !relaxUnilateralCap && unilateralCapApplies(slot)) {
             const bilateral = candidates.filter((ex) => !ex.unilateral);
             if (bilateral.length === 0) return false;
             candidates = bilateral;

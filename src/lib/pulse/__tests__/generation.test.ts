@@ -1776,3 +1776,196 @@ describe('generation engine bug fixes (2026-06-10)', () => {
         }
     });
 });
+
+// ── Anchor + unilateral-cap follow-ups (2026-06-10) ──────────────────────────
+// Canonical rank now beats the fatigue heuristic for explicitly named anchors
+// (so Romanian Deadlift anchors hinge over higher-fatigue Deadlift/Sumo), and the
+// unilateral cap exempts isolation patterns (so a fresh unilateral glute accessory
+// can't starve the lower_post lunge slot). Issues 1 & 4 are confirmed already-fixed
+// and locked here. Spec discussion: 2026-06-10 reconciliation against the live tree.
+describe('anchor + unilateral-cap follow-ups (2026-06-10)', () => {
+    const patternMap = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e.movement_pattern]));
+
+    // ── Issue 3: hinge canonical anchor = Romanian Deadlift ───────────────────
+    it('Romanian Deadlift anchors hinge over higher-fatigue Deadlift/Sumo (named seed pool)', () => {
+        // RDL is fatigue 4, Deadlift/Sumo are fatigue 5. Pre-fix the fatigue-first
+        // sort hands the anchor to a deadlift (with Sumo winning on the arbitrary id
+        // tiebreak). Canonical rank must now win: RDL is the canonical hinge anchor
+        // for a hypertrophy program. The ids are chosen so Sumo would win id order.
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'hinge')
+            .concat([
+                meta('a-sumo', 'hinge', ['dumbbells'], true, {
+                    fatigue: 5,
+                    name: 'Sumo Deadlift',
+                    substitution_class: 'hinge_pattern',
+                }),
+                meta('b-deadlift', 'hinge', ['dumbbells'], true, {
+                    fatigue: 5,
+                    name: 'Deadlift',
+                    substitution_class: 'hinge_pattern',
+                }),
+                meta('m-rdl', 'hinge', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Romanian Deadlift',
+                    substitution_class: 'hinge_pattern',
+                }),
+            ]);
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const legs = sessionIds(bp, 'legs', null);
+        expect(legs).toContain('m-rdl'); // canonical wins despite lower fatigue + later id
+        expect(legs).not.toContain('a-sumo');
+        expect(legs).not.toContain('b-deadlift');
+    });
+
+    it('canonical-before-fatigue is a no-op for nameless synthetic pools (byte-identical)', () => {
+        for (const days of [
+            [1, 3, 5],
+            [1, 2, 4, 5],
+            [1, 2, 3, 4, 5, 6],
+        ]) {
+            const style = STYLES[days.length][0] as ProgramStyle;
+            const base = JSON.stringify(generateRoutine(input({ style, trainingDays: days })));
+            const again = JSON.stringify(generateRoutine(input({ style, trainingDays: days })));
+            expect(again).toBe(base);
+        }
+    });
+
+    // ── Issue 2 root cause: a unilateral isolation must not starve the lunge ───
+    it('lower_post (Legs) keeps a lunge when a unilateral glute accessory is the only fresh glute pick', () => {
+        // Reproduces the production trap: Lower consumes the two bilateral glute_iso
+        // options, leaving Legs a unilateral glute accessory as its fresh pick. A
+        // unilateral ISOLATION must not consume the single-limb-compound budget and
+        // block the primary lunge. Lunges are all unilateral (the realistic case).
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'glute_iso' && e.movement_pattern !== 'lunge')
+            .concat([
+                meta('gl-bilat-1', 'glute_iso', ['dumbbells'], false, { unilateral: false }),
+                meta('gl-bilat-2', 'glute_iso', ['dumbbells'], false, { unilateral: false }),
+                meta('gl-uni', 'glute_iso', ['dumbbells'], false, {
+                    unilateral: true,
+                    substitution_class: 'glute_pattern',
+                }),
+                meta('lun-1', 'lunge', ['dumbbells'], true, { unilateral: true, substitution_class: 'unilateral_leg' }),
+                meta('lun-2', 'lunge', ['dumbbells'], true, { unilateral: true, substitution_class: 'unilateral_leg' }),
+                meta('lun-3', 'lunge', ['dumbbells'], true, { unilateral: true, substitution_class: 'unilateral_leg' }),
+            ]);
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(
+            input({ style, trainingDays: [1, 2, 3, 4, 5], pool, varietyPreference: 'consistent' }),
+        );
+        const pat = patternMap(pool);
+        const legsLunges = sessionIds(bp, 'legs', null).filter((id) => pat.get(id) === 'lunge');
+        expect(legsLunges.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('the existing per-session unilateral COMPOUND cap still holds (two unilateral lunges never coexist)', () => {
+        // The isolation exemption must not loosen the cap on unilateral leg COMPOUNDS.
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'lunge')
+            .concat([
+                meta('uni-1', 'lunge', ['dumbbells'], true, { unilateral: true, substitution_class: 'unilateral_leg' }),
+                meta('uni-2', 'lunge', ['dumbbells'], true, { unilateral: true, substitution_class: 'unilateral_leg' }),
+                meta('bilat', 'lunge', ['dumbbells'], true, { unilateral: false }),
+            ]);
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, sessionTime: '90+ min' }));
+        const uni = new Set(['uni-1', 'uni-2']);
+        for (const s of bp.schedule) {
+            const ids = bp.exercises
+                .filter((e) => e.workout_type === s.workout_type && e.variant === s.variant)
+                .map((e) => e.exercise_id);
+            expect(ids.filter((id) => uni.has(id)).length).toBeLessThanOrEqual(1);
+        }
+    });
+
+    // ── Issue 2 invariant: a hinge slot with candidates is never skipped ──────
+    it('a hinge slot is never skipped when the hinge pool is non-empty (slot-filled invariant)', () => {
+        const pool = deepPool();
+        const pat = patternMap(pool);
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool }));
+        expect(sessionIds(bp, 'legs', null).some((id) => pat.get(id) === 'hinge')).toBe(true);
+    });
+
+    // ── Issue 1 (locked): ulppl-5 lower (quad) and legs (posterior) are disjoint
+    it('ulppl-5 lower (quad) and legs (posterior) share no exercise with a deep pool', () => {
+        const pool = deepPool(4);
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(
+            input({ style, trainingDays: [1, 2, 3, 4, 5], pool, varietyPreference: 'consistent' }),
+        );
+        const lower = sessionIds(bp, 'lower', null);
+        const legs = sessionIds(bp, 'legs', null);
+        expect(lower.length).toBeGreaterThan(0);
+        expect(legs.length).toBeGreaterThan(0);
+        expect(lower.some((id) => legs.includes(id))).toBe(false);
+    });
+
+    // ── Issue 4 (locked): Incline is the second horizontal_push anchor ────────
+    it('horizontal_push second anchor is Incline Barbell Press, not Decline Bench Press', () => {
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'horizontal_push')
+            .concat([
+                meta('hp-bbp', 'horizontal_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Barbell Bench Press',
+                    substitution_class: 'horizontal_press',
+                }),
+                meta('hp-incline', 'horizontal_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Incline Barbell Press',
+                    substitution_class: 'horizontal_press',
+                }),
+                meta('hp-decline', 'horizontal_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Decline Bench Press',
+                    substitution_class: 'horizontal_press',
+                }),
+            ]);
+        const style = STYLES[4].find((s) => s.key === 'ppl-fb-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool, varietyPreference: 'consistent' }));
+        const pat = patternMap(pool);
+        const push = sessionIds(bp, 'push', null).filter((id) => pat.get(id) === 'horizontal_push');
+        const fb = sessionIds(bp, 'full_body', null).filter((id) => pat.get(id) === 'horizontal_push');
+        expect(push).toContain('hp-bbp'); // anchor = canonical primary
+        expect(fb).toContain('hp-incline'); // second = Incline, not Decline
+        expect(fb).not.toContain('hp-decline');
+    });
+
+    // ── Accepted blast radius of canonical-before-fatigue: locks the intended
+    // second-anchor change for vertical_pull (Lat Pulldown over higher-fatigue
+    // Chin-Up). Pre-change the fatigue-first sort handed the second pull to Chin-Up.
+    it('vertical_pull second anchor is Lat Pulldown, not higher-fatigue Chin-Up', () => {
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'vertical_pull')
+            .concat([
+                meta('vp-pullup', 'vertical_pull', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Pull-Up',
+                    substitution_class: 'vertical_pull',
+                }),
+                meta('vp-lat', 'vertical_pull', ['dumbbells'], true, {
+                    fatigue: 3,
+                    name: 'Lat Pulldown',
+                    substitution_class: 'vertical_pull',
+                }),
+                meta('vp-chinup', 'vertical_pull', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Chin-Up',
+                    substitution_class: 'vertical_pull',
+                }),
+            ]);
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(
+            input({ style, trainingDays: [1, 2, 3, 4, 5], pool, varietyPreference: 'consistent' }),
+        );
+        const pat = patternMap(pool);
+        const upper = sessionIds(bp, 'upper', null).filter((id) => pat.get(id) === 'vertical_pull');
+        const pull = sessionIds(bp, 'pull', null).filter((id) => pat.get(id) === 'vertical_pull');
+        expect(upper).toContain('vp-pullup'); // anchor = canonical primary
+        expect(pull).toContain('vp-lat'); // second = Lat Pulldown, not Chin-Up
+        expect(pull).not.toContain('vp-chinup');
+    });
+});
