@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-10)
 
-**In progress:** (none).
+**In progress:** Generation engine bug fixes (Bug 1 cross-session anchor scoping, Bug 2 = P0 3.1 canonical-anchor ranking, Bug 3 strength rep range 3-6, Bug 4/7 backfill pattern-diversity + max-2-per-pattern cap, Bug 5 glutes-tilt compound-first), on `feature/generation-engine-bug-fixes`. Spec: `docs/superpowers/specs/2026-06-10-14-00-00-generation-engine-bug-fixes-design.md`. Bug 6 reconciled (intended P0 Group 1 posterior-leg design, no change). Issue 0 (days-step slider + day picker) deferred to a visual draft (engine `STYLES` needs 1/7-day coverage first).
 
 **In review (on a branch, not yet merged):** P0 Group 1, the `EMPHASES` data fixes (1.1-1.4), on `feature/generation-emphasis-fixes` (implemented + code-reviewed; +12 tests, typecheck clean; pure data, no migration; spec `docs/superpowers/specs/2026-06-10-10-41-58-generation-emphasis-fixes-design.md`). Smart substitution v2 (#8, #112), behavior-driven adaptation (#7, #111), travel mode (#322, #110), program pause (#14, #109), and equipment profiles (#6, #99/#100) are merged on `main`. **Pending hand-off:** their four migrations are apply-by-hand (`equipment-profile-expiry`, `exercise-swaps-from-exercise`, `exercise-swaps-reason`, plus program-pause); confirm they are applied to Supabase before the P0 Group 2 seed migration stacks on the same `exercises` rows.
 
