@@ -507,11 +507,21 @@ export function resolveBias(sessionBias: Bias, style: TrainingStyle): Bias {
 // NOTE: a conventional deadlift and a Romanian deadlift both map to `hinge`, so
 // both land here. That is an intentional approximation until per-exercise metadata
 // (generation Phase 0 #2) can separate the main lift from its accessory variants.
+//
+// Item 1 (2026-06-10): the pulling compounds (horizontal_pull / vertical_pull) are
+// included. Excluding them gave a powerbuilding pull session hypertrophy reps on
+// every lift while the first compound still took the strength +1 set bump (a 4-set
+// x 8-12 main row), and the back was never trained heavy under a style sold as
+// powerbuilding. A "conservative pulls" variant (moderate reps to manage joint
+// stress) is a legitimate future option, but it must be an explicit per-pattern
+// bias override, not the silent default.
 export const POWERBUILDING_HEAVY_PATTERNS: ReadonlySet<MovementPattern> = new Set([
     'squat',
     'hinge',
     'horizontal_push',
     'vertical_push',
+    'horizontal_pull',
+    'vertical_pull',
 ]);
 
 /** Main bilateral compound patterns anchored across sessions under the

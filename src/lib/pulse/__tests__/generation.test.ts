@@ -126,9 +126,22 @@ describe('resolveRepRange', () => {
             );
         }
     });
-    it('powerbuilding gives the hypertrophy range to accessories (rows, isolation, lunge)', () => {
-        for (const p of ['horizontal_pull', 'biceps_iso', 'lunge'] as MovementPattern[]) {
-            const isCompound = p === 'horizontal_pull' || p === 'lunge';
+    it('powerbuilding now trains pulling compounds heavy (horizontal_pull, vertical_pull)', () => {
+        // Item 1: pulls were excluded from the heavy set, so a powerbuilding pull
+        // session got hypertrophy reps while the first compound still took the
+        // strength +1 set bump. The pulls now ride the strength range like the
+        // other primary compounds.
+        for (const p of ['horizontal_pull', 'vertical_pull'] as MovementPattern[]) {
+            expect(resolveRepRange('hypertrophy', p, true, 'build_muscle', 'powerbuilding')).toBe(
+                repRange('strength', true, 'build_muscle'),
+            );
+        }
+    });
+    it('powerbuilding gives the hypertrophy range to accessories (lunge, isolation)', () => {
+        // horizontal_pull moved to the heavy set (Item 1); lunge and isolation
+        // remain accessories.
+        for (const p of ['lunge', 'biceps_iso'] as MovementPattern[]) {
+            const isCompound = p === 'lunge';
             expect(resolveRepRange('strength', p, isCompound, 'build_muscle', 'powerbuilding')).toBe(
                 repRange('hypertrophy', isCompound, 'build_muscle'),
             );
@@ -645,6 +658,23 @@ describe('generateRoutine + trainingStyle', () => {
         const push = bp.exercises.filter((e) => e.workout_type === 'push');
         expect(push.some((e) => e.reps === strengthRange)).toBe(true);
         expect(push.some((e) => e.reps === hyperIso)).toBe(true);
+    });
+    it('powerbuilding trains the primary row/pull compound heavy (3-6) on a PPL pull day', () => {
+        // Item 1 end-to-end: the pull session's compound patterns (horizontal_pull,
+        // vertical_pull) now land in the strength rep band, not hypertrophy.
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const pool = deepPool();
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, trainingStyle: 'powerbuilding' }));
+        const pat = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const pullCompoundReps = bp.exercises
+            .filter((e) => e.workout_type === 'pull')
+            .filter((e) => {
+                const p = pat.get(e.exercise_id);
+                return p === 'horizontal_pull' || p === 'vertical_pull';
+            })
+            .map((e) => e.reps);
+        expect(pullCompoundReps.length).toBeGreaterThan(0);
+        expect(pullCompoundReps.every((r) => r === '3-6')).toBe(true);
     });
     it('powerbuilding also splits on a U/L split (more than one archetype verified)', () => {
         const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
