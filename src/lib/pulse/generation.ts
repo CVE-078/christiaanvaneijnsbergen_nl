@@ -1067,6 +1067,39 @@ function buildSupersets(
     return out;
 }
 
+// ── Squat/hinge adjacency interleave (Item 4) ────────────────────────────────
+// The tier sort lands squat and hinge both in Tier 1, so a session carrying both
+// (the full-body strength / balanced days) opened with the two highest-fatigue
+// lifts back to back. When such a session also has an upper compound, slot the
+// first one between the two lower compounds (squat, bench, then hinge), the
+// standard coaching sequence. Leg-only sessions (no upper compound to interleave)
+// are left untouched, and position 0 is unchanged so the strength set-bump still
+// lands on the leading compound.
+const UPPER_COMPOUND_PATTERNS: ReadonlySet<MovementPattern> = new Set([
+    'horizontal_push',
+    'vertical_push',
+    'horizontal_pull',
+    'vertical_pull',
+]);
+
+function isLeadLowerCompound(item: Selected): boolean {
+    return item.ex.is_compound && (item.pattern === 'squat' || item.pattern === 'hinge');
+}
+
+function interleaveLowerCompounds(sorted: Selected[]): Selected[] {
+    if (sorted.length < 2 || !isLeadLowerCompound(sorted[0]) || !isLeadLowerCompound(sorted[1])) {
+        return sorted;
+    }
+    const upperIdx = sorted.findIndex(
+        (item, idx) => idx >= 2 && item.ex.is_compound && UPPER_COMPOUND_PATTERNS.has(item.pattern),
+    );
+    if (upperIdx === -1) return sorted;
+    const out = [...sorted];
+    const [upper] = out.splice(upperIdx, 1);
+    out.splice(1, 0, upper);
+    return out;
+}
+
 // ── Blueprint generation ─────────────────────────────────────────────────────
 
 export interface GenerationInput {
@@ -1195,14 +1228,18 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const sortedSelected = [...selected].sort(
             (a, b) => patternTier(a.pattern, a.ex.is_compound) - patternTier(b.pattern, b.ex.is_compound),
         );
+        // Item 4: keep the two heavy lower compounds from opening the session back
+        // to back by slotting the first upper compound between them (a no-op unless
+        // the session leads with both squat and hinge).
+        const orderedSelection = interleaveLowerCompounds(sortedSelected);
 
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
         let firstCompoundBumped = false;
         const baseSets = Math.max(3, sets);
 
         const ordered = isSuperset
-            ? buildSupersets(sortedSelected, makeGroupId)
-            : sortedSelected.map((item) => ({ item, groupId: null as string | null }));
+            ? buildSupersets(orderedSelection, makeGroupId)
+            : orderedSelection.map((item) => ({ item, groupId: null as string | null }));
 
         ordered.forEach(({ item, groupId }, order) => {
             const { ex, pattern } = item;

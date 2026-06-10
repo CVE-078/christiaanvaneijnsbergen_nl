@@ -724,6 +724,66 @@ describe('buildRationale trainingStyle clause', () => {
 
 // ── 11. GQ1: exercise ordering and pattern guardrails ────────────────────────
 
+// ── Item 4: squat/hinge adjacency interleave ─────────────────────────────────
+// The tier sort puts squat and hinge both in Tier 1, so a full-body / dual-compound
+// session opened with the two highest-fatigue lifts back to back. The interim fix
+// slots the first upper compound between them; leg-only sessions (no upper compound)
+// are left untouched. Spec: roadmap "Generation engine quality track" Item 4.
+describe('Item 4: squat/hinge adjacency interleave', () => {
+    const patternMapOf = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e]));
+    const UPPER_COMPOUND = ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull'];
+
+    it('a full-body session with squat+hinge separates them with an upper compound', () => {
+        // fb-3 day A is fb_strength: [hinge, squat, horizontal_push, ...], so the two
+        // lead Tier-1 lower compounds were adjacent. The fix moves the first upper
+        // compound between them.
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'fb-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const meta = patternMapOf(pool);
+        const dayA = bp.exercises
+            .filter((e) => e.variant === 'A')
+            .sort((a, b) => a.order - b.order)
+            .map((e) => meta.get(e.exercise_id)!);
+        const patterns = dayA.map((m) => m.movement_pattern);
+        expect(patterns).toContain('squat');
+        expect(patterns).toContain('hinge');
+        // The two heavy lower compounds are no longer adjacent.
+        expect(Math.abs(patterns.indexOf('squat') - patterns.indexOf('hinge'))).toBeGreaterThan(1);
+        // The exercise slotted between them is an upper compound.
+        expect(UPPER_COMPOUND).toContain(patterns[1]);
+        expect(dayA[1].is_compound).toBe(true);
+    });
+
+    it('the strength set-bump still lands on the lead compound (position 0) after interleave', () => {
+        // fb_strength resolves to strength bias, so its first compound gets +1 set.
+        // The interleave must not move that bump off position 0 onto the inserted
+        // upper compound.
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'fb-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const dayA = bp.exercises.filter((e) => e.variant === 'A').sort((a, b) => a.order - b.order);
+        const bumped = dayA.filter((e) => e.sets === '4');
+        expect(bumped).toHaveLength(1);
+        expect(bumped[0].order).toBe(dayA[0].order); // the bump is on the first exercise
+    });
+
+    it('a leg-only session keeps squat and hinge adjacent (no upper compound to interleave)', () => {
+        // ppl-3 legs is squat/hinge/lunge with no upper compound, so the interleave
+        // must not fire and squat+hinge still lead.
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const meta = patternMapOf(pool);
+        const legs = bp.exercises
+            .filter((e) => e.workout_type === 'legs')
+            .sort((a, b) => a.order - b.order)
+            .map((e) => meta.get(e.exercise_id)!.movement_pattern);
+        expect(legs[0] === 'squat' || legs[0] === 'hinge').toBe(true);
+        expect(legs[1] === 'squat' || legs[1] === 'hinge').toBe(true);
+    });
+});
+
 describe('GQ1: tier sort -- compounds before isolation', () => {
     it('every session has all compound exercises ordered before all isolation exercises', () => {
         const pool = deepPool();
