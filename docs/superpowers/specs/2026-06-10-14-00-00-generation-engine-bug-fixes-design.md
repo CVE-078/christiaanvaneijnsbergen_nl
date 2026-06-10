@@ -234,3 +234,39 @@ from other patterns. No fragility. No change.
 
 Updated existing tests: `repRange` strength rows; the `6-10` generation assertion;
 the `tiltEmphasis front-loads` order.
+
+---
+
+## Review corrections (applied after the adversarial spec review + code review)
+
+Two adversarial subagent panels (a pre-implementation 3-lens spec review and a
+post-implementation 2-lens code review) ran on this work; both returned zero
+blocking correctness bugs. Changes made vs the plan above:
+
+1. **Bug 2 — dropped `squat` and `hinge` from `CANONICAL_ANCHORS`.** The rank sits
+   AFTER the fatigue key, and on real seed data squat (Barbell Squat, fatigue 5) and
+   hinge (Deadlift/Sumo, 5) already resolve on fatigue, so a rank entry for them
+   would be inert/misleading. Only the four genuinely fatigue-tied patterns remain:
+   `horizontal_push`, `vertical_push`, `horizontal_pull`, `vertical_pull`.
+2. **Bug 2 — `name` threading made first-class (three files, not "generation.ts +
+   test").** Without `name: row.name` in the `actions/routines.ts` pool map the rank
+   is dead in production while tests stay green (a "tests-pass-feature-dead" trap).
+   Added a catalog-consistency test that reads the metadata seed and asserts every
+   `CANONICAL_ANCHORS` name exists, plus a code comment on the name-key fragility and
+   a roadmap follow-up for an `anchor_rank` column.
+3. **Bug 4 — corrected the thin-pool rationale.** The `hinge fills the session` test
+   reaches 8 via `lunge-2` + `glute_iso-2` (each pattern naturally tops at 2); hinge
+   stays at 1 and the heavy-cap relax never fires, so the max-2 cap is a no-op there.
+   Added a direct calf-explosion regression test (90+ min, calf-deep, leg-thin) that
+   asserts ≤2 calf and documents the cap is intentionally HARD (under-fill toward
+   diversity) while the heavy/unilateral caps relax.
+4. **Bug 6 — final decision is RELABEL (deferred).** Reviewers confirmed the
+   quad/posterior split is sound; the product owner chose to keep it and relabel
+   `ulppl-5`'s days ("Lower (Quad Focus)" / "Lower (Posterior Focus)"). That needs a
+   per-session label mechanism (schema + ~8 UI surfaces) and is its own diff. A
+   `lower_post` minimum-compound-guard note was added in `EMPHASES` (not fixed here).
+
+**Result:** typecheck clean, 1049 tests pass (was 1038, +11). Issue 0 (days-step
+slider + day picker) remains deferred; until it lands, the 3-day and 6-day onboarding
+*UI* paths are not end-to-end testable (the engine covers those counts via direct
+`generateRoutine` tests).
