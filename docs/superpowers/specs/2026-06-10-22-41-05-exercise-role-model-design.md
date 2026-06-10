@@ -61,21 +61,27 @@ Role depends on the pattern, `is_compound`, and the exercise's **rank within its
 
 #### 2.2.1 Category definitions
 
-The role assignment uses three movement categories, defined explicitly (not inferred from the table):
+Two layers of categories with distinct purposes (Q3, resolved 2026-06-10). They do not contradict: role assignment is **coarse** (two buckets), planning and reporting are **fine** (three categories).
+
+**Coarse buckets (role assignment).** Primary/secondary role assignment uses two buckets:
 
 - **Lower** = {`squat`, `hinge`, `lunge`}
-- **Upper-push** = {`horizontal_push`, `vertical_push`}
-- **Upper-pull** = {`horizontal_pull`, `vertical_pull`}
+- **Upper** = {`horizontal_push`, `vertical_push`, `horizontal_pull`, `vertical_pull`}
 
-`*_iso`, `calf`, and `core` belong to no movement category, they map directly to Isolation / Finisher.
+Pooling push and pull into one Upper bucket is what produces exactly one Primary Lower and one Primary Upper per session (the intended sequence). `*_iso`, `calf`, and `core` belong to no bucket; they map directly to Isolation / Finisher.
 
-**Primary vs Secondary:** Primary = the exercise with the highest canonical rank (`CANONICAL_ANCHORS` rank → fatigue desc → id) within its category, across the full set of already-selected exercises for that session. Secondary = all others in the same category. This makes role assignment deterministic and independent of emphasis slot order. **Role assignment is a post-selection pass over the already-selected exercise set, not a selection-time decision.**
+**Fine categories (planner / reporting only).** The volume-first planner (Phase 4) and the reporting layer use three finer categories, **Lower**, **Upper-push** {`horizontal_push`, `vertical_push`}, and **Upper-pull** {`horizontal_pull`, `vertical_pull`}, for pattern-direction granularity (balancing weekly horizontal vs vertical volume). These are **not** used for role assignment (doing so would yield two Primary Uppers).
+
+**Primary vs Secondary.** Within each coarse bucket, rank the already-selected compounds and assign role by rank (rank 1 = Primary, rank ≥ 2 = Secondary). Deterministic and independent of emphasis slot order. **Role assignment is a post-selection pass over the already-selected exercise set, not a selection-time decision.**
+
+- **Lower bucket ranking (Q1):** a category-internal **pattern priority `squat > hinge > lunge`** is applied **first** (squat is the primary lower compound for general-population programming and anchors any session containing both a squat and a hinge; this is explicit, not inferred from fatigue or seed order). Within the same pattern, fall to canonical-anchor rank (`CANONICAL_ANCHORS`) → fatigue desc → id, so among hinges Romanian Deadlift > conventional Deadlift. The lone-lunge promotion (below) overrides only when no squat or hinge is present.
+- **Upper bucket ranking (Q2):** canonical-anchor rank → fatigue desc → **push-before-pull** → id. The push-before-pull step is a **soft cross-pattern tiebreaker** that fires only when canonical rank and fatigue are tied across different patterns (e.g. Barbell Bench Press and Barbell Row are both canonical rank 0 and fatigue 4 in the seed). It makes the bench the Primary Upper on a session with both, the right general-population default, and keeps tests deterministic rather than falling to arbitrary id order. It is **not** a hard push/pull architectural principle and **not** push/pull alternation (see §2.3 / §6).
 
 **Lone lunge promotion (named rule):** if no squat or hinge compound is present in the session (due to restriction filtering, equipment constraints, or emphasis design), the first lunge compound by canonical rank is promoted to **Primary Lower**. All subsequent lunge compounds remain Secondary Lower. This matches coaching practice where a split squat or walking lunge becomes the session's main lower lift when bilateral compounds are unavailable.
 
 ### 2.3 Upper push vs pull
 
-"Primary Upper" should prefer alternating push/pull when both exist, so a push and a pull don't stack. A full-body day reads squat → bench → hinge → row, not squat → bench → OHP → hinge. **(Resolved in Section 6: push/pull alternation is deferred; within Secondary Upper, order is governed by canonical rank then fatigue.)**
+A full-body day reads squat → bench → hinge → row, not squat → bench → OHP → hinge. **Resolved:** push/pull *alternation* is deferred (§6); a soft **push-before-pull tiebreaker** (§2.2.1, Upper bucket ranking) breaks canonical+fatigue ties across patterns so the bench anchors over the row at equal fatigue. The tiebreaker fires only on a true tie; it does not reorder a heavier pull below a lighter push.
 
 ### 2.4 Per-session-type behaviour (graceful degradation)
 
@@ -97,7 +103,7 @@ The role layer changes **ordering only**. Everything below stays:
 - **Supersets (30-min):** `buildSupersets` consumes the ordered list. Role ordering changes the input order; antagonist pairing still applies. Confirm the role order does not worsen 30-min pairing (it should help: Primary Lower next to Primary Upper is a natural antagonist pair).
 - **`interleaveLowerCompounds`:** **removed** and subsumed by the role model (the role sequence makes it redundant). Its tests are rewritten against the role ordering.
 - **`patternTier`:** removed or kept only as an internal helper feeding role assignment.
-- **Volume-first planner (consumes role + pattern, not role alone):** the volume-first planner (Phase 2) must consume role + movement pattern, not role alone. PRIMARY_UPPER subsumes both horizontal_push and vertical_push under one role; the planner needs pattern-level granularity to balance weekly horizontal vs vertical volume. The three-layer rule is: selection layer (15 patterns) → role layer (6 roles, ordering and planning hooks) → reporting layer (10 muscle categories). Roles must not absorb pattern information.
+- **Volume-first planner (consumes role + pattern, not role alone):** the volume-first planner (Phase 4) must consume role + movement pattern, not role alone. PRIMARY_UPPER subsumes both horizontal_push and vertical_push under one role; the planner needs pattern-level granularity to balance weekly horizontal vs vertical volume. The three-layer rule is: selection layer (15 patterns) → role layer (6 roles, ordering and planning hooks) → reporting layer (10 muscle categories). Roles must not absorb pattern information.
 
 ## 4. Compatibility and test strategy
 
@@ -120,7 +126,7 @@ This is **not** a byte-identical change. It reorders many sessions (every sessio
 
 ## 6. Open questions for the review loop
 
-- **Push/pull ordering within Upper roles (RESOLVED):** push/pull alternation within Secondary Upper is a soft ergonomic preference, not a training-science requirement. The fatigue difference between bench → OHP → row and bench → row → OHP in the secondary compound block is marginal. Implementation is deferred: within Secondary Upper, order is governed by canonical rank then fatigue, which naturally places the heavier compound earlier regardless of push/pull direction. Revisit if user feedback or the volume-first planner needs motivate it.
+- **Push/pull ordering within Upper roles (RESOLVED):** push/pull *alternation* (bench → row → OHP vs bench → OHP → row in the secondary block) is a soft ergonomic preference, not a training-science requirement, and is deferred. A soft **push-before-pull tiebreaker** IS implemented for the Upper bucket ranking (canonical → fatigue → push-before-pull → id, see §2.2.1): it fires only when canonical rank and fatigue tie across patterns (bench vs row, both rank 0 / fatigue 4), so the bench anchors Primary Upper deterministically instead of falling to id order. Full alternation revisits if user feedback or the volume-first planner needs motivate it.
 - **Is `vertical_push`/`vertical_pull` ever Primary?** On a day with both a horizontal and a vertical of the same plane, which anchors? (Lean on `CANONICAL_ANCHORS`, but confirm the science.)
 - **Lunge as Secondary Lower vs Isolation-adjacent:** on a quad day with squat + lunge, is lunge a Secondary Lower (compound, ordered before isolation) or should it sit lower? Current proposal: Secondary Lower.
 - **Does the role model change rep schemes?** Out of scope here (ordering only), but it is the natural hook for rep-scheme-by-role later. Confirm we are NOT coupling them in v1.
