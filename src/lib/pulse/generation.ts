@@ -246,16 +246,6 @@ export const STYLES: Record<number, ProgramStyle[]> = {
             ],
         },
         {
-            key: 'fb-emphasis-3',
-            name: 'Full Body - Emphasis Days',
-            bestFor: 'Full body, but each day leans into one region.',
-            sessions: [
-                { focus: 'full_body', emphasis: 'fb_chest_back', variant: 'A' },
-                { focus: 'full_body', emphasis: 'fb_legs', variant: 'B' },
-                { focus: 'full_body', emphasis: 'fb_delts_arms', variant: 'C' },
-            ],
-        },
-        {
             key: 'ppl-3',
             name: 'Push / Pull / Legs',
             bestFor: 'Classic split, each muscle group once a week.',
@@ -507,11 +497,21 @@ export function resolveBias(sessionBias: Bias, style: TrainingStyle): Bias {
 // NOTE: a conventional deadlift and a Romanian deadlift both map to `hinge`, so
 // both land here. That is an intentional approximation until per-exercise metadata
 // (generation Phase 0 #2) can separate the main lift from its accessory variants.
+//
+// Item 1 (2026-06-10): the pulling compounds (horizontal_pull / vertical_pull) are
+// included. Excluding them gave a powerbuilding pull session hypertrophy reps on
+// every lift while the first compound still took the strength +1 set bump (a 4-set
+// x 8-12 main row), and the back was never trained heavy under a style sold as
+// powerbuilding. A "conservative pulls" variant (moderate reps to manage joint
+// stress) is a legitimate future option, but it must be an explicit per-pattern
+// bias override, not the silent default.
 export const POWERBUILDING_HEAVY_PATTERNS: ReadonlySet<MovementPattern> = new Set([
     'squat',
     'hinge',
     'horizontal_push',
     'vertical_push',
+    'horizontal_pull',
+    'vertical_pull',
 ]);
 
 /** Main bilateral compound patterns anchored across sessions under the
@@ -603,26 +603,10 @@ function isContraindicated(ex: ExerciseMeta, restrictions: Set<RestrictionFlag>)
     return ex.contraindications.some((c) => restrictions.has(c));
 }
 
-// ── Exercise ordering (tier sort) ────────────────────────────────────────────
-// Applied after selectForSession; assigns the coach-standard presentation order:
-// Tier 1 (primary compounds: squat + hinge) → Tier 2 (big multi-joint compounds:
-// push, pull, lunge) → Tier 3 (isolation) → Tier 4 (calf, core finishers).
-// Non-compound exercises in Tier 1/2 patterns fall through to Tier 3.
-
-function patternTier(pattern: MovementPattern, isCompound: boolean): number {
-    if (isCompound && (pattern === 'squat' || pattern === 'hinge')) return 1;
-    if (
-        isCompound &&
-        (pattern === 'horizontal_push' ||
-            pattern === 'horizontal_pull' ||
-            pattern === 'vertical_push' ||
-            pattern === 'vertical_pull' ||
-            pattern === 'lunge')
-    )
-        return 2;
-    if (pattern.endsWith('_iso')) return 3;
-    return 4; // core, calf, anything else
-}
+// ── Exercise ordering ────────────────────────────────────────────────────────
+// Within-session presentation order is assigned by the exercise role model
+// (assignRole / orderByRole, defined below after the Selected type), which replaced
+// the old tier sort + squat/hinge interleave.
 
 // ── Heavy-compound deduplication guard ───────────────────────────────────────
 // These patterns are capped at one compound per session to prevent coach-quality
@@ -639,8 +623,8 @@ const HEAVY_DEDUP_PATTERNS: ReadonlySet<MovementPattern> = new Set(['hinge', 'sq
 // budget nor be blocked by it. Without this exemption a fresh unilateral glute_iso
 // (the only fresh glute option once the bilateral ones are used) would set the flag
 // and starve the session's primary lunge slot -- the lower_post "missing lunge"
-// bug (2026-06-10). Isolation patterns are exactly the non-compound slots, so this
-// matches the patternTier Tier-3/4 definition (`_iso` / calf / core).
+// bug (2026-06-10). Isolation patterns are exactly the non-compound slots (`_iso` /
+// calf / core), the same set the role model maps to ISOLATION / FINISHER.
 function unilateralCapApplies(pattern: MovementPattern): boolean {
     return !pattern.endsWith('_iso') && pattern !== 'calf' && pattern !== 'core';
 }
@@ -1067,6 +1051,134 @@ function buildSupersets(
     return out;
 }
 
+// ── Exercise role model (Item 4) ─────────────────────────────────────────────
+// Replaces the old patternTier sort + the squat/hinge interleave. Each selected
+// exercise is assigned a role; the session is ordered PRIMARY_LOWER -> PRIMARY_UPPER
+// -> SECONDARY_LOWER -> SECONDARY_UPPER -> ISOLATION -> FINISHER, so the two heaviest
+// compounds lead and are separated by the opposite category. Spec:
+// docs/superpowers/specs/2026-06-10-22-41-05-exercise-role-model-design.md.
+export type ExerciseRole =
+    | 'PRIMARY_LOWER'
+    | 'PRIMARY_UPPER'
+    | 'SECONDARY_LOWER'
+    | 'SECONDARY_UPPER'
+    | 'ISOLATION'
+    | 'FINISHER';
+
+const ROLE_ORDER: Record<ExerciseRole, number> = {
+    PRIMARY_LOWER: 0,
+    PRIMARY_UPPER: 1,
+    SECONDARY_LOWER: 2,
+    SECONDARY_UPPER: 3,
+    ISOLATION: 4,
+    FINISHER: 5,
+};
+
+// Coarse buckets for role assignment (Q3): push + pull pool into one Upper bucket so
+// each session has exactly one Primary Upper. The three fine categories (Upper-push /
+// Upper-pull) are for the volume planner / reporting, not for roles.
+const ROLE_LOWER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['squat', 'hinge', 'lunge']);
+const ROLE_UPPER_PATTERNS: ReadonlySet<MovementPattern> = new Set([
+    'horizontal_push',
+    'vertical_push',
+    'horizontal_pull',
+    'vertical_pull',
+]);
+// Lower pattern priority (Q1): squat anchors over hinge over lunge, applied BEFORE
+// canonical rank when ranking the Lower bucket.
+const LOWER_PATTERN_PRIORITY: Partial<Record<MovementPattern, number>> = { squat: 0, hinge: 1, lunge: 2 };
+const ROLE_FATIGUE_NEUTRAL = 3;
+
+type RoleBucket = 'lower' | 'upper' | 'isolation' | 'finisher';
+function roleBucket(pattern: MovementPattern, isCompound: boolean): RoleBucket {
+    if (pattern === 'calf' || pattern === 'core') return 'finisher';
+    if (!isCompound || pattern.endsWith('_iso')) return 'isolation';
+    if (ROLE_LOWER_PATTERNS.has(pattern)) return 'lower';
+    if (ROLE_UPPER_PATTERNS.has(pattern)) return 'upper';
+    return 'isolation';
+}
+
+/** Pure role assignment (Item 4). `categoryRankWithinSession` is 1 for the highest-
+ *  ranked compound in the exercise's coarse bucket (computed by the caller over the
+ *  already-selected set), 2+ for the rest. `isLoneLowerCompound` is true only for a
+ *  lunge when the session has no squat or hinge compound. No session context needed. */
+export function assignRole(
+    pattern: MovementPattern,
+    isCompound: boolean,
+    categoryRankWithinSession: number,
+    isLoneLowerCompound: boolean,
+): ExerciseRole {
+    const bucket = roleBucket(pattern, isCompound);
+    if (bucket === 'finisher') return 'FINISHER';
+    if (bucket === 'isolation') return 'ISOLATION';
+    if (bucket === 'lower') {
+        // Lunge is never Primary unless it is the session's lone lower compound.
+        if (pattern === 'lunge' && !isLoneLowerCompound) return 'SECONDARY_LOWER';
+        return categoryRankWithinSession === 1 ? 'PRIMARY_LOWER' : 'SECONDARY_LOWER';
+    }
+    return categoryRankWithinSession === 1 ? 'PRIMARY_UPPER' : 'SECONDARY_UPPER';
+}
+
+// Lower bucket ranking: pattern priority squat>hinge>lunge, then canonical -> fatigue
+// desc -> id.
+function compareLowerRole(a: Selected, b: Selected): number {
+    const pa = LOWER_PATTERN_PRIORITY[a.pattern] ?? 99;
+    const pb = LOWER_PATTERN_PRIORITY[b.pattern] ?? 99;
+    if (pa !== pb) return pa - pb;
+    const ar = anchorRank(a.ex, a.pattern);
+    const br = anchorRank(b.ex, b.pattern);
+    if (ar !== br) return ar - br;
+    const af = a.ex.fatigue ?? ROLE_FATIGUE_NEUTRAL;
+    const bf = b.ex.fatigue ?? ROLE_FATIGUE_NEUTRAL;
+    if (af !== bf) return bf - af;
+    return a.ex.id.localeCompare(b.ex.id);
+}
+
+// Upper bucket ranking: canonical -> fatigue desc -> push-before-pull -> id (Q2). The
+// push-before-pull step only breaks a true canonical+fatigue tie across patterns.
+function compareUpperRole(a: Selected, b: Selected): number {
+    const ar = anchorRank(a.ex, a.pattern);
+    const br = anchorRank(b.ex, b.pattern);
+    if (ar !== br) return ar - br;
+    const af = a.ex.fatigue ?? ROLE_FATIGUE_NEUTRAL;
+    const bf = b.ex.fatigue ?? ROLE_FATIGUE_NEUTRAL;
+    if (af !== bf) return bf - af;
+    const ap = a.pattern === 'horizontal_push' || a.pattern === 'vertical_push' ? 0 : 1;
+    const bp = b.pattern === 'horizontal_push' || b.pattern === 'vertical_push' ? 0 : 1;
+    if (ap !== bp) return ap - bp;
+    return a.ex.id.localeCompare(b.ex.id);
+}
+
+// Order a session's selected exercises by role. Ranks the Lower and Upper buckets to
+// find the single primary of each, assigns roles, then stable-sorts by role rank.
+// Within a role, compounds keep their bucket rank; isolation/finisher keep selection
+// order. Position 0 stays a compound (when one exists) so the strength set-bump lands
+// on the session's primary lift.
+function orderByRole(selected: Selected[]): Selected[] {
+    const lowerRanked = selected
+        .filter((s) => roleBucket(s.pattern, s.ex.is_compound) === 'lower')
+        .sort(compareLowerRole);
+    const upperRanked = selected
+        .filter((s) => roleBucket(s.pattern, s.ex.is_compound) === 'upper')
+        .sort(compareUpperRole);
+    const lowerRank = new Map(lowerRanked.map((s, i) => [s.ex.id, i + 1]));
+    const upperRank = new Map(upperRanked.map((s, i) => [s.ex.id, i + 1]));
+    const hasSquatOrHinge = lowerRanked.some((s) => s.pattern === 'squat' || s.pattern === 'hinge');
+
+    return selected
+        .map((s, selIdx) => {
+            const bucket = roleBucket(s.pattern, s.ex.is_compound);
+            const rank =
+                bucket === 'lower' ? lowerRank.get(s.ex.id)! : bucket === 'upper' ? upperRank.get(s.ex.id)! : 0;
+            const isLoneLunge = s.pattern === 'lunge' && !hasSquatOrHinge;
+            const role = assignRole(s.pattern, s.ex.is_compound, rank, isLoneLunge);
+            const within = bucket === 'lower' || bucket === 'upper' ? rank : selIdx;
+            return { s, primary: ROLE_ORDER[role], within, selIdx };
+        })
+        .sort((x, y) => x.primary - y.primary || x.within - y.within || x.selIdx - y.selIdx)
+        .map((k) => k.s);
+}
+
 // ── Blueprint generation ─────────────────────────────────────────────────────
 
 export interface GenerationInput {
@@ -1114,7 +1226,17 @@ export interface RoutineBlueprint {
         reps: string;
         superset_group_id: string | null;
     }>;
+    /** Non-blocking generation-time notices (Item 2). Empty in the normal case.
+     *  The action appends these to the routine rationale so they reach the user. */
+    warnings: string[];
 }
+
+// Item 2: surfaced when a session's compound patterns are all filtered out (by
+// restrictions / equipment / hidden exercises) AND no safe compound exists anywhere
+// in the pool, so the session can only be accessory work. Generation never blocks;
+// it warns instead.
+const NO_COMPOUND_WARNING =
+    'Your movement restrictions removed all compound options for one or more sessions. These sessions use accessory work only. Consider adjusting your restrictions or equipment.';
 
 let groupCounter = 0;
 function defaultGroupId(): string {
@@ -1165,6 +1287,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
 
     const schedule: RoutineBlueprint['schedule'] = [];
     const exercises: RoutineBlueprint['exercises'] = [];
+    const warnings: string[] = [];
 
     style.sessions.forEach((session, i) => {
         if (i >= days.length) return;
@@ -1188,21 +1311,43 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             input.behavior ?? EMPTY_BEHAVIOR,
         );
 
-        // Tier sort: present exercises in coach-standard order within each session.
-        // Compounds lead (Tier 1: squat/hinge; Tier 2: push/pull/lunge), isolations
-        // follow (Tier 3), core/calf finish (Tier 4). Stable sort preserves
-        // emphasis-driven ordering within the same tier.
-        const sortedSelected = [...selected].sort(
-            (a, b) => patternTier(a.pattern, a.ex.is_compound) - patternTier(b.pattern, b.ex.is_compound),
-        );
+        // Item 2: minimum-compound guard. If restrictions / equipment / hidden
+        // exercises emptied this session's compound patterns, selectForSession could
+        // only backfill isolation, leaving an accessory-only session. Seat one safe
+        // compound from anywhere in the pool (a cross-pattern fallback, since the
+        // session's own compound patterns are exactly what got emptied) rather than
+        // ship that. If the whole safe pool has no compound, never block, warn.
+        if (selected.length > 0 && !selected.some((s) => s.ex.is_compound)) {
+            const chosenIds = new Set(selected.map((s) => s.ex.id));
+            const fallback = usable.find(
+                (ex) => ex.is_compound && ex.movement_pattern !== null && !chosenIds.has(ex.id),
+            );
+            if (fallback) {
+                // Keep the exercise count: drop the last (lowest-priority) isolation
+                // when already at target. The tier sort leads with the compound
+                // regardless of where it is pushed here.
+                if (selected.length >= exCount) selected.pop();
+                selected.push({ ex: fallback, pattern: fallback.movement_pattern! });
+                used.add(fallback.id);
+                if (fallback.substitution_class !== null) usedSubstitutionClasses.add(fallback.substitution_class);
+            } else if (!warnings.includes(NO_COMPOUND_WARNING)) {
+                warnings.push(NO_COMPOUND_WARNING);
+            }
+        }
+
+        // Role ordering (Item 4): assign each selected exercise a role and order the
+        // session PRIMARY_LOWER -> PRIMARY_UPPER -> SECONDARY_LOWER -> SECONDARY_UPPER
+        // -> ISOLATION -> FINISHER, so the two heaviest compounds lead and are
+        // separated by the opposite category. Replaces the tier sort + interleave.
+        const orderedSelection = orderByRole(selected);
 
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
         let firstCompoundBumped = false;
         const baseSets = Math.max(3, sets);
 
         const ordered = isSuperset
-            ? buildSupersets(sortedSelected, makeGroupId)
-            : sortedSelected.map((item) => ({ item, groupId: null as string | null }));
+            ? buildSupersets(orderedSelection, makeGroupId)
+            : orderedSelection.map((item) => ({ item, groupId: null as string | null }));
 
         ordered.forEach(({ item, groupId }, order) => {
             const { ex, pattern } = item;
@@ -1223,7 +1368,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         });
     });
 
-    return { schedule, exercises };
+    return { schedule, exercises, warnings };
 }
 
 // Trim a template's exercise list to the session-length volume target, grouping

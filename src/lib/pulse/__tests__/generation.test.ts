@@ -20,6 +20,7 @@ import {
     POWERBUILDING_HEAVY_PATTERNS,
     COMPOUND_ANCHOR_PATTERNS,
     CANONICAL_ANCHORS,
+    assignRole,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
@@ -30,6 +31,7 @@ import type {
     ProgramStyle,
     Bias,
     TrainingStyle,
+    RestrictionFlag,
 } from '@/lib/pulse/types';
 
 describe('volumeFor', () => {
@@ -126,9 +128,22 @@ describe('resolveRepRange', () => {
             );
         }
     });
-    it('powerbuilding gives the hypertrophy range to accessories (rows, isolation, lunge)', () => {
-        for (const p of ['horizontal_pull', 'biceps_iso', 'lunge'] as MovementPattern[]) {
-            const isCompound = p === 'horizontal_pull' || p === 'lunge';
+    it('powerbuilding now trains pulling compounds heavy (horizontal_pull, vertical_pull)', () => {
+        // Item 1: pulls were excluded from the heavy set, so a powerbuilding pull
+        // session got hypertrophy reps while the first compound still took the
+        // strength +1 set bump. The pulls now ride the strength range like the
+        // other primary compounds.
+        for (const p of ['horizontal_pull', 'vertical_pull'] as MovementPattern[]) {
+            expect(resolveRepRange('hypertrophy', p, true, 'build_muscle', 'powerbuilding')).toBe(
+                repRange('strength', true, 'build_muscle'),
+            );
+        }
+    });
+    it('powerbuilding gives the hypertrophy range to accessories (lunge, isolation)', () => {
+        // horizontal_pull moved to the heavy set (Item 1); lunge and isolation
+        // remain accessories.
+        for (const p of ['lunge', 'biceps_iso'] as MovementPattern[]) {
+            const isCompound = p === 'lunge';
             expect(resolveRepRange('strength', p, isCompound, 'build_muscle', 'powerbuilding')).toBe(
                 repRange('hypertrophy', isCompound, 'build_muscle'),
             );
@@ -447,6 +462,16 @@ describe('styles', () => {
         expect(new Set(fb.schedule.map((s) => s.variant))).toEqual(new Set(['A', 'B', 'C', 'D']));
     });
 
+    it('the 3-day picker drops fb-emphasis-3 (a 1x-frequency body-part split mislabeled full body)', () => {
+        // Item 3: fb-emphasis-3 trained each muscle group ~1x/week (fb_chest_back has
+        // no legs, fb_legs no upper) under a "Full Body" label. Removed so the 3-day
+        // options are all genuinely sound; the recommended default is unchanged.
+        const keys = STYLES[3].map((s) => s.key);
+        expect(keys).not.toContain('fb-emphasis-3');
+        expect(keys).toEqual(['fb-3', 'ppl-3', 'ulf-3']);
+        expect(recommendStyle(3)).toBe('fb-3');
+    });
+
     it('every emphasis key referenced by a style exists in the EMPHASES library', () => {
         for (const styles of Object.values(STYLES)) {
             for (const style of styles) {
@@ -646,6 +671,23 @@ describe('generateRoutine + trainingStyle', () => {
         expect(push.some((e) => e.reps === strengthRange)).toBe(true);
         expect(push.some((e) => e.reps === hyperIso)).toBe(true);
     });
+    it('powerbuilding trains the primary row/pull compound heavy (3-6) on a PPL pull day', () => {
+        // Item 1 end-to-end: the pull session's compound patterns (horizontal_pull,
+        // vertical_pull) now land in the strength rep band, not hypertrophy.
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const pool = deepPool();
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, trainingStyle: 'powerbuilding' }));
+        const pat = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const pullCompoundReps = bp.exercises
+            .filter((e) => e.workout_type === 'pull')
+            .filter((e) => {
+                const p = pat.get(e.exercise_id);
+                return p === 'horizontal_pull' || p === 'vertical_pull';
+            })
+            .map((e) => e.reps);
+        expect(pullCompoundReps.length).toBeGreaterThan(0);
+        expect(pullCompoundReps.every((r) => r === '3-6')).toBe(true);
+    });
     it('powerbuilding also splits on a U/L split (more than one archetype verified)', () => {
         const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
         const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], trainingStyle: 'powerbuilding' }));
@@ -683,6 +725,229 @@ describe('buildRationale trainingStyle clause', () => {
 });
 
 // ── 11. GQ1: exercise ordering and pattern guardrails ────────────────────────
+
+// ── Exercise role model: role sequence (Item 4) ──────────────────────────────
+// Spec: docs/superpowers/specs/2026-06-10-22-41-05-exercise-role-model-design.md.
+// PL -> PU -> SL -> SU -> Isolation -> Finisher, coarse Lower/Upper buckets, lower
+// pattern priority squat>hinge>lunge, upper push-before-pull tiebreak.
+describe('exercise role model: role sequence (Item 4)', () => {
+    const byId = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e]));
+    const UPPER = new Set(['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull']);
+    const LOWER = new Set(['squat', 'hinge', 'lunge']);
+    const isUpperCompound = (e: ExerciseMeta) => e.is_compound && UPPER.has(e.movement_pattern ?? '');
+    const isLowerCompound = (e: ExerciseMeta) => e.is_compound && LOWER.has(e.movement_pattern ?? '');
+    const isFinisher = (e: ExerciseMeta) => e.movement_pattern === 'calf' || e.movement_pattern === 'core';
+    // bucket rank for the non-decreasing-sequence checks: compounds 0, isolation 1, finisher 2.
+    const bucketRank = (e: ExerciseMeta) =>
+        isUpperCompound(e) || isLowerCompound(e) ? 0 : isFinisher(e) ? 2 : 1;
+
+    // A minimal named pool: exactly one compound per fb_strength pattern, fatigue set
+    // so the bench/row tie resolves by push-before-pull, not id order.
+    const namedFullBodyPool = (): ExerciseMeta[] => [
+        meta('ex-squat', 'squat', ['dumbbells'], true, { name: 'Barbell Squat', fatigue: 5 }),
+        meta('ex-rdl', 'hinge', ['dumbbells'], true, { name: 'Romanian Deadlift', fatigue: 4 }),
+        meta('ex-bench', 'horizontal_push', ['dumbbells'], true, { name: 'Barbell Bench Press', fatigue: 4 }),
+        meta('ex-row', 'horizontal_pull', ['dumbbells'], true, { name: 'Barbell Row', fatigue: 4 }),
+        meta('ex-curl', 'biceps_iso', ['dumbbells'], false),
+        meta('ex-core', 'core', ['dumbbells'], false),
+    ];
+
+    // #1
+    it('full body squat+bench+RDL+row orders PL -> PU -> SL -> SU', () => {
+        const style = STYLES[2][0] as ProgramStyle; // fb-2, day A = fb_strength
+        const bp = generateRoutine(input({ style, trainingDays: [1, 4], pool: namedFullBodyPool() }));
+        const ids = sessionIds(bp, 'full_body', 'A');
+        expect(ids[0]).toBe('ex-squat'); // Primary Lower
+        expect(ids[1]).toBe('ex-bench'); // Primary Upper (push-before-pull beats the row at equal fatigue)
+        expect(ids[2]).toBe('ex-rdl'); // Secondary Lower
+        expect(ids[3]).toBe('ex-row'); // Secondary Upper
+    });
+
+    // #2
+    it('upper-only session orders Primary/Secondary Upper before isolation before finisher', () => {
+        const pool = deepPool();
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool }));
+        const m = byId(pool);
+        const items = sessionIds(bp, 'upper', 'A').map((id) => m.get(id)!);
+        expect(items.some(isLowerCompound)).toBe(false); // no lower roles on an upper day
+        expect(isUpperCompound(items[0])).toBe(true); // leads with Primary Upper
+        const ranks = items.map(bucketRank);
+        expect(ranks).toEqual([...ranks].sort((a, b) => a - b)); // non-decreasing: compounds -> iso -> finisher
+    });
+
+    // #3
+    it('legs session orders PL -> SL -> isolation -> finisher with squat and hinge adjacent', () => {
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const m = byId(pool);
+        const items = sessionIds(bp, 'legs', null).map((id) => m.get(id)!);
+        expect(items.some(isUpperCompound)).toBe(false);
+        expect(items[0].movement_pattern).toBe('squat'); // Primary Lower
+        expect(items[1].movement_pattern).toBe('hinge'); // Secondary Lower, adjacent (no upper to separate)
+        const ranks = items.map(bucketRank);
+        expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    });
+
+    // #4
+    it('lone lunge promotion: a split squat is Primary Lower, before the first upper compound', () => {
+        // knee + lower_back remove squat/hinge, leaving the lunge as the only lower compound.
+        const pool: ExerciseMeta[] = [
+            meta('ex-bss', 'lunge', ['dumbbells'], true, { name: 'Bulgarian Split Squat' }),
+            meta('ex-rdl', 'hinge', ['dumbbells'], true, { contraindications: ['lower_back'] }),
+            meta('ex-bench', 'horizontal_push', ['dumbbells'], true),
+            meta('ex-row', 'horizontal_pull', ['dumbbells'], true),
+            meta('ex-sh', 'shoulder_iso', ['dumbbells'], false),
+            meta('ex-tri', 'triceps_iso', ['dumbbells'], false),
+            meta('ex-bi', 'biceps_iso', ['dumbbells'], false),
+        ];
+        const style = STYLES[2][0] as ProgramStyle; // fb-2, day B = fb_hyper (has a lunge slot)
+        const bp = generateRoutine(
+            input({ style, trainingDays: [1, 4], pool, restrictions: ['knee', 'lower_back'] }),
+        );
+        const m = byId(pool);
+        const ids = sessionIds(bp, 'full_body', 'B');
+        const lungeIdx = ids.indexOf('ex-bss');
+        const firstUpperIdx = ids.findIndex((id) => isUpperCompound(m.get(id)!));
+        expect(lungeIdx).toBeGreaterThanOrEqual(0);
+        expect(firstUpperIdx).toBeGreaterThanOrEqual(0);
+        expect(lungeIdx).toBeLessThan(firstUpperIdx);
+    });
+
+    // #5
+    it('squat is Primary Lower even when the emphasis selects hinge before squat', () => {
+        // fb_strength lists hinge before squat, so RDL is selected first; the pattern
+        // priority squat>hinge must still rank Barbell Squat as Primary Lower.
+        const style = STYLES[2][0] as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 4], pool: namedFullBodyPool() }));
+        const ids = sessionIds(bp, 'full_body', 'A');
+        expect(ids.indexOf('ex-squat')).toBeLessThan(ids.indexOf('ex-rdl'));
+        expect(ids[0]).toBe('ex-squat');
+    });
+
+    // #6
+    it('strength set-bump lands on position 0 (Primary Upper) on an upper session', () => {
+        const pool = deepPool();
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool, trainingStyle: 'strength' }));
+        const upperA = bp.exercises
+            .filter((e) => e.workout_type === 'upper' && e.variant === 'A')
+            .sort((a, b) => a.order - b.order);
+        const bumped = upperA.filter((e) => e.sets === '4');
+        expect(bumped).toHaveLength(1);
+        expect(bumped[0].order).toBe(upperA[0].order); // bump on the leading Primary Upper
+        const m = byId(pool);
+        expect(isUpperCompound(m.get(upperA[0].exercise_id)!)).toBe(true);
+    });
+
+    // #7
+    it('interleaveLowerCompounds has been removed (subsumed by the role model)', () => {
+        const src = readFileSync(resolve(process.cwd(), 'src/lib/pulse/generation.ts'), 'utf8');
+        expect(src).not.toContain('interleaveLowerCompounds');
+    });
+
+    // #8
+    it('no session opens with two lower compounds when it also contains an upper compound', () => {
+        const pool = deepPool();
+        for (const [count, styles] of Object.entries(STYLES)) {
+            const n = Number(count);
+            const days = Array.from({ length: n }, (_, i) => i + 1);
+            for (const style of styles) {
+                const bp = generateRoutine(input({ style, trainingDays: days, pool, sessionTime: '90+ min' }));
+                const m = byId(pool);
+                for (const s of bp.schedule) {
+                    const items = sessionIds(bp, s.workout_type, s.variant).map((id) => m.get(id)!);
+                    if (items.length >= 2 && isLowerCompound(items[0]) && isLowerCompound(items[1])) {
+                        // allowed only when the session has no upper compound to separate them
+                        expect(items.some(isUpperCompound)).toBe(false);
+                    }
+                }
+            }
+        }
+    });
+});
+
+describe('assignRole (pure role assignment, Item 4)', () => {
+    it('ranks squat/hinge by rank; lunge is never Primary unless it is the lone lower compound', () => {
+        expect(assignRole('squat', true, 1, false)).toBe('PRIMARY_LOWER');
+        expect(assignRole('hinge', true, 2, false)).toBe('SECONDARY_LOWER');
+        expect(assignRole('lunge', true, 1, false)).toBe('SECONDARY_LOWER'); // rank 1 but not lone
+        expect(assignRole('lunge', true, 1, true)).toBe('PRIMARY_LOWER'); // lone lunge promotion
+        expect(assignRole('lunge', true, 2, true)).toBe('SECONDARY_LOWER'); // subsequent lunges stay secondary
+    });
+    it('pools push and pull into one Upper bucket (one Primary Upper by rank)', () => {
+        expect(assignRole('horizontal_push', true, 1, false)).toBe('PRIMARY_UPPER');
+        expect(assignRole('horizontal_pull', true, 2, false)).toBe('SECONDARY_UPPER');
+        expect(assignRole('vertical_pull', true, 1, false)).toBe('PRIMARY_UPPER');
+    });
+    it('maps isolation and finisher buckets regardless of rank', () => {
+        expect(assignRole('chest_iso', false, 0, false)).toBe('ISOLATION');
+        expect(assignRole('horizontal_push', false, 1, false)).toBe('ISOLATION'); // a non-compound press
+        expect(assignRole('calf', false, 0, false)).toBe('FINISHER');
+        expect(assignRole('core', false, 0, false)).toBe('FINISHER');
+    });
+});
+
+// ── Role ordering: squat/hinge separation (Item 4) ───────────────────────────
+// Re-homed from the interim interleave (now removed). These assertions are preserved
+// verbatim and still hold under the role model: the role sort separates squat and
+// hinge with the Primary Upper on a full-body day, and leaves a leg-only session's
+// squat/hinge adjacent. The full role sequence is exercised by the "role sequence
+// (Item 4)" block above.
+describe('role ordering: squat/hinge separation (Item 4)', () => {
+    const patternMapOf = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e]));
+    const UPPER_COMPOUND = ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull'];
+
+    it('a full-body session with squat+hinge separates them with an upper compound', () => {
+        // fb-3 day A is fb_strength: under the role model squat = Primary Lower and
+        // hinge = Secondary Lower, separated by the Primary Upper at position 1.
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'fb-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const meta = patternMapOf(pool);
+        const dayA = bp.exercises
+            .filter((e) => e.variant === 'A')
+            .sort((a, b) => a.order - b.order)
+            .map((e) => meta.get(e.exercise_id)!);
+        const patterns = dayA.map((m) => m.movement_pattern);
+        expect(patterns).toContain('squat');
+        expect(patterns).toContain('hinge');
+        // The two heavy lower compounds are no longer adjacent.
+        expect(Math.abs(patterns.indexOf('squat') - patterns.indexOf('hinge'))).toBeGreaterThan(1);
+        // The exercise slotted between them is an upper compound.
+        expect(UPPER_COMPOUND).toContain(patterns[1]);
+        expect(dayA[1].is_compound).toBe(true);
+    });
+
+    it('the strength set-bump still lands on the lead compound (position 0) after role ordering', () => {
+        // fb_strength resolves to strength bias, so its first compound gets +1 set.
+        // Role ordering must keep the bump on position 0 (the Primary Lower), not
+        // shift it onto the inserted upper compound.
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'fb-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const dayA = bp.exercises.filter((e) => e.variant === 'A').sort((a, b) => a.order - b.order);
+        const bumped = dayA.filter((e) => e.sets === '4');
+        expect(bumped).toHaveLength(1);
+        expect(bumped[0].order).toBe(dayA[0].order); // the bump is on the first exercise
+    });
+
+    it('a leg-only session keeps squat and hinge adjacent (no upper compound to separate them)', () => {
+        // ppl-3 legs is squat/hinge/lunge with no upper compound, so role ordering
+        // keeps squat+hinge adjacent at the lead (Primary Lower then Secondary Lower).
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const meta = patternMapOf(pool);
+        const legs = bp.exercises
+            .filter((e) => e.workout_type === 'legs')
+            .sort((a, b) => a.order - b.order)
+            .map((e) => meta.get(e.exercise_id)!.movement_pattern);
+        expect(legs[0] === 'squat' || legs[0] === 'hinge').toBe(true);
+        expect(legs[1] === 'squat' || legs[1] === 'hinge').toBe(true);
+    });
+});
 
 describe('GQ1: tier sort -- compounds before isolation', () => {
     it('every session has all compound exercises ordered before all isolation exercises', () => {
@@ -1382,6 +1647,61 @@ describe('movement restrictions: two flags at once filter the union', () => {
         expect(ids.has('barbell-back-squat')).toBe(false);
         expect(ids.has('overhead-press')).toBe(false);
         expect(bp.exercises.length).toBeGreaterThan(0);
+    });
+});
+
+describe('Item 2: minimum-compound guard for restriction-emptied sessions', () => {
+    // A pool where the leg compounds (squat/hinge/lunge) are all contraindicated,
+    // but safe upper compounds + leg isolation remain.
+    const legCompoundsContraindicated = (): ExerciseMeta[] => {
+        const pool: ExerciseMeta[] = [];
+        for (const p of ALL_PATTERNS) {
+            const compound = !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            const contra: RestrictionFlag[] =
+                p === 'squat' || p === 'hinge' || p === 'lunge' ? ['knee', 'lower_back'] : [];
+            pool.push(meta(`${p}-1`, p, ['dumbbells'], compound, { contraindications: contra }));
+            pool.push(meta(`${p}-2`, p, ['dumbbells'], compound, { contraindications: contra }));
+        }
+        return pool;
+    };
+
+    it('seats a cross-pattern compound when a session would otherwise be all isolation', () => {
+        const pool = legCompoundsContraindicated();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(
+            input({ style, trainingDays: [1, 3, 5], pool, restrictions: ['knee', 'lower_back'] }),
+        );
+        const byId = new Map(pool.map((e) => [e.id, e]));
+        const legs = sessionIds(bp, 'legs', null).map((id) => byId.get(id)!);
+        expect(legs.length).toBeGreaterThan(0);
+        // The leg emphasis compounds were all filtered out, but the guard seats one
+        // safe compound from another pattern rather than shipping an all-isolation day.
+        expect(legs.some((e) => e.is_compound)).toBe(true);
+        // Count integrity: seating the fallback drops the lowest-priority isolation,
+        // so the session still hits the volume target rather than overfilling.
+        expect(legs.length).toBe(volumeFor('45–60 min', 'intermediate').exercises);
+        // A fallback compound existed, so no warning.
+        expect(bp.warnings).toEqual([]);
+    });
+
+    it('warns (does not block) when no compound survives anywhere in the pool', () => {
+        // Contraindicate every compound; only isolation remains, so no fallback exists.
+        const pool: ExerciseMeta[] = [];
+        for (const p of ALL_PATTERNS) {
+            const compound = !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            pool.push(meta(`${p}-1`, p, ['dumbbells'], compound, { contraindications: compound ? ['knee'] : [] }));
+        }
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, restrictions: ['knee'] }));
+        // Never hard-rejects, still produces a routine...
+        expect(bp.exercises.length).toBeGreaterThan(0);
+        // ...and surfaces a single clear warning (deduped across sessions).
+        expect(bp.warnings.length).toBe(1);
+        expect(bp.warnings[0]).toMatch(/accessory work only/i);
+    });
+
+    it('a normal routine carries an empty warnings array (golden)', () => {
+        expect(generateRoutine(input()).warnings).toEqual([]);
     });
 });
 
