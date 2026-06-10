@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-10)
 
-**In progress:** (none).
+**In progress:** P0 Group 1, the `EMPHASES` data fixes (1.1-1.4) on `feature/generation-emphasis-fixes`. 1.1 composition decided: clean separation (quad days drop `hinge`, posterior day drops `squat`).
 
 **In review (on a branch, not yet merged):** (none). Smart substitution v2 (#8, #112), behavior-driven adaptation (#7, #111), travel mode (#322, #110), program pause (#14, #109), and equipment profiles (#6, #99/#100) are all merged on `main`. **Pending hand-off:** their four migrations are apply-by-hand (`equipment-profile-expiry`, `exercise-swaps-from-exercise`, `exercise-swaps-reason`, plus program-pause); confirm they are applied to Supabase before the P0 Group 2 seed migration stacks on the same `exercises` rows.
 
