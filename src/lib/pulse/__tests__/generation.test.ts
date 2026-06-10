@@ -149,7 +149,7 @@ describe('muscle priority', () => {
     });
 
     it('tiltEmphasis front-loads a priority pattern already in the slots', () => {
-        const lower = EMPHASES.lower_quad; // slots: squat, lunge, hinge, glute_iso, calf, core
+        const lower = EMPHASES.lower_post; // slots: hinge, glute_iso, lunge, calf, core
         const tilted = tiltEmphasis(lower, 'glutes');
         // glute_iso + hinge (the glutes patterns present) move to the front, in
         // PRIORITY_PATTERNS order, preserving the rest.
@@ -211,13 +211,14 @@ const ALL_PATTERNS: MovementPattern[] = [
     'glute_iso',
 ];
 
-function deepPool(): ExerciseMeta[] {
+function deepPool(perPattern = 2): ExerciseMeta[] {
     const pool: ExerciseMeta[] = [];
     for (const p of ALL_PATTERNS) {
         // compounds for the big patterns, isolation for *_iso / calf / core
         const compound = !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
-        pool.push(meta(`${p}-1`, p, ['dumbbells'], compound));
-        pool.push(meta(`${p}-2`, p, ['dumbbells'], compound));
+        for (let i = 1; i <= perPattern; i++) {
+            pool.push(meta(`${p}-${i}`, p, ['dumbbells'], compound));
+        }
     }
     // Equipment-gated rows that must be filtered out for dumbbells-only.
     pool.push(meta('bar-sq', 'squat', ['barbell'], true));
@@ -264,7 +265,10 @@ describe('equipment filter', () => {
 
 describe('distinct same-focus days', () => {
     it('with a deep pool, Upper A and Upper B share no exercise; Lower A and Lower B share none', () => {
-        const bp = generateRoutine(input());
+        // 4-deep: each lower emphasis now has 5 distinct patterns + a backfill
+        // 6th drawn from the shared accessory pool (glute_iso / lunge), so the
+        // two lower days need more than 2 options per pattern to stay disjoint.
+        const bp = generateRoutine(input({ pool: deepPool(4) }));
         const upperA = sessionIds(bp, 'upper', 'A');
         const upperB = sessionIds(bp, 'upper', 'B');
         const lowerA = sessionIds(bp, 'lower', 'A');
@@ -1093,9 +1097,9 @@ describe('GQ3: anchor patterns prefer higher fatigue', () => {
 describe('GQ3: substitution-class cross-session deduplication', () => {
     it('prefers a distinct movement family over a redundant variant of an already-used class', () => {
         // Two Romanian Deadlift variants share substitution_class 'hinge_pattern';
-        // Good Morning trains the same pattern via a distinct family. Pull and
-        // Legs (ppl-3) both carry a hinge slot -- without the cross-session dedup,
-        // the routine could seat both RDL variants, which reads as redundant.
+        // Good Morning trains the same pattern via a distinct family. The two Legs
+        // days of ppl-x2-6 both carry a hinge slot -- without the cross-session
+        // dedup, the routine could seat both RDL variants, which reads as redundant.
         const pool = deepPool()
             .filter((e) => e.movement_pattern !== 'hinge')
             .concat([
@@ -1103,12 +1107,12 @@ describe('GQ3: substitution-class cross-session deduplication', () => {
                 meta('romanian-deadlift-db', 'hinge', ['dumbbells'], true, { substitution_class: 'hinge_pattern', fatigue: 4 }),
                 meta('good-morning', 'hinge', ['dumbbells'], true, { substitution_class: 'back_extension_pattern', fatigue: 1 }),
             ]);
-        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
-        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: legs × 2
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool }));
         const ids = bp.exercises.map((e) => e.exercise_id);
-        // Pull anchors on the higher-fatigue RDL variant (the better anchor)...
+        // Legs A anchors on the higher-fatigue RDL variant (the better anchor)...
         expect(ids).toContain('romanian-deadlift');
-        // ...and Legs reaches for Good Morning -- a distinct substitution class --
+        // ...and Legs B reaches for Good Morning -- a distinct substitution class --
         // rather than seating the redundant Dumbbell RDL.
         expect(ids).toContain('good-morning');
         expect(ids).not.toContain('romanian-deadlift-db');
@@ -1355,5 +1359,144 @@ describe('behavior-driven demote (#7)', () => {
         if (all.exercises.some((e) => e.exercise_id === 'triceps_iso-only')) {
             expect(demoted.exercises.some((e) => e.exercise_id === 'triceps_iso-only')).toBe(true);
         }
+    });
+});
+
+// ── P0 Group 1: emphasis data fixes ──────────────────────────────────────────
+// Pure EMPHASES data fixes (spec 2026-06-10-10-41-58-generation-emphasis-fixes).
+// 1.1 quad/posterior leg-day separation, 1.2 no hinge on pull, 1.3 vertical_pull
+// on back-focused upper/pull days, 1.4 deliberate 6th slot on push/pull.
+
+describe('P0 Group 1: emphasis data fixes', () => {
+    const patternMap = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e.movement_pattern]));
+    const patternsOf = (
+        bp: ReturnType<typeof generateRoutine>,
+        pool: ExerciseMeta[],
+        wt: string,
+        variant: string | null,
+    ) => {
+        const pat = patternMap(pool);
+        return sessionIds(bp, wt, variant).map((id) => pat.get(id));
+    };
+
+    // ── 1.1 Lower vs Legs differentiation ────────────────────────────────────
+    describe('1.1 quad days drop hinge, posterior day drops squat', () => {
+        it('ulppl-5: lower (quad) has no hinge, legs (posterior) has no squat', () => {
+            const pool = deepPool();
+            const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool }));
+            expect(patternsOf(bp, pool, 'lower', null)).not.toContain('hinge');
+            expect(patternsOf(bp, pool, 'legs', null)).not.toContain('squat');
+        });
+
+        it('ul-classic-4: lower A (quad) has no hinge, lower B (posterior) has no squat', () => {
+            const pool = deepPool();
+            const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool }));
+            expect(patternsOf(bp, pool, 'lower', 'A')).not.toContain('hinge');
+            expect(patternsOf(bp, pool, 'lower', 'B')).not.toContain('squat');
+        });
+
+        it('ul-aesthetic-4: lower A (lean/quad) has no hinge, lower B (posterior) has no squat', () => {
+            const pool = deepPool();
+            const style = STYLES[4].find((s) => s.key === 'ul-aesthetic-4') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool }));
+            expect(patternsOf(bp, pool, 'lower', 'A')).not.toContain('hinge');
+            expect(patternsOf(bp, pool, 'lower', 'B')).not.toContain('squat');
+        });
+
+        it('under consistent, the two lower days share no squat/hinge exercise (ul-classic-4)', () => {
+            const pool = deepPool();
+            const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+            const bp = generateRoutine(
+                input({ style, trainingDays: [1, 2, 4, 5], pool, varietyPreference: 'consistent' }),
+            );
+            const pat = patternMap(pool);
+            const heavyIds = (variant: string) =>
+                new Set(
+                    sessionIds(bp, 'lower', variant).filter((id) => {
+                        const p = pat.get(id);
+                        return p === 'squat' || p === 'hinge';
+                    }),
+                );
+            const a = heavyIds('A');
+            const b = heavyIds('B');
+            expect([...a].filter((id) => b.has(id))).toEqual([]);
+        });
+    });
+
+    // ── 1.2 No hinge on Pull ─────────────────────────────────────────────────
+    it('1.2 a pull session contains no hinge-pattern exercise', () => {
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        expect(patternsOf(bp, pool, 'pull', null)).not.toContain('hinge');
+    });
+
+    // ── 1.3 vertical_pull on back-focused upper/pull days ────────────────────
+    describe('1.3 vertical_pull added to back-focused upper/pull days', () => {
+        it('pull and upper_general contain a vertical_pull when the pool has one (ulppl-5)', () => {
+            const pool = deepPool();
+            const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool }));
+            expect(patternsOf(bp, pool, 'pull', null)).toContain('vertical_pull');
+            expect(patternsOf(bp, pool, 'upper', null)).toContain('vertical_pull');
+        });
+
+        it('upper_chest_back contains a vertical_pull (ul-classic-4, upper A)', () => {
+            const pool = deepPool();
+            const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool }));
+            expect(patternsOf(bp, pool, 'upper', 'A')).toContain('vertical_pull');
+        });
+
+        it('upper_aesthetic_a contains a vertical_pull (ul-aesthetic-4, upper A)', () => {
+            const pool = deepPool();
+            const style = STYLES[4].find((s) => s.key === 'ul-aesthetic-4') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool }));
+            expect(patternsOf(bp, pool, 'upper', 'A')).toContain('vertical_pull');
+        });
+
+        it('no-op safety: a pool with no vertical_pull still generates pull/upper, no error, none added', () => {
+            const pool = deepPool().filter((e) => e.movement_pattern !== 'vertical_pull');
+            const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool }));
+            expect(sessionIds(bp, 'pull', null).length).toBeGreaterThan(0);
+            expect(sessionIds(bp, 'upper', null).length).toBeGreaterThan(0);
+            expect(patternsOf(bp, pool, 'pull', null)).not.toContain('vertical_pull');
+            expect(patternsOf(bp, pool, 'upper', null)).not.toContain('vertical_pull');
+        });
+    });
+
+    // ── 1.4 deliberate 6th slot on push/pull ─────────────────────────────────
+    it('1.4 push has two triceps_iso and pull has two back_iso at 6-exercise volume', () => {
+        const pool = deepPool();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const pushTriceps = patternsOf(bp, pool, 'push', null).filter((p) => p === 'triceps_iso');
+        const pullBack = patternsOf(bp, pool, 'pull', null).filter((p) => p === 'back_iso');
+        expect(pushTriceps).toHaveLength(2);
+        expect(pullBack).toHaveLength(2);
+    });
+
+    // ── Decision 4: upper_general 7-slot drop at the 6-cap ────────────────────
+    describe('upper_general 7th slot (triceps_iso) drops at the 6-exercise cap', () => {
+        it('gym (vertical_pull available): contains vertical_pull, drops triceps_iso', () => {
+            const pool = deepPool();
+            const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool }));
+            const patterns = patternsOf(bp, pool, 'upper', null);
+            expect(patterns).toContain('vertical_pull');
+            expect(patterns).not.toContain('triceps_iso');
+        });
+
+        it('no vertical_pull in pool: keeps triceps_iso (byte-identical fallback)', () => {
+            const pool = deepPool().filter((e) => e.movement_pattern !== 'vertical_pull');
+            const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool }));
+            const patterns = patternsOf(bp, pool, 'upper', null);
+            expect(patterns).not.toContain('vertical_pull');
+            expect(patterns).toContain('triceps_iso');
+        });
     });
 });
