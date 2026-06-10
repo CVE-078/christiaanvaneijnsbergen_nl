@@ -30,6 +30,7 @@ import type {
     ProgramStyle,
     Bias,
     TrainingStyle,
+    RestrictionFlag,
 } from '@/lib/pulse/types';
 
 describe('volumeFor', () => {
@@ -1482,6 +1483,61 @@ describe('movement restrictions: two flags at once filter the union', () => {
         expect(ids.has('barbell-back-squat')).toBe(false);
         expect(ids.has('overhead-press')).toBe(false);
         expect(bp.exercises.length).toBeGreaterThan(0);
+    });
+});
+
+describe('Item 2: minimum-compound guard for restriction-emptied sessions', () => {
+    // A pool where the leg compounds (squat/hinge/lunge) are all contraindicated,
+    // but safe upper compounds + leg isolation remain.
+    const legCompoundsContraindicated = (): ExerciseMeta[] => {
+        const pool: ExerciseMeta[] = [];
+        for (const p of ALL_PATTERNS) {
+            const compound = !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            const contra: RestrictionFlag[] =
+                p === 'squat' || p === 'hinge' || p === 'lunge' ? ['knee', 'lower_back'] : [];
+            pool.push(meta(`${p}-1`, p, ['dumbbells'], compound, { contraindications: contra }));
+            pool.push(meta(`${p}-2`, p, ['dumbbells'], compound, { contraindications: contra }));
+        }
+        return pool;
+    };
+
+    it('seats a cross-pattern compound when a session would otherwise be all isolation', () => {
+        const pool = legCompoundsContraindicated();
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(
+            input({ style, trainingDays: [1, 3, 5], pool, restrictions: ['knee', 'lower_back'] }),
+        );
+        const byId = new Map(pool.map((e) => [e.id, e]));
+        const legs = sessionIds(bp, 'legs', null).map((id) => byId.get(id)!);
+        expect(legs.length).toBeGreaterThan(0);
+        // The leg emphasis compounds were all filtered out, but the guard seats one
+        // safe compound from another pattern rather than shipping an all-isolation day.
+        expect(legs.some((e) => e.is_compound)).toBe(true);
+        // Count integrity: seating the fallback drops the lowest-priority isolation,
+        // so the session still hits the volume target rather than overfilling.
+        expect(legs.length).toBe(volumeFor('45–60 min', 'intermediate').exercises);
+        // A fallback compound existed, so no warning.
+        expect(bp.warnings).toEqual([]);
+    });
+
+    it('warns (does not block) when no compound survives anywhere in the pool', () => {
+        // Contraindicate every compound; only isolation remains, so no fallback exists.
+        const pool: ExerciseMeta[] = [];
+        for (const p of ALL_PATTERNS) {
+            const compound = !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            pool.push(meta(`${p}-1`, p, ['dumbbells'], compound, { contraindications: compound ? ['knee'] : [] }));
+        }
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, restrictions: ['knee'] }));
+        // Never hard-rejects, still produces a routine...
+        expect(bp.exercises.length).toBeGreaterThan(0);
+        // ...and surfaces a single clear warning (deduped across sessions).
+        expect(bp.warnings.length).toBe(1);
+        expect(bp.warnings[0]).toMatch(/accessory work only/i);
+    });
+
+    it('a normal routine carries an empty warnings array (golden)', () => {
+        expect(generateRoutine(input()).warnings).toEqual([]);
     });
 });
 

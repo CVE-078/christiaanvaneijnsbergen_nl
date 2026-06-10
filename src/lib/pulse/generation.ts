@@ -1147,7 +1147,17 @@ export interface RoutineBlueprint {
         reps: string;
         superset_group_id: string | null;
     }>;
+    /** Non-blocking generation-time notices (Item 2). Empty in the normal case.
+     *  The action appends these to the routine rationale so they reach the user. */
+    warnings: string[];
 }
+
+// Item 2: surfaced when a session's compound patterns are all filtered out (by
+// restrictions / equipment / hidden exercises) AND no safe compound exists anywhere
+// in the pool, so the session can only be accessory work. Generation never blocks;
+// it warns instead.
+const NO_COMPOUND_WARNING =
+    'Your movement restrictions removed all compound options for one or more sessions. These sessions use accessory work only. Consider adjusting your restrictions or equipment.';
 
 let groupCounter = 0;
 function defaultGroupId(): string {
@@ -1198,6 +1208,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
 
     const schedule: RoutineBlueprint['schedule'] = [];
     const exercises: RoutineBlueprint['exercises'] = [];
+    const warnings: string[] = [];
 
     style.sessions.forEach((session, i) => {
         if (i >= days.length) return;
@@ -1220,6 +1231,30 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             input.loadingLean,
             input.behavior ?? EMPTY_BEHAVIOR,
         );
+
+        // Item 2: minimum-compound guard. If restrictions / equipment / hidden
+        // exercises emptied this session's compound patterns, selectForSession could
+        // only backfill isolation, leaving an accessory-only session. Seat one safe
+        // compound from anywhere in the pool (a cross-pattern fallback, since the
+        // session's own compound patterns are exactly what got emptied) rather than
+        // ship that. If the whole safe pool has no compound, never block, warn.
+        if (selected.length > 0 && !selected.some((s) => s.ex.is_compound)) {
+            const chosenIds = new Set(selected.map((s) => s.ex.id));
+            const fallback = usable.find(
+                (ex) => ex.is_compound && ex.movement_pattern !== null && !chosenIds.has(ex.id),
+            );
+            if (fallback) {
+                // Keep the exercise count: drop the last (lowest-priority) isolation
+                // when already at target. The tier sort leads with the compound
+                // regardless of where it is pushed here.
+                if (selected.length >= exCount) selected.pop();
+                selected.push({ ex: fallback, pattern: fallback.movement_pattern! });
+                used.add(fallback.id);
+                if (fallback.substitution_class !== null) usedSubstitutionClasses.add(fallback.substitution_class);
+            } else if (!warnings.includes(NO_COMPOUND_WARNING)) {
+                warnings.push(NO_COMPOUND_WARNING);
+            }
+        }
 
         // Tier sort: present exercises in coach-standard order within each session.
         // Compounds lead (Tier 1: squat/hinge; Tier 2: push/pull/lunge), isolations
@@ -1260,7 +1295,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         });
     });
 
-    return { schedule, exercises };
+    return { schedule, exercises, warnings };
 }
 
 // Trim a template's exercise list to the session-length volume target, grouping
