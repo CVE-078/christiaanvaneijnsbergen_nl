@@ -25,14 +25,18 @@ export type { Focus };
 // ── Emphasis library ─────────────────────────────────────────────────────────
 // Each entry pairs a training bias with an ordered list of movement patterns
 // (compounds first). The slot filler walks this list and backfills from it to
-// reach the target count. `vertical_pull` is never a primary slot, a
-// dumbbell-only user has no usable option, so it is omitted entirely; pulling
-// is covered by `horizontal_pull` + `back_iso`.
+// reach the target count. `vertical_pull` appears only on back-focused upper /
+// pull days. A dumbbell-only user (no pull-up bar / lat pulldown) has no usable
+// option, so the equipment filter no-ops the slot and backfill covers the gap
+// from the other patterns; gym users get a vertical pull.
 export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // ── Upper (4-day classic) ────────────────────────────────────────────────
     upper_chest_back: {
         bias: 'hypertrophy',
-        slots: ['horizontal_push', 'horizontal_pull', 'vertical_push', 'chest_iso', 'back_iso', 'biceps_iso'],
+        // 7 slots: vertical_pull at pos 3 for gym users; at the 6-cap (45-60 min)
+        // the trailing biceps_iso drops, and a dumbbell-only user no-ops
+        // vertical_pull and keeps biceps_iso (byte-identical fallback).
+        slots: ['horizontal_push', 'horizontal_pull', 'vertical_pull', 'vertical_push', 'chest_iso', 'back_iso', 'biceps_iso'],
     },
     upper_delts_arms: {
         bias: 'hypertrophy',
@@ -41,24 +45,32 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // ── Upper (4-day aesthetic, upper-priority, more isolation) ──────────────
     upper_aesthetic_a: {
         bias: 'hypertrophy',
-        slots: ['horizontal_push', 'horizontal_pull', 'shoulder_iso', 'chest_iso', 'back_iso', 'biceps_iso'],
+        // 7 slots: vertical_pull at pos 3; trailing biceps_iso drops at the 6-cap
+        // for gym users, dumbbell-only no-ops vertical_pull and keeps biceps_iso.
+        slots: ['horizontal_push', 'horizontal_pull', 'vertical_pull', 'shoulder_iso', 'chest_iso', 'back_iso', 'biceps_iso'],
     },
     upper_aesthetic_b: {
         bias: 'pump',
         slots: ['vertical_push', 'horizontal_pull', 'shoulder_iso', 'biceps_iso', 'triceps_iso', 'back_iso'],
     },
     // ── Lower (4-day) ─────────────────────────────────────────────────────────
+    // Clean Lower A / Lower B separation: quad days anchor on squat (no hinge),
+    // the posterior day anchors on hinge (no squat). Each is always paired with
+    // its opposite within a routine, so squat and hinge are each still trained
+    // once across the week. This is what stops the `consistent` anchor map from
+    // pinning the same squat + hinge to both leg days. The 6th exercise at
+    // 45-60 min comes from backfill (a 2nd accessory).
     lower_quad: {
         bias: 'hypertrophy',
-        slots: ['squat', 'lunge', 'hinge', 'glute_iso', 'calf', 'core'],
+        slots: ['squat', 'lunge', 'glute_iso', 'calf', 'core'],
     },
     lower_post: {
         bias: 'hypertrophy',
-        slots: ['hinge', 'glute_iso', 'lunge', 'squat', 'calf', 'core'],
+        slots: ['hinge', 'glute_iso', 'lunge', 'calf', 'core'],
     },
     lower_lean: {
         bias: 'pump',
-        slots: ['lunge', 'glute_iso', 'hinge', 'squat', 'calf', 'core'],
+        slots: ['lunge', 'squat', 'glute_iso', 'calf', 'core'],
     },
     // ── Full body ─────────────────────────────────────────────────────────────
     fb_strength: {
@@ -93,11 +105,16 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // ── Push / Pull / Legs ────────────────────────────────────────────────────
     push: {
         bias: 'hypertrophy',
-        slots: ['horizontal_push', 'vertical_push', 'chest_iso', 'shoulder_iso', 'triceps_iso'],
+        // Deliberate 6th slot (2nd triceps_iso): balances the day to chest 2 /
+        // shoulders 2 / triceps 2 instead of an undesigned backfill 6th.
+        slots: ['horizontal_push', 'vertical_push', 'chest_iso', 'shoulder_iso', 'triceps_iso', 'triceps_iso'],
     },
     pull: {
         bias: 'hypertrophy',
-        slots: ['horizontal_pull', 'hinge', 'back_iso', 'shoulder_iso', 'biceps_iso'],
+        // No hinge on pull (an RDL/deadlift belongs on a leg day). vertical_pull
+        // is a primary slot; the deliberate 6th is a 2nd back_iso (the natural
+        // home for posterior-shoulder work: face pull / rear delt fly).
+        slots: ['horizontal_pull', 'vertical_pull', 'back_iso', 'shoulder_iso', 'biceps_iso', 'back_iso'],
     },
     legs: {
         bias: 'hypertrophy',
@@ -106,7 +123,9 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // ── Generic upper / lower (3-day U/L/FB, 5-day hybrids) ───────────────────
     upper_general: {
         bias: 'balanced',
-        slots: ['horizontal_push', 'horizontal_pull', 'vertical_push', 'shoulder_iso', 'biceps_iso', 'triceps_iso'],
+        // 7 slots: vertical_pull at pos 3; trailing triceps_iso drops at the 6-cap
+        // for gym users, dumbbell-only no-ops vertical_pull and keeps triceps_iso.
+        slots: ['horizontal_push', 'horizontal_pull', 'vertical_pull', 'vertical_push', 'shoulder_iso', 'biceps_iso', 'triceps_iso'],
     },
     lower_general: {
         bias: 'balanced',
