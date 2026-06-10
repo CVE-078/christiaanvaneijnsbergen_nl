@@ -222,10 +222,7 @@ export async function removeExerciseFromRoutine(routineExerciseId: string): Prom
     if (error) throw new Error('Failed to remove exercise from routine');
 }
 
-export async function swapRoutineExercisePermanently(
-    routineExerciseId: string,
-    newExerciseId: string,
-): Promise<void> {
+export async function swapRoutineExercisePermanently(routineExerciseId: string, newExerciseId: string): Promise<void> {
     if (!UUID_RE.test(routineExerciseId)) throw new Error('Invalid id');
     if (!UUID_RE.test(newExerciseId)) throw new Error('Invalid exercise id');
 
@@ -466,7 +463,9 @@ export async function generateAndSaveRoutine(
 
     const { data: poolData } = await supabase
         .from('exercises')
-        .select('id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications')
+        .select(
+            'id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications',
+        )
         .is('user_id', null);
 
     // The persisted muscle priority tilts each session's emphasis toward that
@@ -479,7 +478,8 @@ export async function generateAndSaveRoutine(
         .eq('id', user.id)
         .maybeSingle();
     const priority = resolvePriority(profileRow?.priority_muscle ?? genderDefault(profileRow?.gender ?? null));
-    const resolvedTrainingStyle: TrainingStyle = trainingStyle ?? (profileRow?.training_style as TrainingStyle) ?? 'balanced';
+    const resolvedTrainingStyle: TrainingStyle =
+        trainingStyle ?? (profileRow?.training_style as TrainingStyle) ?? 'balanced';
     // Param wins over the stored value, which falls back to 'varied' (identity).
     const resolvedVariety: VarietyPreference =
         varietyPreference ?? (profileRow?.variety_preference as VarietyPreference) ?? 'varied';
@@ -499,6 +499,10 @@ export async function generateAndSaveRoutine(
         .filter((row) => !hidden.has(row.id))
         .map((row) => ({
             id: row.id,
+            // Name feeds the canonical-anchor rank (CANONICAL_ANCHORS, Bug 2). Without
+            // this the rank can never fire in production (every name would be
+            // undefined), so the fix is dead despite passing the synthetic tests.
+            name: row.name,
             category: row.category,
             equipment: row.equipment ?? [],
             movement_pattern: row.movement_pattern,

@@ -36,7 +36,15 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         // 7 slots: vertical_pull at pos 3 for gym users; at the 6-cap (45-60 min)
         // the trailing biceps_iso drops, and a dumbbell-only user no-ops
         // vertical_pull and keeps biceps_iso (byte-identical fallback).
-        slots: ['horizontal_push', 'horizontal_pull', 'vertical_pull', 'vertical_push', 'chest_iso', 'back_iso', 'biceps_iso'],
+        slots: [
+            'horizontal_push',
+            'horizontal_pull',
+            'vertical_pull',
+            'vertical_push',
+            'chest_iso',
+            'back_iso',
+            'biceps_iso',
+        ],
     },
     upper_delts_arms: {
         bias: 'hypertrophy',
@@ -47,7 +55,15 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         bias: 'hypertrophy',
         // 7 slots: vertical_pull at pos 3; trailing biceps_iso drops at the 6-cap
         // for gym users, dumbbell-only no-ops vertical_pull and keeps biceps_iso.
-        slots: ['horizontal_push', 'horizontal_pull', 'vertical_pull', 'shoulder_iso', 'chest_iso', 'back_iso', 'biceps_iso'],
+        slots: [
+            'horizontal_push',
+            'horizontal_pull',
+            'vertical_pull',
+            'shoulder_iso',
+            'chest_iso',
+            'back_iso',
+            'biceps_iso',
+        ],
     },
     upper_aesthetic_b: {
         bias: 'pump',
@@ -67,6 +83,11 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     lower_post: {
         bias: 'hypertrophy',
         slots: ['hinge', 'glute_iso', 'lunge', 'calf', 'core'],
+        // TODO (roadmap follow-up, NOT in this PR): this posterior day's only compound
+        // is `hinge`. If a constrained equipment profile empties the hinge pool, the
+        // session can degrade to glute_iso + lunge + calf + core with no heavy compound.
+        // It needs a minimum-compound guard: substitute a lunge or squat compound
+        // before backfilling with isolation. See the Bug 6 PR summary.
     },
     lower_lean: {
         bias: 'pump',
@@ -125,7 +146,15 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         bias: 'balanced',
         // 7 slots: vertical_pull at pos 3; trailing triceps_iso drops at the 6-cap
         // for gym users, dumbbell-only no-ops vertical_pull and keeps triceps_iso.
-        slots: ['horizontal_push', 'horizontal_pull', 'vertical_pull', 'vertical_push', 'shoulder_iso', 'biceps_iso', 'triceps_iso'],
+        slots: [
+            'horizontal_push',
+            'horizontal_pull',
+            'vertical_pull',
+            'vertical_push',
+            'shoulder_iso',
+            'biceps_iso',
+            'triceps_iso',
+        ],
     },
     lower_general: {
         bias: 'balanced',
@@ -142,7 +171,14 @@ export function emphasisFor(key: EmphasisKey): Emphasis {
 // Movement patterns each priority muscle is trained through (compound first).
 // `arms` covers both biceps and triceps isolation.
 export const PRIORITY_PATTERNS: Record<PriorityMuscle, MovementPattern[]> = {
-    glutes: ['glute_iso', 'hinge'],
+    // Bug 5: compound-first hierarchy (hinge > squat > lunge > glute_iso). The hip
+    // hinge is the highest-leverage glute builder, then loaded squat, then unilateral
+    // work, with direct glute isolation last. Listing isolation first (the old
+    // ['glute_iso','hinge']) spent the freshest slot + the backfill on the
+    // lowest-stimulus movement. tiltEmphasis only reorders patterns ALREADY in the
+    // session's slots, so adding squat/lunge here never injects them into a day that
+    // lacks them.
+    glutes: ['hinge', 'squat', 'lunge', 'glute_iso'],
     legs: ['squat', 'lunge'],
     chest: ['horizontal_push', 'chest_iso'],
     back: ['horizontal_pull', 'back_iso'],
@@ -421,7 +457,11 @@ export function repRange(bias: Bias, isCompound: boolean, goal?: Goal): string {
     const loseFat = goal === 'lose_fat';
 
     if (bias === 'strength') {
-        if (isCompound) return loseFat ? '8-12' : '6-10';
+        // Bug 3: strength-bias compounds train in the 3-6 band (heavy, low-rep), not
+        // the 6-10 hypertrophy-ish band. lose_fat keeps the strength day heavy-ish
+        // (6-10) rather than chasing density, the day's whole purpose is the heavy
+        // lift; the density bias still applies to hypertrophy/pump/balanced days.
+        if (isCompound) return loseFat ? '6-10' : '3-6';
         return loseFat ? '12-20' : '10-15';
     }
     if (bias === 'hypertrophy') {
@@ -522,6 +562,10 @@ const FOCUS_TYPE: Record<Focus, WorkoutType> = {
 
 export interface ExerciseMeta {
     id: string;
+    /** Display name, used only to look up the canonical-anchor rank (CANONICAL_ANCHORS,
+     *  Bug 2 / P0 3.1). Optional: pools without it (synthetic test pools) get a neutral
+     *  rank so ordering is byte-identical to the pre-ranking engine. */
+    name?: string;
     equipment: EquipmentKey[];
     movement_pattern: MovementPattern | null;
     is_compound: boolean;
@@ -599,6 +643,66 @@ const LOADING_TO_EQUIPMENT: Record<LoadingPreference, EquipmentKey> = {
     cable: 'cables',
 };
 
+// ── Canonical anchor ranking (Bug 2 / roadmap P0 3.1) ────────────────────────
+// When several exercises tie on fatigue within an anchor pattern, this picks the
+// canonical primary compound instead of falling through to id.localeCompare (which
+// is effectively random because exercise ids are UUIDs). The real seed ties this
+// fixes: horizontal_push has Barbell Bench Press AND Close-Grip Bench Press both at
+// fatigue 4; vertical_push has Barbell OHP vs Dumbbell Push Press (4); horizontal_
+// pull has Barbell Row vs T-Bar Row (4); vertical_pull has Pull-Up vs Chin-Up (4).
+// squat (Barbell Squat alone at 5) and hinge (Deadlift/Sumo at 5) already resolve on
+// fatigue, so they are deliberately NOT listed here (a rank entry would be inert).
+//
+// Lower index = more canonical. The rank is applied AFTER the fatigue key and BEFORE
+// the id tiebreak, so it ONLY decides otherwise-random ties and never overrides
+// fatigue / freshness / loading-lean.
+//
+// FRAGILITY: keyed by exercise NAME because ids are UUIDs (not stable across
+// environments) while seed names are. Renaming a seed exercise silently degrades its
+// anchor to UUID order. A catalog-consistency test (generation.test.ts) asserts every
+// name here exists in the metadata seed. Longer term this wants an `anchor_rank`
+// column next to fatigue (roadmap follow-up to generation Phase 0 #2).
+export const CANONICAL_ANCHORS: Partial<Record<MovementPattern, string[]>> = {
+    horizontal_push: [
+        'Barbell Bench Press',
+        'Incline Barbell Press',
+        'Dumbbell Bench Press',
+        'Incline Dumbbell Press',
+        'Machine Chest Press',
+        'Decline Bench Press',
+        'Decline Dumbbell Press',
+        'Smith Machine Bench Press',
+        'Close-Grip Bench Press',
+        'Push-Up',
+    ],
+    vertical_push: [
+        'Barbell Overhead Press',
+        'Dumbbell Overhead Press',
+        'Dumbbell Push Press',
+        'Arnold Press',
+        'Machine Shoulder Press',
+    ],
+    horizontal_pull: [
+        'Barbell Row',
+        'T-Bar Row',
+        'Dumbbell Bent-Over Row',
+        'Chest-Supported Row',
+        'Seated Cable Row',
+        'Dumbbell Single-Arm Row',
+    ],
+    vertical_pull: ['Pull-Up', 'Lat Pulldown', 'Chin-Up'],
+};
+
+/** Canonical-anchor rank for an exercise within a pattern (lower = more canonical).
+ *  Infinity when the pattern has no list or the exercise has no matching name, so it
+ *  is a pure tiebreak that leaves nameless / unlisted exercises in their prior order. */
+function anchorRank(ex: ExerciseMeta, pattern: MovementPattern): number {
+    const order = CANONICAL_ANCHORS[pattern];
+    if (!order || !ex.name) return Infinity;
+    const i = order.indexOf(ex.name);
+    return i === -1 ? Infinity : i;
+}
+
 // ── Slot selection (cross-session avoid-set) ─────────────────────────────────
 
 interface Selected {
@@ -617,11 +721,12 @@ interface Selected {
  */
 function selectForSession(
     emphasis: Emphasis,
+    focus: Focus,
     count: number,
     usable: ExerciseMeta[],
     used: Set<string>,
     variety: VarietyPreference,
-    anchors: Map<MovementPattern, string>,
+    anchors: Map<string, string>,
     usedSubstitutionClasses: Set<string>,
     loadingLean?: LoadingPreference | null,
     behavior: BehaviorSignal = EMPTY_BEHAVIOR,
@@ -672,36 +777,52 @@ function selectForSession(
     const FRONT_DELT_ISOLATION = 'front_delt_isolation';
     const byPattern = (p: MovementPattern) => {
         const anchorPattern = COMPOUND_ANCHOR_PATTERNS.has(p);
-        return usable.filter((ex) => ex.movement_pattern === p).sort((a, b) => {
-            // Behavior demote (#7): sink rejected exercises within their pattern
-            // group, but ONLY on non-anchor patterns so the main compounds are
-            // never learned away. Empty demoteSet or an anchor pattern -> both 0,
-            // falls through, base ordering preserved (golden test).
-            if (!anchorPattern) {
-                const aDemote = demoteSet.has(a.id) ? 1 : 0;
-                const bDemote = demoteSet.has(b.id) ? 1 : 0;
-                if (aDemote !== bDemote) return aDemote - bDemote;
-            }
-            if (preferredKey) {
-                const aMatch = a.equipment.includes(preferredKey) ? 0 : 1;
-                const bMatch = b.equipment.includes(preferredKey) ? 0 : 1;
-                if (aMatch !== bMatch) return aMatch - bMatch;
-            }
-            const aSubUsed = a.substitution_class !== null && usedSubstitutionClasses.has(a.substitution_class) ? 1 : 0;
-            const bSubUsed = b.substitution_class !== null && usedSubstitutionClasses.has(b.substitution_class) ? 1 : 0;
-            if (aSubUsed !== bSubUsed) return aSubUsed - bSubUsed;
-            const aFrontRaise = verticalPushFilled && a.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
-            const bFrontRaise = verticalPushFilled && b.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
-            if (aFrontRaise !== bFrontRaise) return aFrontRaise - bFrontRaise;
-            const aFatigue = a.fatigue ?? FATIGUE_UNKNOWN;
-            const bFatigue = b.fatigue ?? FATIGUE_UNKNOWN;
-            if (aFatigue !== bFatigue) return anchorPattern ? bFatigue - aFatigue : aFatigue - bFatigue;
-            return a.id.localeCompare(b.id);
-        });
+        return usable
+            .filter((ex) => ex.movement_pattern === p)
+            .sort((a, b) => {
+                // Behavior demote (#7): sink rejected exercises within their pattern
+                // group, but ONLY on non-anchor patterns so the main compounds are
+                // never learned away. Empty demoteSet or an anchor pattern -> both 0,
+                // falls through, base ordering preserved (golden test).
+                if (!anchorPattern) {
+                    const aDemote = demoteSet.has(a.id) ? 1 : 0;
+                    const bDemote = demoteSet.has(b.id) ? 1 : 0;
+                    if (aDemote !== bDemote) return aDemote - bDemote;
+                }
+                if (preferredKey) {
+                    const aMatch = a.equipment.includes(preferredKey) ? 0 : 1;
+                    const bMatch = b.equipment.includes(preferredKey) ? 0 : 1;
+                    if (aMatch !== bMatch) return aMatch - bMatch;
+                }
+                const aSubUsed =
+                    a.substitution_class !== null && usedSubstitutionClasses.has(a.substitution_class) ? 1 : 0;
+                const bSubUsed =
+                    b.substitution_class !== null && usedSubstitutionClasses.has(b.substitution_class) ? 1 : 0;
+                if (aSubUsed !== bSubUsed) return aSubUsed - bSubUsed;
+                const aFrontRaise = verticalPushFilled && a.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
+                const bFrontRaise = verticalPushFilled && b.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
+                if (aFrontRaise !== bFrontRaise) return aFrontRaise - bFrontRaise;
+                const aFatigue = a.fatigue ?? FATIGUE_UNKNOWN;
+                const bFatigue = b.fatigue ?? FATIGUE_UNKNOWN;
+                if (aFatigue !== bFatigue) return anchorPattern ? bFatigue - aFatigue : aFatigue - bFatigue;
+                // (6) Canonical-anchor rank (Bug 2): break a fatigue tie toward the
+                // canonical primary compound (Barbell Bench Press over Close-Grip Bench
+                // Press) instead of the random UUID order. Infinity for nameless / unlisted
+                // exercises, so this is a no-op except on genuine ties between named
+                // catalog exercises (Infinity !== Infinity is false -> falls through).
+                const aRank = anchorRank(a, p);
+                const bRank = anchorRank(b, p);
+                if (aRank !== bRank) return aRank - bRank;
+                return a.id.localeCompare(b.id);
+            });
     };
 
     const chosen: Selected[] = [];
     const chosenIds = new Set<string>();
+    // Bug 4/7: hard cap of 2 of any movement pattern per session. patternCount reads
+    // the live `chosen` list so it covers both the first pass and backfill.
+    const PATTERN_CAP = 2;
+    const patternCount = (p: MovementPattern) => chosen.reduce((n, c) => (c.pattern === p ? n + 1 : n), 0);
     // Tracks which heavy-compound patterns (hinge / squat) have been filled this
     // session. The cap prevents a second deadlift variant or squat compound from
     // entering via backfill while still allowing lunge and glute_iso accessories.
@@ -732,6 +853,13 @@ function selectForSession(
         let candidates = byPattern(slot).filter((ex) => !chosenIds.has(ex.id));
         if (candidates.length === 0) return false;
 
+        // Pattern-diversity cap (Bug 4/7): never seat more than PATTERN_CAP of one
+        // movement pattern in a session. HARD (never relaxed, unlike the heavy /
+        // unilateral caps below): under-filling toward diversity beats stacking a 3rd
+        // of one pattern (the calf-explosion bug). The deliberate push/pull 6th slot
+        // (2x triceps_iso / back_iso) sits exactly at the cap, so it is still allowed.
+        if (patternCount(slot) >= PATTERN_CAP) return false;
+
         // Heavy-compound cap: skip if this Tier-1 pattern is already filled,
         // unless the cap has been relaxed because no other option is available.
         if (!relaxHeavyCap && HEAVY_DEDUP_PATTERNS.has(slot) && heavyPatternFilled.has(slot)) {
@@ -751,7 +879,14 @@ function selectForSession(
 
         // Variety 'consistent': anchor the main compound lifts across sessions.
         if (variety === 'consistent' && COMPOUND_ANCHOR_PATTERNS.has(slot)) {
-            const anchoredId = anchors.get(slot);
+            // Bug 1: anchor per (focus, pattern), NOT per pattern alone. Two sessions
+            // of the SAME focus (Lower A + Lower B) share the anchor compound -- the
+            // intended consistent behavior; sessions of DIFFERENT focus (Push vs Upper)
+            // get distinct keys, so the second one's fresh pick respects `used` and
+            // they never seat the same exercise (the cross-session collapse bug). The
+            // key relies on Focus and MovementPattern enum members being colon-free.
+            const anchorKey = `${focus}:${slot}`;
+            const anchoredId = anchors.get(anchorKey);
             if (anchoredId) {
                 // Anchor lookup takes precedence over the fresh-preference and
                 // deliberately bypasses the routine-wide `used` avoid-set. Do not
@@ -766,11 +901,11 @@ function selectForSession(
                 // fresh pick WITHOUT re-anchoring. Cannot happen on a pattern's
                 // first slot within one generation (usable pool is fixed).
             } else {
-                // First time this pattern is filled: pick fresh, record the anchor.
+                // First time this (focus, pattern) is filled: pick fresh, record it.
                 const fresh = candidates.find((ex) => !used.has(ex.id));
                 const choice = fresh ?? candidates[0];
                 push(choice, slot);
-                anchors.set(slot, choice.id);
+                anchors.set(anchorKey, choice.id);
                 return true;
             }
         }
@@ -799,10 +934,17 @@ function selectForSession(
     while (chosen.length < count && guard < 50) {
         guard++;
         let added = false;
-        const coveredPatterns = new Set(chosen.map((c) => c.pattern));
-        // Stable sort: uncovered slots (0) before covered (1).
+        // Bug 4: prefer the least-represented pattern (count-ascending, stable sort),
+        // so backfill spreads across patterns instead of stacking the most-available
+        // one (the calf-explosion bug). For emphases whose patterns are each at count
+        // <=1 after the first pass this matches the old uncovered(0)-before-covered(1)
+        // ordering; for push/pull (a deliberate 2x triceps_iso / back_iso) the doubled
+        // pattern is correctly sunk so backfill never seats a 3rd. Same-pool golden
+        // (varied) runs stay equal because the reorder is identical on both sides.
+        const patternCounts = new Map<MovementPattern, number>();
+        for (const c of chosen) patternCounts.set(c.pattern, (patternCounts.get(c.pattern) ?? 0) + 1);
         const slotsByPriority = [...emphasis.slots].sort(
-            (a, b) => (coveredPatterns.has(a) ? 1 : 0) - (coveredPatterns.has(b) ? 1 : 0),
+            (a, b) => (patternCounts.get(a) ?? 0) - (patternCounts.get(b) ?? 0),
         );
         for (const slot of slotsByPriority) {
             if (chosen.length >= count) break;
@@ -980,8 +1122,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const usedSubstitutionClasses = new Set<string>();
     const variety = input.varietyPreference ?? 'varied';
     // Routine-wide anchor map (per-generation, never persisted) used only under
-    // 'consistent' to keep the main compounds the same across sessions.
-    const anchors = new Map<MovementPattern, string>();
+    // 'consistent' to keep the main compounds the same across sessions. Keyed by
+    // `${focus}:${pattern}` (Bug 1) so the anchor is shared only between sessions of
+    // the same focus, not across different-focus sessions.
+    const anchors = new Map<string, string>();
 
     const schedule: RoutineBlueprint['schedule'] = [];
     const exercises: RoutineBlueprint['exercises'] = [];
@@ -997,6 +1141,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
         const selected = selectForSession(
             emphasis,
+            session.focus,
             exCount,
             usable,
             used,
