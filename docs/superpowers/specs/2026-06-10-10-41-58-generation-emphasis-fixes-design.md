@@ -64,12 +64,23 @@ push:          [horizontal_push, vertical_push, chest_iso, shoulder_iso, triceps
 pull:          [horizontal_pull, hinge, back_iso, shoulder_iso, biceps_iso]
             -> [horizontal_pull, vertical_pull, back_iso, shoulder_iso, biceps_iso, back_iso]
 
-upper_general: [horizontal_push, horizontal_pull, vertical_push, shoulder_iso, biceps_iso, triceps_iso]
-            -> [horizontal_push, horizontal_pull, vertical_pull, vertical_push, shoulder_iso, biceps_iso, triceps_iso]
+upper_general:    [horizontal_push, horizontal_pull, vertical_push, shoulder_iso, biceps_iso, triceps_iso]
+               -> [horizontal_push, horizontal_pull, vertical_pull, vertical_push, shoulder_iso, biceps_iso, triceps_iso]
 
-upper_chest_back:   insert vertical_pull after horizontal_pull
-upper_aesthetic_a:  insert vertical_pull after horizontal_pull
+upper_chest_back: [horizontal_push, horizontal_pull, vertical_push, chest_iso, back_iso, biceps_iso]
+               -> [horizontal_push, horizontal_pull, vertical_pull, vertical_push, chest_iso, back_iso, biceps_iso]
+
+upper_aesthetic_a:[horizontal_push, horizontal_pull, shoulder_iso, chest_iso, back_iso, biceps_iso]
+               -> [horizontal_push, horizontal_pull, vertical_pull, shoulder_iso, chest_iso, back_iso, biceps_iso]
 ```
+
+Each upper insert puts `vertical_pull` at position 3 (after `horizontal_pull`), taking each emphasis from 6 to 7 explicit slots. At the 6-exercise cap (45-60 min) the slot at position 7 falls past it for gym users:
+
+| Emphasis | Slot dropped at 6-cap (gym) |
+| --- | --- |
+| `upper_general` | `triceps_iso` |
+| `upper_chest_back` | `biceps_iso` |
+| `upper_aesthetic_a` | `biceps_iso` |
 
 - **pull** drops `hinge` (1.2), gains `vertical_pull` as a primary slot (1.3), and gets a deliberate 6th = a 2nd `back_iso` (1.4).
 - **push** gets a deliberate 6th = a 2nd `triceps_iso` (1.4).
