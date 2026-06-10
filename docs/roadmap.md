@@ -30,6 +30,8 @@
 
 **Recently merged (#115):** Generation engine bug fixes (spec-reviewed + code-reviewed by adversarial subagent panels, zero bugs found; +11 tests -> **1049**, typecheck clean; pure logic, no migration; spec `docs/superpowers/specs/2026-06-10-14-00-00-generation-engine-bug-fixes-design.md`). Covers Bug 1 (consistent anchor now keyed by `(focus, pattern)`, so different-focus sessions no longer share an exercise while same-focus days still anchor), **Bug 2 = P0 3.1** (canonical-anchor rank in `byPattern` via a name-keyed `CANONICAL_ANCHORS` so Barbell Bench Press outranks Close-Grip Bench Press on a fatigue tie, threaded through `actions/routines.ts`), Bug 3 (strength compound reps 3-6, lose_fat 6-10), Bug 4/7 (backfill pattern-diversity sort + a hard max-2-per-pattern cap), Bug 5 (glutes tilt compound-first: hinge>squat>lunge>glute_iso). Bug 6 reconciled: the `ulppl-5` quad/posterior split is intentional and kept; the proposed **relabel** is now confirmed unnecessary and dropped (see the in-review follow-up: `focus` is never persisted and the `lower`/`legs` anchor keys are already distinct). P0 Group 1 (#114), smart substitution v2 (#8, #112), behavior-driven adaptation (#7, #111), travel mode (#322, #110), program pause (#14, #109), and equipment profiles (#6, #99/#100) are merged on `main`. **Pending hand-off:** four apply-by-hand migrations (`equipment-profile-expiry`, `exercise-swaps-from-exercise`, `exercise-swaps-reason`, program-pause); confirm they are applied to Supabase before the P0 Group 2 seed migration stacks on the same `exercises` rows.
 
+**Generation engine quality track (opened 2026-06-10):** a post-bug-fix backlog of five confirmed generation-quality issues (systematic testing + a three-way review: internal audit, ChatGPT, Perplexity), filed as "Generation engine quality track (post-bug-fix backlog)" at the end of the generation backlog section below. Items 1-3 (powerbuilding pull set/rep mismatch, minimum-compound guard for restriction-emptied sessions, remove `fb-emphasis-3`) are ready to implement in the next session; Item 4 (squat/hinge adjacency) has a ready interim fix plus a spec-first role-model follow-up; Item 5 (`ppl-x2-6` A/B differentiation) is spec-first, gated on the day-picker redesign.
+
 **Ongoing (continuous, not a discrete next-action):**
 - **Validation block** (highest-leverage, gates the launch-readiness track): train Pulse with intent and run the deliberate missed-week test (skip a scheduled week to fire ramp-back), querying the `DecisionEvent` log via `docs/queries/decision-events-review.sql` (newest-first, today-only, ramp-back-only variants). Runs in parallel with build work; not a thing to "finish", a thing to keep doing until the adaptive promise is earned.
 
@@ -517,6 +519,58 @@ Every finding here was implemented before this audit. Kept for the record with v
 **Fix as shipped:** `RoutineExerciseRow` takes a `displayNumber?: number` and renders `{displayNumber ?? index + 1}` for the badge while `onMove(index, ...)` keeps the global index for reorder (`views/library/RoutineExerciseRow.tsx:25-29,78,102,109`). `RoutinesTab` passes a per-session counter as `displayNumber` (`views/library/RoutinesTab.tsx:216,245,378`) while keeping the global `index`. Plan numbers per section (`views/ProgramView.tsx:296`).
 **Path correction:** the files are at `src/components/pulse/views/library/RoutinesTab.tsx` and `.../RoutineExerciseRow.tsx`, not `src/components/pulse/` as the brief stated.
 **Verified:** **DISCREPANCY, already fixed**, plus a file-path correction.
+
+### Generation engine quality track (post-bug-fix backlog)
+
+Five confirmed generation-engine quality issues from systematic testing plus a three-way review (internal audit + ChatGPT + Perplexity), opened 2026-06-10 after the generation bug-fix work (#115 + the anchor/unilateral follow-ups). Confirmed against the live tree, not speculative. Distinct from subsections 1-3 above (those are the `EMPHASES` / metadata / ranking data fixes); this track is the next layer found after them. Supporting detail: `docs/audits/2026-06-10-21-30-25-generation-engine-input-coverage-audit.md`.
+
+**Recommended order:** Items 1, 2, 3 are ready now and can ship together or in sequence (Item 1 is a one-line change; Items 2 and 3 are independent). Item 4's interim fix can ship alongside; its role-model follow-up is spec-first. Item 5 is spec-first and gated on the day-picker redesign (Issue 0, see Item 5).
+
+#### Item 1, Powerbuilding pull patterns: set/rep mismatch
+
+**Status:** Ready to implement. One-line fix, no spec needed.
+**Problem:** `POWERBUILDING_HEAVY_PATTERNS` (squat / hinge / horizontal_push / vertical_push) excludes `horizontal_pull` and `vertical_pull`. Under powerbuilding a pull session gets the hypertrophy range (8-12) on every compound, but because `effectiveBias` resolved to `strength` the first compound still takes the strength +1 set bump. Net: the main row reads 4 sets × 8-12 and the back is never trained heavy under a style marketed as powerbuilding. An internal inconsistency, not a deliberate design choice.
+**Fix:** add `horizontal_pull` and `vertical_pull` to `POWERBUILDING_HEAVY_PATTERNS`. Update the `repRange` / `resolveRepRange` unit tests and add an end-to-end test asserting a powerbuilding pull session produces 3-6 reps on the primary row compound.
+**Note:** a "conservative pulls" variant (pulling stays moderate, 6-10, to manage joint stress) is a legitimate coaching philosophy, but it should be an explicit future option, not the silent default. Defer until the training-style system supports per-pattern bias overrides.
+**Sequencing:** no dependencies; can ship in the next commit.
+
+#### Item 2, Minimum-compound guard for restriction-emptied sessions
+
+**Status:** Spec-ready, medium complexity. Does not require the full substitution system.
+**Problem:** the restriction filter is purely subtractive with no floor. When combined restrictions empty a session's compound pool (e.g. knee + lower_back on a posterior lower day removes both the hinge and the lunge compounds), the engine silently generates an all-isolation session. A lower day of glute_iso + calf + core is a failure state, not a valid training session. knee + lower_back is common in real users and is the highest-severity untested combination in the current engine. (Generalizes the existing `lower_post` minimum-compound follow-up in the Status block, which covers only the equipment-emptied hinge case, to the restriction-driven case across all session types.)
+**Fix:** after equipment + restriction filtering, before session construction, check the available compound count per session type. If compounds fall below a floor of 1 for any session, run a fallback search across all patterns in the safe pool (not just the session's emphasis patterns) for any available compound exercise; insert the first one found as the leading slot before backfill. If no compound exists after exhaustive search, generate the session anyway but surface a clear generation-time warning: "Your movement restrictions removed all compound options for one or more sessions. These sessions use accessory work only. Consider adjusting your restrictions or equipment." Do not hard-reject generation, an informed accessory-only session beats nothing.
+**Dependencies:** uses existing `substitution_class` metadata (already seeded). Does not require the full substitution logic system.
+**Follow-on:** a fuller pattern-aware fallback ranked by movement intent (a safe posterior compound when hinge is out, a safe quad compound when squat is out) is the next restrictions enhancement after this guard ships. Spec it separately as "movement restrictions v1.5, substitution logic."
+**Sequencing:** no hard dependencies; can be implemented alongside Item 1.
+
+#### Item 3, Remove `fb-emphasis-3` from the 3-day split options
+
+**Status:** Ready to implement. Deletion only, no new code.
+**Problem:** the 3-day style "Full Body - Emphasis Days" (`fb-emphasis-3`) is a body-part split that trains each muscle group roughly once per week: `fb_chest_back` (zero leg work), `fb_legs` (zero upper work), `fb_delts_arms` (minimal compound work). It appears alongside genuinely full-body 3-day options under a "Full Body" label; a user choosing it for full-body frequency gets the opposite, the lowest-frequency option in the catalog and inferior to every other 3-day option for the target user (intermediate lifter, hypertrophy + general strength).
+**Fix:** remove `fb-emphasis-3` from `STYLES[3]`. The 3-day picker then offers three sound options: `fb-3` (full body, 3x frequency, recommended default), `ulf-3` (upper/lower/full body, ~1.5x frequency), and `ppl-3` (push/pull/legs, 1x frequency, clearly positioned for users who want specialization and understand the tradeoff).
+**Future:** a true "full-body with emphasis" 3-day style, where each session trains all regions but one is prioritized, is the right long-term replacement for `fb-emphasis-3`. Spec it before building: every session must include at least one lower compound, one upper-push compound, and one upper-pull compound, with one pattern group front-loaded as the day's emphasis.
+**Sequencing:** no dependencies. Remove now, spec the replacement separately.
+
+#### Item 4, Squat/hinge adjacency: interim fix and long-term role model
+
+**Status:** interim fix is ready to implement; the role model is a spec-first roadmap item.
+**Problem:** the tier sort assigns both squat and hinge to Tier 1, guaranteeing they always appear as exercises 1 and 2 in any session containing both. Every full-body session, combined leg day, and PPL legs session opens with two maximally fatiguing lifts back to back, the single biggest coach-quality issue in the output. Established programming convention (5/3/1, GZCLP, most general-population templates) separates heavy lower compounds with an upper compound between them on combined sessions, or places squat first and hinge later as a secondary lift on dedicated leg days.
+**Interim fix:** after the tier sort, run a post-sort pass. If exercises 1 and 2 are both Tier 1 lower-body compounds (squat and hinge patterns) and the session contains at least one Tier 2 upper compound, insert the first Tier 2 upper compound between them (squat → bench → RDL → row instead of squat → RDL → bench → row). On dedicated leg sessions with no Tier 2 upper compound to interleave (`lower_post`, `lower_quad`, PPL legs day) the adjacency is acceptable and no reorder fires, squat-then-hinge on a leg-only day is standard programming.
+**Long-term direction, add as "Generation engine, exercise role model (architectural)":** replace or wrap the current pattern-tier model with an exercise-role layer, Primary Lower → Primary Upper → Secondary Lower → Secondary Upper → Isolation → Finisher. This encodes how coaches think about session structure, naturally separates heavy lower and upper compounds, and provides a clean hook for compound-floor validation (Item 2), rep-scheme assignment by role, and future volume-first generation. It is the same architectural conclusion reached independently by both external reviewers. Spec-first: do not build without a written spec defining role assignment rules for all 15 movement patterns and all session types. It gates the volume-first generation planner (Phase 4 in "Routine generation v2, engine direction" above; the source brief referenced it as Phase 3). The role-model spec should be written before that planner work begins.
+**Sequencing:** the interim adjacency fix can ship with Items 1-3; the role-model spec is written before Phase 4 work begins.
+
+#### Item 5, `ppl-x2-6` A/B session differentiation
+
+**Status:** Spec-first. Do not implement until the day-picker redesign (Issue 0) ships, since the 6-day path is currently unreachable from the UI. (Issue 0 is not yet a standalone roadmap entry; it is tracked from the same testing/review session and should be filed separately.)
+**Problem:** the 6-day PPL×2 style (`ppl-x2-6`) uses identical emphasis definitions for both push days, both pull days, and both leg days. Both leg days use the same slot list (squat, hinge, lunge, glute_iso, calf, core) with no quad/posterior differentiation and no heavy/volume contrast. Under `consistent` variety both leg days share the same squat and hinge anchors, producing near-identical sessions across the week, the 6-day equivalent of the cross-focus collapse already fixed in `ulppl-5`.
+**Planned fix (spec-first):** apply the quad/posterior split `ulppl-5` already uses to the 6-day leg days, and add heavy/volume contrast to push and pull:
+- Leg A: squat + lunge led (quad).
+- Leg B: hinge + glute_iso led (posterior).
+- Push A: bench-led, strength bias. Push B: OHP-led, hypertrophy or balanced bias.
+- Pull A: horizontal-pull-compound emphasis, strength bias. Pull B: vertical-pull emphasis, hypertrophy or balanced bias.
+
+The new session definitions (six emphasis definitions, the updated `STYLES[6]` entry, updated focus strings) must be written as a spec and reviewed before implementation; each new emphasis definition requires a passing golden test.
+**Sequencing:** write the spec after Issue 0 ships (so the 6-day path is testable end-to-end); implement alongside or just after Issue 0.
 
 ---
 
