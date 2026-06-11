@@ -1705,7 +1705,12 @@ describe('Item 2: minimum-compound guard for restriction-emptied sessions', () =
         return pool;
     };
 
-    it('seats a cross-pattern compound when a session would otherwise be all isolation', () => {
+    it('a restriction-emptied legs day NEVER receives an upper compound (region-restricted, 2026-06-11)', () => {
+        // Rebaselined: the original assertion expected a cross-pattern compound
+        // (an upper press/row) seated on the legs day. The cross-region fallback
+        // was removed for lower/legs sessions: an upper compound on a leg day is
+        // a different session, not a degraded one. The day now ships as honest
+        // accessory work plus a warning.
         const pool = legCompoundsContraindicated();
         const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
         const bp = generateRoutine(
@@ -1713,15 +1718,26 @@ describe('Item 2: minimum-compound guard for restriction-emptied sessions', () =
         );
         const byId = new Map(pool.map((e) => [e.id, e]));
         const legs = sessionIds(bp, 'legs', null).map((id) => byId.get(id)!);
-        expect(legs.length).toBeGreaterThan(0);
-        // The leg emphasis compounds were all filtered out, but the guard seats one
-        // safe compound from another pattern rather than shipping an all-isolation day.
-        expect(legs.some((e) => e.is_compound)).toBe(true);
-        // Count integrity: seating the fallback drops the lowest-priority isolation,
-        // so the session still hits the volume target rather than overfilling.
         expect(legs.length).toBe(volumeFor('45–60 min', 'intermediate').exercises);
-        // A fallback compound existed, so no warning.
-        expect(bp.warnings).toEqual([]);
+        // No compound insert from another body region.
+        expect(legs.some((e) => e.is_compound)).toBe(false);
+        const upperPatterns = ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull'];
+        expect(legs.some((e) => upperPatterns.includes(e.movement_pattern as string))).toBe(false);
+        // The user is told instead.
+        expect(bp.warnings.length).toBeGreaterThan(0);
+    });
+
+    it('a full-body session keeps the any-region fallback (the prohibition covers lower/legs only)', () => {
+        // fb-3: full_body sessions whose lower compounds are contraindicated may
+        // still seat a safe upper compound; full body legitimately spans regions.
+        const pool = legCompoundsContraindicated();
+        const style = STYLES[3].find((s) => s.key === 'fb-3') as ProgramStyle;
+        const bp = generateRoutine(
+            input({ style, trainingDays: [1, 3, 5], pool, restrictions: ['knee', 'lower_back'] }),
+        );
+        const byId = new Map(pool.map((e) => [e.id, e]));
+        const allRows = bp.exercises.map((e) => byId.get(e.exercise_id)!);
+        expect(allRows.some((e) => e.is_compound)).toBe(true);
     });
 
     it('warns (does not block) when no compound survives anywhere in the pool', () => {
@@ -2571,5 +2587,165 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'legs:-:core-2:3x12-15',
             ],
         });
+    });
+});
+
+// ── Live-test fixes (2026-06-11): compound floor + lower-bucket backfill ─────
+
+describe('minimum-compound floor + lower-bucket backfill (live-test Issue 1)', () => {
+    const patternMap = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e.movement_pattern]));
+    const aesthetic = () => STYLES[4].find((s) => s.key === 'ul-aesthetic-4') as ProgramStyle;
+    const fourDays = [1, 2, 4, 5];
+
+    // Mirrors the dumbbell + bench catalog shape that triggered the live bug:
+    // thin lower compounds (one squat, one unilateral lunge, one hinge), no
+    // usable glute_iso, deep calf/core, full upper patterns.
+    function dumbbellLowerPool(): ExerciseMeta[] {
+        const upper = ALL_PATTERNS.filter(
+            (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'].includes(p),
+        ).flatMap((p) => [
+            meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso')),
+            meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso')),
+        ]);
+        return [
+            meta('goblet-squat', 'squat', ['dumbbells'], true),
+            meta('step-up', 'lunge', ['dumbbells'], true, { unilateral: true }),
+            meta('db-rdl', 'hinge', ['dumbbells'], true),
+            meta('calf-raise-1', 'calf', ['dumbbells'], false),
+            meta('calf-raise-2', 'calf', ['dumbbells'], false),
+            meta('crunch', 'core', [], false),
+            meta('plank', 'core', [], false),
+            ...upper,
+        ];
+    }
+
+    it('the reported session no longer collapses to 2 compounds + 4 calf/core (lower-bucket backfill)', () => {
+        const pool = dumbbellLowerPool();
+        const bp = generateRoutine(input({ style: aesthetic(), trainingDays: fourDays, pool }));
+        const pat = patternMap(pool);
+        const lowerA = sessionIds(bp, 'lower', 'A').map((id) => pat.get(id));
+        // The quad day reaches for the hinge compound (Dumbbell RDL) before
+        // repeating finishers, instead of padding with a 2nd calf + 2nd core.
+        expect(sessionIds(bp, 'lower', 'A')).toContain('db-rdl');
+        const calfCount = lowerA.filter((p) => p === 'calf').length;
+        const coreCount = lowerA.filter((p) => p === 'core').length;
+        expect(calfCount + coreCount).toBeLessThanOrEqual(3);
+        // It is a leg session again: at least 3 compounds.
+        const compounds = lowerA.filter((p) => p === 'squat' || p === 'hinge' || p === 'lunge').length;
+        expect(compounds).toBeGreaterThanOrEqual(3);
+    });
+
+    it('a lower session with 1 compound reaches the floor of 2 via the cross-pattern guard, before backfill', () => {
+        // No lunge compound at all: the lower_quad first pass seats only the
+        // squat. The floor guard must insert the hinge compound (squat is
+        // heavy-dedup filled, hinge is next in priority) before backfill.
+        const pool = [
+            meta('goblet-squat', 'squat', ['dumbbells'], true),
+            meta('db-rdl', 'hinge', ['dumbbells'], true),
+            meta('calf-raise-1', 'calf', ['dumbbells'], false),
+            meta('calf-raise-2', 'calf', ['dumbbells'], false),
+            meta('crunch', 'core', [], false),
+            meta('plank', 'core', [], false),
+            ...ALL_PATTERNS.filter(
+                (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'].includes(p),
+            ).flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso')),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso')),
+            ]),
+        ];
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: fourDays, pool }));
+        const ids = sessionIds(bp, 'lower', 'A');
+        expect(ids).toContain('goblet-squat');
+        expect(ids).toContain('db-rdl');
+    });
+
+    it('an unsatisfiable floor generates anyway and surfaces the limited-variety warning', () => {
+        // One squat compound is the ONLY compound anywhere in the pool (the
+        // guard searches cross-pattern per the brief, so upper compounds would
+        // satisfy a lower floor; deny it those too). The floor of 2 cannot be
+        // met. Generation must complete with a warning, never reject.
+        const pool = [
+            meta('goblet-squat', 'squat', ['dumbbells'], true),
+            meta('calf-raise-1', 'calf', ['dumbbells'], false),
+            meta('crunch', 'core', [], false),
+            ...ALL_PATTERNS.filter(
+                (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'].includes(p),
+            ).flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], false),
+                meta(`${p}-2`, p, ['dumbbells'], false),
+            ]),
+        ];
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: fourDays, pool }));
+        expect(bp.exercises.length).toBeGreaterThan(0);
+        expect(bp.warnings.some((w) => w.includes('fewer compound exercises'))).toBe(true);
+    });
+
+    it('a lower session with NO lower compounds never receives an upper compound from the guard', () => {
+        // All squat/hinge/lunge exercises are unavailable; upper compounds exist.
+        // The floor stays unmet, the session generates without an upper insert,
+        // and a warning reaches the rationale.
+        const pool = [
+            meta('glute-iso-1', 'glute_iso', ['dumbbells'], false),
+            meta('calf-raise-1', 'calf', ['dumbbells'], false),
+            meta('calf-raise-2', 'calf', ['dumbbells'], false),
+            meta('crunch', 'core', [], false),
+            meta('plank', 'core', [], false),
+            ...ALL_PATTERNS.filter(
+                (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'].includes(p),
+            ).flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso')),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso')),
+            ]),
+        ];
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: fourDays, pool }));
+        const pat = patternMap(pool);
+        const upperPatterns = ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull'];
+        for (const v of ['A', 'B']) {
+            const lower = sessionIds(bp, 'lower', v).map((id) => pat.get(id) as string);
+            expect(lower.length).toBeGreaterThan(0);
+            expect(lower.some((p) => upperPatterns.includes(p))).toBe(false);
+        }
+        expect(bp.warnings.length).toBeGreaterThan(0);
+    });
+
+    it('a deep pool meets the floor naturally and the guard is a no-op (goldens stay green)', () => {
+        // Covered structurally by the Item 5 byte-identity goldens; this is the
+        // explicit floor-met case: no warning, normal composition.
+        const bp = generateRoutine(input({ style: aesthetic(), trainingDays: fourDays, pool: deepPool() }));
+        expect(bp.warnings).toEqual([]);
+    });
+});
+
+describe('lower_lean trains hypertrophy, not pump (live-test Issue 3)', () => {
+    it('the aesthetic quad day puts compounds in the 8-12 band for build_muscle', () => {
+        const pool = deepPool();
+        const style = STYLES[4].find((s) => s.key === 'ul-aesthetic-4') as ProgramStyle;
+        const bp = generateRoutine(
+            input({
+                style,
+                trainingDays: [1, 2, 4, 5],
+                pool,
+                answers: {
+                    equipment: dumbbellsOnly,
+                    experience: 'advanced',
+                    goal: 'build_muscle',
+                    days: 4,
+                },
+            }),
+        );
+        const pat = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const lowerA = bp.exercises.filter((e) => e.workout_type === 'lower' && e.variant === 'A');
+        const compounds = lowerA.filter((e) => {
+            const p = pat.get(e.exercise_id);
+            return p === 'squat' || p === 'hinge' || p === 'lunge';
+        });
+        expect(compounds.length).toBeGreaterThan(0);
+        // Hypertrophy band, not the old pump band (12-15 / 15-20).
+        expect(compounds.every((e) => e.reps === '8-12')).toBe(true);
+        const isolations = lowerA.filter((e) => !compounds.includes(e));
+        expect(isolations.every((e) => e.reps === '12-15')).toBe(true);
     });
 });

@@ -42,9 +42,11 @@ import type { OnboardingAnswers, ExperienceLevel, Goal } from '@/lib/pulse/recom
 //
 // mode: 'quick' (fast first-generation) trims this to 6 steps -- equipment ·
 // experience · goal · days/week · 7 session time · 'start' (confirm+start) --
-// overriding every collect* prop to false. It auto-applies the suggested
-// training days (SUGGESTED_DAYS) and the recommended program style
-// (recommendStyle) when leaving the days/week step, and leaves program length
+// overriding every collect* prop to false. Its days/week step is combined with
+// the Mon-Sun day grid (Issue 2): picking a frequency seeds SUGGESTED_DAYS[n]
+// into the grid, the user can adjust which days (capped at and required to
+// match the frequency exactly), and the recommended program style
+// (recommendStyle) is auto-applied when leaving the step. Program length stays
 // at its 12-week default. The personalization inputs it skips move to the
 // post-generation "Tune your plan" panel and the standing Profile editors,
 // resolving from the stored profile (param ?? profile ?? default) when absent.
@@ -200,6 +202,35 @@ function OptionRow({
     );
 }
 
+// Mon-Sun day toggles shared by the quick combined frequency+days step and the
+// full flow's "which days" step. `max` caps selection (the chosen frequency).
+function DayGrid({ selected, max, onToggle }: { selected: number[]; max: number; onToggle: (day: number) => void }) {
+    return (
+        <div className="flex gap-2 flex-wrap">
+            {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                const isSelected = selected.includes(d);
+                const atCap = !isSelected && selected.length >= max;
+                return (
+                    <button
+                        key={d}
+                        disabled={atCap}
+                        aria-pressed={isSelected}
+                        onClick={() => onToggle(d)}
+                        className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border-none transition-colors ${
+                            isSelected
+                                ? 'bg-pulse-accent text-pulse-bg cursor-pointer'
+                                : atCap
+                                  ? 'bg-pulse-surface-2 text-pulse-muted opacity-40 cursor-not-allowed'
+                                  : 'bg-pulse-surface-2 text-pulse-dim cursor-pointer'
+                        }`}>
+                        {DAY_NAMES[d]}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
 const EQUIPMENT_OPTIONS: { key: EquipmentKey; label: string }[] = [
     { key: 'dumbbells', label: 'Dumbbells' },
     { key: 'barbell', label: 'Barbell & plates' },
@@ -350,7 +381,13 @@ export default function RoutineSetupFlow({
     const [goal, setGoal] = useState<Goal | null>(initial?.goal ?? null);
     const [days, setDays] = useState<WeeklyFrequency | null>(initial?.days ?? null);
     const [sessionTime, setSessionTime] = useState<SessionTime | null>(initial?.sessionTime ?? null);
-    const [trainingDays, setTrainingDays] = useState<number[]>(initial?.trainingDays ?? []);
+    const [trainingDays, setTrainingDays] = useState<number[]>(() => {
+        if (initial?.trainingDays?.length) return initial.trainingDays;
+        // Quick mode pre-seeds the combined frequency + days step from the
+        // initial frequency so the grid opens populated (Issue 2).
+        if (mode === 'quick' && initial?.days) return SUGGESTED_DAYS[initial.days];
+        return [];
+    });
     const [styleKey, setStyleKey] = useState<string | null>(null);
     const [startChoice, setStartChoice] = useState<StartChoice>('today');
     const [customDate, setCustomDate] = useState('');
@@ -388,8 +425,15 @@ export default function RoutineSetupFlow({
     const maxDays = days ? MAX_TRAINING_DAYS[days] : 7;
     const chooseDays = (d: WeeklyFrequency) => {
         setDays(d);
-        // Trim any prior over-selection to the new cap (e.g. when stepping back
-        // from "6 days" to "4 days").
+        if (quick) {
+            // Issue 2: the quick step shows the day grid inline; changing the
+            // frequency resets the selection to the new suggested layout so a
+            // stale wider selection can't survive a narrower frequency.
+            setTrainingDays(SUGGESTED_DAYS[d]);
+            return;
+        }
+        // Full flow: trim any prior over-selection to the new cap (e.g. when
+        // stepping back from "6 days" to "4 days").
         setTrainingDays((prev) => prev.slice(0, MAX_TRAINING_DAYS[d]));
     };
 
@@ -767,20 +811,21 @@ export default function RoutineSetupFlow({
                     <button
                         onClick={() => {
                             if (quick) {
-                                // Skip "which days" and "program style" outright: seed the
-                                // suggested days for this frequency and auto-pick the
-                                // recommended split for that count ("Change split" lives
-                                // in the post-generation Tune panel).
-                                const suggested = days ? (SUGGESTED_DAYS[days] ?? []) : [];
-                                setTrainingDays(suggested);
-                                setStyleKey(recommendStyle(suggested.length));
+                                // The combined step already holds the exact day
+                                // selection (Issue 2); auto-pick the recommended
+                                // split and skip "which days" + "program style"
+                                // ("Change split" lives in the Tune panel).
+                                setStyleKey(recommendStyle(trainingDays.length));
                                 setStep(7);
                                 return;
                             }
                             if (trainingDays.length === 0) setTrainingDays(days ? (SUGGESTED_DAYS[days] ?? []) : []);
                             setStep(5);
                         }}
-                        disabled={!days}
+                        // Quick mode requires the selection to match the stated
+                        // frequency exactly (pre-seeded, so accepting the default
+                        // costs nothing); the full flow only needs a frequency.
+                        disabled={quick ? !days || trainingDays.length !== days : !days}
                         className={BTN_PRIMARY_BLOCK}>
                         Next
                     </button>
@@ -791,6 +836,22 @@ export default function RoutineSetupFlow({
                         <OptionRow key={n} label={`${n} days`} active={days === n} onClick={() => chooseDays(n)} />
                     ))}
                 </div>
+                {quick && days && (
+                    <>
+                        <p className="font-pulse text-[0.8125rem] text-pulse-dim">
+                            Your training days. We suggest a layout for your frequency; tap to adjust.
+                        </p>
+                        <DayGrid
+                            selected={trainingDays}
+                            max={MAX_TRAINING_DAYS[days]}
+                            onToggle={(d) =>
+                                setTrainingDays((prev) =>
+                                    prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+                                )
+                            }
+                        />
+                    </>
+                )}
             </FlowFrame>
         );
 
@@ -818,31 +879,13 @@ export default function RoutineSetupFlow({
                 <p className="font-pulse text-[0.8125rem] text-pulse-dim -mt-3">
                     Pick up to {maxDays} day{maxDays === 1 ? '' : 's'}.
                 </p>
-                <div className="flex gap-2 flex-wrap">
-                    {[1, 2, 3, 4, 5, 6, 0].map((d) => {
-                        const selected = trainingDays.includes(d);
-                        const atCap = !selected && trainingDays.length >= maxDays;
-                        return (
-                            <button
-                                key={d}
-                                disabled={atCap}
-                                onClick={() =>
-                                    setTrainingDays((prev) =>
-                                        prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
-                                    )
-                                }
-                                className={`font-pulse text-xs font-semibold rounded-full w-12 h-12 border-none transition-colors ${
-                                    selected
-                                        ? 'bg-pulse-accent text-pulse-bg cursor-pointer'
-                                        : atCap
-                                          ? 'bg-pulse-surface-2 text-pulse-muted opacity-40 cursor-not-allowed'
-                                          : 'bg-pulse-surface-2 text-pulse-dim cursor-pointer'
-                                }`}>
-                                {DAY_NAMES[d]}
-                            </button>
-                        );
-                    })}
-                </div>
+                <DayGrid
+                    selected={trainingDays}
+                    max={maxDays}
+                    onToggle={(d) =>
+                        setTrainingDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
+                    }
+                />
             </FlowFrame>
         );
 

@@ -83,14 +83,22 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     lower_post: {
         bias: 'hypertrophy',
         slots: ['hinge', 'glute_iso', 'lunge', 'calf', 'core'],
-        // TODO (roadmap follow-up, NOT in this PR): this posterior day's only compound
-        // is `hinge`. If a constrained equipment profile empties the hinge pool, the
-        // session can degrade to glute_iso + lunge + calf + core with no heavy compound.
-        // It needs a minimum-compound guard: substitute a lunge or squat compound
-        // before backfilling with isolation. See the Bug 6 PR summary.
+        // RESOLVED (live-test Issue 1, 2026-06-11): the per-focus minimum-compound
+        // floor (COMPOUND_FLOOR, 2 for lower sessions) now backstops this day. If a
+        // constrained pool empties the hinge, the floor guard seats a squat/lunge
+        // compound cross-pattern before backfill, and an unsatisfiable floor
+        // surfaces LIMITED_VARIETY_WARNING instead of shipping an accessory day.
     },
+    // Live-test Issue 3 (2026-06-11): bias changed pump -> hypertrophy. Pump put
+    // the quad day's compounds at 12-15, accessory-level loading that confused
+    // an advanced build-muscle user; hypertrophy (8-12 compounds) keeps the day
+    // lighter than the strength lower days without reading like a finisher.
+    // lunge-FIRST is deliberate, not incidental: the aesthetic style is
+    // unilateral-led (Bulgarian split squat / step-up shape work gets the fresh
+    // pick and earliest backfill), with squat as the second compound. The role
+    // model still PRESENTS a seated squat first (lower pattern priority).
     lower_lean: {
-        bias: 'pump',
+        bias: 'hypertrophy',
         slots: ['lunge', 'squat', 'glute_iso', 'calf', 'core'],
     },
     // ── Full body ─────────────────────────────────────────────────────────────
@@ -643,6 +651,53 @@ function isContraindicated(ex: ExerciseMeta, restrictions: Set<RestrictionFlag>)
 // are intentionally excluded -- Back Squat + Bulgarian Split Squat is valid.
 const HEAVY_DEDUP_PATTERNS: ReadonlySet<MovementPattern> = new Set(['hinge', 'squat']);
 
+// ── Minimum-compound floor + lower-bucket backfill (live-test Issue 1) ───────
+// Per-focus floor of compounds a session must reach BEFORE backfill. Lower and
+// full-body sessions are compound-dependent (2); upper/push/pull tolerate 1.
+// When the first pass falls short, the floor guard searches the usable pool
+// within the session's OWN body region only (2026-06-11 follow-up): lower /
+// legs / full-body sessions search squat > hinge > lunge (the role model's
+// lower pattern priority), upper / push / pull sessions search the four upper
+// compounds. The guard never crosses regions: an upper compound on a leg day
+// is a different session, not a degraded one. If the floor is genuinely
+// unsatisfiable the session still generates and the caller surfaces
+// LIMITED_VARIETY_WARNING; never reject.
+const COMPOUND_FLOOR: Record<Focus, number> = {
+    lower: 2,
+    legs: 2,
+    full_body: 2,
+    upper: 1,
+    push: 1,
+    pull: 1,
+};
+const FLOOR_FALLBACK_PATTERNS: Record<'lower' | 'upper', MovementPattern[]> = {
+    lower: ['squat', 'hinge', 'lunge'],
+    upper: ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull'],
+};
+// Which fallback region each focus searches. full_body uses the lower list for
+// the FLOOR (its upper slots already seat any available upper compound in the
+// first pass, so a shortfall means lower work is what is missing); the hard
+// no-cross-region rule below applies to lower/legs only.
+const FLOOR_REGION: Record<Focus, 'lower' | 'upper'> = {
+    lower: 'lower',
+    legs: 'lower',
+    full_body: 'lower',
+    upper: 'upper',
+    push: 'upper',
+    pull: 'upper',
+};
+// Lower-bucket patterns a duress backfill may draw from on lower / legs /
+// full-body sessions. Trigger: only when backfill is about to REPEAT a
+// finisher (a 2nd calf or 2nd core), a fresh lower-bucket pattern outside the
+// emphasis slots is preferred (e.g. the dumbbell-only quad day reaches for a
+// Dumbbell RDL instead of padding to 2x calf + 2x core). Deep pools never hit
+// this (their emphasis patterns absorb backfill first), so golden outputs are
+// unchanged; the quad/posterior split softens only under thin equipment.
+const LOWER_BUCKET_FALLBACK: MovementPattern[] = ['squat', 'hinge', 'lunge', 'glute_iso'];
+const FINISHER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['calf', 'core']);
+const LIMITED_VARIETY_WARNING =
+    'Some sessions have fewer compound exercises than recommended due to your equipment or movement restriction settings.';
+
 // ── Unilateral cap scope ──────────────────────────────────────────────────────
 // The unilateral cap (at most one single-limb-at-a-time lift per session) governs
 // single-limb COMPOUND work -- Walking Lunge, Bulgarian Split Squat, Step-Up --
@@ -766,7 +821,7 @@ function selectForSession(
     usedSubstitutionClasses: Set<string>,
     loadingLean?: LoadingPreference | null,
     behavior: BehaviorSignal = EMPTY_BEHAVIOR,
-): Selected[] {
+): { selected: Selected[]; floorUnmet: boolean } {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
     // Behavior demote (#7): O(1) membership for the sort layer below.
     const demoteSet = new Set(behavior.demote);
@@ -973,6 +1028,38 @@ function selectForSession(
         pick(slot);
     }
 
+    // Minimum-compound floor guard (live-test Issue 1): runs BEFORE backfill,
+    // separate from it. When equipment/restriction filtering left the first
+    // pass below the per-focus floor, seat compounds from ANY pattern in the
+    // usable pool (squat > hinge > lunge first), respecting the pattern cap,
+    // the heavy-dedup cap, the unilateral cap, and the avoid-set. Never
+    // relaxes anything and never rejects; an unmet floor is reported to the
+    // caller, which surfaces LIMITED_VARIETY_WARNING.
+    const compoundCount = () => chosen.reduce((n, c) => (c.ex.is_compound ? n + 1 : n), 0);
+    const floor = COMPOUND_FLOOR[focus];
+    if (compoundCount() < floor) {
+        for (const p of FLOOR_FALLBACK_PATTERNS[FLOOR_REGION[focus]]) {
+            if (compoundCount() >= floor || chosen.length >= count) break;
+            if (patternCount(p) >= PATTERN_CAP) continue;
+            if (HEAVY_DEDUP_PATTERNS.has(p) && heavyPatternFilled.has(p)) continue;
+            let candidates = byPattern(p).filter((ex) => ex.is_compound && !chosenIds.has(ex.id));
+            if (unilateralFilled && unilateralCapApplies(p)) candidates = candidates.filter((ex) => !ex.unilateral);
+            if (candidates.length === 0) continue;
+            const fresh = candidates.find((ex) => !used.has(ex.id));
+            push(fresh ?? candidates[0], p);
+        }
+    }
+    const floorUnmet = compoundCount() < floor;
+
+    // Lower-bucket duress fallback (live-test Issue 1): on lower / legs /
+    // full-body sessions, the patterns backfill may deflect to instead of
+    // repeating a finisher. Empty for other focuses and for emphases that
+    // already carry every lower-bucket pattern.
+    const lowerBucketExtras =
+        focus === 'lower' || focus === 'legs' || focus === 'full_body'
+            ? LOWER_BUCKET_FALLBACK.filter((p) => !emphasis.slots.includes(p))
+            : [];
+
     // Backfill: walk uncovered patterns first (breadth over depth), then revisit
     // already-filled ones. The heavy-cap and unilateral-cap are each relaxed only
     // after a full round yields nothing, so thin equipment pools can still reach
@@ -997,6 +1084,23 @@ function selectForSession(
         );
         for (const slot of slotsByPriority) {
             if (chosen.length >= count) break;
+            // Finisher deflection: before seating a REPEAT calf/core, prefer a
+            // fresh lower-bucket pattern outside the emphasis (a Dumbbell RDL
+            // on the dumbbell-only quad day beats a 2nd calf + 2nd core). Deep
+            // pools never reach a finisher repeat, so this is duress-only.
+            if (FINISHER_PATTERNS.has(slot) && patternCount(slot) >= 1 && lowerBucketExtras.length > 0) {
+                let deflected = false;
+                for (const p of lowerBucketExtras) {
+                    if (pick(p, relaxedHeavyCap, relaxedUnilateralCap)) {
+                        deflected = true;
+                        break;
+                    }
+                }
+                if (deflected) {
+                    added = true;
+                    continue;
+                }
+            }
             if (pick(slot, relaxedHeavyCap, relaxedUnilateralCap)) added = true;
         }
         if (!added) {
@@ -1010,7 +1114,7 @@ function selectForSession(
         }
     }
 
-    return chosen;
+    return { selected: chosen, floorUnmet };
 }
 
 // ── Auto-supersets (30-min sessions) ─────────────────────────────────────────
@@ -1327,7 +1431,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';
         const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
-        const selected = selectForSession(
+        const { selected, floorUnmet } = selectForSession(
             emphasis,
             session.focus,
             exCount,
@@ -1340,6 +1444,14 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             input.behavior ?? EMPTY_BEHAVIOR,
         );
 
+        // Live-test Issue 1: an unmet compound floor (some compounds, fewer
+        // than the focus demands) surfaces the limited-variety warning. The
+        // zero-compound case stays with the Item 2 guard below and its own
+        // warning, so the two never stack for one cause.
+        if (floorUnmet && selected.some((s) => s.ex.is_compound) && !warnings.includes(LIMITED_VARIETY_WARNING)) {
+            warnings.push(LIMITED_VARIETY_WARNING);
+        }
+
         // Item 2: minimum-compound guard. If restrictions / equipment / hidden
         // exercises emptied this session's compound patterns, selectForSession could
         // only backfill isolation, leaving an accessory-only session. Seat one safe
@@ -1348,8 +1460,18 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // ship that. If the whole safe pool has no compound, never block, warn.
         if (selected.length > 0 && !selected.some((s) => s.ex.is_compound)) {
             const chosenIds = new Set(selected.map((s) => s.ex.id));
+            // Cross-region prohibition (2026-06-11): a lower/legs session never
+            // receives an upper compound, even here in the zero-compound case;
+            // it ships as honest accessory work plus the warning instead. Other
+            // focuses (incl. full_body, which legitimately spans regions) keep
+            // the any-region fallback.
+            const lowerOnly = session.focus === 'lower' || session.focus === 'legs';
             const fallback = usable.find(
-                (ex) => ex.is_compound && ex.movement_pattern !== null && !chosenIds.has(ex.id),
+                (ex) =>
+                    ex.is_compound &&
+                    ex.movement_pattern !== null &&
+                    !chosenIds.has(ex.id) &&
+                    (!lowerOnly || FLOOR_FALLBACK_PATTERNS.lower.includes(ex.movement_pattern)),
             );
             if (fallback) {
                 // Keep the exercise count: drop the last (lowest-priority) isolation

@@ -529,6 +529,50 @@ describe('RoutineSetupFlow quick mode', () => {
         expect(arg.styleKey).toBe('fb-3');
     });
 
+    it('the days step shows the suggested days pre-selected and lets you adjust them (Issue 2)', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        render(<RoutineSetupFlow mode="quick" initial={quickInitial} onComplete={onComplete} onClose={vi.fn()} />);
+        // equipment → experience → goal → days/week (combined with the day grid)
+        for (let i = 0; i < 3; i++) fireEvent.click(screen.getByText('Next'));
+        // Frequency 4 pre-seeds Mon/Tue/Thu/Fri in the grid.
+        for (const d of ['Mon', 'Tue', 'Thu', 'Fri'])
+            expect(screen.getByRole('button', { name: d })).toHaveAttribute('aria-pressed', 'true');
+        for (const d of ['Wed', 'Sat', 'Sun'])
+            expect(screen.getByRole('button', { name: d })).toHaveAttribute('aria-pressed', 'false');
+        // Deselect Fri: only 3 of 4 days selected → Next is disabled (the
+        // chosen frequency must match the selected days exactly).
+        fireEvent.click(screen.getByRole('button', { name: 'Fri' }));
+        expect(screen.getByText('Next')).toBeDisabled();
+        // Select Sat instead → Next enabled; the adjusted days flow through.
+        fireEvent.click(screen.getByRole('button', { name: 'Sat' }));
+        fireEvent.click(screen.getByText('Next')); // days → session length
+        fireEvent.click(screen.getByText('Next')); // session length → start
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        expect(onComplete.mock.calls[0][0].trainingDays).toEqual([1, 2, 4, 6]);
+    });
+
+    it('changing the frequency resets the day selection to the new suggestion (Issue 2)', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        render(<RoutineSetupFlow mode="quick" initial={quickInitial} onComplete={onComplete} onClose={vi.fn()} />);
+        for (let i = 0; i < 3; i++) fireEvent.click(screen.getByText('Next'));
+        // Adjust the 4-day selection first, then change frequency: the custom
+        // selection must reset to the new suggested layout (no impossible mixes).
+        fireEvent.click(screen.getByRole('button', { name: 'Fri' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Sat' }));
+        fireEvent.click(screen.getByText('3 days'));
+        for (const d of ['Mon', 'Wed', 'Fri'])
+            expect(screen.getByRole('button', { name: d })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Sat' })).toHaveAttribute('aria-pressed', 'false');
+        fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        const arg = onComplete.mock.calls[0][0];
+        expect(arg.trainingDays).toEqual([1, 3, 5]);
+        expect(arg.styleKey).toBe('fb-3');
+    });
+
     it('back navigation skips the trimmed steps in both directions', () => {
         render(<RoutineSetupFlow mode="quick" initial={quickInitial} onComplete={vi.fn()} onClose={vi.fn()} />);
         for (let i = 0; i < 4; i++) fireEvent.click(screen.getByText('Next'));
