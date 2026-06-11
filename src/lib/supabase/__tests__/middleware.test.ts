@@ -29,6 +29,24 @@ describe('buildCsp', () => {
         expect(scriptSrc).not.toContain('unsafe-inline');
     });
 
+    it('omits unsafe-eval from script-src in production (default)', () => {
+        const scriptSrc = buildCsp('abc123', host)
+            .split('; ')
+            .find((d) => d.startsWith('script-src'));
+        expect(scriptSrc).not.toContain('unsafe-eval');
+    });
+
+    it('adds unsafe-eval to script-src in development (Next dev eval bundle / Fast Refresh)', () => {
+        const scriptSrc = buildCsp('abc123', host, true)
+            .split('; ')
+            .find((d) => d.startsWith('script-src'));
+        expect(scriptSrc).toContain("'unsafe-eval'");
+        // still nonce + strict-dynamic, and never unsafe-inline
+        expect(scriptSrc).toContain("'nonce-abc123'");
+        expect(scriptSrc).toContain("'strict-dynamic'");
+        expect(scriptSrc).not.toContain('unsafe-inline');
+    });
+
     it('keeps unsafe-inline in style-src', () => {
         const csp = buildCsp('abc123', host);
         expect(csp).toContain("style-src 'self' 'unsafe-inline'");
