@@ -1,6 +1,6 @@
 # `ppl-x2-6` A/B session differentiation (Item 5), design spec
 
-**Status: DRAFT, spec-first.** Awaiting the review loop (science/UX lens + architecture lens) before TDD. Roadmap: generation engine quality track, Item 5. Unblocked by Issue 0 (day-picker redesign, merged #118): the 6-day path is now reachable from the quick flow and testable end-to-end.
+**Status: APPROVED 2026-06-11, in implementation** (branch `feature/ppl-x2-6-differentiation`). The review loop resolved all five open questions; Section 9 below records the decisions and supersedes the open phrasing in Sections 3, 4, and 7. Roadmap: generation engine quality track, Item 5. Unblocked by Issue 0 (day-picker redesign, merged #118): the 6-day path is now reachable from the quick flow and testable end-to-end.
 
 ---
 
@@ -106,3 +106,13 @@ Survivors (verified compatible): the trainingStyle balanced-identity archetype t
 - No per-session schedule labels (that is the separate Bug 6 relabel follow-up with its own migration).
 - No change to the existing `push` / `pull` / `legs` / `lower_quad` / `lower_post` emphasis definitions.
 - No migration; nothing persisted changes shape.
+
+## 9. Review decisions (resolved 2026-06-11)
+
+- **Q1, A/B bias pairing:** strength/hypertrophy, as proposed. Push A / Pull A strength (compounds 3-6, +1 set bump on the first compound); Push B / Pull B hypertrophy (compounds 8-12, no bump).
+- **Q2, legs bias:** both leg days stay hypertrophy; no `lower_quad_heavy`. The quad/posterior structural contrast is the differentiation; a strength Legs A would stack three consecutive heavy sessions (Mon-Wed), too aggressive for a general-population intermediate.
+- **Q3, consecutive heavy days:** Push A Monday + Pull A Tuesday is accepted (opposing muscle groups; literature shows similar strength/composition outcomes for consecutive vs non-consecutive days in recreationally trained subjects). No interleaving.
+- **Q4, doubled isolation slots:** trimmed from the HEAVY days only. `push_heavy` carries 1x `triceps_iso`, `pull_heavy` 1x `back_iso` (the strength day already carries the set bump, and 2x isolation there exceeds MAV alongside indirect work from two pressing/pulling compounds); `push_volume` keeps 2x `triceps_iso`, `pull_volume` keeps 2x `back_iso`. Weekly: 3 triceps-iso and 3 back-iso slots. This supersedes Section 3.2's heavy slot lists: `push_heavy` = [horizontal_push, vertical_push, chest_iso, shoulder_iso, triceps_iso]; `pull_heavy` = [horizontal_pull, vertical_pull, back_iso, shoulder_iso, biceps_iso].
+- **Q4 consequence (found at implementation, accepted):** the heavy emphases now have 5 slots while a 45-60 min intermediate session targets 6 exercises, so the 6th comes from backfill and lands deterministically on the lead compound pattern (patterns tie at one use, the stable sort keeps slot order, horizontal push/pull is first): the heavy day gets a second horizontal push/pull variant at strength reps. This reads as heavy-day compound volume rather than undesigned filler, and it respects the max-2-per-pattern cap; if review later prefers a deliberate 6th slot, it is a one-line append. It also means the four migrated tests (Section 6) pin `sessionTime: '~30 min'` (4 exercises = no backfill) so their premise stays single-slot-per-pattern.
+- **Q5, display order:** accepted for v1. "Led" means selection freshness + backfill priority; the role model may still display the bench variant first via canonical-rank ordering. No display-order forcing mechanism.
+- **Architecture (share by contract):** reusing `lower_quad` / `lower_post` across `ul-classic-4`, `ulppl-5`, and now `ppl-x2-6` is correct because the emphasis contract (movement intent, slot constraints, ordering assumptions) is identical across consumers; a comment in `STYLES[6]` makes the intentional share and its blast radius explicit.
