@@ -1671,6 +1671,25 @@ const TRAINING_STYLE_CLAUSE: Record<TrainingStyle, string> = {
 
 // Human-readable reason a routine was generated, from the onboarding inputs and
 // the chosen program style. Shown on the Plan screen and in the setup flow.
+/** True when a style trains one squat-led lower day (squat without hinge) and one
+ *  posterior-led lower day (hinge without squat), e.g. ul-classic-4's lower_quad +
+ *  lower_post. Drives the buildRationale clause that explains the deliberately
+ *  squat-free posterior day. PHUL is false (both its lower days carry squat AND
+ *  hinge: that split is power vs volume, not quad vs posterior). */
+export function hasQuadPosteriorSplit(style: ProgramStyle): boolean {
+    let quadLed = false;
+    let posteriorLed = false;
+    for (const session of style.sessions) {
+        if (session.focus !== 'lower' && session.focus !== 'legs') continue;
+        const slots = emphasisFor(session.emphasis).slots;
+        const hasSquat = slots.includes('squat');
+        const hasHinge = slots.includes('hinge');
+        if (hasSquat && !hasHinge) quadLed = true;
+        if (hasHinge && !hasSquat) posteriorLed = true;
+    }
+    return quadLed && posteriorLed;
+}
+
 export function buildRationale(
     answers: OnboardingAnswers,
     sessionTime: SessionTime,
@@ -1692,5 +1711,11 @@ export function buildRationale(
         demotedNames.length > 0
             ? ` Tuned to your history: leans away from ${demotedNames.join(', ')} (you keep swapping them out).`
             : '';
-    return `${withPriority}${styleClause}${behaviorClause}`;
+    // Explain the deliberately squat-free posterior day when the style splits its
+    // lower work quad-led vs posterior-led (ul-classic-4 / ul-aesthetic-4 / ulppl-5 /
+    // ppl-x2-6). Silent for PHUL (power vs volume) and same-pattern leg days (ppl-fb-4).
+    const splitClause = hasQuadPosteriorSplit(style)
+        ? ' Your two lower days are split on purpose: one leads with squats for the quads, the other with hinges for the posterior chain (so the squat-free day is intentional).'
+        : '';
+    return `${withPriority}${styleClause}${splitClause}${behaviorClause}`;
 }
