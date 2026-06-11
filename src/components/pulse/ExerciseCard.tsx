@@ -9,6 +9,7 @@ import {
     computeSuggestion,
     computeWarmupSets,
     computeE1RMHistory,
+    computeExerciseHistory,
     computePlateau,
     shouldDeload,
     isBodyweight,
@@ -16,6 +17,7 @@ import {
 } from '@/lib/pulse/utils';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
+import ExerciseHistoryPanel from './ExerciseHistoryPanel';
 import ExerciseInstructionModal from './ExerciseInstructionModal';
 import type { Logs, LogEntry, Unit, LastSession, DbExercise } from '@/lib/pulse/types';
 import type { RoutineExercise } from '@/lib/pulse/types';
@@ -104,6 +106,11 @@ function ExerciseCard({
     const e1rmHistory = computeE1RMHistory(logs, re.id);
     const stalled = !bodyweight && computePlateau(e1rmHistory);
     const deload = !bodyweight && shouldDeload(e1rmHistory);
+    // "What did I do here last time" (#13): best set + estimated 1RM + retrospective
+    // trend, shown in the expanded card at the point of logging. The previous-note
+    // field needs the notes map (not threaded to this card yet), so it stays empty
+    // here; the panel still surfaces best + trend, and renders nothing for a new lift.
+    const exerciseHistory = computeExerciseHistory(logs, re.id, week);
 
     return (
         <>
@@ -184,6 +191,7 @@ function ExerciseCard({
 
                 {open && (
                     <div className="px-[1.125rem] pt-1 pb-4 flex flex-col gap-2.5">
+                        <ExerciseHistoryPanel history={exerciseHistory} unit={unit} />
                         {stalled && (
                             <div className="rounded-lg bg-pulse-surface-2 px-3 py-2.5">
                                 <p className="font-pulse text-[0.78125rem] font-semibold text-pulse-accent">
