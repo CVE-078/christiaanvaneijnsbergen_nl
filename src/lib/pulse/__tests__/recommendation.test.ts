@@ -18,16 +18,25 @@ describe('recommendTemplate', () => {
             equipment: new Set(['dumbbells']),
             experience: 'beginner',
             goal: 'build_muscle',
-            days: '5-6',
+            days: 5,
         };
         expect(recommendTemplate(answers)).toBe('full-body-db');
     });
-    it('intermediate 2-3 days gym → full-body-gym', () => {
+    it('intermediate 2 days gym → full-body-gym', () => {
         const answers: OnboardingAnswers = {
             equipment: new Set(['barbell', 'bench', 'cables', 'machines']),
             experience: 'intermediate',
             goal: 'build_muscle',
-            days: '2-3',
+            days: 2,
+        };
+        expect(recommendTemplate(answers)).toBe('full-body-gym');
+    });
+    it('intermediate 3 days gym → full-body-gym', () => {
+        const answers: OnboardingAnswers = {
+            equipment: new Set(['barbell', 'bench', 'cables', 'machines']),
+            experience: 'intermediate',
+            goal: 'build_muscle',
+            days: 3,
         };
         expect(recommendTemplate(answers)).toBe('full-body-gym');
     });
@@ -36,16 +45,25 @@ describe('recommendTemplate', () => {
             equipment: new Set(['barbell', 'bench', 'cables', 'machines']),
             experience: 'intermediate',
             goal: 'build_muscle',
-            days: '4',
+            days: 4,
         };
         expect(recommendTemplate(answers)).toBe('upper-lower-gym');
     });
-    it('intermediate 5-6 days home → ppl-home', () => {
+    it('intermediate 5 days home → ppl-home', () => {
         const answers: OnboardingAnswers = {
             equipment: new Set(['dumbbells', 'barbell', 'bench']),
             experience: 'intermediate',
             goal: 'lose_fat',
-            days: '5-6',
+            days: 5,
+        };
+        expect(recommendTemplate(answers)).toBe('ppl-home');
+    });
+    it('intermediate 6 days home → ppl-home', () => {
+        const answers: OnboardingAnswers = {
+            equipment: new Set(['dumbbells', 'barbell', 'bench']),
+            experience: 'intermediate',
+            goal: 'lose_fat',
+            days: 6,
         };
         expect(recommendTemplate(answers)).toBe('ppl-home');
     });
@@ -54,7 +72,7 @@ describe('recommendTemplate', () => {
             equipment: new Set(['dumbbells', 'bench']),
             experience: 'advanced',
             goal: 'build_muscle',
-            days: '4',
+            days: 4,
         };
         expect(recommendTemplate(answers)).toBe('upper-lower-db');
     });
@@ -63,7 +81,7 @@ describe('recommendTemplate', () => {
             equipment: new Set(['dumbbells']),
             experience: 'intermediate',
             goal: 'general_fitness',
-            days: '4',
+            days: 4,
         };
         expect(recommendTemplate(answers)).toBeNull();
     });

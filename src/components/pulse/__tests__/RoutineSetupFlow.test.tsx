@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RoutineSetupFlow from '../RoutineSetupFlow';
 import { recommendStyle } from '@/lib/pulse/generation';
-import { SUGGESTED_DAYS } from '@/lib/pulse/constants';
+import { SUGGESTED_DAYS } from '@/lib/pulse/weeklyFrequency';
 import type { EquipmentKey, EquipmentProfile } from '@/lib/pulse/types';
 
 const initial = {
     equipment: ['dumbbells'] as EquipmentKey[],
     experience: 'beginner' as const,
     goal: 'build_muscle' as const,
-    days: '2-3' as const,
+    days: 3 as const,
     trainingDays: [1, 3, 5],
     sessionTime: '~30 min' as const,
 };
@@ -70,7 +70,7 @@ describe('RoutineSetupFlow', () => {
         expect(arg.sessionTime).toBe('~30 min');
         expect(arg.answers.experience).toBe('beginner');
         expect(arg.answers.goal).toBe('build_muscle');
-        expect(arg.answers.days).toBe('2-3');
+        expect(arg.answers.days).toBe(3);
         expect([...arg.answers.equipment]).toEqual(['dumbbells']);
         // The style step pre-selects the recommendation for the count (3 → fb-3).
         expect(arg.styleKey).toBe('fb-3');
@@ -109,7 +109,7 @@ describe('RoutineSetupFlow', () => {
     it('caps the day picker at the chosen days-per-week count', () => {
         render(
             <RoutineSetupFlow
-                initial={{ ...initial, days: '4', trainingDays: [] }}
+                initial={{ ...initial, days: 4, trainingDays: [] }}
                 onComplete={vi.fn()}
                 onClose={vi.fn()}
             />,
@@ -120,6 +120,16 @@ describe('RoutineSetupFlow', () => {
         expect(screen.getByText(/up to 4 days/i)).toBeInTheDocument();
         // Mon, Tue, Thu, Fri are seeded (4 = the cap), so a 5th day (Wed) is disabled.
         expect(screen.getByRole('button', { name: 'Wed' })).toBeDisabled();
+    });
+
+    it('the days step offers the five exact frequencies and no bucket options', () => {
+        render(<RoutineSetupFlow initial={initial} onComplete={vi.fn()} onClose={vi.fn()} />);
+        // equipment → experience → goal → days/week
+        for (let i = 0; i < 3; i++) fireEvent.click(screen.getByText('Next'));
+        expect(screen.getByText(/how many days per week/i)).toBeInTheDocument();
+        for (const n of [2, 3, 4, 5, 6]) expect(screen.getByText(`${n} days`)).toBeInTheDocument();
+        expect(screen.queryByText('2–3 days')).not.toBeInTheDocument();
+        expect(screen.queryByText('5–6 days')).not.toBeInTheDocument();
     });
 
     it('hides the style step when only one style exists for the count', async () => {
@@ -444,7 +454,7 @@ describe('RoutineSetupFlow quick mode', () => {
         equipment: ['dumbbells'] as EquipmentKey[],
         experience: 'beginner' as const,
         goal: 'build_muscle' as const,
-        days: '4' as const,
+        days: 4 as const,
         trainingDays: [] as number[],
         sessionTime: '~30 min' as const,
     };
@@ -475,10 +485,48 @@ describe('RoutineSetupFlow quick mode', () => {
         fireEvent.click(screen.getByText('Create routine'));
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
         const arg = onComplete.mock.calls[0][0];
-        expect(arg.trainingDays).toEqual(SUGGESTED_DAYS['4']);
+        expect(arg.trainingDays).toEqual(SUGGESTED_DAYS[4]);
         expect(arg.styleKey).toBe(recommendStyle(arg.trainingDays.length));
         expect(arg.programWeeks).toBe(12);
         expect(arg.gender).toBeNull();
+    });
+
+    it('frequency 6 seeds six training days and resolves ppl-x2-6 (Issue 0)', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        render(
+            <RoutineSetupFlow
+                mode="quick"
+                initial={{ ...quickInitial, days: 6 }}
+                onComplete={onComplete}
+                onClose={vi.fn()}
+            />,
+        );
+        // equipment → experience → goal → days/week → session length → start
+        for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        const arg = onComplete.mock.calls[0][0];
+        expect(arg.trainingDays).toEqual([1, 2, 3, 4, 5, 6]);
+        expect(arg.styleKey).toBe('ppl-x2-6');
+    });
+
+    it('frequency 3 seeds three training days (the old 2-3 bucket only ever seeded two)', async () => {
+        const onComplete = vi.fn().mockResolvedValue(undefined);
+        render(
+            <RoutineSetupFlow
+                mode="quick"
+                initial={{ ...quickInitial, days: 3 }}
+                onComplete={onComplete}
+                onClose={vi.fn()}
+            />,
+        );
+        for (let i = 0; i < 5; i++) fireEvent.click(screen.getByText('Next'));
+        fireEvent.click(screen.getByText('Create routine'));
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+        const arg = onComplete.mock.calls[0][0];
+        expect(arg.trainingDays).toEqual([1, 3, 5]);
+        expect(arg.trainingDays).toHaveLength(3);
+        expect(arg.styleKey).toBe('fb-3');
     });
 
     it('back navigation skips the trimmed steps in both directions', () => {

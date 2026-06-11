@@ -284,7 +284,7 @@ function input(overrides: Partial<GenerationInput> = {}): GenerationInput {
             equipment: dumbbellsOnly,
             experience: 'intermediate',
             goal: 'build_muscle',
-            days: '4',
+            days: 4,
         },
         sessionTime: '45–60 min',
         trainingDays: [1, 2, 4, 5],
@@ -427,7 +427,7 @@ describe('rep ranges in generation', () => {
                     equipment: dumbbellsOnly,
                     experience: 'intermediate',
                     goal: 'lose_fat',
-                    days: '4',
+                    days: 4,
                 },
             }),
         );
@@ -604,11 +604,22 @@ describe('buildRationale', () => {
             equipment: new Set(),
             experience: 'intermediate',
             goal: 'build_muscle',
-            days: '4',
+            days: 4,
         } as unknown as import('../recommendation').OnboardingAnswers;
         expect(buildRationale(answers, '45–60 min', style)).toBe(
             'Aesthetic Upper / Lower for intermediate lifters · 4 days/week · build muscle · 45–60 min sessions. Upper-body priority with extra isolation and a leaner lower.',
         );
+    });
+    it('prints the exact frequency, not a bucket (3 → "3 days/week")', () => {
+        const answers = {
+            equipment: new Set(),
+            experience: 'intermediate',
+            goal: 'build_muscle',
+            days: 3,
+        } as unknown as import('../recommendation').OnboardingAnswers;
+        const r = buildRationale(answers, '45–60 min', style);
+        expect(r).toContain('3 days/week');
+        expect(r).not.toContain('2-3');
     });
     it('maps goals to friendly labels', () => {
         const a = (g: string) =>
@@ -616,7 +627,7 @@ describe('buildRationale', () => {
                 equipment: new Set(),
                 experience: 'beginner',
                 goal: g,
-                days: '2-3',
+                days: 3,
             }) as unknown as import('../recommendation').OnboardingAnswers;
         expect(buildRationale(a('lose_fat'), '~30 min', style)).toContain('lose fat');
         expect(buildRationale(a('general_fitness'), '~30 min', style)).toContain('general fitness');
@@ -625,7 +636,7 @@ describe('buildRationale', () => {
         equipment: new Set(),
         experience: 'intermediate',
         goal: 'build_muscle',
-        days: '4',
+        days: 4,
     } as unknown as import('../recommendation').OnboardingAnswers;
     it('appends a priority-tilt sentence naming the muscle when a priority is set', () => {
         expect(buildRationale(answers, '45–60 min', style, 'chest')).toMatch(/leans? .*into chest/i);
@@ -709,7 +720,7 @@ describe('buildRationale trainingStyle clause', () => {
         equipment: new Set<EquipmentKey>(['dumbbells']),
         experience: 'intermediate' as const,
         goal: 'build_muscle' as const,
-        days: '4' as const,
+        days: 4 as const,
     };
     const style = STYLES[4][0];
     it('omits any style clause for balanced / undefined', () => {
@@ -1194,7 +1205,7 @@ describe('loading lean: preferred equipment floats before non-preferred', () => 
             equipment: bbAndDb,
             experience: 'intermediate' as const,
             goal: 'build_muscle' as const,
-            days: '2-3' as const,
+            days: 3 as const,
         };
 
         // Without loading lean: squat-aa-dumbbell wins (alphabetically first).
@@ -1217,7 +1228,7 @@ describe('loading lean: preferred equipment floats before non-preferred', () => 
             equipment: bbAndDb,
             experience: 'intermediate' as const,
             goal: 'build_muscle' as const,
-            days: '5-6' as const,
+            days: 6 as const,
         };
 
         const bp = generateRoutine(
@@ -1526,7 +1537,7 @@ describe('GQ3: Smith Machine Bench Press equipment gating (post-correction taggi
             equipment: new Set<EquipmentKey>(['barbell', 'bench', 'dumbbells']),
             experience: 'intermediate' as const,
             goal: 'build_muscle' as const,
-            days: '2-3' as const,
+            days: 3 as const,
         };
         const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: pool(), answers }));
         expect(sessionIds(bp, 'push', null)).not.toContain('smith-machine-bench-press');
@@ -1537,7 +1548,7 @@ describe('GQ3: Smith Machine Bench Press equipment gating (post-correction taggi
             equipment: new Set<EquipmentKey>(['machines', 'bench', 'dumbbells']),
             experience: 'intermediate' as const,
             goal: 'build_muscle' as const,
-            days: '2-3' as const,
+            days: 3 as const,
         };
         const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: pool(), answers }));
         expect(sessionIds(bp, 'push', null)).toContain('smith-machine-bench-press');
@@ -1574,7 +1585,7 @@ describe('GQ2: loading lean still beats fatigue within same freshness', () => {
             equipment: new Set<EquipmentKey>(['dumbbells', 'barbell']),
             experience: 'intermediate' as const,
             goal: 'build_muscle' as const,
-            days: '2-3' as const,
+            days: 3 as const,
         };
         const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, answers, loadingLean: 'barbell' }));
         // Barbell squat (higher fatigue) still wins because loading lean takes priority.

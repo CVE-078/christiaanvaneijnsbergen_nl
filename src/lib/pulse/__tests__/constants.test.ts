@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-    DAY_NAMES,
-    WORKOUT_TYPE_LABELS,
-    WORKOUT_TYPE_ORDER,
-    SUGGESTED_DAYS,
-    EXPERIENCE_LEVEL_COLOR,
-} from '../constants';
+import { DAY_NAMES, WORKOUT_TYPE_LABELS, WORKOUT_TYPE_ORDER, EXPERIENCE_LEVEL_COLOR } from '../constants';
 
 describe('DAY_NAMES', () => {
     it('has 7 entries', () => expect(DAY_NAMES).toHaveLength(7));
@@ -27,11 +21,8 @@ describe('WORKOUT_TYPE_ORDER', () => {
     it('ends with full_body', () => expect(WORKOUT_TYPE_ORDER[WORKOUT_TYPE_ORDER.length - 1]).toBe('full_body'));
 });
 
-describe('SUGGESTED_DAYS', () => {
-    it('2-3 maps to [1,3]', () => expect(SUGGESTED_DAYS['2-3']).toEqual([1, 3]));
-    it('4 maps to [1,2,4,5]', () => expect(SUGGESTED_DAYS['4']).toEqual([1, 2, 4, 5]));
-    it('5-6 maps to [1,2,3,4,5]', () => expect(SUGGESTED_DAYS['5-6']).toEqual([1, 2, 3, 4, 5]));
-});
+// SUGGESTED_DAYS / MAX_TRAINING_DAYS moved to weeklyFrequency.ts (Issue 0);
+// their tests live in weeklyFrequency.test.ts.
 
 describe('EXPERIENCE_LEVEL_COLOR', () => {
     it('beginner has a class string', () => expect(typeof EXPERIENCE_LEVEL_COLOR.beginner).toBe('string'));

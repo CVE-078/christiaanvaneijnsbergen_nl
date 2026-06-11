@@ -12,13 +12,8 @@ import {
     genderDefault,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta } from '@/lib/pulse/generation';
-import {
-    EXPERIENCE_LEVELS,
-    GOALS,
-    DAYS_PER_WEEK_OPTIONS,
-    type ExperienceLevel,
-    type OnboardingAnswers,
-} from '@/lib/pulse/recommendation';
+import { EXPERIENCE_LEVELS, GOALS, type ExperienceLevel, type OnboardingAnswers } from '@/lib/pulse/recommendation';
+import { isWeeklyFrequency } from '@/lib/pulse/weeklyFrequency';
 import { EQUIPMENT_KEYS, RESTRICTION_FLAGS } from '@/lib/pulse/types';
 import type {
     WorkoutType,
@@ -425,7 +420,7 @@ export async function generateAndSaveRoutine(
     // Harden the onboarding answers against forged values.
     if (!EXPERIENCE_LEVELS.includes(answers.experience)) throw new Error('Invalid data');
     if (!GOALS.includes(answers.goal)) throw new Error('Invalid data');
-    if (!DAYS_PER_WEEK_OPTIONS.includes(answers.days)) throw new Error('Invalid data');
+    if (!isWeeklyFrequency(answers.days)) throw new Error('Invalid data');
     if (!(answers.equipment instanceof Set) || ![...answers.equipment].every((e) => EQUIPMENT_KEYS.includes(e)))
         throw new Error('Invalid data');
     if (!SESSION_TIMES.includes(sessionTime)) throw new Error('Invalid data');

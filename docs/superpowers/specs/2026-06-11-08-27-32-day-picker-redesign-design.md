@@ -1,6 +1,6 @@
 # Day-picker redesign (Issue 0), design spec
 
-**Status: DRAFT, spec-first.** Not approved to build. Like every prior engine/UX change this session, it should go through the review loop (science/UX lens + architecture lens) and have its open questions resolved before TDD. **It is the unblocker for Item 5** (`ppl-x2-6` A/B differentiation) in the generation engine quality track: the 6-day split is unreachable until the day picker can express six training days, so Item 5's 6-day path cannot be generated or tested end-to-end today.
+**Status: APPROVED 2026-06-11, in implementation** (branch `feature/day-picker-redesign`). The review loop resolved every open question in Section 8; the decisions are recorded in Section 10 below and supersede the open phrasing in Sections 4 and 8. **It is the unblocker for Item 5** (`ppl-x2-6` A/B differentiation) in the generation engine quality track: the 6-day split is unreachable until the day picker can express six training days, so Item 5's 6-day path cannot be generated or tested end-to-end today.
 
 ---
 
@@ -72,3 +72,15 @@ Once six days is reachable through the quick flow:
 - No change to the generation engine, `STYLES`, `recommendStyle`, or the role model.
 - No new persisted column or migration.
 - Not a redesign of the full-flow "which days" weekday grid beyond rekeying its cap.
+
+## 10. Review decisions (resolved 2026-06-11)
+
+The implementation-plan review (hidden-coupling audit against the live tree) closed Section 8's open questions:
+
+- **Exact frequency adopted** (the recommended full retype), not the split-bucket alternative.
+- **Type shape:** numeric union `2 | 3 | 4 | 5 | 6`, named `WeeklyFrequency`. It lives in a new `src/lib/pulse/weeklyFrequency.ts` module together with `WEEKLY_FREQUENCIES`, an `isWeeklyFrequency` runtime guard (used by the generate-action validation), and the rekeyed `SUGGESTED_DAYS` / `MAX_TRAINING_DAYS` (moved out of `constants.ts`). The `DaysPerWeek` name is retired, no alias.
+- **Day layouts:** `2: [1,3]`, `3: [1,3,5]`, `4: [1,2,4,5]`, `5: [1,2,3,4,5]`, `6: [1,2,3,4,5,6]` (Mon-Sat). Keys 2/4/5 are byte-identical to what the old buckets seeded. Key 3 is a new path by necessity: the `'2-3'` bucket always seeded two days, so the quick flow had no 3-day path at all; a user picking 3 now gets a 3-day routine (a fix, not a regression). `MAX_TRAINING_DAYS` becomes the identity map (the cap is the stated frequency).
+- **`recommendTemplate`:** rekeyed (beginner or `days <= 3` full-body, `4` upper-lower, else ppl), behavior-identical per count. Audit note: it currently has no production callers (only its test); kept and rekeyed, deletion is a separate cleanup. The count-to-style mapping (2 fb-2, 3 fb-3, 4 ul-classic-4, 5 ulppl-5, 6 ppl-x2-6) is owned by `STYLES[count][0]` / `recommendStyle`, which already handles all counts and is unchanged.
+- **Quick flow:** stays exactly six steps; the days step becomes a single five-option exact selector (2 to 6) that seeds `trainingDays = SUGGESTED_DAYS[n]`; no which-days grid in quick mode.
+- **Audit corrections to Section 5's consumer list:** `generation.ts` needs zero diff (numeric `answers.days` interpolates identically in `buildRationale`); additional test fixtures live in `RoutineSetupFlow.test.tsx`, `TuneYourPlanPanel.test.tsx`, `generation.test.ts`, and `recommendation.test.ts`. The `routine_templates.days_per_week` field ('2-3', '3-6') is plain-string template metadata, confirmed not threaded into the flow, out of scope.
+- **Open follow-on (not this diff):** the full flow still allows selecting fewer weekdays than the stated frequency, so the rationale can overstate; consider deriving the rationale count from `trainingDays.length` later.
