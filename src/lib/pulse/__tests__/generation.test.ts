@@ -7,6 +7,7 @@ import {
     volumeFor,
     repRange,
     recommendStyle,
+    suggestedStyleKey,
     resolveStyle,
     generateRoutine,
     orderTrainingDays,
@@ -173,6 +174,27 @@ describe('recommendStyle / resolveStyle', () => {
         expect(recommendStyle(4)).toBe('ul-classic-4');
         expect(recommendStyle(3)).toBe('fb-3');
         expect(recommendStyle(5)).toBe('ulppl-5');
+    });
+});
+
+describe('suggestedStyleKey (intent-aware suggestion, #18 follow-up)', () => {
+    it('suggests PHUL for a powerbuilding lifter at 4 days', () => {
+        expect(suggestedStyleKey(4, 'powerbuilding')).toBe('phul-4');
+    });
+    it('falls back to the count-only recommendation for other training styles at 4 days', () => {
+        expect(suggestedStyleKey(4, 'balanced')).toBe('ul-classic-4');
+        expect(suggestedStyleKey(4, 'strength')).toBe('ul-classic-4');
+        expect(suggestedStyleKey(4, 'bodybuilding')).toBe('ul-classic-4');
+        expect(suggestedStyleKey(4, undefined)).toBe('ul-classic-4');
+        expect(suggestedStyleKey(4, null)).toBe('ul-classic-4');
+    });
+    it('only triggers at 4 days (PHUL is a 4-day style); other counts use the default', () => {
+        expect(suggestedStyleKey(3, 'powerbuilding')).toBe(recommendStyle(3));
+        expect(suggestedStyleKey(5, 'powerbuilding')).toBe(recommendStyle(5));
+        expect(suggestedStyleKey(6, 'powerbuilding')).toBe(recommendStyle(6));
+    });
+    it('does not change the auto-applied default: recommendStyle(4) is still ul-classic-4', () => {
+        expect(recommendStyle(4)).toBe('ul-classic-4');
     });
 });
 
@@ -732,6 +754,36 @@ describe('buildRationale trainingStyle clause', () => {
     });
     it('adds a powerbuilding clause', () => {
         expect(buildRationale(answers, '45–60 min', style, null, 'powerbuilding')).toMatch(/powerbuilding/i);
+    });
+});
+
+describe('buildRationale lower-split clause (quad-led vs posterior-led lower days)', () => {
+    const answers = {
+        equipment: new Set<EquipmentKey>(['dumbbells']),
+        experience: 'intermediate' as const,
+        goal: 'build_muscle' as const,
+        days: 4 as const,
+    };
+    const styleByKey = (count: number, key: string) => STYLES[count].find((s) => s.key === key) as ProgramStyle;
+
+    it('explains the split for a style with a quad-led and a posterior-led lower day', () => {
+        // ul-classic-4: lower_quad (squat, no hinge) + lower_post (hinge, no squat).
+        const r = buildRationale(answers, '45–60 min', styleByKey(4, 'ul-classic-4'));
+        expect(r).toContain('split on purpose');
+        expect(r).toContain('squat-free day is intentional');
+    });
+
+    it('explains the split for ulppl-5 and ppl-x2-6 (the other quad/posterior styles)', () => {
+        expect(buildRationale(answers, '45–60 min', styleByKey(5, 'ulppl-5'))).toContain('split on purpose');
+        expect(buildRationale(answers, '45–60 min', styleByKey(6, 'ppl-x2-6'))).toContain('split on purpose');
+    });
+
+    it('stays silent for PHUL (both lower days are squat-led: the split is power vs volume, not quad vs posterior)', () => {
+        expect(buildRationale(answers, '45–60 min', styleByKey(4, 'phul-4'))).not.toContain('split on purpose');
+    });
+
+    it('stays silent when both lower days train the same patterns (ppl-fb-4 legs + full body)', () => {
+        expect(buildRationale(answers, '45–60 min', styleByKey(4, 'ppl-fb-4'))).not.toContain('split on purpose');
     });
 });
 

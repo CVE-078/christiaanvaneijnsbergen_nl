@@ -108,6 +108,33 @@ describe('TuneYourPlanPanel', () => {
         expect(screen.queryByText('Change split')).not.toBeInTheDocument();
     });
 
+    it('badges PHUL as Suggested and floats it first for a powerbuilding lifter at 4 days', () => {
+        (usePulse as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+            profile: {
+                training_style: 'powerbuilding',
+                variety_preference: null,
+                loading_lean: null,
+                movement_restrictions: null,
+            },
+            generateRoutine,
+            deleteRoutine,
+            setProgramAnchor,
+            updateRoutineProgramWeeks,
+            equipmentProfiles: [],
+        });
+        render(<TuneYourPlanPanel {...baseState} onDone={onDone} />);
+        const phulRow = screen.getByRole('button', { name: /Power Hypertrophy Upper Lower/ });
+        expect(phulRow).toHaveTextContent('Suggested');
+        // Floated first: PHUL precedes Classic Upper / Lower in the Change split list.
+        const classicRow = screen.getByRole('button', { name: /Classic Upper \/ Lower/ });
+        expect(phulRow.compareDocumentPosition(classicRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('shows no Suggested badge for a balanced lifter (suggestion equals the default)', () => {
+        render(<TuneYourPlanPanel {...baseState} onDone={onDone} />); // default mock: training_style null -> balanced
+        expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
+    });
+
     it('"Apply changes" starts disabled and enables once a picker changes', () => {
         render(<TuneYourPlanPanel {...baseState} onDone={onDone} />);
         const apply = screen.getByRole('button', { name: 'Apply changes' });

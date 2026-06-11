@@ -504,6 +504,24 @@ export function recommendStyle(sessionCount: number): string {
     return styles[0].key;
 }
 
+/** The style to surface as "Suggested" for the user's training intent (#18 follow-up).
+ *  A powerbuilding lifter at 4 days is steered to PHUL (`phul-4`); every other case
+ *  defers to the count-only `recommendStyle` default. Pure and additive: it does NOT
+ *  change the auto-applied default (`recommendStyle` stays the pre-selection and the
+ *  fallback), so a picker can float + badge a suggestion without altering generation
+ *  for anyone who ignores it. The `phul-4` presence check keeps it safe if the style
+ *  is ever removed. */
+export function suggestedStyleKey(sessionCount: number, trainingStyle?: TrainingStyle | null): string {
+    if (
+        trainingStyle === 'powerbuilding' &&
+        sessionCount === 4 &&
+        (STYLES[4] ?? []).some((s) => s.key === 'phul-4')
+    ) {
+        return 'phul-4';
+    }
+    return recommendStyle(sessionCount);
+}
+
 /** Resolve a style by key for a given session count, falling back to the recommended default. */
 export function resolveStyle(styleKey: string, sessionCount: number): ProgramStyle {
     const styles = STYLES[sessionCount] ?? STYLES[recommendStyleCount(sessionCount)];
@@ -1671,6 +1689,25 @@ const TRAINING_STYLE_CLAUSE: Record<TrainingStyle, string> = {
 
 // Human-readable reason a routine was generated, from the onboarding inputs and
 // the chosen program style. Shown on the Plan screen and in the setup flow.
+/** True when a style trains one squat-led lower day (squat without hinge) and one
+ *  posterior-led lower day (hinge without squat), e.g. ul-classic-4's lower_quad +
+ *  lower_post. Drives the buildRationale clause that explains the deliberately
+ *  squat-free posterior day. PHUL is false (both its lower days carry squat AND
+ *  hinge: that split is power vs volume, not quad vs posterior). */
+export function hasQuadPosteriorSplit(style: ProgramStyle): boolean {
+    let quadLed = false;
+    let posteriorLed = false;
+    for (const session of style.sessions) {
+        if (session.focus !== 'lower' && session.focus !== 'legs') continue;
+        const slots = emphasisFor(session.emphasis).slots;
+        const hasSquat = slots.includes('squat');
+        const hasHinge = slots.includes('hinge');
+        if (hasSquat && !hasHinge) quadLed = true;
+        if (hasHinge && !hasSquat) posteriorLed = true;
+    }
+    return quadLed && posteriorLed;
+}
+
 export function buildRationale(
     answers: OnboardingAnswers,
     sessionTime: SessionTime,
@@ -1692,5 +1729,11 @@ export function buildRationale(
         demotedNames.length > 0
             ? ` Tuned to your history: leans away from ${demotedNames.join(', ')} (you keep swapping them out).`
             : '';
-    return `${withPriority}${styleClause}${behaviorClause}`;
+    // Explain the deliberately squat-free posterior day when the style splits its
+    // lower work quad-led vs posterior-led (ul-classic-4 / ul-aesthetic-4 / ulppl-5 /
+    // ppl-x2-6). Silent for PHUL (power vs volume) and same-pattern leg days (ppl-fb-4).
+    const splitClause = hasQuadPosteriorSplit(style)
+        ? ' Your two lower days are split on purpose: one leads with squats for the quads, the other with hinges for the posterior chain (so the squat-free day is intentional).'
+        : '';
+    return `${withPriority}${styleClause}${splitClause}${behaviorClause}`;
 }
