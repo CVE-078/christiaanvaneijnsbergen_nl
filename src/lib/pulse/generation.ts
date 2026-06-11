@@ -654,11 +654,14 @@ const HEAVY_DEDUP_PATTERNS: ReadonlySet<MovementPattern> = new Set(['hinge', 'sq
 // ── Minimum-compound floor + lower-bucket backfill (live-test Issue 1) ───────
 // Per-focus floor of compounds a session must reach BEFORE backfill. Lower and
 // full-body sessions are compound-dependent (2); upper/push/pull tolerate 1.
-// When the first pass falls short, the floor guard searches the whole usable
-// pool cross-pattern (squat > hinge > lunge first, matching the role model's
-// lower pattern priority, then the upper compounds) under all the normal caps.
-// If the floor is genuinely unsatisfiable the session still generates and the
-// caller surfaces LIMITED_VARIETY_WARNING; never reject.
+// When the first pass falls short, the floor guard searches the usable pool
+// within the session's OWN body region only (2026-06-11 follow-up): lower /
+// legs / full-body sessions search squat > hinge > lunge (the role model's
+// lower pattern priority), upper / push / pull sessions search the four upper
+// compounds. The guard never crosses regions: an upper compound on a leg day
+// is a different session, not a degraded one. If the floor is genuinely
+// unsatisfiable the session still generates and the caller surfaces
+// LIMITED_VARIETY_WARNING; never reject.
 const COMPOUND_FLOOR: Record<Focus, number> = {
     lower: 2,
     legs: 2,
@@ -667,15 +670,22 @@ const COMPOUND_FLOOR: Record<Focus, number> = {
     push: 1,
     pull: 1,
 };
-const FLOOR_FALLBACK_PATTERNS: MovementPattern[] = [
-    'squat',
-    'hinge',
-    'lunge',
-    'horizontal_push',
-    'vertical_push',
-    'horizontal_pull',
-    'vertical_pull',
-];
+const FLOOR_FALLBACK_PATTERNS: Record<'lower' | 'upper', MovementPattern[]> = {
+    lower: ['squat', 'hinge', 'lunge'],
+    upper: ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull'],
+};
+// Which fallback region each focus searches. full_body uses the lower list for
+// the FLOOR (its upper slots already seat any available upper compound in the
+// first pass, so a shortfall means lower work is what is missing); the hard
+// no-cross-region rule below applies to lower/legs only.
+const FLOOR_REGION: Record<Focus, 'lower' | 'upper'> = {
+    lower: 'lower',
+    legs: 'lower',
+    full_body: 'lower',
+    upper: 'upper',
+    push: 'upper',
+    pull: 'upper',
+};
 // Lower-bucket patterns a duress backfill may draw from on lower / legs /
 // full-body sessions. Trigger: only when backfill is about to REPEAT a
 // finisher (a 2nd calf or 2nd core), a fresh lower-bucket pattern outside the
@@ -686,7 +696,7 @@ const FLOOR_FALLBACK_PATTERNS: MovementPattern[] = [
 const LOWER_BUCKET_FALLBACK: MovementPattern[] = ['squat', 'hinge', 'lunge', 'glute_iso'];
 const FINISHER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['calf', 'core']);
 const LIMITED_VARIETY_WARNING =
-    'Your equipment or movement restrictions removed most compound options for one or more sessions. Some sessions use limited exercise variety.';
+    'Some sessions have fewer compound exercises than recommended due to your equipment or movement restriction settings.';
 
 // ── Unilateral cap scope ──────────────────────────────────────────────────────
 // The unilateral cap (at most one single-limb-at-a-time lift per session) governs
@@ -1028,7 +1038,7 @@ function selectForSession(
     const compoundCount = () => chosen.reduce((n, c) => (c.ex.is_compound ? n + 1 : n), 0);
     const floor = COMPOUND_FLOOR[focus];
     if (compoundCount() < floor) {
-        for (const p of FLOOR_FALLBACK_PATTERNS) {
+        for (const p of FLOOR_FALLBACK_PATTERNS[FLOOR_REGION[focus]]) {
             if (compoundCount() >= floor || chosen.length >= count) break;
             if (patternCount(p) >= PATTERN_CAP) continue;
             if (HEAVY_DEDUP_PATTERNS.has(p) && heavyPatternFilled.has(p)) continue;
@@ -1450,8 +1460,18 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // ship that. If the whole safe pool has no compound, never block, warn.
         if (selected.length > 0 && !selected.some((s) => s.ex.is_compound)) {
             const chosenIds = new Set(selected.map((s) => s.ex.id));
+            // Cross-region prohibition (2026-06-11): a lower/legs session never
+            // receives an upper compound, even here in the zero-compound case;
+            // it ships as honest accessory work plus the warning instead. Other
+            // focuses (incl. full_body, which legitimately spans regions) keep
+            // the any-region fallback.
+            const lowerOnly = session.focus === 'lower' || session.focus === 'legs';
             const fallback = usable.find(
-                (ex) => ex.is_compound && ex.movement_pattern !== null && !chosenIds.has(ex.id),
+                (ex) =>
+                    ex.is_compound &&
+                    ex.movement_pattern !== null &&
+                    !chosenIds.has(ex.id) &&
+                    (!lowerOnly || FLOOR_FALLBACK_PATTERNS.lower.includes(ex.movement_pattern)),
             );
             if (fallback) {
                 // Keep the exercise count: drop the last (lowest-priority) isolation

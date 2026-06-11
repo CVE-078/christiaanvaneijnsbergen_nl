@@ -1705,7 +1705,12 @@ describe('Item 2: minimum-compound guard for restriction-emptied sessions', () =
         return pool;
     };
 
-    it('seats a cross-pattern compound when a session would otherwise be all isolation', () => {
+    it('a restriction-emptied legs day NEVER receives an upper compound (region-restricted, 2026-06-11)', () => {
+        // Rebaselined: the original assertion expected a cross-pattern compound
+        // (an upper press/row) seated on the legs day. The cross-region fallback
+        // was removed for lower/legs sessions: an upper compound on a leg day is
+        // a different session, not a degraded one. The day now ships as honest
+        // accessory work plus a warning.
         const pool = legCompoundsContraindicated();
         const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
         const bp = generateRoutine(
@@ -1713,15 +1718,26 @@ describe('Item 2: minimum-compound guard for restriction-emptied sessions', () =
         );
         const byId = new Map(pool.map((e) => [e.id, e]));
         const legs = sessionIds(bp, 'legs', null).map((id) => byId.get(id)!);
-        expect(legs.length).toBeGreaterThan(0);
-        // The leg emphasis compounds were all filtered out, but the guard seats one
-        // safe compound from another pattern rather than shipping an all-isolation day.
-        expect(legs.some((e) => e.is_compound)).toBe(true);
-        // Count integrity: seating the fallback drops the lowest-priority isolation,
-        // so the session still hits the volume target rather than overfilling.
         expect(legs.length).toBe(volumeFor('45–60 min', 'intermediate').exercises);
-        // A fallback compound existed, so no warning.
-        expect(bp.warnings).toEqual([]);
+        // No compound insert from another body region.
+        expect(legs.some((e) => e.is_compound)).toBe(false);
+        const upperPatterns = ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull'];
+        expect(legs.some((e) => upperPatterns.includes(e.movement_pattern as string))).toBe(false);
+        // The user is told instead.
+        expect(bp.warnings.length).toBeGreaterThan(0);
+    });
+
+    it('a full-body session keeps the any-region fallback (the prohibition covers lower/legs only)', () => {
+        // fb-3: full_body sessions whose lower compounds are contraindicated may
+        // still seat a safe upper compound; full body legitimately spans regions.
+        const pool = legCompoundsContraindicated();
+        const style = STYLES[3].find((s) => s.key === 'fb-3') as ProgramStyle;
+        const bp = generateRoutine(
+            input({ style, trainingDays: [1, 3, 5], pool, restrictions: ['knee', 'lower_back'] }),
+        );
+        const byId = new Map(pool.map((e) => [e.id, e]));
+        const allRows = bp.exercises.map((e) => byId.get(e.exercise_id)!);
+        expect(allRows.some((e) => e.is_compound)).toBe(true);
     });
 
     it('warns (does not block) when no compound survives anywhere in the pool', () => {
@@ -2663,9 +2679,36 @@ describe('minimum-compound floor + lower-bucket backfill (live-test Issue 1)', (
         const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
         const bp = generateRoutine(input({ style, trainingDays: fourDays, pool }));
         expect(bp.exercises.length).toBeGreaterThan(0);
-        expect(
-            bp.warnings.some((w) => w.includes('limited exercise variety')),
-        ).toBe(true);
+        expect(bp.warnings.some((w) => w.includes('fewer compound exercises'))).toBe(true);
+    });
+
+    it('a lower session with NO lower compounds never receives an upper compound from the guard', () => {
+        // All squat/hinge/lunge exercises are unavailable; upper compounds exist.
+        // The floor stays unmet, the session generates without an upper insert,
+        // and a warning reaches the rationale.
+        const pool = [
+            meta('glute-iso-1', 'glute_iso', ['dumbbells'], false),
+            meta('calf-raise-1', 'calf', ['dumbbells'], false),
+            meta('calf-raise-2', 'calf', ['dumbbells'], false),
+            meta('crunch', 'core', [], false),
+            meta('plank', 'core', [], false),
+            ...ALL_PATTERNS.filter(
+                (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'].includes(p),
+            ).flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso')),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso')),
+            ]),
+        ];
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: fourDays, pool }));
+        const pat = patternMap(pool);
+        const upperPatterns = ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull'];
+        for (const v of ['A', 'B']) {
+            const lower = sessionIds(bp, 'lower', v).map((id) => pat.get(id) as string);
+            expect(lower.length).toBeGreaterThan(0);
+            expect(lower.some((p) => upperPatterns.includes(p))).toBe(false);
+        }
+        expect(bp.warnings.length).toBeGreaterThan(0);
     });
 
     it('a deep pool meets the floor naturally and the guard is a no-op (goldens stay green)', () => {
