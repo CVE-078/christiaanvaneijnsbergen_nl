@@ -16,6 +16,16 @@ describe('validateNext', () => {
         expect(validateNext(null)).toBe(DEFAULT_NEXT);
         expect(validateNext(undefined)).toBe(DEFAULT_NEXT);
     });
+
+    it('falls back when path traversal normalises out of /pulse', () => {
+        expect(validateNext('/pulse/../admin')).toBe(DEFAULT_NEXT);
+        expect(validateNext('/pulse/../../etc')).toBe(DEFAULT_NEXT);
+        expect(validateNext('/pulse/..//evil.com')).toBe(DEFAULT_NEXT);
+    });
+
+    it('preserves query and hash on a valid /pulse path', () => {
+        expect(validateNext('/pulse/history?week=3#top')).toBe('/pulse/history?week=3#top');
+    });
 });
 
 describe('parseConfirmParams', () => {

@@ -11,13 +11,24 @@ export const DEFAULT_NEXT = '/pulse/train';
 export const RECOVERY_NEXT = '/pulse/reset-password';
 
 /**
- * Validate a `next` redirect target. Only same-origin paths under /pulse are
- * allowed; anything else (external URL, protocol-relative //host, empty, missing)
- * falls back to the app home. This prevents an open-redirect via the email link.
+ * Validate a `next` redirect target. Only same-origin paths whose NORMALISED
+ * pathname is under /pulse are allowed; anything else (external URL, protocol-relative
+ * //host, traversal like /pulse/../admin, empty, missing) falls back to the app home.
+ * Resolving against a sentinel base normalises `..` before the prefix check, so the
+ * redirect can never leave /pulse or the origin. Query/hash on a valid path are kept.
  */
 export function validateNext(next: string | null | undefined): string {
-    if (next && next.startsWith('/pulse')) return next;
-    return DEFAULT_NEXT;
+    if (!next) return DEFAULT_NEXT;
+    try {
+        const base = 'http://n';
+        const url = new URL(next, base);
+        // A different origin means an absolute or protocol-relative URL was given.
+        if (url.origin !== base) return DEFAULT_NEXT;
+        if (!url.pathname.startsWith('/pulse')) return DEFAULT_NEXT;
+        return url.pathname + url.search + url.hash;
+    } catch {
+        return DEFAULT_NEXT;
+    }
 }
 
 /**
