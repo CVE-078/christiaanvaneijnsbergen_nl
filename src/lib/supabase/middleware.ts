@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isPublicAuthPath } from '@/lib/pulse/authPaths';
 
 /** Generate a per-request base64 nonce using the Web Crypto API available in the middleware runtime. */
 export function generateNonce(): string {
@@ -73,8 +74,7 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    const isLoginPage = request.nextUrl.pathname.startsWith('/pulse/login');
-    if (!user && !isLoginPage) {
+    if (!user && !isPublicAuthPath(request.nextUrl.pathname)) {
         const url = request.nextUrl.clone();
         url.pathname = '/pulse/login';
         const redirect = NextResponse.redirect(url);
