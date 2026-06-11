@@ -15,6 +15,7 @@ import {
     computeVolumeByTypeAndWeek,
     computeE1RMHistory,
     computeBestSets,
+    computeExerciseHistory,
     computeLastSession,
     computeLastSessionMap,
     computeWarmupSets,
@@ -1826,5 +1827,63 @@ describe('exerciseReason', () => {
     it('returns null when there is no movement pattern (user-created exercise)', () => {
         expect(exerciseReason({ movement_pattern: null, is_compound: false })).toBeNull();
         expect(exerciseReason({})).toBeNull();
+    });
+});
+
+describe('computeExerciseHistory (logging-time "what did I do last time", #13)', () => {
+    const set = (kg: number, reps: number) => ({ kg, reps, rir: 2, saved: true });
+    // Real UUID rids (parseLogKey validates the id segment as a UUID); the dashes
+    // also prove note-key parsing splits on the first dash only.
+    const rid = '11111111-1111-4111-8111-111111111111';
+    const other = '22222222-2222-4222-8222-222222222222';
+    const logs = {
+        [`1-${rid}-0`]: set(100, 5),
+        [`1-${rid}-1`]: set(100, 5),
+        [`2-${rid}-0`]: set(105, 5),
+        // an unsaved set and another exercise that must not leak in
+        [`2-${rid}-1`]: { kg: 110, reps: 5, rir: 2, saved: false },
+        [`2-${other}-0`]: set(200, 5),
+    };
+    const notes = { [`1-${rid}`]: 'felt heavy', [`2-${rid}`]: 'moved better', [`2-${other}`]: 'nope' };
+
+    it('returns an empty read when the exercise has never been logged', () => {
+        const h = computeExerciseHistory({}, rid, 3, {});
+        expect(h.lastSession).toBeNull();
+        expect(h.best).toBeNull();
+        expect(h.trend).toBe('none');
+        expect(h.e1rmDeltaPct).toBeNull();
+        expect(h.previousNote).toBeNull();
+    });
+
+    it('composes last session, best set, trend, and the previous note for this exercise', () => {
+        const h = computeExerciseHistory(logs, rid, 3, notes);
+        // Last session = the most recent prior week (week 2), one saved set.
+        expect(h.lastSession).toEqual({ kg: 105, reps: 5, setCount: 1 });
+        // Best set = the heaviest by e1RM (week 2's 105x5 beats week 1's 100x5).
+        expect(h.best).not.toBeNull();
+        expect(h.best!.kg).toBe(105);
+        expect(h.best!.reps).toBe(5);
+        // Trend across the last two logged weeks: 105 > 100 -> up, positive delta.
+        expect(h.trend).toBe('up');
+        expect(h.e1rmDeltaPct).toBeGreaterThan(0);
+        // Previous note = the latest prior week's note for THIS exercise (not 'other').
+        expect(h.previousNote).toBe('moved better');
+    });
+
+    it("ignores the current and future weeks for last session and notes", () => {
+        // currentWeek = 2 -> only week 1 counts as prior.
+        const h = computeExerciseHistory(logs, rid, 2, notes);
+        expect(h.lastSession).toEqual({ kg: 100, reps: 5, setCount: 2 });
+        expect(h.previousNote).toBe('felt heavy');
+        // Only one prior week of e1RM data -> no trend.
+        expect(h.trend).toBe('none');
+        expect(h.e1rmDeltaPct).toBeNull();
+    });
+
+    it('reports a downward trend when the last logged week regressed', () => {
+        const regressed = { [`1-${rid}-0`]: set(120, 5), [`2-${rid}-0`]: set(100, 5) };
+        const h = computeExerciseHistory(regressed, rid, 3, {});
+        expect(h.trend).toBe('down');
+        expect(h.e1rmDeltaPct).toBeLessThan(0);
     });
 });

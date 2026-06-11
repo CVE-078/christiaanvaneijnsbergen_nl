@@ -34,6 +34,7 @@ import type {
     RecoveryDetail,
     ExerciseItem,
     LastSession,
+    Notes,
     DbExercise,
     SwapReason,
     Swaps,
@@ -787,6 +788,68 @@ export function computeLastSessionMap(logs: Logs, currentWeek: number): Map<stri
         result.set(rid, { kg: sets[0].kg, reps: sets[0].reps, setCount: sets.length });
     }
     return result;
+}
+
+// ── Exercise history at logging time (#13) ───────────────────────────────────
+// A consolidated "what did I do here last time" read for one exercise, composing
+// the existing pure functions (computeLastSession / computeBestSets /
+// computeE1RMHistory) plus the previous note. Pure; surfaced at the point of
+// logging (ExerciseCard / guided mode). All kg are storage units; the UI converts
+// via toDisplay. (Per-card cost is O(logs), the same order the card already pays
+// for computeE1RMHistory; a batched variant can follow if a screen needs many.)
+export interface ExerciseHistory {
+    /** Most recent prior session: top set + how many sets. Null if never logged before. */
+    lastSession: LastSession | null;
+    /** All-time best set for this exercise by estimated 1RM. Null if never logged. */
+    best: { kg: number; reps: number; e1rm: number } | null;
+    /** Direction of the last two logged weeks' best e1RM. 'none' below two weeks. */
+    trend: Trend;
+    /** Percent change in best e1RM between the last two logged weeks, or null. */
+    e1rmDeltaPct: number | null;
+    /** The most recent prior week's note for this exercise, or null. */
+    previousNote: string | null;
+}
+
+export function computeExerciseHistory(
+    logs: Logs,
+    routineExerciseId: string,
+    currentWeek: number,
+    notes: Notes = {},
+): ExerciseHistory {
+    const lastSession = computeLastSession(logs, routineExerciseId, currentWeek);
+    const bestSet = computeBestSets(logs)[routineExerciseId] ?? null;
+    const best = bestSet ? { kg: bestSet.kg, reps: bestSet.reps, e1rm: bestSet.e1rm } : null;
+
+    // Retrospective trend: prior weeks only, so it reads "how the last two sessions
+    // before now moved", consistent with lastSession / previousNote and never pulled
+    // by the current week's in-progress sets.
+    const history = computeE1RMHistory(logs, routineExerciseId).filter((h) => h.week < currentWeek);
+    let trend: Trend = 'none';
+    let e1rmDeltaPct: number | null = null;
+    if (history.length >= 2) {
+        const prev = history[history.length - 2].e1rm;
+        const last = history[history.length - 1].e1rm;
+        if (prev > 0) e1rmDeltaPct = ((last - prev) / prev) * 100;
+        trend = last > prev ? 'up' : last < prev ? 'down' : 'flat';
+    }
+
+    // Most recent prior week's note for this exercise. Notes are keyed
+    // `${week}-${routineExerciseId}` where the id is a UUID (contains dashes), so
+    // split on the FIRST dash only (week is a plain number).
+    let previousNote: string | null = null;
+    let bestNoteWeek = -1;
+    for (const [key, text] of Object.entries(notes)) {
+        if (!text) continue;
+        const dash = key.indexOf('-');
+        if (dash < 0) continue;
+        const week = Number(key.slice(0, dash));
+        if (!Number.isFinite(week) || week >= currentWeek || week <= bestNoteWeek) continue;
+        if (key.slice(dash + 1) !== routineExerciseId) continue;
+        bestNoteWeek = week;
+        previousNote = text;
+    }
+
+    return { lastSession, best, trend, e1rmDeltaPct, previousNote };
 }
 
 export function computeShareStats(
