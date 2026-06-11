@@ -2749,3 +2749,431 @@ describe('lower_lean trains hypertrophy, not pump (live-test Issue 3)', () => {
         expect(isolations.every((e) => e.reps === '12-15')).toBe(true);
     });
 });
+
+// ── No squat on the posterior leg day (lower_post), 2026-06-11 ────────────────
+// A squat (priority 0) seated by a DURESS fallback on lower_post (anchor = hinge)
+// becomes PRIMARY_LOWER and hijacks the day from the RDL -- the reported
+// "Dumbbell Sumo Squat on the posterior Legs day" bug. The duress lower fallbacks
+// (the minimum-compound floor guard AND the finisher deflection) now respect the
+// emphasis-slot contract: lower_post never seats a squat, lower_quad still reaches
+// its accessory hinge.
+describe('lower_post never seats a squat compound under a thin pool (2026-06-11)', () => {
+    const patternMap = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e.movement_pattern]));
+    const dbBench = new Set<EquipmentKey>(['dumbbells', 'bench']);
+    const advancedDb = {
+        equipment: dbBench,
+        experience: 'advanced' as const,
+        goal: 'build_muscle' as const,
+        days: 5 as const,
+    };
+
+    // Mirrors the reported dumbbell + bench catalog: two squat compounds, ONE hinge
+    // compound (RDL) plus a hinge ISOLATION (a leg curl), unilateral lunges, NO
+    // usable glute_iso, deep calf/core, full upper. The RDL gets used by the quad
+    // day first, so the posterior day's hinge slot picks the fresh leg-curl ISO,
+    // leaving the first pass one compound short and tripping the floor guard.
+    function dumbbellBenchPool(): ExerciseMeta[] {
+        const pool: ExerciseMeta[] = [
+            meta('goblet-squat', 'squat', ['dumbbells'], true, { name: 'Dumbbell Goblet Squat', fatigue: 4 }),
+            meta('sumo-squat', 'squat', ['dumbbells'], true, { name: 'Dumbbell Sumo Squat', fatigue: 4 }),
+            meta('db-rdl', 'hinge', ['dumbbells'], true, { name: 'Dumbbell Romanian Deadlift', fatigue: 4 }),
+            meta('leg-curl', 'hinge', ['dumbbells', 'bench'], false, { name: 'Dumbbell Leg Curl (Lying)' }),
+            meta('bulgarian', 'lunge', ['dumbbells', 'bench'], true, { name: 'Bulgarian Split Squat', unilateral: true }),
+            meta('step-up', 'lunge', ['bench'], true, { name: 'Step-Up', unilateral: true }),
+            meta('walking-lunge', 'lunge', ['dumbbells'], true, { name: 'Walking Lunge', unilateral: true }),
+            meta('db-calf', 'calf', ['dumbbells'], false),
+            meta('sl-calf', 'calf', [], false),
+            meta('crunch', 'core', [], false),
+            meta('plank', 'core', [], false),
+            meta('russian-twist', 'core', [], false),
+        ];
+        const upper: Array<[MovementPattern, boolean]> = [
+            ['horizontal_push', true],
+            ['vertical_push', true],
+            ['horizontal_pull', true],
+            ['chest_iso', false],
+            ['back_iso', false],
+            ['shoulder_iso', false],
+            ['biceps_iso', false],
+            ['triceps_iso', false],
+        ];
+        for (const [p, c] of upper) {
+            pool.push(meta(`${p}-1`, p, ['dumbbells'], c));
+            pool.push(meta(`${p}-2`, p, ['dumbbells'], c));
+        }
+        return pool;
+    }
+
+    it('ulppl-5 legs (lower_post) contains no squat-pattern exercise, even when the floor guard fires', () => {
+        const pool = dumbbellBenchPool();
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
+        const pat = patternMap(pool);
+        const legs = sessionIds(bp, 'legs', null);
+        const legsPatterns = legs.map((id) => pat.get(id));
+        // The bug: a squat-pattern compound led the posterior day.
+        expect(legsPatterns).not.toContain('squat');
+        expect(legs).not.toContain('goblet-squat');
+        expect(legs).not.toContain('sumo-squat');
+        // It is still a leg session: the in-contract hinge + lunge compounds survive.
+        expect(legsPatterns).toContain('hinge');
+        expect(legsPatterns).toContain('lunge');
+    });
+
+    it('the quad day (lower) still produces a squat compound (the guard still works there)', () => {
+        const pool = dumbbellBenchPool();
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
+        const pat = patternMap(pool);
+        expect(sessionIds(bp, 'lower', null).map((id) => pat.get(id))).toContain('squat');
+    });
+
+    it('lower_post with NO usable lunge still never seats a squat (floor-guard path, ships with a warning)', () => {
+        // No lunge compound at all: the posterior first pass seats only the RDL, so
+        // the floor guard fires with the squat as the highest-priority candidate.
+        // It must skip the off-contract squat (hinge is heavy-dedup filled, lunge is
+        // empty) and surface the limited-variety warning instead of seating a squat.
+        const pool = dumbbellBenchPool().filter((e) => e.movement_pattern !== 'lunge');
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
+        const pat = patternMap(pool);
+        expect(sessionIds(bp, 'legs', null).map((id) => pat.get(id))).not.toContain('squat');
+        expect(bp.warnings.some((w) => w.includes('fewer compound exercises'))).toBe(true);
+    });
+});
+
+// ── Vertical-push anchors: Push Press is NOT a canonical primary (2026-06-11) ──
+// Dumbbell Push Press is a power movement (its value is leg drive for an explosive
+// low-rep effort), so at 8-12 hypertrophy reps it is a poor Push-day anchor. It was
+// removed from CANONICAL_ANCHORS.vertical_push, so it floats by fatigue/id behind
+// every strict overhead press (Barbell/Dumbbell OHP, Arnold Press, Machine Shoulder
+// Press). (Note: across two same-pattern sessions the avoid-set can still rotate any
+// remaining fresh option across days -- that is the freshness feature, not a bug.)
+describe('vertical_push anchors: Dumbbell Push Press is not a canonical primary', () => {
+    const style = () => STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+
+    it('picks Dumbbell Overhead Press over Dumbbell Push Press when both are fresh', () => {
+        // ids chosen so Push Press sorts FIRST alphabetically: OHP must still win.
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'vertical_push')
+            .concat([
+                meta('aaa-push-press', 'vertical_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Dumbbell Push Press',
+                    substitution_class: 'vertical_press',
+                }),
+                meta('zzz-ohp', 'vertical_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Dumbbell Overhead Press',
+                    substitution_class: 'vertical_press',
+                }),
+            ]);
+        const bp = generateRoutine(input({ style: style(), trainingDays: [1, 3, 5], pool }));
+        const push = sessionIds(bp, 'push', null);
+        expect(push).toContain('zzz-ohp');
+        expect(push).not.toContain('aaa-push-press');
+    });
+
+    it('prefers a strict overhead press (Arnold Press) over Push Press even when Push Press has higher fatigue', () => {
+        // Proves Push Press lost anchor status, not just that OHP outranks it: Arnold
+        // Press is a lower-ranked canonical anchor AND lower fatigue (3 vs 4), yet it
+        // wins because Push Press is unlisted (Infinity rank). If Push Press were still
+        // an anchor OR if fatigue decided, the higher-fatigue Push Press would win.
+        // The id 'aaa-push-press' also sorts first alphabetically.
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'vertical_push')
+            .concat([
+                meta('aaa-push-press', 'vertical_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Dumbbell Push Press',
+                    substitution_class: 'vertical_press',
+                }),
+                meta('zzz-arnold', 'vertical_push', ['dumbbells'], true, {
+                    fatigue: 3,
+                    name: 'Arnold Press',
+                    substitution_class: 'vertical_press',
+                }),
+            ]);
+        const bp = generateRoutine(input({ style: style(), trainingDays: [1, 3, 5], pool }));
+        const push = sessionIds(bp, 'push', null);
+        expect(push).toContain('zzz-arnold');
+        expect(push).not.toContain('aaa-push-press');
+    });
+});
+
+// ── PHUL (#18): phul-4 powerbuilding style ───────────────────────────────────
+// Spec: docs/superpowers/specs/2026-06-11-12-53-42-phul-program-style-design.md.
+// A 4-day powerbuilding split: each region trained twice, once heavy (strength)
+// and once for volume (hypertrophy). Pure additive data (4 EMPHASES + 1 STYLES[4]
+// entry + EmphasisKey union); every other style stays byte-identical (guarded below).
+describe('PHUL (#18): phul-4 powerbuilding style', () => {
+    const patternMap = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e.movement_pattern]));
+    const phul = () => STYLES[4].find((s) => s.key === 'phul-4') as ProgramStyle;
+    const fourDays = [1, 2, 4, 5];
+
+    it('week shape: Upper Power / Lower Power / Upper Hypertrophy / Lower Hypertrophy, in that order', () => {
+        expect(phul()?.sessions).toEqual([
+            { focus: 'upper', emphasis: 'phul_upper_power', variant: 'A' },
+            { focus: 'lower', emphasis: 'phul_lower_power', variant: 'A' },
+            { focus: 'upper', emphasis: 'phul_upper_hyp', variant: 'B' },
+            { focus: 'lower', emphasis: 'phul_lower_hyp', variant: 'B' },
+        ]);
+    });
+
+    // Shared blueprint for the composition goldens: deep pool, 45-60 min, balanced.
+    function phulBlueprint() {
+        const pool = deepPool(2);
+        const bp = generateRoutine(input({ style: phul(), trainingDays: fourDays, pool }));
+        const pat = patternMap(pool);
+        const rows = (wt: string, v: string) => bp.exercises.filter((e) => e.workout_type === wt && e.variant === v);
+        const patterns = (wt: string, v: string) => rows(wt, v).map((e) => pat.get(e.exercise_id));
+        const compounds = (wt: string, v: string) =>
+            rows(wt, v).filter((e) => {
+                const p = pat.get(e.exercise_id);
+                return p && !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            });
+        return { bp, pat, rows, patterns, compounds };
+    }
+
+    it('Upper Power: strength compounds at 3-6, one 4-set bump, full push+pull, only biceps/triceps iso', () => {
+        const { rows, patterns, compounds } = phulBlueprint();
+        const c = compounds('upper', 'A');
+        expect(c.length).toBeGreaterThan(0);
+        expect(c.every((e) => e.reps === '3-6')).toBe(true);
+        // Strength bias: the session's first compound takes the +1 set bump, exactly once.
+        expect(rows('upper', 'A').filter((e) => e.sets === '4')).toHaveLength(1);
+        const p = patterns('upper', 'A');
+        expect(p).toContain('horizontal_push');
+        expect(p).toContain('horizontal_pull');
+        expect(p).toContain('vertical_push');
+        expect(p).toContain('vertical_pull');
+        // Minimal arm-only isolation: biceps + triceps only, no chest/shoulder/back/glute iso.
+        const isos = p.filter((x): x is MovementPattern => !!x && x.endsWith('_iso'));
+        expect(new Set(isos)).toEqual(new Set<MovementPattern>(['biceps_iso', 'triceps_iso']));
+    });
+
+    it('Lower Power: strength, squat AND hinge at 3-6, the +1 set bump lands on the squat at position 0', () => {
+        const { rows, patterns, compounds, pat } = phulBlueprint();
+        const c = compounds('lower', 'A');
+        expect(c.length).toBeGreaterThan(0);
+        expect(c.every((e) => e.reps === '3-6')).toBe(true);
+        const p = patterns('lower', 'A');
+        expect(p).toContain('squat');
+        expect(p).toContain('hinge');
+        expect(p).toContain('lunge');
+        // Finishers present at 45-60 min.
+        expect(p).toContain('calf');
+        expect(p).toContain('core');
+        // The squat is PRIMARY_LOWER (position 0) and takes the single set bump.
+        const bumped = rows('lower', 'A').filter((e) => e.sets === '4');
+        expect(bumped).toHaveLength(1);
+        expect(pat.get(bumped[0].exercise_id)).toBe('squat');
+        expect(bumped[0].order).toBe(0);
+    });
+
+    it('Upper Hypertrophy: hypertrophy 8-12, no bump, NO vertical_push compound, fly + delt iso present', () => {
+        const { rows, patterns, compounds } = phulBlueprint();
+        const c = compounds('upper', 'B');
+        expect(c.length).toBeGreaterThan(0);
+        expect(c.every((e) => e.reps === '8-12')).toBe(true);
+        expect(rows('upper', 'B').every((e) => e.sets === '3')).toBe(true);
+        const p = patterns('upper', 'B');
+        expect(p).toContain('horizontal_push');
+        expect(p).toContain('horizontal_pull');
+        expect(p).toContain('vertical_pull');
+        // The defining PHUL characteristic: no overhead press on the volume upper day.
+        expect(p).not.toContain('vertical_push');
+        expect(p).toContain('chest_iso');
+        expect(p).toContain('shoulder_iso');
+    });
+
+    it('Lower Hypertrophy: hypertrophy 8-12, no bump, squat-led, with lunge + hinge + calf', () => {
+        const { rows, patterns, compounds, pat } = phulBlueprint();
+        const c = compounds('lower', 'B');
+        expect(c.length).toBeGreaterThan(0);
+        expect(c.every((e) => e.reps === '8-12')).toBe(true);
+        expect(rows('lower', 'B').every((e) => e.sets === '3')).toBe(true);
+        const p = patterns('lower', 'B');
+        expect(p).toContain('squat');
+        expect(p).toContain('lunge');
+        expect(p).toContain('hinge');
+        expect(p).toContain('calf');
+        // Squat leads (PRIMARY_LOWER at position 0).
+        const ordered = [...rows('lower', 'B')].sort((a, b) => a.order - b.order);
+        expect(pat.get(ordered[0].exercise_id)).toBe('squat');
+    });
+
+    it('Upper Hypertrophy at 90+ min activates all 7 slots, including the trailing triceps_iso', () => {
+        const pool = deepPool(2);
+        const bp = generateRoutine(input({ style: phul(), trainingDays: fourDays, pool, sessionTime: '90+ min' }));
+        const pat = patternMap(pool);
+        const p = sessionIds(bp, 'upper', 'B').map((id) => pat.get(id));
+        expect(p).toContain('triceps_iso');
+        expect(p).toContain('biceps_iso');
+        expect(p).toContain('chest_iso');
+        expect(p).toContain('shoulder_iso');
+        // Still no overhead press, even with the longer session and backfill.
+        expect(p).not.toContain('vertical_push');
+    });
+
+    it('consistent: the Power and Hypertrophy day of each region share the same main lift', () => {
+        // ~30 min (4 exercises) keeps each session at a single slot per compound
+        // pattern, so the shared-anchor assertions stay exact.
+        const pool = deepPool(2);
+        const bp = generateRoutine(
+            input({
+                style: phul(),
+                trainingDays: fourDays,
+                pool,
+                sessionTime: '~30 min',
+                varietyPreference: 'consistent',
+            }),
+        );
+        const pat = patternMap(pool);
+        const byPat = (wt: string, v: string, mp: MovementPattern) =>
+            sessionIds(bp, wt, v).filter((id) => pat.get(id) === mp);
+        // Same bench on both upper days.
+        const hpA = byPat('upper', 'A', 'horizontal_push');
+        const hpB = byPat('upper', 'B', 'horizontal_push');
+        expect(hpA).toHaveLength(1);
+        expect(hpB).toHaveLength(1);
+        expect(hpA[0]).toBe(hpB[0]);
+        // Same squat on both lower days.
+        const sqA = byPat('lower', 'A', 'squat');
+        const sqB = byPat('lower', 'B', 'squat');
+        expect(sqA).toHaveLength(1);
+        expect(sqB).toHaveLength(1);
+        expect(sqA[0]).toBe(sqB[0]);
+    });
+
+    it('varied: the Hypertrophy upper day picks a different horizontal push from the Power day', () => {
+        const { bp, pat } = phulBlueprint(); // varied is the default
+        const hp = (v: string) => sessionIds(bp, 'upper', v).filter((id) => pat.get(id) === 'horizontal_push');
+        expect(hp('A')).toHaveLength(1);
+        expect(hp('B')).toHaveLength(1);
+        expect(hp('B')[0]).not.toBe(hp('A')[0]);
+    });
+
+    it('does not change the 4-day default: recommendStyle(4) is still ul-classic-4', () => {
+        expect(recommendStyle(4)).toBe('ul-classic-4');
+    });
+
+    it('is offered in the 4-day picker grouped with the U/L splits (index 2)', () => {
+        const keys = STYLES[4].map((s) => s.key);
+        expect(keys).toContain('phul-4');
+        expect(keys).toEqual(['ul-classic-4', 'ul-aesthetic-4', 'phul-4', 'ppl-fb-4', 'fb-hmhp-4']);
+    });
+});
+
+// PHUL is purely additive. ul-classic-4 already has a byte-identity golden (Item 5
+// block above); these freeze the other three 4-day styles so any future change that
+// silently alters them is caught. Captured with input() defaults (deepPool(2),
+// dumbbells-only, 45-60 min, intermediate, build_muscle, anchorDow default).
+describe('PHUL (#18): byte-identity guards for the other 4-day styles', () => {
+    function flatten(key: string, days: number[]) {
+        const style = STYLES[4].find((s) => s.key === key) as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: days }));
+        return {
+            schedule: bp.schedule.map((s) => `${s.day_of_week}:${s.workout_type}:${s.variant ?? '-'}`),
+            exercises: bp.exercises.map(
+                (e) => `${e.workout_type}:${e.variant ?? '-'}:${e.exercise_id}:${e.sets}x${e.reps}`,
+            ),
+        };
+    }
+
+    it('ul-aesthetic-4 is unchanged by the PHUL addition', () => {
+        expect(flatten('ul-aesthetic-4', [1, 2, 4, 5])).toEqual({
+            schedule: ['1:upper:A', '2:lower:A', '4:upper:B', '5:lower:B'],
+            exercises: [
+                'upper:A:horizontal_push-1:3x8-12',
+                'upper:A:horizontal_pull-1:3x8-12',
+                'upper:A:vertical_pull-1:3x8-12',
+                'upper:A:shoulder_iso-1:3x12-15',
+                'upper:A:chest_iso-1:3x12-15',
+                'upper:A:back_iso-1:3x12-15',
+                'lower:A:squat-1:3x8-12',
+                'lower:A:lunge-1:3x8-12',
+                'lower:A:lunge-2:3x8-12',
+                'lower:A:glute_iso-1:3x12-15',
+                'lower:A:calf-1:3x12-15',
+                'lower:A:core-1:3x12-15',
+                'upper:B:vertical_push-1:3x12-15',
+                'upper:B:horizontal_pull-2:3x12-15',
+                'upper:B:shoulder_iso-2:3x15-20',
+                'upper:B:biceps_iso-1:3x15-20',
+                'upper:B:triceps_iso-1:3x15-20',
+                'upper:B:back_iso-2:3x15-20',
+                'lower:B:hinge-1:3x8-12',
+                'lower:B:lunge-1:3x8-12',
+                'lower:B:glute_iso-2:3x12-15',
+                'lower:B:glute_iso-1:3x12-15',
+                'lower:B:calf-2:3x12-15',
+                'lower:B:core-2:3x12-15',
+            ],
+        });
+    });
+
+    it('ppl-fb-4 is unchanged by the PHUL addition', () => {
+        expect(flatten('ppl-fb-4', [1, 2, 4, 5])).toEqual({
+            schedule: ['1:push:-', '2:pull:-', '4:legs:-', '5:full_body:-'],
+            exercises: [
+                'push:-:horizontal_push-1:3x8-12',
+                'push:-:vertical_push-1:3x8-12',
+                'push:-:chest_iso-1:3x12-15',
+                'push:-:shoulder_iso-1:3x12-15',
+                'push:-:triceps_iso-1:3x12-15',
+                'push:-:triceps_iso-2:3x12-15',
+                'pull:-:horizontal_pull-1:3x8-12',
+                'pull:-:vertical_pull-1:3x8-12',
+                'pull:-:back_iso-1:3x12-15',
+                'pull:-:shoulder_iso-2:3x12-15',
+                'pull:-:biceps_iso-1:3x12-15',
+                'pull:-:back_iso-2:3x12-15',
+                'legs:-:squat-1:3x8-12',
+                'legs:-:hinge-1:3x8-12',
+                'legs:-:lunge-1:3x8-12',
+                'legs:-:glute_iso-1:3x12-15',
+                'legs:-:calf-1:3x12-15',
+                'legs:-:core-1:3x12-15',
+                'full_body:-:squat-2:3x8-12',
+                'full_body:-:horizontal_push-2:3x8-12',
+                'full_body:-:hinge-2:3x8-12',
+                'full_body:-:vertical_push-2:3x8-12',
+                'full_body:-:horizontal_pull-2:3x8-12',
+                'full_body:-:shoulder_iso-1:3x10-15',
+            ],
+        });
+    });
+
+    it('fb-hmhp-4 is unchanged by the PHUL addition', () => {
+        expect(flatten('fb-hmhp-4', [1, 2, 4, 5])).toEqual({
+            schedule: ['1:full_body:A', '2:full_body:B', '4:full_body:C', '5:full_body:D'],
+            exercises: [
+                'full_body:A:squat-1:4x3-6',
+                'full_body:A:horizontal_push-1:3x3-6',
+                'full_body:A:hinge-1:3x3-6',
+                'full_body:A:vertical_push-1:3x3-6',
+                'full_body:A:horizontal_pull-1:3x3-6',
+                'full_body:A:biceps_iso-1:3x10-15',
+                'full_body:B:squat-2:3x8-12',
+                'full_body:B:horizontal_push-2:3x8-12',
+                'full_body:B:hinge-2:3x8-12',
+                'full_body:B:vertical_push-2:3x8-12',
+                'full_body:B:horizontal_pull-2:3x8-12',
+                'full_body:B:shoulder_iso-1:3x10-15',
+                'full_body:C:hinge-1:3x8-12',
+                'full_body:C:horizontal_push-1:3x8-12',
+                'full_body:C:lunge-1:3x8-12',
+                'full_body:C:horizontal_pull-1:3x8-12',
+                'full_body:C:shoulder_iso-2:3x12-15',
+                'full_body:C:triceps_iso-1:3x12-15',
+                'full_body:D:lunge-2:3x12-15',
+                'full_body:D:horizontal_push-1:3x12-15',
+                'full_body:D:horizontal_pull-1:3x12-15',
+                'full_body:D:shoulder_iso-1:3x15-20',
+                'full_body:D:biceps_iso-2:3x15-20',
+                'full_body:D:triceps_iso-2:3x15-20',
+            ],
+        });
+    });
+});

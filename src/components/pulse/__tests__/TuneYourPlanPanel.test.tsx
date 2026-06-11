@@ -91,7 +91,9 @@ describe('TuneYourPlanPanel', () => {
         expect(screen.getByText('Equipment preference')).toBeInTheDocument();
         expect(screen.getByText('Movement restrictions')).toBeInTheDocument();
         // Null profile values fall back to the neutral defaults, shown active.
-        expect(screen.getByRole('button', { name: /Balanced/ })).toHaveAttribute('aria-pressed', 'true');
+        // Anchored like /^Varied/ below: the training-style "Balanced" toggle, not a
+        // style card whose description mentions the Balanced training style (e.g. phul-4).
+        expect(screen.getByRole('button', { name: /^Balanced/ })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByRole('button', { name: /^Varied/ })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByRole('button', { name: /No preference/ })).toHaveAttribute('aria-pressed', 'true');
     });
