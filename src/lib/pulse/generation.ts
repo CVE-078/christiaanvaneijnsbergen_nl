@@ -197,6 +197,57 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         bias: 'balanced',
         slots: ['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'],
     },
+    // ── PHUL (4-day powerbuilding: power + hypertrophy per region, phul-4) ─────
+    // Each region trained twice a week: a strength-bias Power day and a
+    // hypertrophy-bias Volume day. Both upper days use focus 'upper' and both lower
+    // days focus 'lower', so the `consistent` anchor pins the same main lift across
+    // the heavy and volume day of a region (progressive overload). New emphases, not
+    // reuse: the power days need a strength bias no existing upper/lower emphasis
+    // carries, and Lower Power needs squat AND hinge together (lower_quad / lower_post
+    // deliberately split them). Designed for the Balanced training style; Strength /
+    // Bodybuilding / Powerbuilding collapse the day-level contrast via resolveBias.
+    // Spec: docs/superpowers/specs/2026-06-11-12-53-42-phul-program-style-design.md.
+    phul_upper_power: {
+        bias: 'strength',
+        // Full upper press + pull, minimal arm isolation. The role model leads with the
+        // horizontal-push compound (bench), which takes the +1 strength set bump.
+        slots: ['horizontal_push', 'horizontal_pull', 'vertical_push', 'vertical_pull', 'biceps_iso', 'triceps_iso'],
+    },
+    phul_lower_power: {
+        bias: 'strength',
+        // Squat AND hinge are the two heavy money lifts (3-6 reps); squat is
+        // PRIMARY_LOWER and takes the +1 set bump, the deadlift (hinge) lands
+        // SECONDARY_LOWER. lunge for unilateral work, calf + core finishers. The 6th
+        // pick at 45-60 min comes from backfill. No hamstring-isolation slot: once the
+        // deadlift fills hinge, HEAVY_DEDUP_PATTERNS blocks a second, and there is no
+        // hamstring_iso pattern, so the deadlift is this day's posterior work.
+        slots: ['squat', 'hinge', 'lunge', 'calf', 'core'],
+    },
+    phul_upper_hyp: {
+        bias: 'hypertrophy',
+        // Volume upper. NO vertical_push compound (the defining PHUL characteristic):
+        // the overhead press lives on Power day; shoulders here come from shoulder_iso
+        // (lateral raises) plus indirect work from horizontal pressing. Compounds first
+        // (convention), then chest fly + full delt/arm isolation. vertical_pull no-ops
+        // for dumbbell-only users; the trailing triceps_iso drops at the 6-exercise cap.
+        slots: [
+            'horizontal_push',
+            'horizontal_pull',
+            'vertical_pull',
+            'chest_iso',
+            'shoulder_iso',
+            'biceps_iso',
+            'triceps_iso',
+        ],
+    },
+    phul_lower_hyp: {
+        bias: 'hypertrophy',
+        // Volume lower, quad-biased: squat-led, lunge before hinge for selection
+        // freshness on the quad pattern. hinge supplies hamstring/posterior volume at
+        // 8-12 (the leg-curl proxy; Pulse has no quad_iso / hamstring_iso pattern), so
+        // both lower days carry a hinge (heavy deadlift on Power, moderate hinge here).
+        slots: ['squat', 'lunge', 'hinge', 'glute_iso', 'calf', 'core'],
+    },
 };
 
 /** Resolve an emphasis key to its `{ bias, slots }` definition. */
@@ -326,6 +377,24 @@ export const STYLES: Record<number, ProgramStyle[]> = {
                 { focus: 'lower', emphasis: 'lower_lean', variant: 'A' },
                 { focus: 'upper', emphasis: 'upper_aesthetic_b', variant: 'B' },
                 { focus: 'lower', emphasis: 'lower_post', variant: 'B' },
+            ],
+        },
+        {
+            key: 'phul-4',
+            name: 'Power Hypertrophy Upper Lower',
+            bestFor:
+                'Powerbuilding: train each muscle twice a week, once heavy for strength and once for size. Designed for the Balanced training style to preserve the power/volume contrast.',
+            // PHUL: each region trained twice, once heavy (Power, strength bias) and once
+            // for volume (Hypertrophy). variant A = the Power pair, B = the Hypertrophy
+            // pair. Both upper days share focus 'upper' and both lower days focus 'lower'
+            // so the consistent anchor pins the same bench / squat across the heavy and
+            // volume day (progressive overload). Grouped with the U/L splits in the
+            // picker; not the default (recommendStyle returns STYLES[4][0]).
+            sessions: [
+                { focus: 'upper', emphasis: 'phul_upper_power', variant: 'A' },
+                { focus: 'lower', emphasis: 'phul_lower_power', variant: 'A' },
+                { focus: 'upper', emphasis: 'phul_upper_hyp', variant: 'B' },
+                { focus: 'lower', emphasis: 'phul_lower_hyp', variant: 'B' },
             ],
         },
         {

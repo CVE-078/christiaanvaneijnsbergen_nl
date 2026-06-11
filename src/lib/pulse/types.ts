@@ -525,6 +525,11 @@ export type EmphasisKey =
     | 'push_volume'
     | 'pull_heavy'
     | 'pull_volume'
+    // phul (4-day powerbuilding: power + hypertrophy per region, #18)
+    | 'phul_upper_power'
+    | 'phul_lower_power'
+    | 'phul_upper_hyp'
+    | 'phul_lower_hyp'
     // generic upper/lower (3-day U/L/FB, 5-day hybrids)
     | 'upper_general'
     | 'lower_general';
