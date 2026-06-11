@@ -2749,3 +2749,154 @@ describe('lower_lean trains hypertrophy, not pump (live-test Issue 3)', () => {
         expect(isolations.every((e) => e.reps === '12-15')).toBe(true);
     });
 });
+
+// ── No squat on the posterior leg day (lower_post), 2026-06-11 ────────────────
+// A squat (priority 0) seated by a DURESS fallback on lower_post (anchor = hinge)
+// becomes PRIMARY_LOWER and hijacks the day from the RDL -- the reported
+// "Dumbbell Sumo Squat on the posterior Legs day" bug. The duress lower fallbacks
+// (the minimum-compound floor guard AND the finisher deflection) now respect the
+// emphasis-slot contract: lower_post never seats a squat, lower_quad still reaches
+// its accessory hinge.
+describe('lower_post never seats a squat compound under a thin pool (2026-06-11)', () => {
+    const patternMap = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e.movement_pattern]));
+    const dbBench = new Set<EquipmentKey>(['dumbbells', 'bench']);
+    const advancedDb = {
+        equipment: dbBench,
+        experience: 'advanced' as const,
+        goal: 'build_muscle' as const,
+        days: 5 as const,
+    };
+
+    // Mirrors the reported dumbbell + bench catalog: two squat compounds, ONE hinge
+    // compound (RDL) plus a hinge ISOLATION (a leg curl), unilateral lunges, NO
+    // usable glute_iso, deep calf/core, full upper. The RDL gets used by the quad
+    // day first, so the posterior day's hinge slot picks the fresh leg-curl ISO,
+    // leaving the first pass one compound short and tripping the floor guard.
+    function dumbbellBenchPool(): ExerciseMeta[] {
+        const pool: ExerciseMeta[] = [
+            meta('goblet-squat', 'squat', ['dumbbells'], true, { name: 'Dumbbell Goblet Squat', fatigue: 4 }),
+            meta('sumo-squat', 'squat', ['dumbbells'], true, { name: 'Dumbbell Sumo Squat', fatigue: 4 }),
+            meta('db-rdl', 'hinge', ['dumbbells'], true, { name: 'Dumbbell Romanian Deadlift', fatigue: 4 }),
+            meta('leg-curl', 'hinge', ['dumbbells', 'bench'], false, { name: 'Dumbbell Leg Curl (Lying)' }),
+            meta('bulgarian', 'lunge', ['dumbbells', 'bench'], true, { name: 'Bulgarian Split Squat', unilateral: true }),
+            meta('step-up', 'lunge', ['bench'], true, { name: 'Step-Up', unilateral: true }),
+            meta('walking-lunge', 'lunge', ['dumbbells'], true, { name: 'Walking Lunge', unilateral: true }),
+            meta('db-calf', 'calf', ['dumbbells'], false),
+            meta('sl-calf', 'calf', [], false),
+            meta('crunch', 'core', [], false),
+            meta('plank', 'core', [], false),
+            meta('russian-twist', 'core', [], false),
+        ];
+        const upper: Array<[MovementPattern, boolean]> = [
+            ['horizontal_push', true],
+            ['vertical_push', true],
+            ['horizontal_pull', true],
+            ['chest_iso', false],
+            ['back_iso', false],
+            ['shoulder_iso', false],
+            ['biceps_iso', false],
+            ['triceps_iso', false],
+        ];
+        for (const [p, c] of upper) {
+            pool.push(meta(`${p}-1`, p, ['dumbbells'], c));
+            pool.push(meta(`${p}-2`, p, ['dumbbells'], c));
+        }
+        return pool;
+    }
+
+    it('ulppl-5 legs (lower_post) contains no squat-pattern exercise, even when the floor guard fires', () => {
+        const pool = dumbbellBenchPool();
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
+        const pat = patternMap(pool);
+        const legs = sessionIds(bp, 'legs', null);
+        const legsPatterns = legs.map((id) => pat.get(id));
+        // The bug: a squat-pattern compound led the posterior day.
+        expect(legsPatterns).not.toContain('squat');
+        expect(legs).not.toContain('goblet-squat');
+        expect(legs).not.toContain('sumo-squat');
+        // It is still a leg session: the in-contract hinge + lunge compounds survive.
+        expect(legsPatterns).toContain('hinge');
+        expect(legsPatterns).toContain('lunge');
+    });
+
+    it('the quad day (lower) still produces a squat compound (the guard still works there)', () => {
+        const pool = dumbbellBenchPool();
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
+        const pat = patternMap(pool);
+        expect(sessionIds(bp, 'lower', null).map((id) => pat.get(id))).toContain('squat');
+    });
+
+    it('lower_post with NO usable lunge still never seats a squat (floor-guard path, ships with a warning)', () => {
+        // No lunge compound at all: the posterior first pass seats only the RDL, so
+        // the floor guard fires with the squat as the highest-priority candidate.
+        // It must skip the off-contract squat (hinge is heavy-dedup filled, lunge is
+        // empty) and surface the limited-variety warning instead of seating a squat.
+        const pool = dumbbellBenchPool().filter((e) => e.movement_pattern !== 'lunge');
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
+        const pat = patternMap(pool);
+        expect(sessionIds(bp, 'legs', null).map((id) => pat.get(id))).not.toContain('squat');
+        expect(bp.warnings.some((w) => w.includes('fewer compound exercises'))).toBe(true);
+    });
+});
+
+// ── Vertical-push anchors: Push Press is NOT a canonical primary (2026-06-11) ──
+// Dumbbell Push Press is a power movement (its value is leg drive for an explosive
+// low-rep effort), so at 8-12 hypertrophy reps it is a poor Push-day anchor. It was
+// removed from CANONICAL_ANCHORS.vertical_push, so it floats by fatigue/id behind
+// every strict overhead press (Barbell/Dumbbell OHP, Arnold Press, Machine Shoulder
+// Press). (Note: across two same-pattern sessions the avoid-set can still rotate any
+// remaining fresh option across days -- that is the freshness feature, not a bug.)
+describe('vertical_push anchors: Dumbbell Push Press is not a canonical primary', () => {
+    const style = () => STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+
+    it('picks Dumbbell Overhead Press over Dumbbell Push Press when both are fresh', () => {
+        // ids chosen so Push Press sorts FIRST alphabetically: OHP must still win.
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'vertical_push')
+            .concat([
+                meta('aaa-push-press', 'vertical_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Dumbbell Push Press',
+                    substitution_class: 'vertical_press',
+                }),
+                meta('zzz-ohp', 'vertical_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Dumbbell Overhead Press',
+                    substitution_class: 'vertical_press',
+                }),
+            ]);
+        const bp = generateRoutine(input({ style: style(), trainingDays: [1, 3, 5], pool }));
+        const push = sessionIds(bp, 'push', null);
+        expect(push).toContain('zzz-ohp');
+        expect(push).not.toContain('aaa-push-press');
+    });
+
+    it('prefers a strict overhead press (Arnold Press) over Push Press even when Push Press has higher fatigue', () => {
+        // Proves Push Press lost anchor status, not just that OHP outranks it: Arnold
+        // Press is a lower-ranked canonical anchor AND lower fatigue (3 vs 4), yet it
+        // wins because Push Press is unlisted (Infinity rank). If Push Press were still
+        // an anchor OR if fatigue decided, the higher-fatigue Push Press would win.
+        // The id 'aaa-push-press' also sorts first alphabetically.
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'vertical_push')
+            .concat([
+                meta('aaa-push-press', 'vertical_push', ['dumbbells'], true, {
+                    fatigue: 4,
+                    name: 'Dumbbell Push Press',
+                    substitution_class: 'vertical_press',
+                }),
+                meta('zzz-arnold', 'vertical_push', ['dumbbells'], true, {
+                    fatigue: 3,
+                    name: 'Arnold Press',
+                    substitution_class: 'vertical_press',
+                }),
+            ]);
+        const bp = generateRoutine(input({ style: style(), trainingDays: [1, 3, 5], pool }));
+        const push = sessionIds(bp, 'push', null);
+        expect(push).toContain('zzz-arnold');
+        expect(push).not.toContain('aaa-push-press');
+    });
+});

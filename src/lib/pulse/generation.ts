@@ -83,11 +83,14 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     lower_post: {
         bias: 'hypertrophy',
         slots: ['hinge', 'glute_iso', 'lunge', 'calf', 'core'],
-        // RESOLVED (live-test Issue 1, 2026-06-11): the per-focus minimum-compound
-        // floor (COMPOUND_FLOOR, 2 for lower sessions) now backstops this day. If a
-        // constrained pool empties the hinge, the floor guard seats a squat/lunge
-        // compound cross-pattern before backfill, and an unsatisfiable floor
-        // surfaces LIMITED_VARIETY_WARNING instead of shipping an accessory day.
+        // The posterior day anchors on HINGE and never trains squat. The duress
+        // lower fallbacks (the COMPOUND_FLOOR guard and the finisher deflection)
+        // respect this: under a thin pool they reach for an in-contract compound
+        // (a 2nd hinge or a lunge), never a squat (isOffContractLowerCompound).
+        // A squat here would be ranked PRIMARY_LOWER and hijack the day from the
+        // RDL (the Sumo-Squat-on-the-posterior-day bug, fixed 2026-06-11). If the
+        // floor of 2 is genuinely unsatisfiable the day ships with
+        // LIMITED_VARIETY_WARNING rather than an off-contract squat.
     },
     // Live-test Issue 3 (2026-06-11): bias changed pump -> hypertrophy. Pump put
     // the quad day's compounds at 12-15, accessory-level loading that confused
@@ -698,6 +701,36 @@ const FINISHER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['calf', 'core']
 const LIMITED_VARIETY_WARNING =
     'Some sessions have fewer compound exercises than recommended due to your equipment or movement restriction settings.';
 
+// ── Lower-compound pattern priority + duress-fallback contract ───────────────
+// Lower-body compound priority (squat anchors over hinge over lunge). Used by
+// BOTH the exercise role model (ranking the Lower bucket, compareLowerRole) AND
+// the duress lower fallbacks below. Lower number = higher-priority anchor.
+const LOWER_PATTERN_PRIORITY: Partial<Record<MovementPattern, number>> = { squat: 0, hinge: 1, lunge: 2 };
+
+// Emphasis-slot contract for the two duress lower fallbacks (the minimum-compound
+// floor guard and the finisher deflection). On a lower / legs session these may
+// reach OUTSIDE the emphasis slot list for a lower compound, but must NOT seat one
+// that would OUTRANK the day's own anchor and hijack the PRIMARY_LOWER role:
+//   - lower_post (anchor = hinge) must never receive a squat. This is the
+//     Sumo-Squat-on-the-posterior-day bug: a squat (priority 0) seated by the
+//     floor guard / deflection becomes PRIMARY_LOWER and displaces the RDL,
+//     turning the posterior day quad-led.
+//   - lower_quad / lower_lean (anchor = squat) MAY still receive an accessory
+//     hinge (a Dumbbell RDL): hinge ranks BELOW squat, so it lands SECONDARY_LOWER
+//     and the day stays squat-led (the live-test Issue 1 behaviour, kept).
+// full_body legitimately spans regions and is NOT gated (it keeps the any-region
+// fallback); the upper fallback list (push/pull/upper) is never lower-compound, so
+// it is unaffected. The day's anchor priority is the best (lowest) LOWER priority
+// among the lower compounds it actually trains in its slots.
+function isOffContractLowerCompound(pattern: MovementPattern, emphasis: Emphasis, focus: Focus): boolean {
+    if (focus !== 'lower' && focus !== 'legs') return false;
+    const prio = LOWER_PATTERN_PRIORITY[pattern];
+    if (prio === undefined) return false; // glute_iso / non-lower-compound never hijacks the anchor
+    if (emphasis.slots.includes(pattern)) return false; // part of the day's own contract
+    const anchorPrio = Math.min(...emphasis.slots.map((s) => LOWER_PATTERN_PRIORITY[s] ?? Infinity));
+    return prio < anchorPrio; // outranks the day's anchor -> off-contract, never seated
+}
+
 // ── Unilateral cap scope ──────────────────────────────────────────────────────
 // The unilateral cap (at most one single-limb-at-a-time lift per session) governs
 // single-limb COMPOUND work -- Walking Lunge, Bulgarian Split Squat, Step-Up --
@@ -762,13 +795,13 @@ export const CANONICAL_ANCHORS: Partial<Record<MovementPattern, string[]>> = {
         'Close-Grip Bench Press',
         'Push-Up',
     ],
-    vertical_push: [
-        'Barbell Overhead Press',
-        'Dumbbell Overhead Press',
-        'Dumbbell Push Press',
-        'Arnold Press',
-        'Machine Shoulder Press',
-    ],
+    // Strict overhead-press variations only. Dumbbell Push Press is deliberately
+    // NOT listed (2026-06-11): it is a power movement whose value is the leg drive
+    // for an explosive, low-rep effort, which is meaningless at the 8-12 hypertrophy
+    // reps a Push day prescribes. Left unlisted it floats by fatigue/id (Infinity
+    // anchor rank), well behind the strict presses here, so a fresh Arnold Press /
+    // Machine Shoulder Press anchors the day before it does.
+    vertical_push: ['Barbell Overhead Press', 'Dumbbell Overhead Press', 'Arnold Press', 'Machine Shoulder Press'],
     horizontal_pull: [
         'Barbell Row',
         'T-Bar Row',
@@ -1038,7 +1071,14 @@ function selectForSession(
     const compoundCount = () => chosen.reduce((n, c) => (c.ex.is_compound ? n + 1 : n), 0);
     const floor = COMPOUND_FLOOR[focus];
     if (compoundCount() < floor) {
-        for (const p of FLOOR_FALLBACK_PATTERNS[FLOOR_REGION[focus]]) {
+        // Respect the emphasis-slot contract: never seat an off-contract lower
+        // compound that would outrank the day's anchor (no squat on the posterior
+        // lower_post day). lower_quad still reaches its accessory hinge; full_body /
+        // upper are not gated. See isOffContractLowerCompound.
+        const floorPatterns = FLOOR_FALLBACK_PATTERNS[FLOOR_REGION[focus]].filter(
+            (p) => !isOffContractLowerCompound(p, emphasis, focus),
+        );
+        for (const p of floorPatterns) {
             if (compoundCount() >= floor || chosen.length >= count) break;
             if (patternCount(p) >= PATTERN_CAP) continue;
             if (HEAVY_DEDUP_PATTERNS.has(p) && heavyPatternFilled.has(p)) continue;
@@ -1057,7 +1097,9 @@ function selectForSession(
     // already carry every lower-bucket pattern.
     const lowerBucketExtras =
         focus === 'lower' || focus === 'legs' || focus === 'full_body'
-            ? LOWER_BUCKET_FALLBACK.filter((p) => !emphasis.slots.includes(p))
+            ? LOWER_BUCKET_FALLBACK.filter(
+                  (p) => !emphasis.slots.includes(p) && !isOffContractLowerCompound(p, emphasis, focus),
+              )
             : [];
 
     // Backfill: walk uncovered patterns first (breadth over depth), then revisit
@@ -1218,8 +1260,8 @@ const ROLE_UPPER_PATTERNS: ReadonlySet<MovementPattern> = new Set([
     'vertical_pull',
 ]);
 // Lower pattern priority (Q1): squat anchors over hinge over lunge, applied BEFORE
-// canonical rank when ranking the Lower bucket.
-const LOWER_PATTERN_PRIORITY: Partial<Record<MovementPattern, number>> = { squat: 0, hinge: 1, lunge: 2 };
+// canonical rank when ranking the Lower bucket. Defined once above (LOWER_PATTERN_PRIORITY,
+// shared with the duress-fallback contract).
 const ROLE_FATIGUE_NEUTRAL = 3;
 
 type RoleBucket = 'lower' | 'upper' | 'isolation' | 'finisher';
