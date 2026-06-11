@@ -141,6 +141,32 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         bias: 'hypertrophy',
         slots: ['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'],
     },
+    // ── Push / Pull heavy + volume pairs (ppl-x2-6, Item 5) ──────────────────
+    // The 6-day A/B contrast: A days are strength-biased (compounds 3-6, the
+    // first compound takes the +1 set bump), B days hypertrophy. The volume day
+    // leads with the OTHER compound (vertical push / vertical pull) so it gets
+    // the fresh pick and earliest backfill; display order stays role-model-owned.
+    // Q4: the doubled isolation slot lives on the VOLUME day only (the heavy day
+    // already carries the set bump; 2x isolation there exceeds MAV alongside the
+    // indirect work from two pressing/pulling compounds). At 45-60 min the
+    // 5-slot heavy days backfill their 6th pick onto the lead compound pattern
+    // (a 2nd horizontal push/pull at strength reps), an accepted consequence.
+    push_heavy: {
+        bias: 'strength',
+        slots: ['horizontal_push', 'vertical_push', 'chest_iso', 'shoulder_iso', 'triceps_iso'],
+    },
+    push_volume: {
+        bias: 'hypertrophy',
+        slots: ['vertical_push', 'horizontal_push', 'shoulder_iso', 'chest_iso', 'triceps_iso', 'triceps_iso'],
+    },
+    pull_heavy: {
+        bias: 'strength',
+        slots: ['horizontal_pull', 'vertical_pull', 'back_iso', 'shoulder_iso', 'biceps_iso'],
+    },
+    pull_volume: {
+        bias: 'hypertrophy',
+        slots: ['vertical_pull', 'horizontal_pull', 'back_iso', 'biceps_iso', 'shoulder_iso', 'back_iso'],
+    },
     // ── Generic upper / lower (3-day U/L/FB, 5-day hybrids) ───────────────────
     upper_general: {
         bias: 'balanced',
@@ -360,14 +386,17 @@ export const STYLES: Record<number, ProgramStyle[]> = {
         {
             key: 'ppl-x2-6',
             name: 'Push / Pull / Legs ×2',
-            bestFor: 'Six days, each muscle group twice a week.',
+            bestFor: 'Six days, each muscle group twice: a heavy A block and a volume B block.',
+            // Legs A/B reuse lower_quad/lower_post, the same quad/posterior split used
+            // in ul-classic-4 and ulppl-5. Share is intentional: same movement contract
+            // across all three styles. Any edit to these emphases affects all consumers.
             sessions: [
-                { focus: 'push', emphasis: 'push', variant: 'A' },
-                { focus: 'pull', emphasis: 'pull', variant: 'A' },
-                { focus: 'legs', emphasis: 'legs', variant: 'A' },
-                { focus: 'push', emphasis: 'push', variant: 'B' },
-                { focus: 'pull', emphasis: 'pull', variant: 'B' },
-                { focus: 'legs', emphasis: 'legs', variant: 'B' },
+                { focus: 'push', emphasis: 'push_heavy', variant: 'A' },
+                { focus: 'pull', emphasis: 'pull_heavy', variant: 'A' },
+                { focus: 'legs', emphasis: 'lower_quad', variant: 'A' },
+                { focus: 'push', emphasis: 'push_volume', variant: 'B' },
+                { focus: 'pull', emphasis: 'pull_volume', variant: 'B' },
+                { focus: 'legs', emphasis: 'lower_post', variant: 'B' },
             ],
         },
     ],

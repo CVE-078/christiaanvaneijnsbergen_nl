@@ -520,6 +520,11 @@ export type EmphasisKey =
     | 'push'
     | 'pull'
     | 'legs'
+    // ppl x2 heavy/volume pairs (6-day A/B differentiation, Item 5)
+    | 'push_heavy'
+    | 'push_volume'
+    | 'pull_heavy'
+    | 'pull_volume'
     // generic upper/lower (3-day U/L/FB, 5-day hybrids)
     | 'upper_general'
     | 'lower_general';

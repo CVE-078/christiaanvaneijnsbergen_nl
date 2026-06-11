@@ -1219,10 +1219,20 @@ describe('loading lean: preferred equipment floats before non-preferred', () => 
     });
 
     it('fresh non-preferred beats used preferred across two same-focus sessions', () => {
-        // ppl-x2-6: legs-A and legs-B both hit the squat slot.
-        // Barbell squat (preferred) is fresh in legs-A, so it wins there.
-        // By legs-B the barbell squat is in the used set, so the fresh dumbbell wins.
-        const pool = poolWithBarbell();
+        // ppl-x2-6: push-A (heavy, horizontal_push lead) and push-B (volume,
+        // horizontal_push second) both hit the horizontal_push slot. Barbell
+        // bench (preferred) is fresh in push-A, so it wins there. By push-B the
+        // barbell bench is in the used set, so the fresh dumbbell wins.
+        // (Premise migrated from legs x2 squat when Item 5 split the leg days;
+        // ~30 min keeps each push day at a single horizontal_push slot.)
+        const pool = [
+            meta('bench-aa-dumbbell', 'horizontal_push', ['dumbbells'], true),
+            meta('bench-zz-barbell', 'horizontal_push', ['barbell'], true),
+            ...ALL_PATTERNS.filter((p) => p !== 'horizontal_push').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
         const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6
         const answers = {
             equipment: bbAndDb,
@@ -1232,14 +1242,21 @@ describe('loading lean: preferred equipment floats before non-preferred', () => 
         };
 
         const bp = generateRoutine(
-            input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool, answers, loadingLean: 'barbell' }),
+            input({
+                style,
+                trainingDays: [1, 2, 3, 4, 5, 6],
+                pool,
+                answers,
+                loadingLean: 'barbell',
+                sessionTime: '~30 min',
+            }),
         );
-        const legsA = sessionIds(bp, 'legs', 'A');
-        const legsB = sessionIds(bp, 'legs', 'B');
+        const pushA = sessionIds(bp, 'push', 'A');
+        const pushB = sessionIds(bp, 'push', 'B');
 
-        expect(legsA).toContain('squat-zz-barbell');
-        expect(legsB).toContain('squat-aa-dumbbell');
-        expect(legsB).not.toContain('squat-zz-barbell');
+        expect(pushA).toContain('bench-zz-barbell');
+        expect(pushB).toContain('bench-aa-dumbbell');
+        expect(pushB).not.toContain('bench-zz-barbell');
     });
 });
 
@@ -1399,52 +1416,64 @@ describe('GQ3: anchor patterns prefer higher fatigue', () => {
     });
 
     it('fresh lower-fatigue anchor still beats a used higher-fatigue one (fresh wins over fatigue)', () => {
-        // After session A uses squat-zz (high fatigue, fresh), session B should
-        // pick squat-aa (low fatigue, fresh) rather than the used squat-zz.
-        const pool = poolWithFatigue();
-        const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: legs × 2
-        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool }));
-        const legsA = sessionIds(bp, 'legs', 'A');
-        const legsB = sessionIds(bp, 'legs', 'B');
-        // Session A picks the better anchor (squat-zz, fatigue 5).
-        expect(legsA).toContain('squat-zz');
-        // Session B: squat-zz is used. Even though squat-aa is lower fatigue (a
-        // weaker anchor), it is the only FRESH squat -- fresh wins.
-        expect(legsB).toContain('squat-aa');
+        // After push-A uses bench-zz (high fatigue, fresh), push-B should pick
+        // bench-aa (low fatigue, fresh) rather than the used bench-zz.
+        // (Premise migrated from legs x2 squat when Item 5 split the leg days;
+        // ~30 min keeps each push day at a single horizontal_push slot.)
+        const pool = [
+            metaFatigue('bench-aa', 'horizontal_push', 1, ['dumbbells'], true), // low fatigue, alphabetically first
+            metaFatigue('bench-zz', 'horizontal_push', 5, ['dumbbells'], true), // high fatigue, alphabetically last
+            ...ALL_PATTERNS.filter((p) => p !== 'horizontal_push').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
+        const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: push × 2
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool, sessionTime: '~30 min' }));
+        const pushA = sessionIds(bp, 'push', 'A');
+        const pushB = sessionIds(bp, 'push', 'B');
+        // Session A picks the better anchor (bench-zz, fatigue 5).
+        expect(pushA).toContain('bench-zz');
+        // Session B: bench-zz is used. Even though bench-aa is lower fatigue (a
+        // weaker anchor), it is the only FRESH horizontal push -- fresh wins.
+        expect(pushB).toContain('bench-aa');
     });
 });
 
 describe('GQ3: substitution-class cross-session deduplication', () => {
     it('prefers a distinct movement family over a redundant variant of an already-used class', () => {
-        // Two Romanian Deadlift variants share substitution_class 'hinge_pattern';
-        // Good Morning trains the same pattern via a distinct family. The two Legs
-        // days of ppl-x2-6 both carry a hinge slot -- without the cross-session
-        // dedup, the routine could seat both RDL variants, which reads as redundant.
+        // Two bench-press variants share substitution_class 'horizontal_press';
+        // the machine press trains the same pattern via a distinct family. The
+        // two push days of ppl-x2-6 both carry a horizontal_push slot -- without
+        // the cross-session dedup, the routine could seat both bench variants,
+        // which reads as redundant.
+        // (Premise migrated from legs x2 hinge when Item 5 split the leg days;
+        // ~30 min keeps each push day at a single horizontal_push slot.)
         const pool = deepPool()
-            .filter((e) => e.movement_pattern !== 'hinge')
+            .filter((e) => e.movement_pattern !== 'horizontal_push')
             .concat([
-                meta('romanian-deadlift', 'hinge', ['dumbbells'], true, {
-                    substitution_class: 'hinge_pattern',
+                meta('barbell-bench', 'horizontal_push', ['dumbbells'], true, {
+                    substitution_class: 'horizontal_press',
                     fatigue: 5,
                 }),
-                meta('romanian-deadlift-db', 'hinge', ['dumbbells'], true, {
-                    substitution_class: 'hinge_pattern',
+                meta('db-bench', 'horizontal_push', ['dumbbells'], true, {
+                    substitution_class: 'horizontal_press',
                     fatigue: 4,
                 }),
-                meta('good-morning', 'hinge', ['dumbbells'], true, {
-                    substitution_class: 'back_extension_pattern',
+                meta('machine-press', 'horizontal_push', ['dumbbells'], true, {
+                    substitution_class: 'machine_press',
                     fatigue: 1,
                 }),
             ]);
-        const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: legs × 2
-        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool }));
+        const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: push × 2
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool, sessionTime: '~30 min' }));
         const ids = bp.exercises.map((e) => e.exercise_id);
-        // Legs A anchors on the higher-fatigue RDL variant (the better anchor)...
-        expect(ids).toContain('romanian-deadlift');
-        // ...and Legs B reaches for Good Morning -- a distinct substitution class --
-        // rather than seating the redundant Dumbbell RDL.
-        expect(ids).toContain('good-morning');
-        expect(ids).not.toContain('romanian-deadlift-db');
+        // Push A anchors on the higher-fatigue bench variant (the better anchor)...
+        expect(ids).toContain('barbell-bench');
+        // ...and Push B reaches for the machine press -- a distinct substitution
+        // class -- rather than seating the redundant second bench variant.
+        expect(ids).toContain('machine-press');
+        expect(ids).not.toContain('db-bench');
     });
 });
 
@@ -1928,21 +1957,32 @@ describe('generation engine bug fixes (2026-06-10)', () => {
             expect(push[0]).not.toBe(fb[0]); // disjoint across non-equivalent sessions
         });
 
-        it('same-focus sessions STILL share the pattern anchor (Legs A and Legs B)', () => {
-            // ppl-x2-6: legs A and legs B both have focus 'legs', so the consistent
-            // anchor (the intended feature) keeps the same squat across both.
+        it('same-focus sessions STILL share the pattern anchor (Push A and Push B)', () => {
+            // ppl-x2-6: push A and push B both have focus 'push', so the consistent
+            // anchor (the intended feature) keeps the same bench AND the same OHP
+            // across both, even though the volume day leads with vertical_push.
+            // (Premise migrated from legs x2 squat when Item 5 split the leg days;
+            // ~30 min keeps each push day at one slot per compound pattern.)
             const pool = deepPool();
             const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6
             const bp = generateRoutine(
-                input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool, varietyPreference: 'consistent' }),
+                input({
+                    style,
+                    trainingDays: [1, 2, 3, 4, 5, 6],
+                    pool,
+                    sessionTime: '~30 min',
+                    varietyPreference: 'consistent',
+                }),
             );
             const pat = patternMap(pool);
-            const sq = (v: string) => sessionIds(bp, 'legs', v).filter((id) => pat.get(id) === 'squat');
-            const a = sq('A');
-            const b = sq('B');
-            expect(a).toHaveLength(1);
-            expect(b).toHaveLength(1);
-            expect(a[0]).toBe(b[0]); // shared anchor within the same focus
+            const of = (v: string, p: string) => sessionIds(bp, 'push', v).filter((id) => pat.get(id) === p);
+            for (const p of ['horizontal_push', 'vertical_push']) {
+                const a = of('A', p);
+                const b = of('B', p);
+                expect(a).toHaveLength(1);
+                expect(b).toHaveLength(1);
+                expect(a[0]).toBe(b[0]); // shared anchor within the same focus
+            }
         });
 
         it('no exercise appears in two different-focus sessions of a deep-pool routine', () => {
@@ -2298,5 +2338,238 @@ describe('anchor + unilateral-cap follow-ups (2026-06-10)', () => {
         expect(upper).toContain('vp-pullup'); // anchor = canonical primary
         expect(pull).toContain('vp-lat'); // second = Lat Pulldown, not Chin-Up
         expect(pull).not.toContain('vp-chinup');
+    });
+});
+
+// ── Item 5: ppl-x2-6 A/B differentiation ─────────────────────────────────────
+
+describe('Item 5: ppl-x2-6 A/B differentiation', () => {
+    const patternMap = (pool: ExerciseMeta[]) => new Map(pool.map((e) => [e.id, e.movement_pattern]));
+    const style6 = () => STYLES[6][0] as ProgramStyle;
+    const sixDays = [1, 2, 3, 4, 5, 6];
+
+    it('week shape: heavy A block then volume B block, in that session order', () => {
+        // Guards against accidental session reordering that would keep the
+        // per-session goldens green while changing the week's training rhythm.
+        expect(style6().sessions).toEqual([
+            { focus: 'push', emphasis: 'push_heavy', variant: 'A' },
+            { focus: 'pull', emphasis: 'pull_heavy', variant: 'A' },
+            { focus: 'legs', emphasis: 'lower_quad', variant: 'A' },
+            { focus: 'push', emphasis: 'push_volume', variant: 'B' },
+            { focus: 'pull', emphasis: 'pull_volume', variant: 'B' },
+            { focus: 'legs', emphasis: 'lower_post', variant: 'B' },
+        ]);
+    });
+
+    // Shared blueprint for the composition goldens: deep pool (3 per pattern so
+    // cross-session freshness never runs dry), 45-60 min, balanced style.
+    function sixDayBlueprint() {
+        const pool = deepPool(3);
+        const bp = generateRoutine(input({ style: style6(), trainingDays: sixDays, pool }));
+        const pat = patternMap(pool);
+        const rows = (wt: string, v: string) => bp.exercises.filter((e) => e.workout_type === wt && e.variant === v);
+        const patterns = (wt: string, v: string) => rows(wt, v).map((e) => pat.get(e.exercise_id));
+        const compounds = (wt: string, v: string) =>
+            rows(wt, v).filter((e) => {
+                const p = pat.get(e.exercise_id);
+                return p && !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            });
+        return { bp, pat, rows, patterns, compounds };
+    }
+
+    it('Push A (push_heavy): strength compounds at 3-6, exactly one 4-set bump, one triceps_iso', () => {
+        const { rows, patterns, compounds } = sixDayBlueprint();
+        const c = compounds('push', 'A');
+        expect(c.length).toBeGreaterThan(0);
+        expect(c.every((e) => e.reps === '3-6')).toBe(true);
+        // Strength bias: the first compound takes the +1 set bump, exactly once.
+        expect(rows('push', 'A').filter((e) => e.sets === '4')).toHaveLength(1);
+        // Q4 trim: the heavy day carries a single triceps_iso (the invariant is
+        // "at most one"; with the deep pool it is exactly one).
+        expect(patterns('push', 'A').filter((p) => p === 'triceps_iso')).toHaveLength(1);
+        // Accepted Q4 consequence: the 5-slot heavy emphasis backfills its 6th
+        // pick onto the lead compound pattern (a 2nd horizontal push) at 45-60.
+        expect(patterns('push', 'A').filter((p) => p === 'horizontal_push')).toHaveLength(2);
+    });
+
+    it('Push B (push_volume): hypertrophy compounds at 8-12, no bump, two triceps_iso, fresh vertical push', () => {
+        const { bp, pat, rows, patterns, compounds } = sixDayBlueprint();
+        const c = compounds('push', 'B');
+        expect(c.length).toBeGreaterThan(0);
+        expect(c.every((e) => e.reps === '8-12')).toBe(true);
+        expect(rows('push', 'B').every((e) => e.sets === '3')).toBe(true);
+        expect(patterns('push', 'B').filter((p) => p === 'triceps_iso')).toHaveLength(2);
+        // The lead vertical_push slot gets a fresh pick, not Push A's OHP.
+        const vp = (v: string) => sessionIds(bp, 'push', v).filter((id) => pat.get(id) === 'vertical_push');
+        expect(vp('A')).toHaveLength(1);
+        expect(vp('B')).toHaveLength(1);
+        expect(vp('B')[0]).not.toBe(vp('A')[0]);
+    });
+
+    it('Pull A (pull_heavy): strength compounds at 3-6, exactly one 4-set bump, one back_iso', () => {
+        const { rows, patterns, compounds } = sixDayBlueprint();
+        const c = compounds('pull', 'A');
+        expect(c.length).toBeGreaterThan(0);
+        expect(c.every((e) => e.reps === '3-6')).toBe(true);
+        expect(rows('pull', 'A').filter((e) => e.sets === '4')).toHaveLength(1);
+        expect(patterns('pull', 'A').filter((p) => p === 'back_iso')).toHaveLength(1);
+    });
+
+    it('Pull B (pull_volume): hypertrophy compounds at 8-12, no bump, two back_iso, fresh vertical pull', () => {
+        const { bp, pat, rows, patterns, compounds } = sixDayBlueprint();
+        const c = compounds('pull', 'B');
+        expect(c.length).toBeGreaterThan(0);
+        expect(c.every((e) => e.reps === '8-12')).toBe(true);
+        expect(rows('pull', 'B').every((e) => e.sets === '3')).toBe(true);
+        expect(patterns('pull', 'B').filter((p) => p === 'back_iso')).toHaveLength(2);
+        const vpull = (v: string) => sessionIds(bp, 'pull', v).filter((id) => pat.get(id) === 'vertical_pull');
+        expect(vpull('A')).toHaveLength(1);
+        expect(vpull('B')).toHaveLength(1);
+        expect(vpull('B')[0]).not.toBe(vpull('A')[0]);
+    });
+
+    it('Legs A is quad-led (squat + lunge, no hinge); Legs B posterior-led (hinge + glute, no squat)', () => {
+        // lower_quad / lower_post composition is already locked through
+        // ul-classic-4 / ulppl-5 (P0 1.1); this locks the 6-day WIRING to them.
+        const { patterns } = sixDayBlueprint();
+        const a = patterns('legs', 'A');
+        const b = patterns('legs', 'B');
+        expect(a).toContain('squat');
+        expect(a).toContain('lunge');
+        expect(a).not.toContain('hinge');
+        expect(b).toContain('hinge');
+        expect(b).toContain('glute_iso');
+        expect(b).not.toContain('squat');
+    });
+
+    it('consistent: Push A and Push B share the same horizontal_push anchor', () => {
+        // ~30 min (4 exercises) keeps each push day at a single horizontal_push
+        // slot (no backfill), so the shared-anchor assertion stays exact.
+        const pool = deepPool();
+        const bp = generateRoutine(
+            input({
+                style: style6(),
+                trainingDays: sixDays,
+                pool,
+                sessionTime: '~30 min',
+                varietyPreference: 'consistent',
+            }),
+        );
+        const pat = patternMap(pool);
+        const hp = (v: string) => sessionIds(bp, 'push', v).filter((id) => pat.get(id) === 'horizontal_push');
+        expect(hp('A')).toHaveLength(1);
+        expect(hp('B')).toHaveLength(1);
+        expect(hp('A')[0]).toBe(hp('B')[0]);
+    });
+});
+
+describe('Item 5: byte-identity guards for unchanged styles', () => {
+    // Captured from the pre-change generator (2026-06-11) with input() defaults
+    // (deepPool(2), dumbbells-only, 45-60 min, intermediate, build_muscle,
+    // anchorDow default). The Item 5 change touches ONLY STYLES[6] plus four new
+    // EMPHASES entries, so these three styles must reproduce byte-identically.
+    function flatten(count: number, key: string, days: number[]) {
+        const style = STYLES[count].find((s) => s.key === key) as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: days }));
+        return {
+            schedule: bp.schedule.map((s) => `${s.day_of_week}:${s.workout_type}:${s.variant ?? '-'}`),
+            exercises: bp.exercises.map((e) => `${e.workout_type}:${e.variant ?? '-'}:${e.exercise_id}:${e.sets}x${e.reps}`),
+        };
+    }
+
+    it('ppl-3 reproduces its pre-change golden', () => {
+        expect(flatten(3, 'ppl-3', [1, 3, 5])).toEqual({
+            schedule: ['1:push:-', '3:pull:-', '5:legs:-'],
+            exercises: [
+                'push:-:horizontal_push-1:3x8-12',
+                'push:-:vertical_push-1:3x8-12',
+                'push:-:chest_iso-1:3x12-15',
+                'push:-:shoulder_iso-1:3x12-15',
+                'push:-:triceps_iso-1:3x12-15',
+                'push:-:triceps_iso-2:3x12-15',
+                'pull:-:horizontal_pull-1:3x8-12',
+                'pull:-:vertical_pull-1:3x8-12',
+                'pull:-:back_iso-1:3x12-15',
+                'pull:-:shoulder_iso-2:3x12-15',
+                'pull:-:biceps_iso-1:3x12-15',
+                'pull:-:back_iso-2:3x12-15',
+                'legs:-:squat-1:3x8-12',
+                'legs:-:hinge-1:3x8-12',
+                'legs:-:lunge-1:3x8-12',
+                'legs:-:glute_iso-1:3x12-15',
+                'legs:-:calf-1:3x12-15',
+                'legs:-:core-1:3x12-15',
+            ],
+        });
+    });
+
+    it('ul-classic-4 reproduces its pre-change golden', () => {
+        expect(flatten(4, 'ul-classic-4', [1, 2, 4, 5])).toEqual({
+            schedule: ['1:upper:A', '2:lower:A', '4:upper:B', '5:lower:B'],
+            exercises: [
+                'upper:A:horizontal_push-1:3x8-12',
+                'upper:A:vertical_push-1:3x8-12',
+                'upper:A:horizontal_pull-1:3x8-12',
+                'upper:A:vertical_pull-1:3x8-12',
+                'upper:A:chest_iso-1:3x12-15',
+                'upper:A:back_iso-1:3x12-15',
+                'lower:A:squat-1:3x8-12',
+                'lower:A:lunge-1:3x8-12',
+                'lower:A:lunge-2:3x8-12',
+                'lower:A:glute_iso-1:3x12-15',
+                'lower:A:calf-1:3x12-15',
+                'lower:A:core-1:3x12-15',
+                'upper:B:vertical_push-2:3x8-12',
+                'upper:B:horizontal_pull-2:3x8-12',
+                'upper:B:shoulder_iso-1:3x12-15',
+                'upper:B:biceps_iso-1:3x12-15',
+                'upper:B:triceps_iso-1:3x12-15',
+                'upper:B:chest_iso-2:3x12-15',
+                'lower:B:hinge-1:3x8-12',
+                'lower:B:lunge-1:3x8-12',
+                'lower:B:glute_iso-2:3x12-15',
+                'lower:B:glute_iso-1:3x12-15',
+                'lower:B:calf-2:3x12-15',
+                'lower:B:core-2:3x12-15',
+            ],
+        });
+    });
+
+    it('ulppl-5 reproduces its pre-change golden', () => {
+        expect(flatten(5, 'ulppl-5', [1, 2, 3, 4, 5])).toEqual({
+            schedule: ['1:upper:-', '2:lower:-', '3:push:-', '4:pull:-', '5:legs:-'],
+            exercises: [
+                'upper:-:horizontal_push-1:3x8-12',
+                'upper:-:vertical_push-1:3x8-12',
+                'upper:-:horizontal_pull-1:3x8-12',
+                'upper:-:vertical_pull-1:3x8-12',
+                'upper:-:shoulder_iso-1:3x10-15',
+                'upper:-:biceps_iso-1:3x10-15',
+                'lower:-:squat-1:3x8-12',
+                'lower:-:lunge-1:3x8-12',
+                'lower:-:lunge-2:3x8-12',
+                'lower:-:glute_iso-1:3x12-15',
+                'lower:-:calf-1:3x12-15',
+                'lower:-:core-1:3x12-15',
+                'push:-:horizontal_push-2:3x8-12',
+                'push:-:vertical_push-2:3x8-12',
+                'push:-:chest_iso-1:3x12-15',
+                'push:-:shoulder_iso-2:3x12-15',
+                'push:-:triceps_iso-1:3x12-15',
+                'push:-:triceps_iso-2:3x12-15',
+                'pull:-:horizontal_pull-2:3x8-12',
+                'pull:-:vertical_pull-2:3x8-12',
+                'pull:-:back_iso-1:3x12-15',
+                'pull:-:shoulder_iso-1:3x12-15',
+                'pull:-:biceps_iso-2:3x12-15',
+                'pull:-:back_iso-2:3x12-15',
+                'legs:-:hinge-1:3x8-12',
+                'legs:-:lunge-1:3x8-12',
+                'legs:-:glute_iso-2:3x12-15',
+                'legs:-:glute_iso-1:3x12-15',
+                'legs:-:calf-2:3x12-15',
+                'legs:-:core-2:3x12-15',
+            ],
+        });
     });
 });
