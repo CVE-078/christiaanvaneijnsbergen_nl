@@ -69,6 +69,8 @@ Tailwind v4 with theme tokens defined inline via `@theme` in `src/app/globals.cs
 
 `next.config.mjs` sets the static global security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS) but deliberately does **not** set the CSP. The strict `/pulse` CSP is built **per-request in `src/lib/supabase/middleware.ts` (`buildCsp`, with a nonce + `strict-dynamic`)** and whitelists the Supabase host for `connect-src`/`wss`. If you add an external origin (CDN, API, font host) the Pulse pages talk to, update `buildCsp` in the middleware (not `next.config.mjs`) or requests will be blocked.
 
+**Dev-only `'unsafe-eval'` (do not remove):** `buildCsp` takes an `isDev` flag and adds `'unsafe-eval'` to `script-src` only in development. Next's dev webpack wraps every module in `eval()` (eval-source-map) and Fast Refresh uses eval, so without it the dev bundle never executes, `/pulse` pages do not hydrate, and forms fall back to a native no-JS POST, which trips a Next 15.1 server-action regression that throws "cookies was called outside a request scope" in `createClient` (broke login + signup in dev, never prod). Production stays strict (prod webpack does not use eval). If you ever see that cookies error in dev, this is why; don't "fix" it in the actions.
+
 ## Database migrations
 
 SQL migrations are hand-written and tracked in `docs/migrations/*.sql` (dated). There is no automated migration runner in this repo, apply them against Supabase manually. `scripts/migrate-kv-to-supabase.ts` is a one-off data backfill.
