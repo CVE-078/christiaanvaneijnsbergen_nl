@@ -504,6 +504,24 @@ export function recommendStyle(sessionCount: number): string {
     return styles[0].key;
 }
 
+/** The style to surface as "Suggested" for the user's training intent (#18 follow-up).
+ *  A powerbuilding lifter at 4 days is steered to PHUL (`phul-4`); every other case
+ *  defers to the count-only `recommendStyle` default. Pure and additive: it does NOT
+ *  change the auto-applied default (`recommendStyle` stays the pre-selection and the
+ *  fallback), so a picker can float + badge a suggestion without altering generation
+ *  for anyone who ignores it. The `phul-4` presence check keeps it safe if the style
+ *  is ever removed. */
+export function suggestedStyleKey(sessionCount: number, trainingStyle?: TrainingStyle | null): string {
+    if (
+        trainingStyle === 'powerbuilding' &&
+        sessionCount === 4 &&
+        (STYLES[4] ?? []).some((s) => s.key === 'phul-4')
+    ) {
+        return 'phul-4';
+    }
+    return recommendStyle(sessionCount);
+}
+
 /** Resolve a style by key for a given session count, falling back to the recommended default. */
 export function resolveStyle(styleKey: string, sessionCount: number): ProgramStyle {
     const styles = STYLES[sessionCount] ?? STYLES[recommendStyleCount(sessionCount)];

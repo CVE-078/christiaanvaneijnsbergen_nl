@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { usePulse } from '@/context/PulseContext';
-import { STYLES } from '@/lib/pulse/generation';
+import { STYLES, recommendStyle, suggestedStyleKey } from '@/lib/pulse/generation';
 import {
     TRAINING_STYLE_OPTIONS,
     VARIETY_OPTIONS,
@@ -40,12 +40,14 @@ function Row({
     active,
     onClick,
     disabled,
+    badge,
 }: {
     label: string;
     desc?: string;
     active: boolean;
     onClick: () => void;
     disabled?: boolean;
+    badge?: string;
 }) {
     return (
         <button
@@ -58,7 +60,14 @@ function Row({
                     ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
                     : 'bg-pulse-surface-2 ring-0 hover:bg-pulse-surface-2/70'
             } disabled:cursor-not-allowed disabled:opacity-50`}>
-            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+            <span className="flex items-center gap-2">
+                <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                {badge && (
+                    <span className="rounded-full bg-pulse-accent/15 px-2 py-0.5 font-pulse text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-pulse-accent">
+                        {badge}
+                    </span>
+                )}
+            </span>
             {desc && <span className="font-pulse text-[0.75rem] text-pulse-dim">{desc}</span>}
         </button>
     );
@@ -137,6 +146,16 @@ export default function TuneYourPlanPanel({
     });
 
     const styleOptions = STYLES[trainingDays.length] ?? [];
+    // Intent-aware suggestion (#18 follow-up): reacts to the live training-style
+    // pick. Only badge + float when it differs from the plain count default (e.g.
+    // powerbuilding at 4 days -> PHUL); the default stays pre-selected and the auto
+    // fallback, so ignoring the suggestion changes nothing.
+    const suggestedKey = suggestedStyleKey(trainingDays.length, trainingStyle);
+    const showSuggestion = suggestedKey !== recommendStyle(trainingDays.length);
+    const orderedStyleOptions =
+        showSuggestion && styleOptions.some((s) => s.key === suggestedKey)
+            ? [...styleOptions].sort((a, b) => (a.key === suggestedKey ? -1 : b.key === suggestedKey ? 1 : 0))
+            : styleOptions;
     const restrictionsKey = [...restrictions].sort().join(',');
     const eqKey = equipmentKey(equipment);
     const dirty =
@@ -267,7 +286,7 @@ export default function TuneYourPlanPanel({
                     <div>
                         <p className={SECTION_LABEL}>Change split</p>
                         <div className="flex flex-col gap-2">
-                            {styleOptions.map((s) => (
+                            {orderedStyleOptions.map((s) => (
                                 <Row
                                     key={s.key}
                                     label={s.name}
@@ -275,6 +294,7 @@ export default function TuneYourPlanPanel({
                                     active={styleKey === s.key}
                                     onClick={() => setStyleKey(s.key)}
                                     disabled={regenerating}
+                                    badge={showSuggestion && s.key === suggestedKey ? 'Suggested' : undefined}
                                 />
                             ))}
                         </div>

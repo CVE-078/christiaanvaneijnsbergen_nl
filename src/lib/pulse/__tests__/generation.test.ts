@@ -7,6 +7,7 @@ import {
     volumeFor,
     repRange,
     recommendStyle,
+    suggestedStyleKey,
     resolveStyle,
     generateRoutine,
     orderTrainingDays,
@@ -173,6 +174,27 @@ describe('recommendStyle / resolveStyle', () => {
         expect(recommendStyle(4)).toBe('ul-classic-4');
         expect(recommendStyle(3)).toBe('fb-3');
         expect(recommendStyle(5)).toBe('ulppl-5');
+    });
+});
+
+describe('suggestedStyleKey (intent-aware suggestion, #18 follow-up)', () => {
+    it('suggests PHUL for a powerbuilding lifter at 4 days', () => {
+        expect(suggestedStyleKey(4, 'powerbuilding')).toBe('phul-4');
+    });
+    it('falls back to the count-only recommendation for other training styles at 4 days', () => {
+        expect(suggestedStyleKey(4, 'balanced')).toBe('ul-classic-4');
+        expect(suggestedStyleKey(4, 'strength')).toBe('ul-classic-4');
+        expect(suggestedStyleKey(4, 'bodybuilding')).toBe('ul-classic-4');
+        expect(suggestedStyleKey(4, undefined)).toBe('ul-classic-4');
+        expect(suggestedStyleKey(4, null)).toBe('ul-classic-4');
+    });
+    it('only triggers at 4 days (PHUL is a 4-day style); other counts use the default', () => {
+        expect(suggestedStyleKey(3, 'powerbuilding')).toBe(recommendStyle(3));
+        expect(suggestedStyleKey(5, 'powerbuilding')).toBe(recommendStyle(5));
+        expect(suggestedStyleKey(6, 'powerbuilding')).toBe(recommendStyle(6));
+    });
+    it('does not change the auto-applied default: recommendStyle(4) is still ul-classic-4', () => {
+        expect(recommendStyle(4)).toBe('ul-classic-4');
     });
 });
 
