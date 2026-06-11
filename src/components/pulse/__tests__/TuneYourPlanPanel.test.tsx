@@ -23,7 +23,7 @@ const baseState: TuneYourPlanState = {
         equipment: new Set(['barbell', 'dumbbells']),
         experience: 'intermediate',
         goal: 'build_muscle',
-        days: '4',
+        days: 4,
     },
     trainingDays: [1, 2, 4, 5],
     sessionTime: '45–60 min',

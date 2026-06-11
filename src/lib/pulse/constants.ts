@@ -1,5 +1,5 @@
 import type { TabKey, WorkoutType, WorkoutVariant, EquipmentKey } from './types';
-import type { DaysPerWeek, ExperienceLevel } from './recommendation';
+import type { ExperienceLevel } from './recommendation';
 
 // Short, scannable equipment labels for chips (the routine setup uses its own
 // longer prose labels). Empty equipment = bodyweight, handled at the call site.
@@ -81,20 +81,8 @@ export const DELOAD_FACTOR = 0.9;
 export const DELOAD_REBUILD_WEEKS = 3;
 export const DELOAD_DROP_THRESHOLD = 0.97;
 
-export const SUGGESTED_DAYS: Record<DaysPerWeek, number[]> = {
-    '2-3': [1, 3],
-    '4': [1, 2, 4, 5],
-    '5-6': [1, 2, 3, 4, 5],
-};
-
-// Upper bound on selectable training days for each days-per-week answer. The
-// onboarding day picker caps selection here so the chosen frequency drives the
-// routine's session count (e.g. "4 days" can't become a 6-session routine).
-export const MAX_TRAINING_DAYS: Record<DaysPerWeek, number> = {
-    '2-3': 3,
-    '4': 4,
-    '5-6': 6,
-};
+// SUGGESTED_DAYS / MAX_TRAINING_DAYS moved to ./weeklyFrequency.ts (Issue 0),
+// which owns the exact weekly-frequency concept end to end.
 
 // Selectable accent colours. `key` is stored on the profile; `accent`/`dim`
 // override the `--color-pulse-accent` / `--color-pulse-accent-dim` tokens at

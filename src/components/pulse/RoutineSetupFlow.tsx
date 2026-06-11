@@ -1,6 +1,12 @@
 'use client';
 import { useState, useRef, useEffect, type ReactNode } from 'react';
-import { DAY_NAMES, SUGGESTED_DAYS, MAX_TRAINING_DAYS } from '@/lib/pulse/constants';
+import { DAY_NAMES } from '@/lib/pulse/constants';
+import {
+    WEEKLY_FREQUENCIES,
+    SUGGESTED_DAYS,
+    MAX_TRAINING_DAYS,
+    type WeeklyFrequency,
+} from '@/lib/pulse/weeklyFrequency';
 import { STYLES, recommendStyle, resolveStyle, buildRationale } from '@/lib/pulse/generation';
 import { PROGRAM_LENGTHS } from '@/lib/pulse/data';
 import {
@@ -21,7 +27,7 @@ import type {
     LoadingPreference,
     RestrictionFlag,
 } from '@/lib/pulse/types';
-import type { OnboardingAnswers, DaysPerWeek, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
+import type { OnboardingAnswers, ExperienceLevel, Goal } from '@/lib/pulse/recommendation';
 
 // Steps: 'gender' (only when collectGender, optional/skippable) · 1 equipment ·
 // 2 experience · 3 goal · 4 days/week · 5 which days ·
@@ -237,7 +243,7 @@ interface Props {
         equipment: EquipmentKey[];
         experience: ExperienceLevel;
         goal: Goal;
-        days: DaysPerWeek;
+        days: WeeklyFrequency;
         trainingDays: number[];
         sessionTime: SessionTime;
     }>;
@@ -342,7 +348,7 @@ export default function RoutineSetupFlow({
     const [saveError, setSaveError] = useState<string | null>(null);
     const [experience, setExperience] = useState<ExperienceLevel | null>(initial?.experience ?? null);
     const [goal, setGoal] = useState<Goal | null>(initial?.goal ?? null);
-    const [days, setDays] = useState<DaysPerWeek | null>(initial?.days ?? null);
+    const [days, setDays] = useState<WeeklyFrequency | null>(initial?.days ?? null);
     const [sessionTime, setSessionTime] = useState<SessionTime | null>(initial?.sessionTime ?? null);
     const [trainingDays, setTrainingDays] = useState<number[]>(initial?.trainingDays ?? []);
     const [styleKey, setStyleKey] = useState<string | null>(null);
@@ -380,10 +386,10 @@ export default function RoutineSetupFlow({
     // The days-per-week answer caps how many days can be picked, so the chosen
     // frequency (not the raw day selection) drives the routine's session count.
     const maxDays = days ? MAX_TRAINING_DAYS[days] : 7;
-    const chooseDays = (d: DaysPerWeek) => {
+    const chooseDays = (d: WeeklyFrequency) => {
         setDays(d);
         // Trim any prior over-selection to the new cap (e.g. when stepping back
-        // from "5–6 days" to "4 days").
+        // from "6 days" to "4 days").
         setTrainingDays((prev) => prev.slice(0, MAX_TRAINING_DAYS[d]));
     };
 
@@ -781,9 +787,9 @@ export default function RoutineSetupFlow({
                 }>
                 <p className={Q}>How many days per week can you train?</p>
                 <div className="flex flex-col gap-2">
-                    <OptionRow label="2–3 days" active={days === '2-3'} onClick={() => chooseDays('2-3')} />
-                    <OptionRow label="4 days" active={days === '4'} onClick={() => chooseDays('4')} />
-                    <OptionRow label="5–6 days" active={days === '5-6'} onClick={() => chooseDays('5-6')} />
+                    {WEEKLY_FREQUENCIES.map((n) => (
+                        <OptionRow key={n} label={`${n} days`} active={days === n} onClick={() => chooseDays(n)} />
+                    ))}
                 </div>
             </FlowFrame>
         );
