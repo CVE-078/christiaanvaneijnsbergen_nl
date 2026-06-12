@@ -35,6 +35,23 @@ function Row({ m, today }: { m: Milestone; today: string }) {
     );
 }
 
+// Month groups for the "Show all" modal, mirroring AllWorkoutsModal: input is
+// newest-first, so groups come out newest month first with items in given order.
+function groupByMonth(milestones: Milestone[]): { key: string; label: string; items: Milestone[] }[] {
+    const groups: { key: string; label: string; items: Milestone[] }[] = [];
+    for (const m of milestones) {
+        const monthKey = m.dateIso.slice(0, 7);
+        let g = groups.find((x) => x.key === monthKey);
+        if (!g) {
+            const label = new Date(m.dateIso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+            g = { key: monthKey, label, items: [] };
+            groups.push(g);
+        }
+        g.items.push(m);
+    }
+    return groups;
+}
+
 export default function MilestonesCard({ milestones }: { milestones: Milestone[] }) {
     const [allOpen, setAllOpen] = useState(false);
     if (milestones.length === 0) return null;
@@ -59,7 +76,20 @@ export default function MilestonesCard({ milestones }: { milestones: Milestone[]
                 title="Milestones"
                 subtitle={`${milestones.length} ${milestones.length === 1 ? 'milestone' : 'milestones'}`}>
                 <div className="flex-1 overflow-y-auto px-6 pb-1">
-                    {milestones.map((m) => (<Row key={m.id} m={m} today={today} />))}
+                    {groupByMonth(milestones).map((group) => (
+                        <div key={group.key}>
+                            <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 flex items-center gap-3">
+                                <span className="font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
+                                    {group.label}
+                                </span>
+                                <span className="h-px flex-1 bg-pulse-border" />
+                                <span className="font-pulse text-[0.64rem] text-pulse-muted shrink-0">
+                                    {group.items.length} {group.items.length === 1 ? 'milestone' : 'milestones'}
+                                </span>
+                            </div>
+                            {group.items.map((m) => (<Row key={m.id} m={m} today={today} />))}
+                        </div>
+                    ))}
                 </div>
             </ModalSheet>
         </div>

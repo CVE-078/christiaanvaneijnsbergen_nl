@@ -382,7 +382,7 @@ export default function HistoryView() {
                 programWeeks: activeRoutine?.program_weeks ?? 12,
                 unit,
             }),
-        [workouts, logs, workoutSessions, activeRoutine, unit],
+        [workouts, logs, workoutSessions, activeRoutine?.schedule, activeRoutine?.program_weeks, unit],
     );
 
     const [strengthModalOpen, setStrengthModalOpen] = useState(false);

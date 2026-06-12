@@ -53,6 +53,8 @@ export function computeMilestones(input: {
     const best: Record<string, number> = {};
     for (const w of byDate) {
         for (const ex of w.exercises) {
+            // ex.sets is non-empty by construction: assembleWorkouts only creates
+            // an exercise once a set lands in it, so Math.max never sees [].
             const e = Math.max(...ex.sets.map((s) => calcE1RM(s.kg, s.reps)));
             const prior = best[ex.routineExerciseId];
             if (prior === undefined) {
