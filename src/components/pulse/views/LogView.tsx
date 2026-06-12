@@ -527,6 +527,11 @@ export default function LogView() {
                             notes={notes}
                             onSaveNote={(id, n) => saveNote(activeWeek, id, n)}
                             onDeleteNote={(id) => deleteNote(activeWeek, id)}
+                            swaps={swaps}
+                            exercisesById={exercisesById}
+                            lastSessionMap={lastSessionMap}
+                            onSwap={(re) => setSwapTarget(re)}
+                            onRevert={(re) => clearSwap(activeWeek, re.id)}
                         />
                     ) : (
                         <ExerciseCard

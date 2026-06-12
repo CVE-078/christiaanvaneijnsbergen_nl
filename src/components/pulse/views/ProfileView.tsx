@@ -160,7 +160,12 @@ export default function ProfileView() {
 
     const latestMeasurement = bodyMeasurements[0];
 
-    const bwTrend = bodyweightLogs.length >= 2 ? bodyweightLogs[0].weight_kg - bodyweightLogs[1].weight_kg : null;
+    // Round the delta to a tenth: a raw float subtraction (e.g. 80.2 - 79.6)
+    // otherwise surfaces noise like 0.6000000000000085 in the trend chip.
+    const bwTrend =
+        bodyweightLogs.length >= 2
+            ? Math.round((bodyweightLogs[0].weight_kg - bodyweightLogs[1].weight_kg) * 10) / 10
+            : null;
 
     const waistPoints = bodyMeasurements.filter((m) => m.waist_cm != null);
     const waistTrend =

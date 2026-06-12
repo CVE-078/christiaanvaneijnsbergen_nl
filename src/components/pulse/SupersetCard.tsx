@@ -1,7 +1,17 @@
 'use client';
 import { useState } from 'react';
 import ExerciseCard from './ExerciseCard';
-import type { RoutineExercise, Logs, LogEntry, Unit, Notes } from '@/lib/pulse/types';
+import { resolveExercise, swapKey } from '@/lib/pulse/utils';
+import type {
+    RoutineExercise,
+    Logs,
+    LogEntry,
+    Unit,
+    Notes,
+    Swaps,
+    DbExercise,
+    LastSession,
+} from '@/lib/pulse/types';
 
 interface Props {
     pair: [RoutineExercise, RoutineExercise];
@@ -15,6 +25,15 @@ interface Props {
     notes: Notes;
     onSaveNote: (routineExerciseId: string, note: string) => Promise<void>;
     onDeleteNote: (routineExerciseId: string) => Promise<void>;
+    // Swap wiring, mirrors the standalone-card branch in LogView. When provided,
+    // each exercise in the pair gets the same Swap control, swapped-state badge,
+    // and display-exercise resolution that a non-superset card has. Omitting them
+    // (e.g. in a context with no swaps) simply hides the swap affordance.
+    swaps?: Swaps;
+    exercisesById?: Map<string, DbExercise>;
+    lastSessionMap?: Map<string, LastSession>;
+    onSwap?: (re: RoutineExercise) => void;
+    onRevert?: (re: RoutineExercise) => void;
 }
 
 export default function SupersetCard({
@@ -29,9 +48,28 @@ export default function SupersetCard({
     notes,
     onSaveNote,
     onDeleteNote,
+    swaps,
+    exercisesById,
+    lastSessionMap,
+    onSwap,
+    onRevert,
 }: Props) {
     const [open, setOpen] = useState(false);
     const [first, second] = pair;
+
+    // Per-exercise swap props, computed exactly like LogView's standalone branch.
+    // Returns {} when the swap deps are absent so the inner card hides the control.
+    const swapPropsFor = (re: RoutineExercise) =>
+        onSwap && swaps && exercisesById
+            ? {
+                  displayExercise: resolveExercise(re, week, swaps, exercisesById),
+                  isSwapped: !!swaps[swapKey(week, re.id)],
+                  originalName: (exercisesById.get(re.exercise_id) ?? re.exercise).name,
+                  lastSession: lastSessionMap?.get(re.id) ?? null,
+                  onSwap: () => onSwap(re),
+                  onRevert: onRevert ? () => onRevert(re) : undefined,
+              }
+            : {};
 
     return (
         <div className="bg-pulse-surface-2 rounded-2xl overflow-hidden">
@@ -87,6 +125,7 @@ export default function SupersetCard({
                         note={notes[`${week}-${first.id}`]}
                         onSaveNote={(n) => onSaveNote(first.id, n)}
                         onDeleteNote={() => onDeleteNote(first.id)}
+                        {...swapPropsFor(first)}
                     />
                     <ExerciseCard
                         routineExercise={second}
@@ -100,6 +139,7 @@ export default function SupersetCard({
                         note={notes[`${week}-${second.id}`]}
                         onSaveNote={(n) => onSaveNote(second.id, n)}
                         onDeleteNote={() => onDeleteNote(second.id)}
+                        {...swapPropsFor(second)}
                     />
                 </div>
             )}
