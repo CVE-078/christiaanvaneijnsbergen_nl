@@ -1,6 +1,6 @@
 'use client';
 import { useTransition, useState } from 'react';
-import { toDisplay, toKg, getInitials } from '@/lib/pulse/utils';
+import { getInitials } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import type { Gender, PriorityMuscle } from '@/lib/pulse/types';
@@ -17,18 +17,12 @@ import EquipmentProfilesEditor from '../EquipmentProfilesEditor';
 import AccountSecuritySection from '../AccountSecuritySection';
 import PageTitle from '../PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
-import { INPUT, BTN_PRIMARY } from '../ui';
-import { updateGoalWeight } from '@/app/pulse/actions';
-import BodyWeightCard from '../BodyWeightCard';
-import MeasurementsCard from '../MeasurementsCard';
-
-const SECTION = '';
+import { INPUT } from '../ui';
 
 export default function ProfileView() {
     const {
         email,
         profile,
-        bodyweightLogs,
         updateProfile,
         updateGender,
         autoAdvance,
@@ -64,7 +58,6 @@ export default function ProfileView() {
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(displayName ?? '');
-    const [goalWeightInput, setGoalWeightInput] = useState('');
 
     const initials = displayName ? getInitials(displayName, 2) : (email[0]?.toUpperCase() ?? '?');
 
@@ -110,8 +103,8 @@ export default function ProfileView() {
         }
     }
 
-    if (errors?.profile || errors?.bodyweight) return <ErrorState onRetry={retry} />;
-    if (loading?.profile || loading?.bodyweight) return <PageSkeleton rows={3} />;
+    if (errors?.profile) return <ErrorState onRetry={retry} />;
+    if (loading?.profile) return <PageSkeleton rows={3} />;
 
     return (
         <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12">
@@ -465,77 +458,8 @@ export default function ProfileView() {
                     </div>
                 </div>
                 <div className="lg:flex-1 lg:min-w-0 rounded-2xl bg-pulse-surface p-5 flex flex-col gap-6">
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <SectionLabel>Body</SectionLabel>
-                            <span className="font-pulse text-[0.625rem] uppercase tracking-wide text-pulse-muted border border-pulse-border rounded px-2 py-0.5">
-                                feeds Recomp
-                            </span>
-                        </div>
-                        <p className="font-pulse text-[0.6875rem] text-pulse-muted">
-                            Everything Progress reads for the recomp verdict, logged in one place.
-                        </p>
-                    </div>
-
-                    {/* Body weight */}
-                    <BodyWeightCard />
-
-                    {/* Goal Weight */}
-                    <section className={SECTION}>
-                        <SectionLabel className="mb-2">Goal Weight</SectionLabel>
-                        {profile.goal_weight_kg ? (
-                            <div className="flex items-center gap-3">
-                                <span className="font-pulse text-lg font-medium text-pulse-text tracking-[-0.005em]">
-                                    {unit === 'lbs'
-                                        ? `${toDisplay(profile.goal_weight_kg, 'lbs').toFixed(1)} lbs`
-                                        : `${profile.goal_weight_kg} kg`}
-                                </span>
-                                {bodyweightLogs[0] && (
-                                    <span
-                                        className={`font-pulse text-xs ${
-                                            bodyweightLogs[0].weight_kg <= profile.goal_weight_kg
-                                                ? 'text-pulse-success'
-                                                : 'text-pulse-dim'
-                                        }`}>
-                                        {Math.abs(bodyweightLogs[0].weight_kg - profile.goal_weight_kg).toFixed(1)} kg
-                                        to go
-                                    </span>
-                                )}
-                                <button
-                                    onClick={() => void updateGoalWeight(null)}
-                                    className="font-pulse text-xs text-pulse-dim cursor-pointer bg-transparent border-none">
-                                    Clear
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="flex gap-2">
-                                <input
-                                    type="number"
-                                    placeholder={`Goal (${unit})`}
-                                    value={goalWeightInput}
-                                    onChange={(e) => setGoalWeightInput(e.target.value)}
-                                    className={INPUT}
-                                    step="0.1"
-                                />
-                                <button
-                                    onClick={() => {
-                                        const val = parseFloat(goalWeightInput);
-                                        if (!isNaN(val)) void updateGoalWeight(toKg(val, unit));
-                                    }}
-                                    className={BTN_PRIMARY}>
-                                    Set
-                                </button>
-                            </div>
-                        )}
-                    </section>
-
-                    {/* Body Measurements */}
-                    <MeasurementsCard />
-
                     {/* Account & security */}
-                    <section className={SECTION + ' border-t border-pulse-border pt-4'}>
-                        <AccountSecuritySection />
-                    </section>
+                    <AccountSecuritySection />
                 </div>
             </div>
         </div>

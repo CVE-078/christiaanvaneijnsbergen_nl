@@ -11,17 +11,12 @@ vi.mock('@/context/PulseContext', () => ({
 
 vi.mock('@/app/pulse/actions', () => ({
     updateGoalWeight: vi.fn().mockResolvedValue(undefined),
-    logBodyMeasurement: vi.fn().mockResolvedValue(undefined),
-    logBodyWeight: vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 }),
 }));
 
 import { usePulse } from '@/context/PulseContext';
-import { updateGoalWeight } from '@/app/pulse/actions';
 
 const mockUpdateProfile = vi.fn().mockResolvedValue(undefined);
 const mockUpdateGender = vi.fn().mockResolvedValue(undefined);
-const mockLogBodyWeight = vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 });
-const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
 const mockUpdateLengthUnit = vi.fn().mockResolvedValue(undefined);
 const mockUpdatePriorityMuscle = vi.fn().mockResolvedValue(undefined);
 const mockUpdateAccentColor = vi.fn().mockResolvedValue(undefined);
@@ -70,8 +65,6 @@ const defaultContext = {
     updateMovementRestrictions: mockUpdateMovementRestrictions,
     autoAdvance: false,
     setAutoAdvance: vi.fn(),
-    logBodyWeight: mockLogBodyWeight,
-    deleteBodyWeight: mockDeleteBodyWeight,
     streak: 0,
     prMap: {},
     exercises: [],
@@ -104,8 +97,6 @@ beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
     mockUpdateProfile.mockClear();
     mockUpdateGender.mockClear();
-    mockLogBodyWeight.mockClear();
-    mockDeleteBodyWeight.mockClear();
     mockUpdateLengthUnit.mockClear();
     mockUpdatePriorityMuscle.mockClear();
     mockUpdateAccentColor.mockClear();
@@ -117,7 +108,6 @@ beforeEach(() => {
     mockUpdateEquipmentProfile.mockClear();
     mockDeleteEquipmentProfile.mockClear();
     mockSetActiveEquipmentProfile.mockClear();
-    vi.mocked(updateGoalWeight).mockClear();
 });
 
 describe('ProfileView', () => {
@@ -137,13 +127,6 @@ describe('ProfileView', () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('button', { name: 'Emerald' }));
         expect(mockUpdateAccentColor).toHaveBeenCalledWith('emerald');
-    });
-
-    it('renders a date picker for body weight with today as the default', () => {
-        renderWithToast(<ProfileView />);
-        const today = new Date().toISOString().split('T')[0];
-        const datePicker = screen.getAllByDisplayValue(today);
-        expect(datePicker.length).toBeGreaterThan(0);
     });
 
     it('renders initials from displayName', () => {
@@ -235,115 +218,6 @@ describe('ProfileView', () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('switch', { name: /auto-advance rest timer/i }));
         expect(setAutoAdvance).toHaveBeenCalledWith(true);
-    });
-
-    it('shows body weight entries in user unit', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            bodyweightLogs: [{ id: 'abc', logged_at: '2026-05-01', weight_kg: 80 }],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        expect(screen.getByText(/80 kg/i)).toBeInTheDocument();
-    });
-
-    it('shows a downward bodyweight trend chip when the two latest entries decrease', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            bodyweightLogs: [
-                { id: 'b2', logged_at: '2026-05-15', weight_kg: 79 },
-                { id: 'b1', logged_at: '2026-05-01', weight_kg: 81 },
-            ],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        const chip = screen.getByText(/↓\s*2\s*kg/);
-        expect(chip).toBeInTheDocument();
-        expect(chip.className).toContain('text-pulse-success');
-    });
-
-    it('rounds the bodyweight trend so a float subtraction shows no decimal noise', () => {
-        // 80.2 - 79.6 is 0.6000000000000085 in IEEE-754; the chip must read "0.6".
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            bodyweightLogs: [
-                { id: 'b2', logged_at: '2026-06-12', weight_kg: 79.6 },
-                { id: 'b1', logged_at: '2026-06-11', weight_kg: 80.2 },
-            ],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        expect(screen.getByText(/↓\s*0\.6\s*kg/)).toBeInTheDocument();
-        expect(screen.queryByText(/0\.60000/)).not.toBeInTheDocument();
-    });
-
-    it('shows error when non-numeric weight is submitted', async () => {
-        renderWithToast(<ProfileView />);
-        await userEvent.click(screen.getByRole('button', { name: /^log$/i }));
-        expect(screen.getByText(/enter a valid weight/i)).toBeInTheDocument();
-    });
-
-    it('stores goal weight in rounded kg when unit is lbs', async () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            profile: {
-                display_name: 'Test User',
-                unit: 'lbs',
-                active_routine_id: null,
-                onboarding_completed: false,
-                goal_weight_kg: null,
-            },
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        const input = screen.getByPlaceholderText('Goal (lbs)');
-        await userEvent.type(input, '180');
-        await userEvent.click(screen.getByRole('button', { name: /^set$/i }));
-        // 180 / 2.20462 = 81.6466..., rounded to 2 decimals by toKg
-        expect(vi.mocked(updateGoalWeight)).toHaveBeenCalledWith(81.65);
-    });
-
-    it('calls updateLengthUnit when the in measurement-unit toggle is clicked', async () => {
-        renderWithToast(<ProfileView />);
-        await userEvent.click(screen.getByRole('button', { name: /^in$/i }));
-        expect(mockUpdateLengthUnit).toHaveBeenCalledWith('in');
-    });
-
-    it('renders the latest measurement readout and converts it when unit is in', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            profile: { ...defaultContext.profile, length_unit: 'in' as const },
-            bodyMeasurements: [
-                {
-                    id: 'm1',
-                    measured_at: '2026-06-01',
-                    waist_cm: 81,
-                    hips_cm: 99,
-                    chest_cm: 106,
-                    arms_cm: 39,
-                },
-            ],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        // 81 cm -> 31.9 in
-        expect(screen.getByText(/31\.9 in/)).toBeInTheDocument();
-        // 99 cm -> 39 in (39.0 rounds to 39)
-        expect(screen.getByText(/^39 in$/)).toBeInTheDocument();
-    });
-
-    it('renders measurement readout in cm with em-dash for missing values', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            bodyMeasurements: [
-                {
-                    id: 'm1',
-                    measured_at: '2026-06-01',
-                    waist_cm: 81,
-                    hips_cm: null,
-                    chest_cm: null,
-                    arms_cm: null,
-                },
-            ],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        expect(screen.getByText(/81 cm/)).toBeInTheDocument();
-        expect(screen.getAllByText('—').length).toBe(3);
     });
 
     describe('Training preferences editors', () => {
