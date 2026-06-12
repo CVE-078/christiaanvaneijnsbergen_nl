@@ -4,7 +4,7 @@
 
 **Goal:** Finish the three remaining Progress-Overview "richness" pieces: a compact recovery readout, a strength-score trend, and a recent-milestones surface.
 
-**Architecture:** Pure derivation functions (in `src/lib/pulse/`) carry all logic and tests; thin presentational components render them; `HistoryView` wires them into the Overview tab. No schema, server-action, or generation-engine change. One PR definition (`calcE1RM`, already exported) is shared by the live badge and the milestone feed.
+**Architecture:** Pure derivation functions (in `src/lib/pulse/`) carry all logic and tests; thin presentational components render them; `HistoryView` wires them into the Overview tab. No schema, server-action, or generation-engine change. One PR definition is shared by the live badge and the milestone feed: best `calcE1RM` per `routineExerciseId` (computePRMap's exact rule AND key), locked by a parity test that cross-checks the milestone value against `computePRMap` on the same logs.
 
 **Tech Stack:** Next.js 15 / React 19 / TypeScript (strict) / Tailwind v4 / Vitest + Testing Library.
 
@@ -417,6 +417,9 @@ After the existing `strength` memo (around line 296-336), add:
             .filter((l) => l.history.length > 0);
         return computeStrengthScoreSeries({
             gender: profile.gender,
+            // bodyweightLogs is newest-first (queries.ts orders logged_at desc),
+            // so [0] is the CURRENT weight, the same convention the existing
+            // strength memo and BodyWeightCard already rely on.
             bodyweightKg: bodyweightLogs[0]?.weight_kg ?? null,
             liftsByWeek,
         });
@@ -660,67 +663,110 @@ Expected: PASS.
 // src/lib/pulse/__tests__/milestones.test.ts
 import { describe, it, expect } from 'vitest';
 import { computeMilestones } from '@/lib/pulse/milestones';
-import type { Workout } from '@/lib/pulse/workouts';
+import { computePRMap, toDisplay } from '@/lib/pulse/utils';
+import { assembleWorkouts, type Workout } from '@/lib/pulse/workouts';
 import type { Logs, WorkoutSession, ScheduleEntry } from '@/lib/pulse/types';
 
-// Valid v4 UUID: parseLogKey enforces UUID_RE (version nibble 4, variant 8/9/a/b),
-// so the streak test's log keys must use a v4 id or they are silently rejected.
+// Valid v4 UUIDs: parseLogKey enforces UUID_RE (version nibble 4, variant 8/9/a/b),
+// so log keys with non-v4 ids are silently rejected (known fixture gotcha).
 const RE = 'a1b2c3d4-e5f6-4890-abcd-ef1234567890';
+const RE2 = 'b2c3d4e5-f6a1-4890-abcd-ef1234567890';
 
-function workout(id: string, date: string, week: number, kg: number, reps: number): Workout {
+function session(id: string, at: string): WorkoutSession {
+    return { id, user_id: 'u', routine_id: 'r', workout_type: 'upper', variant: null, started_at: at, completed_at: at, session_rpe: null, session_note: null };
+}
+const entry = (kg: number, reps: number, sid: string | null) => ({ kg, reps, rir: 2, saved: true, session_id: sid });
+const nameFor = () => 'Barbell Bench Press';
+
+// Hand-built workout for tests that need no logs (sort, session_count).
+function workout(id: string, date: string, kg: number, reps: number): Workout {
     return {
         id, date, workoutType: 'upper', variant: null, durationMin: 60, setCount: 1,
         exercises: [{ routineExerciseId: RE, name: 'Barbell Bench Press', sets: [{ kg, reps, rir: 2 }], setCount: 1, maxKg: kg, avgKg: kg }],
     };
 }
-function session(id: string, at: string): WorkoutSession {
-    return { id, user_id: 'u', routine_id: 'r', workout_type: 'upper', variant: null, started_at: at, completed_at: at, session_rpe: null, session_note: null };
-}
 
 describe('computeMilestones', () => {
-    it('emits a PR for a new best but not for the opening baseline', () => {
-        const workouts = [workout('w1', '2026-05-01T10:00:00Z', 1, 90, 5), workout('w2', '2026-05-08T10:00:00Z', 2, 100, 5)];
-        const m = computeMilestones({ workouts, logs: {}, sessions: [], schedule: [], programWeeks: 12, unit: 'kg' });
+    it('derives PRs from the same logs as computePRMap: baseline skipped, value matches the canonical best', () => {
+        // Real pipeline: logs -> assembleWorkouts -> computeMilestones, then
+        // cross-check the milestone value against computePRMap on the SAME logs.
+        const logs: Logs = { [`1-${RE}-0`]: entry(90, 5, 's1'), [`2-${RE}-0`]: entry(100, 5, 's2') };
+        const sessions = [session('s1', '2026-05-01T10:00:00Z'), session('s2', '2026-05-08T10:00:00Z')];
+        const workouts = assembleWorkouts(sessions, logs, nameFor);
+        const m = computeMilestones({ workouts, logs, sessions, schedule: [], programWeeks: 12, unit: 'kg' });
         const prs = m.filter((x) => x.kind === 'pr');
-        expect(prs).toHaveLength(1);
+        expect(prs).toHaveLength(1); // w1 is the baseline, only w2 is a new PR
         expect(prs[0].title).toContain('Barbell Bench Press');
+        // Parity lock: the milestone's e1RM is exactly the badge's canonical best.
+        const canonical = Math.round(toDisplay(computePRMap(logs)[RE], 'kg'));
+        expect(prs[0].detail).toContain(`${canonical} kg e1RM`);
+    });
+
+    it('does not emit a false PR when a lift reappears under a new routineExerciseId (routine regenerate)', () => {
+        // RE2 lifts heavier than RE's best, but a fresh reId is a fresh baseline,
+        // exactly like the badge (computePRMap / isSetPR never compare across reIds).
+        const logs: Logs = {
+            [`1-${RE}-0`]: entry(90, 5, 's1'),
+            [`2-${RE}-0`]: entry(100, 5, 's2'),
+            [`3-${RE2}-0`]: entry(110, 5, 's3'),
+        };
+        const sessions = [session('s1', '2026-05-01T10:00:00Z'), session('s2', '2026-05-08T10:00:00Z'), session('s3', '2026-05-15T10:00:00Z')];
+        const workouts = assembleWorkouts(sessions, logs, nameFor);
+        const m = computeMilestones({ workouts, logs, sessions, schedule: [], programWeeks: 12, unit: 'kg' });
+        expect(m.filter((x) => x.kind === 'pr')).toHaveLength(1); // only RE's w2 PR
     });
 
     it('sorts newest-first by date', () => {
-        const workouts = [workout('w1', '2026-05-01T10:00:00Z', 1, 90, 5), workout('w2', '2026-05-08T10:00:00Z', 2, 100, 5)];
+        const workouts = [workout('w1', '2026-05-01T10:00:00Z', 90, 5), workout('w2', '2026-05-08T10:00:00Z', 100, 5)];
         const m = computeMilestones({ workouts, logs: {}, sessions: [], schedule: [], programWeeks: 12, unit: 'kg' });
         expect(new Date(m[0].dateIso).getTime()).toBeGreaterThanOrEqual(new Date(m[m.length - 1].dateIso).getTime());
     });
 
-    it('emits a week_completed milestone with a block-wrapped title past the block length', () => {
-        // 1-day schedule so each session completes a week; 13 sessions -> week 13.
+    it('disambiguates week_completed titles across the block wrap', () => {
+        // 1-day schedule so each session completes a week; 13 sessions -> absolute week 13.
         const schedule: ScheduleEntry[] = [{ day_of_week: 1, workout_type: 'upper' }];
-        const sessions = Array.from({ length: 13 }, (_, i) => session(`s${i}`, `2026-0${i < 9 ? '1' : '2'}-0${(i % 9) + 1}T10:00:00Z`));
+        const sessions = Array.from({ length: 13 }, (_, i) =>
+            session(`s${i}`, `2026-01-${String(i + 1).padStart(2, '0')}T10:00:00Z`));
         const m = computeMilestones({ workouts: [], logs: {}, sessions, schedule, programWeeks: 12, unit: 'kg' });
-        const wk = m.filter((x) => x.kind === 'week_completed');
-        expect(wk.some((x) => x.title === 'Completed Week 1')).toBe(true);  // absolute week 13 wraps to 1
-        expect(wk.every((x) => !/Week 13/.test(x.title))).toBe(true);
+        const titles = m.filter((x) => x.kind === 'week_completed').map((x) => x.title);
+        expect(titles).toContain('Completed Week 1');           // absolute week 1, cycle 1: no suffix
+        expect(titles).toContain('Completed Week 1 · Cycle 2'); // absolute week 13: wrapped AND disambiguated
+        expect(titles.every((t) => !/Week 13/.test(t))).toBe(true);
     });
 
     it('emits a session_count milestone at 10 sessions', () => {
-        const workouts = Array.from({ length: 10 }, (_, i) => workout(`w${i}`, `2026-05-${String(i + 1).padStart(2, '0')}T10:00:00Z`, 1, 50, 5));
+        const workouts = Array.from({ length: 10 }, (_, i) => workout(`w${i}`, `2026-05-${String(i + 1).padStart(2, '0')}T10:00:00Z`, 50, 5));
         const m = computeMilestones({ workouts, logs: {}, sessions: [], schedule: [], programWeeks: 12, unit: 'kg' });
         expect(m.some((x) => x.kind === 'session_count' && x.title === '10 sessions logged')).toBe(true);
     });
 
-    it('emits a streak milestone once on a new record, not per week', () => {
-        // logs over program weeks 1,2,3 consecutive -> longest run 3 -> records at runs 2 and 3 (run 1 is no streak).
+    it('emits one streak milestone per new record and nothing for a rebuild below it', () => {
+        // Weeks 1,2,3 set records at runs 2 and 3. Weeks 5,6 rebuild a 2-week run
+        // BELOW the record: a per-week emitter would wrongly add a second
+        // "2-week streak" here, so the exact toEqual locks emit-once-per-record.
         const logs: Logs = {
-            [`1-${RE}-0`]: { kg: 50, reps: 5, rir: 2, saved: true, session_id: 's1' },
-            [`2-${RE}-0`]: { kg: 50, reps: 5, rir: 2, saved: true, session_id: 's2' },
-            [`3-${RE}-0`]: { kg: 50, reps: 5, rir: 2, saved: true, session_id: 's3' },
+            [`1-${RE}-0`]: entry(50, 5, 's1'),
+            [`2-${RE}-0`]: entry(50, 5, 's2'),
+            [`3-${RE}-0`]: entry(50, 5, 's3'),
+            [`5-${RE}-0`]: entry(50, 5, 's5'),
+            [`6-${RE}-0`]: entry(50, 5, 's6'),
         };
-        const sessions = [session('s1', '2026-05-01T10:00:00Z'), session('s2', '2026-05-08T10:00:00Z'), session('s3', '2026-05-15T10:00:00Z')];
+        const sessions = [
+            session('s1', '2026-05-01T10:00:00Z'), session('s2', '2026-05-08T10:00:00Z'),
+            session('s3', '2026-05-15T10:00:00Z'), session('s5', '2026-05-29T10:00:00Z'),
+            session('s6', '2026-06-05T10:00:00Z'),
+        ];
         const m = computeMilestones({ workouts: [], logs, sessions, schedule: [], programWeeks: 12, unit: 'kg' });
-        const streaks = m.filter((x) => x.kind === 'streak');
-        // One milestone per new record length (2-week, then 3-week); not 3.
-        expect(streaks.map((s) => s.title)).toEqual(expect.arrayContaining(['3-week streak']));
-        expect(streaks.length).toBeLessThanOrEqual(2);
+        const titles = m.filter((x) => x.kind === 'streak').map((x) => x.title);
+        expect(titles).toEqual(['3-week streak', '2-week streak']); // newest-first, exactly these
+    });
+
+    it('omits a streak record it cannot date instead of epoch-dating it', () => {
+        // No session_id on the logs (pre-Phase-0 rows): the record cannot be dated,
+        // so it is omitted from the feed rather than sorted to 1970.
+        const logs: Logs = { [`1-${RE}-0`]: entry(50, 5, null), [`2-${RE}-0`]: entry(50, 5, null) };
+        const m = computeMilestones({ workouts: [], logs, sessions: [], schedule: [], programWeeks: 12, unit: 'kg' });
+        expect(m.filter((x) => x.kind === 'streak')).toHaveLength(0);
     });
 });
 ```
@@ -739,11 +785,25 @@ Expected: FAIL (module missing).
 // recomputed in full on every load (no persistence), so existing users and the
 // seeded test accounts get a backfilled feed of past wins.
 //
-// One PR definition: a PR is a new best calcE1RM(kg, reps) per exercise, the
-// SAME rule as computePRMap / isSetPR (the live PR badge). This module only adds
-// dating, by reading session-linked workout dates. PRs in non-session-linked
-// logs cannot be dated and so do not appear here (the live badge still flags
-// them); this is a dating gap, not a second definition.
+// ONE PR definition, same rule AND same key as the live badge:
+//   - computePRMap (utils.ts:555) keys by routineExerciseId and keeps the best
+//     calcE1RM(kg, reps) over every saved set's top-level kg/reps (drops and rir
+//     ignored, strict >, no threshold). It exposes current bests only, no dated
+//     history.
+//   - isSetPR (utils.ts:941) reads that map by routineExerciseId; the badge
+//     consumers (ExerciseCard, WorkoutModeScreen) call it with re.id.
+// This module derives the DATED version of that exact rule by walking
+// session-linked workouts oldest-first; a parity test cross-checks the milestone
+// value against computePRMap on the same logs. A routine regenerate gives a
+// lift a fresh routineExerciseId, which is a fresh baseline here, exactly as in
+// the badge (neither path compares across reIds), so no false "New PR" fires.
+// No noise threshold, matching the badge; discrete plate/rep increments make
+// sub-1% PRs rare, and a threshold, if ever wanted, must land in both paths.
+//
+// Dating limitation: set_logs carry no date column client-side (LOGS_SELECT in
+// queries.ts), so session_id -> workout_sessions.started_at is the only date
+// source. PRs and streak records that cannot be dated are omitted from this
+// feed (never epoch-dated); the live badge still flags undated PRs.
 import { calcE1RM, parseLogKey, toDisplay, weekInBlock, getPhase } from './utils';
 import { completedWeekBoundaries } from './adherence';
 import type { Workout } from './workouts';
@@ -771,7 +831,8 @@ export function computeMilestones(input: {
     const out: Milestone[] = [];
     const byDate = [...workouts].sort((a, b) => a.date.localeCompare(b.date)); // oldest-first
 
-    // 1. PR: running best calcE1RM per exercise (same rule as computePRMap).
+    // 1. PR: running best calcE1RM per routineExerciseId, computePRMap's exact
+    // rule and key (strict > over the prior best), replayed in date order.
     const best: Record<string, number> = {};
     for (const w of byDate) {
         for (const ex of w.exercises) {
@@ -803,19 +864,26 @@ export function computeMilestones(input: {
         }
     });
 
-    // 3. week_completed: reuse the canonical attributeSessions matching.
+    // 3. week_completed: reuse the canonical attributeSessions matching. Weeks
+    // wrap the block (week 13 of a 12-week program is block-week 1), and past
+    // the first cycle the title carries the cycle number so two milestones never
+    // read identically ("Completed Week 1" vs "Completed Week 1 · Cycle 2").
+    // "Cycle" is the user-facing word already used by the Progress window toggle.
     for (const { week, session } of completedWeekBoundaries(schedule, sessions)) {
         const wib = weekInBlock(week, programWeeks);
+        const cycle = Math.floor((week - 1) / programWeeks) + 1;
         out.push({
             id: `week:${week}`,
             kind: 'week_completed',
-            title: `Completed Week ${wib}`,
+            title: cycle > 1 ? `Completed Week ${wib} · Cycle ${cycle}` : `Completed Week ${wib}`,
             detail: getPhase(week, programWeeks).label,
             dateIso: session.started_at,
         });
     }
 
-    // 4. streak: computeStreak's program-week bucketing; emit once per new record.
+    // 4. streak: computeStreak's program-week bucketing (the set of logged weeks
+    // from the log-key week segment, ALL saved logs, linked or not, so the run
+    // math matches computeStreak exactly); emit once per new all-time record.
     const weekDate = new Map<number, string>(); // program week -> latest session start
     const sessionStart = new Map(sessions.map((s) => [s.id, s.started_at]));
     const loggedWeeks = new Set<number>();
@@ -838,13 +906,16 @@ export function computeMilestones(input: {
         run = prevWeek !== null && w === prevWeek + 1 ? run + 1 : 1;
         prevWeek = w;
         if (run >= 2 && run > record) {
-            record = run;
+            record = run; // the record advances even when the week is undated,
+            // so a later dated week never re-emits a stale, smaller record
+            const date = weekDate.get(w);
+            if (!date) continue; // undated (no session-linked logs): omit, never epoch-date
             out.push({
                 id: `streak:${run}`,
                 kind: 'streak',
                 title: `${run}-week streak`,
                 detail: 'your longest run yet',
-                dateIso: weekDate.get(w) ?? new Date(0).toISOString(),
+                dateIso: date,
             });
         }
     }
@@ -859,7 +930,7 @@ Note: `getPhase(week, weeks)` returns a `Phase` whose human label is `.label` (v
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `bun run test:run src/lib/pulse/__tests__/milestones.test.ts`
-Expected: PASS (5 tests).
+Expected: PASS (7 tests).
 
 ### Task 3.3: `MilestonesCard` component + "show all" modal
 
