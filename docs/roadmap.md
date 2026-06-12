@@ -24,9 +24,9 @@
 
 ## Status & next session (2026-06-12)
 
-**In progress:** (none).
+**In progress:** Profile + Progress information-architecture redesign on `feature/profile-progress-ia-redesign` (spec `docs/superpowers/specs/2026-06-12-11-10-13-profile-progress-ia-redesign-design.md` + plan `docs/superpowers/plans/2026-06-12-profile-progress-ia-redesign.md` committed). Scope: 2-tab Profile (You / Training) + optional gender, 3-tab Progress (Overview / Lifts / Body), body tracking relocated to Progress, read-side-only per-metric measurement parity, chart dot-markers. No migration, no server-action change. Implementing subagent-driven.
 
-**In review (on a branch, not yet merged):** (none). Both open branches merged: the schema-in-VCS baseline (#125) and the self-serve auth lifecycle (#126).
+**In review (on a branch, not yet merged):** quick UI fixes on `feature/pulse-ui-polish` (bodyweight-trend rounding + regression test, auth-route skeleton matching the auth layout, superset exercise swap). The IA-redesign branch is **stacked on it** (both touch `ProfileView`). Merge order: `feature/pulse-ui-polish` first, then `feature/profile-progress-ia-redesign` (rebase `--onto main` after the first squash-merges).
 
 **All migrations applied (verified 2026-06-12, pg_catalog + information_schema audit via the session pooler):** the five previously-pending hand-apply migrations (`equipment-profile-expiry`, `exercise-swaps-from-exercise`, `exercise-swaps-reason`, `program-pauses`, then the P0 Group 2 metadata corrections `2026-06-11-10-19-55`) are all live in prod, as are the schema baseline (`0000-baseline-schema-reconstruction.sql`) and the two auth migrations (`profiles-auto-create-trigger`, `fk-cascade-auth-users`). Confirmed in the live schema: every feature table/column exists, the `on_auth_user_created` trigger is present, the three account-deletion FK cascades (`profiles.id`, `set_logs.user_id`, `bodyweight_logs.user_id`) read CASCADE, and the P0 Group 2 data corrections (chest-fly / leg-curl / leg-extension substitution classes, Smith Machine Calf Raise re-tagged `{machines}`) are applied. No pending hand-apply migrations.
 
@@ -70,6 +70,13 @@
 **Own clean window (not interleaved with the above):** monorepo extraction (flatten-to-root decided now, executed as one isolated sprint, the whole near-term block must settle first), then the full dependency upgrade, hard-gated on extraction being live (low-risk group, then Next 15 to 16 in isolation, then the Supabase libs separately). See "Infrastructure" below.
 
 **Later (post-launch or validation-gated):** progress photos (#9), reason-driven manual deload (#16, the volume-wiring prerequisite first), the behavior-adaptation v1.6 + smart-substitution v2 v1.6 follow-ons, Coach Timeline increment 2, i18n extraction, marketing-hero copy (needs a landing page that does not exist yet), PostHog, and the small UX items (guided landscape layout, computed starting-weight estimate). Detail in "Later".
+
+**Deferred follow-ons from the Profile + Progress redesign (queued 2026-06-12, each its own spec):**
+- **Write-side measurement parity:** independent per-metric same-date logging ("one value per metric per date"). Needs a `UNIQUE(user_id, measured_at)` migration on `body_measurements` (with a one-time dedupe/merge of existing same-date rows), a COALESCE upsert rewrite of `logBodyMeasurement` (currently a plain insert, so same-date rows duplicate today), a same-date merge policy, and a new `deleteBodyMeasurement` action + UI (none exists today). The redesign ships read-side parity only; this is the write half.
+- **UI primitives consolidation:** an emerging shared layer already exists (`TabButton`, `ui.ts` style constants, `EquipmentSelector`, `PageSkeleton`/`SkeletonBar`, and the redesign's new `SegmentedTabs` + `MetricLineChart`), but recurring patterns (option cards, section labels, pills, settings rows, shimmer) are re-implemented inline in several places. A single consolidation pass extracts the common ones into `src/components/pulse/ui/` and adopts them. NOT a formal library / Storybook (premature at this scale). Run it as its own branch **after** the Profile/Progress and Setup/Tune redesigns land, so the patterns have stabilized first.
+- **Progress richness (Liftin-inspired, scoped out of the IA redesign):** per-exercise browse + detail view (chart-type switching, per-exercise PRs, entry count); workout calendar + session-detail (duration, volume, exercise breakdown); expanded measurement metrics (body-fat %, shoulders, neck, biceps, forearms, hips, thighs, calves; needs the schema migration); progress photos (already #9). The IA redesign builds Progress with entry points for these.
+- **Smaller:** history-modal month grouping; sub-tab state persistence; Library exercise list grouped by equipment (quick-fix lane).
+- **Setup / Tune flow redesign** (from the same backlog): shrink the oversized `RoutineSetupFlow` desktop modal + redesign `TuneYourPlanPanel` to match `RoutineSetupFlow`. Its own design round.
 
 ---
 
