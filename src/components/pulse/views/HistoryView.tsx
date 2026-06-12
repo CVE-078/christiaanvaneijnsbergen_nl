@@ -25,7 +25,7 @@ import ProgramStatusCard from '@/components/pulse/ProgramStatusCard';
 import CoachActivityTimeline from '@/components/pulse/CoachActivityTimeline';
 import StrengthBreakdownModal from '@/components/pulse/StrengthBreakdownModal';
 import PageTitle from '@/components/pulse/PageTitle';
-import { computeStrengthScore } from '@/lib/pulse/strength';
+import { computeStrengthScore, computeStrengthScoreSeries, strengthDeltaLabel, classifyLift } from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
 import SegmentedTabs from '@/components/pulse/SegmentedTabs';
@@ -311,6 +311,23 @@ export default function HistoryView() {
         [prMap, nameMap, bodyweightLogs, profile.gender],
     );
 
+    const strengthSeries = useMemo(() => {
+        const liftsByWeek = allRoutineExercises
+            .filter((re) => classifyLift(re.exercise.name) !== null)
+            .map((re) => ({ name: re.exercise.name, history: computeE1RMHistory(windowedLogs, re.id) }))
+            .filter((l) => l.history.length > 0);
+        return computeStrengthScoreSeries({
+            gender: profile.gender,
+            // bodyweightLogs is newest-first (queries.ts orders logged_at desc),
+            // so [0] is the CURRENT weight, the same convention the existing
+            // strength memo and BodyWeightCard already rely on.
+            bodyweightKg: bodyweightLogs[0]?.weight_kg ?? null,
+            liftsByWeek,
+        });
+    }, [allRoutineExercises, windowedLogs, profile.gender, bodyweightLogs]);
+
+    const strengthDelta = useMemo(() => strengthDeltaLabel(strengthSeries), [strengthSeries]);
+
     // One pass over logs replacing the former five independent scans
     // (buildHistory, computeVolumeByTypeAndWeek, computeBestSets,
     // computePerMuscleVolume, default-exercise scan).
@@ -468,6 +485,16 @@ export default function HistoryView() {
                             <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-accent">
                                 {strength.score ?? '—'}
                             </span>
+                            <span
+                                className={`font-pulse text-[0.62rem] font-semibold mt-1 ${
+                                    strengthDelta.tone === 'up'
+                                        ? 'text-pulse-success'
+                                        : strengthDelta.tone === 'down'
+                                          ? 'text-pulse-dim'
+                                          : 'text-pulse-muted'
+                                }`}>
+                                {strengthDelta.text}
+                            </span>
                             <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
                                 Strength &rsaquo;
                             </span>
@@ -520,6 +547,7 @@ export default function HistoryView() {
                     <StrengthBreakdownModal
                         open={strengthModalOpen}
                         strength={strength}
+                        series={strengthSeries}
                         onClose={() => setStrengthModalOpen(false)}
                     />
                 </div>

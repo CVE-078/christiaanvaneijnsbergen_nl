@@ -139,3 +139,45 @@ export function computeStrengthScore(args: {
     const score = Math.round(breakdown.reduce((sum, l) => sum + l.subScore, 0) / breakdown.length);
     return { score, level: levelFor(score), reason: null, approximate: gender === null, lifts: breakdown };
 }
+
+// Strength score as a weekly series. For each week present in any lift's
+// history, score the cumulative best e1RM per lift as of that week. Bodyweight
+// is deliberately held at the current value across the series: this isolates
+// e1RM progress so the trend reads as "are my lifts going up". Bodyweight change
+// is covered by the Recomp dashboard, folding it in here would conflate two
+// signals (a cut/recomp would move the score from weight loss, not lifting).
+export function computeStrengthScoreSeries(args: {
+    gender: Gender | null;
+    bodyweightKg: number | null;
+    liftsByWeek: Array<{ name: string; history: Array<{ week: number; e1rm: number }> }>;
+}): Array<{ week: number; score: number }> {
+    const { gender, bodyweightKg, liftsByWeek } = args;
+    const weeks = new Set<number>();
+    for (const l of liftsByWeek) for (const h of l.history) weeks.add(h.week);
+    const out: Array<{ week: number; score: number }> = [];
+    for (const w of [...weeks].sort((a, b) => a - b)) {
+        const lifts = liftsByWeek
+            .map(({ name, history }) => {
+                const upto = history.filter((h) => h.week <= w).map((h) => h.e1rm);
+                return upto.length ? { name, e1rm: Math.max(...upto) } : null;
+            })
+            .filter((x): x is { name: string; e1rm: number } => x !== null);
+        const { score } = computeStrengthScore({ gender, bodyweightKg, lifts });
+        if (score !== null) out.push({ week: w, score });
+    }
+    return out;
+}
+
+export interface StrengthDelta {
+    text: string;
+    tone: 'up' | 'down' | 'flat' | 'none';
+}
+
+// Tile delta label: latest score vs the first point of the series.
+export function strengthDeltaLabel(series: Array<{ week: number; score: number }>): StrengthDelta {
+    if (series.length < 2) return { text: 'log lifts to see', tone: 'none' };
+    const delta = series[series.length - 1].score - series[0].score;
+    if (delta > 0) return { text: `▲ ${delta} this cycle`, tone: 'up' };
+    if (delta < 0) return { text: `▼ ${Math.abs(delta)} this cycle`, tone: 'down' };
+    return { text: 'no change', tone: 'flat' };
+}

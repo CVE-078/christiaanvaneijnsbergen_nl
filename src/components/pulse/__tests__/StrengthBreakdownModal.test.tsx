@@ -45,4 +45,16 @@ describe('StrengthBreakdownModal', () => {
         // The dialog still appears (shows no-data state).
         expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
+
+    it('renders a score trend header when a multi-point series is passed', () => {
+        render(
+            <StrengthBreakdownModal
+                open
+                strength={strength}
+                series={[{ week: 1, score: 40 }, { week: 4, score: 46 }]}
+                onClose={() => {}}
+            />,
+        );
+        expect(screen.getByText(/score trend/i)).toBeInTheDocument();
+    });
 });
