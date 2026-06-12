@@ -87,8 +87,18 @@ export default function AccountSecuritySection() {
                     type="button"
                     onClick={() => toggle('password')}
                     className="flex items-center justify-between w-full px-[13px] py-[13px] border-none bg-transparent cursor-pointer">
-                    <span className="font-pulse font-semibold text-[0.92rem] text-pulse-text">Change password</span>
-                    <span className="text-pulse-muted text-sm">{openSection === 'password' ? '∨' : '›'}</span>
+                    <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">Change password</span>
+                    <svg
+                        className={`w-3.5 h-3.5 shrink-0 text-pulse-muted transition-transform ${openSection === 'password' ? 'rotate-90' : ''}`}
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden>
+                        <polyline points="6,3 11,8 6,13" />
+                    </svg>
                 </button>
                 {openSection === 'password' && (
                     <div className="px-[13px] pb-4">
@@ -103,8 +113,18 @@ export default function AccountSecuritySection() {
                     type="button"
                     onClick={() => toggle('delete')}
                     className="flex items-center justify-between w-full px-[13px] py-[13px] border-none bg-transparent cursor-pointer">
-                    <span className="font-pulse font-semibold text-[0.92rem] text-pulse-error">Delete account</span>
-                    <span className="text-pulse-muted text-sm">{openSection === 'delete' ? '∨' : '›'}</span>
+                    <span className="font-pulse font-medium text-[0.92rem] text-pulse-error">Delete account</span>
+                    <svg
+                        className={`w-3.5 h-3.5 shrink-0 text-pulse-muted transition-transform ${openSection === 'delete' ? 'rotate-90' : ''}`}
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden>
+                        <polyline points="6,3 11,8 6,13" />
+                    </svg>
                 </button>
                 {openSection === 'delete' && (
                     <div className="px-[13px] pb-4">

@@ -75,9 +75,21 @@ function Row({
     );
 }
 
-// Chevron glyph
+// Chevron-right icon (replaces the text "›" glyph, which read as a stray "v")
 function Chev() {
-    return <span className="text-pulse-muted">›</span>;
+    return (
+        <svg
+            className="w-3.5 h-3.5 shrink-0 text-pulse-muted"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden>
+            <polyline points="6,3 11,8 6,13" />
+        </svg>
+    );
 }
 
 // Pill button: filled accent when active, surface-2 when not
@@ -401,7 +413,19 @@ export default function ProfileView() {
 
                         <Row
                             label="Export history (CSV)"
-                            right={<span className="text-pulse-muted">↓</span>}
+                            right={
+                                <svg
+                                    className="w-4 h-4 text-pulse-muted"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={1.8}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    aria-hidden>
+                                    <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                                </svg>
+                            }
                             onClick={handleExport}
                         />
 
