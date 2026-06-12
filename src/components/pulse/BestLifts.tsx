@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import ModalSheet from './ModalSheet';
 import { WORKOUT_TYPE_ORDER, WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { toDisplay } from '@/lib/pulse/utils';
 import type { RoutineExercise, BestSet, Unit } from '@/lib/pulse/types';
@@ -11,7 +12,13 @@ interface BestLiftsProps {
     allRoutineExercises: RoutineExercise[];
     bestSets: Record<string, BestSet>;
     unit: Unit;
+    /** Collapsed-card row drill-in (opens detail directly, no back target). */
     onSelectExercise?: (routineExerciseId: string) => void;
+    /** Controlled "all lifts" modal state. Falls back to internal state when omitted. */
+    listOpen?: boolean;
+    onListOpenChange?: (open: boolean) => void;
+    /** List-modal row drill-in. When set, the caller manages closing the list so "back" can reopen it. */
+    onSelectExerciseFromList?: (routineExerciseId: string) => void;
 }
 
 // Inline lift row used in both the collapsed view and the "all lifts" modal.
@@ -66,91 +73,67 @@ function LiftRow({
     );
 }
 
-// "All best lifts" modal: bottom-sheet on mobile, centered on desktop.
+// "All best lifts" modal: a grouped lift list inside the shared ModalSheet.
 function AllLiftsModal({
     open,
     onClose,
     grouped,
+    total,
     unit,
     onSelectExercise,
 }: {
     open: boolean;
     onClose: () => void;
     grouped: { type: string; items: { re: RoutineExercise; best: BestSet }[] }[];
+    total: number;
     unit: Unit;
     onSelectExercise?: (routineExerciseId: string) => void;
 }) {
-    useEffect(() => {
-        if (!open) return;
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [open, onClose]);
-
-    if (!open) return null;
-
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="All best lifts"
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 lg:items-center"
-            onClick={onClose}>
-            <div
-                className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-5 lg:max-h-[78vh] lg:rounded-[18px] lg:mx-6"
-                onClick={(e) => e.stopPropagation()}>
-                {/* Grip handle, visible on mobile only */}
-                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-pulse-border lg:hidden" aria-hidden />
-
-                {/* Header */}
-                <div className="flex items-center justify-between px-[18px] pt-3 pb-3">
-                    <span className="font-pulse-display font-bold text-[1.3rem] text-pulse-text leading-tight">
-                        Best Lifts
-                    </span>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close"
-                        className="cursor-pointer border-none bg-transparent font-pulse text-[1.05rem] leading-none text-pulse-muted hover:text-pulse-text">
-                        &#x2715;
-                    </button>
-                </div>
-
-                {/* Grouped lift list */}
-                <div className="overflow-y-auto px-[18px] pb-1 flex-1">
-                    {grouped.map(({ type, items }) => (
-                        <div key={type} className="mb-4">
-                            <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
-                                {WORKOUT_TYPE_LABELS[type as keyof typeof WORKOUT_TYPE_LABELS]}
-                            </div>
-                            <div className="flex flex-col">
-                                {items.map(({ re, best }, idx) => (
-                                    <LiftRow
-                                        key={re.id}
-                                        name={re.exercise.name}
-                                        best={best}
-                                        unit={unit}
-                                        accent={idx === 0}
-                                        onClick={
-                                            onSelectExercise
-                                                ? () => { onClose(); onSelectExercise(re.id); }
-                                                : undefined
-                                        }
-                                    />
-                                ))}
-                            </div>
+        <ModalSheet
+            open={open}
+            onClose={onClose}
+            title="Best Lifts"
+            ariaLabel="All best lifts"
+            subtitle={`${total} ${total === 1 ? 'lift' : 'lifts'}`}>
+            {/* Grouped lift list */}
+            <div className="flex-1 overflow-y-auto px-6 pb-1">
+                {grouped.map(({ type, items }) => (
+                    <div key={type} className="mb-4">
+                        <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
+                            {WORKOUT_TYPE_LABELS[type as keyof typeof WORKOUT_TYPE_LABELS]}
                         </div>
-                    ))}
-                </div>
+                        <div className="flex flex-col">
+                            {items.map(({ re, best }, idx) => (
+                                <LiftRow
+                                    key={re.id}
+                                    name={re.exercise.name}
+                                    best={best}
+                                    unit={unit}
+                                    accent={idx === 0}
+                                    onClick={onSelectExercise ? () => onSelectExercise(re.id) : undefined}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))}
             </div>
-        </div>
+        </ModalSheet>
     );
 }
 
-export default function BestLifts({ allRoutineExercises, bestSets, unit, onSelectExercise }: BestLiftsProps) {
-    const [modalOpen, setModalOpen] = useState(false);
+export default function BestLifts({
+    allRoutineExercises,
+    bestSets,
+    unit,
+    onSelectExercise,
+    listOpen,
+    onListOpenChange,
+    onSelectExerciseFromList,
+}: BestLiftsProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const modalOpen = listOpen ?? internalOpen;
+    const setModalOpen = onListOpenChange ?? setInternalOpen;
 
     const entries = allRoutineExercises
         .filter((re) => bestSets[re.id])
@@ -169,6 +152,17 @@ export default function BestLifts({ allRoutineExercises, bestSets, unit, onSelec
     // Show the "Show all" button only when collapsing actually hides lifts.
     const collapsedCount = grouped.reduce((n, g) => n + Math.min(PER_GROUP_CAP, g.items.length), 0);
     const hasMore = entries.length > collapsedCount;
+
+    // List-modal row selection: when the caller wants back-navigation it manages
+    // closing the list itself; otherwise close the list and drill in directly.
+    const handleListSelect = onSelectExerciseFromList
+        ? (id: string) => onSelectExerciseFromList(id)
+        : onSelectExercise
+          ? (id: string) => {
+                setModalOpen(false);
+                onSelectExercise(id);
+            }
+          : undefined;
 
     return (
         <div className="flex flex-col gap-5">
@@ -220,8 +214,9 @@ export default function BestLifts({ allRoutineExercises, bestSets, unit, onSelec
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
                 grouped={grouped}
+                total={entries.length}
                 unit={unit}
-                onSelectExercise={onSelectExercise}
+                onSelectExercise={handleListSelect}
             />
         </div>
     );

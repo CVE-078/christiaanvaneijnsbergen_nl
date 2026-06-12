@@ -103,4 +103,19 @@ describe('SessionDetailModal', () => {
         fireEvent.click(screen.getByRole('dialog'));
         expect(onClose).toHaveBeenCalled();
     });
+
+    it('shows a back button only when onBack is given, and calls it', () => {
+        const onBack = vi.fn();
+        const { rerender } = render(
+            <SessionDetailModal open workout={mockWorkout} unit="kg" onClose={() => {}} />,
+        );
+        // Exact 'Back' so it doesn't match the "Back Squat" exercise row button.
+        expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+
+        rerender(
+            <SessionDetailModal open workout={mockWorkout} unit="kg" onClose={() => {}} onBack={onBack} />,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        expect(onBack).toHaveBeenCalledTimes(1);
+    });
 });

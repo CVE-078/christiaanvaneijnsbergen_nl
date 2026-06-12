@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     toDisplay,
     computeE1RMHistory,
@@ -36,6 +36,7 @@ import RecentChangeCard from '@/components/pulse/RecentChangeCard';
 import SessionsCalendar from '@/components/pulse/SessionsCalendar';
 import SessionDetailModal from '@/components/pulse/SessionDetailModal';
 import ExerciseDetailModal from '@/components/pulse/ExerciseDetailModal';
+import ModalSheet from '@/components/pulse/ModalSheet';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { formatLogDate } from '@/lib/pulse/dates';
 import { assembleWorkouts, type Workout } from '@/lib/pulse/workouts';
@@ -143,8 +144,8 @@ function GoalWeightSummary() {
     );
 }
 
-// "Show all workouts" modal: bottom-sheet on mobile, centered on desktop.
-// Groups workouts by month, each row opens the session detail modal.
+// "Show all workouts" modal: a month-grouped workout list inside the shared
+// ModalSheet. Each row opens the session detail modal.
 function AllWorkoutsModal({
     open,
     workouts,
@@ -155,21 +156,9 @@ function AllWorkoutsModal({
     open: boolean;
     workouts: Workout[];
     todayIso: string;
-    unit: string;
     onClose: () => void;
     onSelectWorkout: (w: Workout) => void;
 }) {
-    useEffect(() => {
-        if (!open) return;
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [open, onClose]);
-
-    if (!open) return null;
-
     // Group workouts by YYYY-MM (newest month first).
     const groups: { key: string; label: string; items: Workout[] }[] = [];
     for (const w of workouts) {
@@ -185,78 +174,57 @@ function AllWorkoutsModal({
     }
 
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="All workouts"
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 lg:items-center"
-            onClick={onClose}>
-            <div
-                className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-5 lg:max-h-[78vh] lg:rounded-[18px] lg:mx-6"
-                onClick={(e) => e.stopPropagation()}>
-                {/* Grip handle, visible on mobile only */}
-                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-pulse-border lg:hidden" aria-hidden />
-
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-3 pb-3">
-                    <span className="font-pulse-display font-bold text-[1.3rem] text-pulse-text leading-tight">
-                        All Workouts
-                    </span>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close"
-                        className="cursor-pointer border-none bg-transparent font-pulse text-[1.05rem] leading-none text-pulse-muted hover:text-pulse-text">
-                        &#x2715;
-                    </button>
-                </div>
-
-                {/* Month-grouped workout list */}
-                <div className="overflow-y-auto px-6 pb-1 flex-1">
-                    {groups.map((group) => (
-                        <div key={group.key}>
-                            <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 flex items-center gap-3">
-                                <span className="font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
-                                    {group.label}
-                                </span>
-                                <span className="h-px flex-1 bg-pulse-border" />
-                                <span className="font-pulse text-[0.64rem] text-pulse-muted shrink-0">
-                                    {group.items.length} {group.items.length === 1 ? 'workout' : 'workouts'}
-                                </span>
-                            </div>
-                            {group.items.map((w) => {
-                                const label =
-                                    (WORKOUT_TYPE_LABELS[w.workoutType as WorkoutType] ?? w.workoutType) +
-                                    (w.variant ? ` ${w.variant}` : '');
-                                const dateIso = w.date.split('T')[0];
-                                return (
-                                    <button
-                                        key={w.id}
-                                        type="button"
-                                        onClick={() => onSelectWorkout(w)}
-                                        className="w-full flex items-center justify-between border-b border-pulse-border py-[12px] last:border-b-0 text-left cursor-pointer bg-transparent border-x-0 border-t-0 hover:opacity-80 transition-opacity">
-                                        <div>
-                                            <span className="font-pulse text-[0.9rem] text-pulse-text block">
-                                                {label}
-                                            </span>
-                                            <span className="font-pulse text-[0.75rem] text-pulse-muted mt-[2px] block">
-                                                {formatLogDate(dateIso, todayIso)} · {w.setCount} sets
-                                            </span>
-                                        </div>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="text-pulse-muted shrink-0">
-                                            <polyline points="9 18 15 12 9 6" />
-                                        </svg>
-                                    </button>
-                                );
-                            })}
+        <ModalSheet
+            open={open}
+            onClose={onClose}
+            title="All Workouts"
+            ariaLabel="All workouts"
+            subtitle={workouts.length > 0 ? `${workouts.length} ${workouts.length === 1 ? 'workout' : 'workouts'}` : undefined}>
+            {/* Month-grouped workout list */}
+            <div className="flex-1 overflow-y-auto px-6 pb-1">
+                {groups.map((group) => (
+                    <div key={group.key}>
+                        <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 flex items-center gap-3">
+                            <span className="font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
+                                {group.label}
+                            </span>
+                            <span className="h-px flex-1 bg-pulse-border" />
+                            <span className="font-pulse text-[0.64rem] text-pulse-muted shrink-0">
+                                {group.items.length} {group.items.length === 1 ? 'workout' : 'workouts'}
+                            </span>
                         </div>
-                    ))}
-                    {workouts.length === 0 && (
-                        <p className="py-6 text-center font-pulse text-sm text-pulse-muted">No workouts yet.</p>
-                    )}
-                </div>
+                        {group.items.map((w) => {
+                            const label =
+                                (WORKOUT_TYPE_LABELS[w.workoutType as WorkoutType] ?? w.workoutType) +
+                                (w.variant ? ` ${w.variant}` : '');
+                            const dateIso = w.date.split('T')[0];
+                            return (
+                                <button
+                                    key={w.id}
+                                    type="button"
+                                    onClick={() => onSelectWorkout(w)}
+                                    className="w-full flex items-center justify-between border-b border-pulse-border py-[12px] last:border-b-0 text-left cursor-pointer bg-transparent border-x-0 border-t-0 hover:opacity-80 transition-opacity">
+                                    <div>
+                                        <span className="font-pulse text-[0.9rem] text-pulse-text block">
+                                            {label}
+                                        </span>
+                                        <span className="font-pulse text-[0.75rem] text-pulse-muted mt-[2px] block">
+                                            {formatLogDate(dateIso, todayIso)} · {w.setCount} sets
+                                        </span>
+                                    </div>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="text-pulse-muted shrink-0">
+                                        <polyline points="9 18 15 12 9 6" />
+                                    </svg>
+                                </button>
+                            );
+                        })}
+                    </div>
+                ))}
+                {workouts.length === 0 && (
+                    <p className="py-6 text-center font-pulse text-sm text-pulse-muted">No workouts yet.</p>
+                )}
             </div>
-        </div>
+        </ModalSheet>
     );
 }
 
@@ -393,9 +361,15 @@ export default function HistoryView() {
 
     // Exercise drill-in: shows e1RM chart + history for a single routine-exercise.
     const [drillExerciseId, setDrillExerciseId] = useState<string | null>(null);
+    // "Show all lifts" modal, and whether the open drill came from it (so the
+    // drill's back chevron returns to the list rather than just dismissing).
+    const [allLiftsOpen, setAllLiftsOpen] = useState(false);
+    const [drillFromList, setDrillFromList] = useState(false);
 
     // Session detail modal: shows a single Workout.
     const [detailWorkout, setDetailWorkout] = useState<Workout | null>(null);
+    // Whether the open session detail came from the all-workouts list.
+    const [detailFromList, setDetailFromList] = useState(false);
 
     // "Show all workouts" modal.
     const [allWorkoutsOpen, setAllWorkoutsOpen] = useState(false);
@@ -417,7 +391,17 @@ export default function HistoryView() {
     // Open the detail modal for the workout matching a calendar day's session.
     function openCalendarSession(s: WorkoutSession) {
         const found = workouts.find((w) => w.id === s.id);
-        if (found) setDetailWorkout(found);
+        if (found) {
+            setDetailFromList(false);
+            setDetailWorkout(found);
+        }
+    }
+
+    // Open the session detail directly (recent rows / calendar): no list to
+    // return to, so the back chevron stays hidden.
+    function openWorkoutDetail(w: Workout) {
+        setDetailFromList(false);
+        setDetailWorkout(w);
     }
 
     // Today string for formatLogDate calls.
@@ -630,7 +614,17 @@ export default function HistoryView() {
                                 allRoutineExercises={allRoutineExercises}
                                 bestSets={bestSets}
                                 unit={unit}
-                                onSelectExercise={setDrillExerciseId}
+                                onSelectExercise={(id) => {
+                                    setDrillFromList(false);
+                                    setDrillExerciseId(id);
+                                }}
+                                listOpen={allLiftsOpen}
+                                onListOpenChange={setAllLiftsOpen}
+                                onSelectExerciseFromList={(id) => {
+                                    setAllLiftsOpen(false);
+                                    setDrillFromList(true);
+                                    setDrillExerciseId(id);
+                                }}
                             />
                         </div>
 
@@ -691,7 +685,7 @@ export default function HistoryView() {
                                             <button
                                                 key={w.id}
                                                 type="button"
-                                                onClick={() => setDetailWorkout(w)}
+                                                onClick={() => openWorkoutDetail(w)}
                                                 className="flex items-center justify-between rounded-xl bg-pulse-surface px-[13px] py-[11px] text-left cursor-pointer border-none hover:bg-pulse-surface-2 transition-colors">
                                                 <div>
                                                     <div className="font-pulse font-medium text-[0.88rem] text-pulse-text">
@@ -722,22 +716,48 @@ export default function HistoryView() {
                         </div>
                     )}
 
-                    {/* Session detail modal */}
+                    {/* Session detail modal. Back returns to the all-workouts list
+                        when it was opened from there; close always dismisses. */}
                     <SessionDetailModal
                         open={detailWorkout !== null}
                         workout={detailWorkout}
                         unit={unit}
-                        onClose={() => setDetailWorkout(null)}
+                        onClose={() => {
+                            setDetailWorkout(null);
+                            setDetailFromList(false);
+                        }}
+                        onBack={
+                            detailFromList
+                                ? () => {
+                                      setDetailWorkout(null);
+                                      setDetailFromList(false);
+                                      setAllWorkoutsOpen(true);
+                                  }
+                                : undefined
+                        }
                     />
 
-                    {/* Exercise drill-in modal */}
+                    {/* Exercise drill-in modal. Back returns to the all-lifts list
+                        when it was opened from there; close always dismisses. */}
                     <ExerciseDetailModal
                         open={drillExerciseId !== null}
                         routineExerciseId={drillExerciseId ?? ''}
                         name={nameMap.get(drillExerciseId ?? '') ?? ''}
                         logs={logs}
                         unit={unit}
-                        onClose={() => setDrillExerciseId(null)}
+                        onClose={() => {
+                            setDrillExerciseId(null);
+                            setDrillFromList(false);
+                        }}
+                        onBack={
+                            drillFromList
+                                ? () => {
+                                      setDrillExerciseId(null);
+                                      setDrillFromList(false);
+                                      setAllLiftsOpen(true);
+                                  }
+                                : undefined
+                        }
                     />
 
                     {/* All workouts modal */}
@@ -745,9 +765,12 @@ export default function HistoryView() {
                         open={allWorkoutsOpen}
                         workouts={workouts}
                         todayIso={todayIso}
-                        unit={unit}
                         onClose={() => setAllWorkoutsOpen(false)}
-                        onSelectWorkout={(w) => { setAllWorkoutsOpen(false); setDetailWorkout(w); }}
+                        onSelectWorkout={(w) => {
+                            setAllWorkoutsOpen(false);
+                            setDetailFromList(true);
+                            setDetailWorkout(w);
+                        }}
                     />
 
                     {!hasData && (

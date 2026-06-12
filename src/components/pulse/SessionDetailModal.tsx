@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import ModalSheet from './ModalSheet';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { toDisplay } from '@/lib/pulse/utils';
 import { formatLogDate } from '@/lib/pulse/dates';
@@ -11,6 +12,8 @@ interface Props {
     workout: Workout | null;
     unit: Unit;
     onClose: () => void;
+    /** When set, a back chevron returns to the list this was opened from. */
+    onBack?: () => void;
 }
 
 function workoutTitle(w: Workout): string {
@@ -55,23 +58,12 @@ function Chevron({ open }: { open: boolean }) {
     );
 }
 
-// Bottom-sheet on mobile, centered dialog on desktop. Mirrors the shell used
-// by MetricHistoryModal.
-export default function SessionDetailModal({ open, workout, unit, onClose }: Props) {
+export default function SessionDetailModal({ open, workout, unit, onClose, onBack }: Props) {
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         setExpandedIds(new Set());
     }, [workout?.id]);
-
-    useEffect(() => {
-        if (!open) return;
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [open, onClose]);
 
     if (!open || !workout) return null;
 
@@ -96,99 +88,73 @@ export default function SessionDetailModal({ open, workout, unit, onClose }: Pro
     }
 
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 lg:items-center"
-            onClick={onClose}>
-            <div
-                className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-5 lg:max-h-[78vh] lg:rounded-[18px] lg:mx-6"
-                onClick={(e) => e.stopPropagation()}>
-                {/* Grip handle, mobile only */}
-                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-pulse-border lg:hidden" aria-hidden />
+        <ModalSheet open={open} onClose={onClose} onBack={onBack} title={title}>
+            {/* Summary strip */}
+            <div className="grid grid-cols-4 gap-3 px-6 pb-4 mb-1 border-b border-pulse-border">
+                <Stat label="Date" value={dateLabel} />
+                <Stat label="Duration" value={workout.durationMin !== null ? `${workout.durationMin} min` : '—'} />
+                <Stat label="Exercises" value={String(workout.exercises.length)} />
+                <Stat label="Volume" value={volumeLabel} />
+            </div>
 
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-3 pb-3">
-                    <span className="font-pulse-display font-bold text-[1.3rem] text-pulse-text leading-tight">
-                        {title}
-                    </span>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close"
-                        className="cursor-pointer border-none bg-transparent font-pulse text-[1.05rem] leading-none text-pulse-muted hover:text-pulse-text">
-                        &#x2715;
-                    </button>
-                </div>
-
-                {/* Summary strip */}
-                <div className="grid grid-cols-4 gap-3 px-6 pb-4 mb-1 border-b border-pulse-border">
-                    <Stat label="Date" value={dateLabel} />
-                    <Stat label="Duration" value={workout.durationMin !== null ? `${workout.durationMin} min` : '—'} />
-                    <Stat label="Exercises" value={String(workout.exercises.length)} />
-                    <Stat label="Volume" value={volumeLabel} />
-                </div>
-
-                {/* Exercise breakdown: collapsible rows */}
-                <div className="overflow-y-auto px-6 pb-1 flex-1">
-                    {workout.exercises.length === 0 && (
-                        <p className="py-6 text-center font-pulse text-sm text-pulse-muted">No set data available.</p>
-                    )}
-                    {workout.exercises.map((ex) => {
-                        const isOpen = expandedIds.has(ex.routineExerciseId);
-                        return (
-                            <div key={ex.routineExerciseId} className="border-b border-pulse-border last:border-b-0">
-                                {/* Collapsed row: name + weight (left) | reps + sets (right) */}
-                                <button
-                                    type="button"
-                                    onClick={() => toggleExercise(ex.routineExerciseId)}
-                                    aria-expanded={isOpen}
-                                    className="w-full flex items-center justify-between gap-3 py-[13px] text-left cursor-pointer border-none bg-transparent">
-                                    <div className="min-w-0">
-                                        <div className="font-pulse text-[0.9rem] text-pulse-text overflow-hidden text-ellipsis whitespace-nowrap">
-                                            {ex.name}
+            {/* Exercise breakdown: collapsible rows */}
+            <div className="flex-1 overflow-y-auto px-6 pb-1">
+                {workout.exercises.length === 0 && (
+                    <p className="py-6 text-center font-pulse text-sm text-pulse-muted">No set data available.</p>
+                )}
+                {workout.exercises.map((ex) => {
+                    const isOpen = expandedIds.has(ex.routineExerciseId);
+                    return (
+                        <div key={ex.routineExerciseId} className="border-b border-pulse-border last:border-b-0">
+                            {/* Collapsed row: name + weight (left) | reps + sets (right) */}
+                            <button
+                                type="button"
+                                onClick={() => toggleExercise(ex.routineExerciseId)}
+                                aria-expanded={isOpen}
+                                className="w-full flex items-center justify-between gap-3 py-[13px] text-left cursor-pointer border-none bg-transparent">
+                                <div className="min-w-0">
+                                    <div className="font-pulse text-[0.9rem] text-pulse-text overflow-hidden text-ellipsis whitespace-nowrap">
+                                        {ex.name}
+                                    </div>
+                                    <div className="font-pulse-body text-[0.75rem] text-pulse-muted mt-[2px]">
+                                        {toDisplay(ex.maxKg, unit)} {unit}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                    <div className="text-right">
+                                        <div className="font-pulse text-[0.85rem] font-medium text-pulse-text">
+                                            {repLabel(ex)} reps
                                         </div>
                                         <div className="font-pulse-body text-[0.75rem] text-pulse-muted mt-[2px]">
-                                            {toDisplay(ex.maxKg, unit)} {unit}
+                                            {ex.setCount} {ex.setCount === 1 ? 'set' : 'sets'}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        <div className="text-right">
-                                            <div className="font-pulse text-[0.85rem] font-medium text-pulse-text">
-                                                {repLabel(ex)} reps
-                                            </div>
-                                            <div className="font-pulse-body text-[0.75rem] text-pulse-muted mt-[2px]">
-                                                {ex.setCount} {ex.setCount === 1 ? 'set' : 'sets'}
-                                            </div>
-                                        </div>
-                                        <Chevron open={isOpen} />
-                                    </div>
-                                </button>
+                                    <Chevron open={isOpen} />
+                                </div>
+                            </button>
 
-                                {/* Expanded per-set rows */}
-                                {isOpen && (
-                                    <div className="pb-[12px] flex flex-col gap-[6px]">
-                                        {ex.sets.map((set, idx) => (
-                                            <div key={idx} className="flex items-center gap-3 pl-1">
-                                                <span className="font-pulse text-[0.72rem] text-pulse-muted w-12 shrink-0">
-                                                    Set {idx + 1}
-                                                </span>
-                                                <span className="font-pulse text-[0.87rem] text-pulse-text flex-1">
-                                                    {toDisplay(set.kg, unit)} {unit} × {set.reps}
-                                                </span>
-                                                <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0">
-                                                    {set.rir} RIR
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
+                            {/* Expanded per-set rows */}
+                            {isOpen && (
+                                <div className="pb-[12px] flex flex-col gap-[6px]">
+                                    {ex.sets.map((set, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 pl-1">
+                                            <span className="font-pulse text-[0.72rem] text-pulse-muted w-12 shrink-0">
+                                                Set {idx + 1}
+                                            </span>
+                                            <span className="font-pulse text-[0.87rem] text-pulse-text flex-1">
+                                                {toDisplay(set.kg, unit)} {unit} × {set.reps}
+                                            </span>
+                                            <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0">
+                                                {set.rir} RIR
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
-        </div>
+        </ModalSheet>
     );
 }
