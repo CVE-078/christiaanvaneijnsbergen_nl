@@ -260,6 +260,20 @@ describe('ProfileView', () => {
         expect(chip.className).toContain('text-pulse-success');
     });
 
+    it('rounds the bodyweight trend so a float subtraction shows no decimal noise', () => {
+        // 80.2 - 79.6 is 0.6000000000000085 in IEEE-754; the chip must read "0.6".
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyweightLogs: [
+                { id: 'b2', logged_at: '2026-06-12', weight_kg: 79.6 },
+                { id: 'b1', logged_at: '2026-06-11', weight_kg: 80.2 },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
+        renderWithToast(<ProfileView />);
+        expect(screen.getByText(/↓\s*0\.6\s*kg/)).toBeInTheDocument();
+        expect(screen.queryByText(/0\.60000/)).not.toBeInTheDocument();
+    });
+
     it('shows error when non-numeric weight is submitted', async () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('button', { name: /^log$/i }));
