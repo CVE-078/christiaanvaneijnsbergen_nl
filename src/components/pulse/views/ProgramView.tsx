@@ -115,7 +115,7 @@ export default function ProgramView() {
     if (loading?.routines || loading?.logs) return <PageSkeleton />;
 
     return (
-        <div className="p-4 max-w-[600px] lg:max-w-[820px] mx-auto">
+        <div className="px-4 pt-5 pb-12 mx-auto w-full max-w-[600px] lg:max-w-[1000px] lg:px-6 lg:pt-6 lg:pb-12">
             <div className="flex items-center justify-between mb-6">
                 <PageTitle>Plan</PageTitle>
                 <GenerateRoutineButton

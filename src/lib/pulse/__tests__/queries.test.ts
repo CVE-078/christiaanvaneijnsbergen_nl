@@ -54,8 +54,8 @@ describe('loadLogs', () => {
         });
         const logs = await loadLogs(client, UID);
         expect(calls.table).toBe('set_logs');
-        expect(calls.select).toBe('week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops');
-        expect(logs[`3-${REID}-0`]).toEqual({ kg: 50, reps: 8, rir: 2, saved: true });
+        expect(calls.select).toBe('week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops, session_id');
+        expect(logs[`3-${REID}-0`]).toEqual({ kg: 50, reps: 8, rir: 2, saved: true, session_id: null });
     });
 
     it('returns empty when validation fails', async () => {

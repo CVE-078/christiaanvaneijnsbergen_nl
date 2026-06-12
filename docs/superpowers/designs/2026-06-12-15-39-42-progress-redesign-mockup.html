@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Progress redesign v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Big+Shoulders+Display:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--accent:#ff7d66;--accent-dim:#b0503d;--bg:#0e1113;--surface:#161a1d;--surface-2:#1c2125;
+    --border:#262c31;--dim:#aab2b7;--muted:#6f787e;--text:#e7ebed;--success:#4ade80;--error:#f43f5e}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#07090a;color:var(--text);font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;padding:18px 14px 60px}
+
+  .controls{max-width:1180px;margin:0 auto 16px;display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .cap{color:var(--muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;margin-right:4px}
+  .seg-h{display:inline-flex;gap:4px;background:var(--surface-2);border-radius:9px;padding:3px}
+  .seg-h button{padding:6px 13px;border:none;background:transparent;color:var(--dim);border-radius:7px;font-weight:500;font-size:0.78rem;font-family:inherit;cursor:pointer}
+  .seg-h button.on{background:var(--accent);color:var(--bg)}
+  .hint{color:var(--muted);font-size:0.74rem}
+
+  .stage{display:flex;justify-content:center;overflow-x:auto;padding-bottom:8px}
+  .device{container-type:inline-size;background:var(--bg);border:1px solid var(--border);border-radius:22px;overflow:hidden;height:828px;display:flex;box-shadow:0 24px 70px rgba(0,0,0,.5);transition:width .2s;position:relative}
+  .device.m{width:390px}.device.t{width:768px}.device.d{width:1180px}
+
+  .sidebar{display:none;width:210px;flex:none;border-right:1px solid var(--border);background:var(--surface);padding:18px 12px;flex-direction:column;gap:3px}
+  .sidebar .logo{font-weight:700;font-size:1.05rem;letter-spacing:0.05em;text-transform:uppercase;padding:6px 10px 18px}
+  .sidebar .logo span{color:var(--accent)}
+  .sidebar .nav{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--dim);font-weight:500;font-size:0.9rem}
+  .sidebar .nav.on{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
+  .sidebar .nav svg{width:18px;height:18px;flex:none}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .scroll{flex:1;overflow-y:auto;padding:16px 16px 28px}
+  .scroll::-webkit-scrollbar{width:0}
+  .bottomnav{display:flex;border-top:1px solid var(--border);background:var(--surface);padding:8px 4px}
+  .bottomnav .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:0.62rem;font-weight:500}
+  .bottomnav .b.on{color:var(--accent)}
+  .bottomnav .b svg{width:21px;height:21px}
+
+  .ttl{font-size:1.6rem;font-weight:600;letter-spacing:-0.02em;margin-bottom:14px}
+  .tabs{display:flex;gap:4px;background:var(--surface);border-radius:12px;padding:4px;margin-bottom:8px}
+  .tabs button{flex:1;border:1px solid transparent;background:transparent;color:var(--dim);font-weight:500;font-size:0.84rem;padding:8px 0;border-radius:9px;cursor:pointer;font-family:inherit;transition:all .15s}
+  .tabs button.on{background:var(--accent);color:var(--bg)}
+  .pgtab{display:none}.pgtab.on{display:block}
+
+  .lbl{font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 9px;font-weight:600}
+  .lbl:first-child{margin-top:8px}
+  .secthead{display:flex;align-items:center;justify-content:space-between}
+  .seclink{color:var(--accent);font-size:0.74rem;font-weight:500;cursor:pointer}
+  .big{font-family:'Big Shoulders Display',sans-serif;font-weight:700;letter-spacing:0.01em}
+  .chev{color:var(--muted)}
+  .card{background:var(--surface);border-radius:14px;padding:15px}
+
+  /* metric strip */
+  .metric{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px}
+  @container (min-width:720px){.metric{grid-template-columns:repeat(4,1fr)}}
+  .metric .m{background:var(--surface);border-radius:14px;padding:14px 12px;text-align:center;border:1px solid transparent}
+  .metric .m.tap{cursor:pointer}.metric .m.tap:hover{border-color:var(--border)}
+  .metric .v{font-size:1.85rem;line-height:1}
+  .metric .k{color:var(--muted);font-size:0.6rem;text-transform:uppercase;letter-spacing:0.09em;margin-top:7px}
+
+  /* program status */
+  .status .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+  .spill{font-size:0.72rem;font-weight:600;border-radius:99px;padding:4px 11px;color:var(--success);background:color-mix(in srgb,var(--success) 13%,transparent)}
+  .status .wk{color:var(--dim);font-size:0.85rem}
+  .status .sub{display:flex;gap:22px;margin-top:13px;flex-wrap:wrap}
+  .status .sub .s{font-size:0.78rem;color:var(--muted)}
+  .status .sub .s b{color:var(--text);font-weight:600}
+  .status .sub .s .ok{color:var(--success)}
+
+  .verdict{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 13%,var(--surface)),var(--surface));border-radius:16px;padding:16px}
+  .verdict .h{font-weight:600;font-size:1.05rem}
+  .verdict .s{color:var(--dim);font-size:0.82rem;margin-top:5px;line-height:1.45}
+
+  /* coach timeline */
+  .tl{position:relative;padding-left:20px;margin-top:2px}
+  .tl::before{content:"";position:absolute;left:4px;top:8px;bottom:10px;width:2px;background:var(--border)}
+  .tlitem{position:relative;padding:9px 0}
+  .tlitem::before{content:"";position:absolute;left:-20px;top:13px;width:9px;height:9px;border-radius:99px;background:var(--accent);box-shadow:0 0 0 3px var(--bg)}
+  .tlitem .h{font-size:0.86rem;font-weight:500}
+  .tlitem .d{font-size:0.76rem;color:var(--muted);margin-top:2px}
+
+  /* charts */
+  .chartblock{margin-top:18px}
+  .charts{display:grid;gap:0}
+  @container (min-width:720px){.charts{grid-template-columns:1fr 1fr;gap:16px}}
+  .charthead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+  .charthead .ct{font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .charthead .cv{font-size:0.86rem;font-weight:600}
+  .charthead .cv .d{color:var(--success);font-size:0.74rem;font-weight:500;margin-left:5px}
+  .sel{font-size:0.7rem;background:var(--surface-2);border:none;border-radius:7px;padding:4px 8px;color:var(--dim);font-family:inherit;cursor:pointer}
+  .chart{background:var(--surface);border-radius:14px;height:118px;position:relative;overflow:hidden}
+  .chart svg{position:absolute;inset:0;width:100%;height:100%}
+
+  /* per-muscle (now a card) */
+  .focus-line{font-size:0.76rem;color:var(--accent);margin:-2px 0 13px}
+  .mbar{margin-bottom:11px}.mbar:last-child{margin-bottom:0}
+  .mbar .top{display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px}
+  .mbar .mn{color:var(--dim);text-transform:capitalize}.mbar .ms{color:var(--muted)}
+  .mtrack{height:7px;border-radius:99px;background:var(--bg);overflow:hidden}
+  .mf{height:100%;border-radius:99px;background:var(--accent)}.mf.low{background:var(--surface-2)}
+
+  /* best lifts (merged), grouped by type */
+  .blgroup{margin-bottom:14px}.blgroup:last-child{margin-bottom:0}
+  .blhdr{font-size:0.64rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px}
+  .bl{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+  .bl:last-child{border-bottom:none}
+  .bl .nm{font-weight:500;font-size:0.86rem}.bl .sub{color:var(--muted);font-size:0.72rem;margin-top:2px}
+  .bl .e1{text-align:right}.bl .e1 .num{font-weight:600;font-size:0.92rem}.bl .e1.top .num{color:var(--accent)}.bl .e1 .u{color:var(--muted);font-size:0.64rem}
+
+  .showall{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--surface);border:none;border-radius:10px;padding:11px;color:var(--accent);font-weight:500;font-size:0.8rem;margin-top:9px;cursor:pointer;font-family:inherit}
+  .showall svg{width:13px;height:13px}
+
+  /* calendar */
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cal .dow{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);text-align:center;padding-bottom:2px}
+  .cal .day{aspect-ratio:1;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:0.72rem;color:var(--dim);position:relative}
+  .cal .day.empty{background:transparent}
+  .cal .day.done{background:color-mix(in srgb,var(--accent) 20%,var(--surface));color:var(--text);cursor:pointer;font-weight:600}
+  .cal .day.done::after{content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:99px;background:var(--accent)}
+  .cal .day.today{outline:1.5px solid var(--accent)}
+  .sessgrid{display:grid;gap:12px}
+  @container (min-width:720px){.sessgrid{grid-template-columns:330px 1fr;gap:18px;align-items:start}}
+  .sesslist .sessrow:first-child{margin-top:0}
+  .sessrow{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:12px;padding:11px 13px;margin-top:8px;cursor:pointer}
+  .sessrow .w{font-weight:500;font-size:0.88rem}.sessrow .m{color:var(--muted);font-size:0.73rem;margin-top:3px}
+  .sessrow .b{color:var(--success);font-size:0.75rem;font-weight:600;background:color-mix(in srgb,var(--success) 12%,transparent);border-radius:99px;padding:3px 9px}
+
+  /* body */
+  .bodygrid{display:grid;gap:0}
+  @container (min-width:720px){.bodygrid{grid-template-columns:1fr 1fr;gap:18px;align-items:start}}
+  .bcard .hd{display:flex;align-items:center;justify-content:space-between;height:30px}
+  .bcard .hd .t{font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .row2{height:34px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .trend{font-size:0.72rem;font-weight:500;color:var(--success);background:color-mix(in srgb,var(--success) 12%,transparent);border-radius:99px;padding:4px 10px}
+  .mpill{padding:5px 12px;border-radius:99px;background:var(--surface-2);color:var(--dim);font-size:0.75rem;font-weight:500;border:none;cursor:pointer;font-family:inherit}
+  .mpill.on{background:var(--accent);color:var(--bg)}
+  .unit-tog{display:inline-flex;gap:4px}
+  .unit-tog .u{padding:3px 9px;border-radius:99px;font-size:0.66rem;font-weight:500;background:var(--surface-2);color:var(--dim)}
+  .unit-tog .u.on{background:var(--accent);color:var(--bg)}
+  .logbar{display:flex;gap:8px;margin:10px 0 12px}
+  .fld{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--dim);font-size:0.84rem}
+  .fld.date{flex:1}.fld.num{width:70px}
+  .logbtn{background:var(--accent);color:var(--bg);border:none;border-radius:9px;padding:10px 16px;font-weight:600;font-size:0.78rem;cursor:pointer;font-family:inherit}
+  .li{display:flex;align-items:center;justify-content:space-between;padding:10px 2px;border-bottom:1px solid var(--border)}
+  .li:last-child{border-bottom:none}.li .d{color:var(--dim);font-size:0.82rem}.li .wv{font-weight:500;font-size:0.9rem}
+
+  /* body summary row (goal 50% + recent change) */
+  .toprow{display:grid;gap:14px;margin-top:6px}
+  @container (min-width:720px){.toprow{grid-template-columns:1fr 1fr;align-items:stretch}}
+  .toprow>div{display:flex;flex-direction:column}
+  .toprow .card{flex:1}
+  .toprow .card.rc{justify-content:center}
+  .goalrow{display:flex;align-items:center;gap:16px}
+  .goalrow .gk{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+  .goalrow .gv{font-size:1.45rem;font-weight:600}.goalrow .gv .gu{font-size:0.82rem;color:var(--muted)}
+  .delta{display:flex;gap:20px}
+  .delta .dd .dk{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+  .delta .dd .dv{font-size:1.15rem;font-weight:600;margin-top:3px;color:var(--success)}
+
+  /* modal */
+  .modal{position:absolute;inset:0;background:rgba(7,9,10,.72);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;z-index:30}
+  .modal.on{display:flex}
+  .sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:86%;display:flex;flex-direction:column;padding:6px 18px 18px;border-top:1px solid var(--border)}
+  @container (min-width:1024px){
+    .sidebar{display:flex}
+    .bottomnav{display:none}
+    .scroll{padding:24px 30px 30px;max-width:1040px}
+    .modal{align-items:center}.sheet{border-radius:18px;max-height:78%;margin:0 24px;border-top:none}.sheet .grip{display:none}
+  }
+  .grip{width:38px;height:4px;border-radius:99px;background:var(--border);margin:8px auto 12px}
+  .sheethead{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}
+  .sheethead .st{font-family:'Big Shoulders Display',sans-serif;font-weight:700;font-size:1.3rem}
+  .sheethead .sm{color:var(--muted);font-size:0.78rem;margin-top:2px}
+  .sheethead .x{color:var(--muted);font-size:1.05rem;cursor:pointer;background:none;border:none}
+  .monthhdr{font-size:0.64rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:14px 0 2px;position:sticky;top:0;background:var(--surface);padding:5px 0}
+  .sheetscroll{overflow-y:auto}
+  .lift-row{display:flex;align-items:center;gap:12px;margin-top:11px}
+  .lift-row .ll{font-size:0.82rem;color:var(--dim);width:96px;flex:none}
+  .lift-row .bar{flex:1;height:6px;border-radius:99px;background:var(--bg);overflow:hidden}
+  .lift-row .bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+  .lift-row .lv{font-size:0.82rem;font-weight:600;width:26px;text-align:right;flex:none}
+  .modal .hidden{display:none}
+
+  .note{max-width:1180px;margin:14px auto 0;color:var(--muted);font-size:0.79rem;text-align:center;line-height:1.55}
+</style>
+</head>
+<body>
+  <div class="controls">
+    <span class="cap">Breakpoint</span>
+    <div class="seg-h" role="group" aria-label="Breakpoint">
+      <button onclick="bp('m',this)">Mobile</button>
+      <button onclick="bp('t',this)">Tablet</button>
+      <button class="on" onclick="bp('d',this)">Desktop</button>
+    </div>
+    <span class="hint">Tap the 412 metric, a calendar day, or a "Show all" to see the modals.</span>
+  </div>
+
+  <div class="stage">
+    <div class="device d" id="device">
+      <div class="sidebar">
+        <div class="logo">Pulse<span>.</span></div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h2v11h-2zM15.5 6.5h2v11h-2zM8.5 12h7M4 9.5v5M20 9.5v5"/></svg>Train</div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/></svg>Plan</div>
+        <div class="nav on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 16l5-5 4 3 7-7"/></svg>Progress</div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Profile</div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h11a2 2 0 012 2v12H7a2 2 0 01-2-2z"/><path d="M9 5v14"/></svg>Library</div>
+      </div>
+
+      <div class="main">
+        <div class="scroll" id="scroll">
+          <div class="ttl">Progress</div>
+          <div class="tabs" role="tablist">
+            <button class="on" onclick="tb('overview',this)">Overview</button>
+            <button onclick="tb('lifts',this)">Lifts</button>
+            <button onclick="tb('body',this)">Body</button>
+          </div>
+
+          <!-- ============ OVERVIEW ============ -->
+          <section class="pgtab on" id="overview">
+            <div class="metric">
+              <div class="m tap" onclick="openStr()"><div class="v big" style="color:var(--accent)">412</div><div class="k">Strength &rsaquo;</div></div>
+              <div class="m"><div class="v big">Fresh</div><div class="k">Recovery</div></div>
+              <div class="m"><div class="v big">W6</div><div class="k">Program</div></div>
+              <div class="m"><div class="v big">6</div><div class="k">Streak (wk)</div></div>
+            </div>
+
+            <div class="lbl">Program</div>
+            <div class="card status">
+              <div class="top"><span class="spill">On track</span><span class="wk">Week 6 of 12</span></div>
+              <div class="mtrack" style="height:8px"><span class="mf" style="width:50%"></span></div>
+              <div class="sub">
+                <span class="s">Next deload <b>week 12</b>, 6 weeks away</span>
+                <span class="s">This week <b>19 sets</b> <span class="ok">&middot; on plan</span></span>
+              </div>
+            </div>
+
+            <div class="lbl">Recomp verdict</div>
+            <div class="verdict">
+              <div class="h">On track, recomposing</div>
+              <div class="s">Weight down 2.4 kg, waist down 1.2 cm, lifts holding. You are losing fat while keeping strength.</div>
+            </div>
+
+            <div class="lbl secthead"><span>Coach activity</span><span class="seclink" onclick="tb('overview',document.querySelector('.tabs button'))">Show all</span></div>
+            <div class="tl">
+              <div class="tlitem"><div class="h">Week 5, lightened this week</div><div class="d">You flagged fatigue, so this week eased off.</div></div>
+              <div class="tlitem"><div class="h">Week 3, ramp-back week</div><div class="d">Volume eased after a 9-day gap, then back to plan.</div></div>
+              <div class="tlitem"><div class="h">Week 1, program started</div><div class="d">Power Hypertrophy U/L, 12-week cycle.</div></div>
+            </div>
+          </section>
+
+          <!-- ============ LIFTS ============ -->
+          <section class="pgtab" id="lifts">
+            <div class="charts chartblock">
+              <div>
+                <div class="charthead">
+                  <span class="ct">e1RM progression</span>
+                  <select class="sel" aria-label="Exercise"><option>Bench Press</option><option>Back Squat</option><option>Deadlift</option></select>
+                </div>
+                <div class="charthead" style="margin-top:-2px"><span class="cv">105 kg <span class="d">+8% / 12 wk</span></span></div>
+                <div class="chart">
+                  <svg viewBox="0 0 320 118" preserveAspectRatio="none">
+                    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7d66" stop-opacity="0.25"/><stop offset="1" stop-color="#ff7d66" stop-opacity="0"/></linearGradient></defs>
+                    <polygon points="8,90 60,82 112,72 164,60 216,50 268,38 312,32 312,118 8,118" fill="url(#ga)"/>
+                    <polyline points="8,90 60,82 112,72 164,60 216,50 268,38 312,32" fill="none" stroke="#ff7d66" stroke-width="2.5" stroke-linejoin="round"/>
+                    <g fill="#0e1113" stroke="#ff7d66" stroke-width="2"><circle cx="60" cy="82" r="3.2"/><circle cx="112" cy="72" r="3.2"/><circle cx="164" cy="60" r="3.2"/><circle cx="216" cy="50" r="3.2"/><circle cx="268" cy="38" r="3.2"/></g>
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <div class="charthead"><span class="ct">Weekly volume</span></div>
+                <div class="charthead" style="margin-top:-2px"><span class="cv">19 sets <span class="d">this week</span></span></div>
+                <div class="chart">
+                  <svg viewBox="0 0 320 118" preserveAspectRatio="none">
+                    <g fill="#ff7d66"><rect x="14" y="62" width="24" height="56" rx="3"/><rect x="50" y="48" width="24" height="70" rx="3"/><rect x="86" y="54" width="24" height="64" rx="3"/><rect x="122" y="36" width="24" height="82" rx="3"/><rect x="158" y="44" width="24" height="74" rx="3"/></g>
+                    <g fill="#1c2125"><rect x="194" y="60" width="24" height="58" rx="3"/><rect x="230" y="60" width="24" height="58" rx="3"/></g>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="lbl">Volume by muscle, Week 6</div>
+            <div class="card">
+              <div class="focus-line">Tilted toward chest, your priority muscle.</div>
+              <div class="mbar"><div class="top"><span class="mn">chest</span><span class="ms">14 / 12 sets</span></div><div class="mtrack"><span class="mf" style="width:100%"></span></div></div>
+              <div class="mbar"><div class="top"><span class="mn">back</span><span class="ms">9 / 14 sets</span></div><div class="mtrack"><span class="mf low" style="width:64%"></span></div></div>
+              <div class="mbar"><div class="top"><span class="mn">quads</span><span class="ms">11 / 12 sets</span></div><div class="mtrack"><span class="mf" style="width:92%"></span></div></div>
+              <div class="mbar"><div class="top"><span class="mn">shoulders</span><span class="ms">8 / 10 sets</span></div><div class="mtrack"><span class="mf low" style="width:80%"></span></div></div>
+            </div>
+
+            <div class="lbl secthead"><span>Best lifts</span><span class="ms" style="color:var(--muted);font-size:0.7rem">top set &middot; e1RM</span></div>
+            <div class="card">
+              <div class="blgroup">
+                <div class="blhdr">Push</div>
+                <div class="bl"><div><div class="nm">Bench Press</div><div class="sub">90 kg &times; 6</div></div><div class="e1 top"><span class="num">105</span> <span class="u">kg e1RM</span></div></div>
+                <div class="bl"><div><div class="nm">Overhead Press</div><div class="sub">52 kg &times; 6</div></div><div class="e1"><span class="num">61</span> <span class="u">kg e1RM</span></div></div>
+              </div>
+              <div class="blgroup">
+                <div class="blhdr">Pull</div>
+                <div class="bl"><div><div class="nm">Deadlift</div><div class="sub">140 kg &times; 5</div></div><div class="e1 top"><span class="num">158</span> <span class="u">kg e1RM</span></div></div>
+                <div class="bl"><div><div class="nm">Barbell Row</div><div class="sub">80 kg &times; 8</div></div><div class="e1"><span class="num">99</span> <span class="u">kg e1RM</span></div></div>
+              </div>
+              <div class="blgroup">
+                <div class="blhdr">Legs</div>
+                <div class="bl"><div><div class="nm">Back Squat</div><div class="sub">110 kg &times; 5</div></div><div class="e1 top"><span class="num">126</span> <span class="u">kg e1RM</span></div></div>
+              </div>
+            </div>
+            <button class="showall">Show all 24 lifts <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+
+            <div class="lbl secthead"><span>Sessions, June</span><span class="ms" style="color:var(--muted);font-size:0.72rem">tap a marked day</span></div>
+            <div class="sessgrid">
+              <div class="card calcard"><div class="cal" id="cal"></div></div>
+              <div class="sesslist">
+                <div class="sessrow" onclick="openSess('Lower B, Week 5','Fri 29 May &middot; 48 min &middot; 14 sets')"><div><div class="w">Lower B &middot; Week 5</div><div class="m">Fri 29 May &middot; 6 exercises</div></div><div class="b">+2 PRs</div></div>
+                <div class="sessrow" onclick="openSess('Upper B, Week 5','Thu 28 May &middot; 44 min &middot; 16 sets')"><div><div class="w">Upper B &middot; Week 5</div><div class="m">Thu 28 May &middot; 6 exercises</div></div><div class="b">+1 PR</div></div>
+                <button class="showall" style="margin-top:8px">Show all 20 sessions <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ BODY ============ -->
+          <section class="pgtab" id="body">
+            <!-- summary row: goal 50% + recent change 50% (goal first on mobile) -->
+            <div class="toprow">
+              <div>
+                <div class="lbl" style="margin-top:0">Goal weight</div>
+                <div class="card">
+                  <div class="goalrow">
+                    <div><div class="gk">Current</div><div class="gv">79.6<span class="gu"> kg</span></div></div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    <div><div class="gk">Goal</div><div class="gv" style="color:var(--accent)">78.0<span class="gu" style="color:color-mix(in srgb,var(--accent) 60%,var(--muted))"> kg</span></div></div>
+                    <div style="margin-left:auto;text-align:right"><div class="gk">To go</div><div class="gv">1.6<span class="gu"> kg</span></div></div>
+                  </div>
+                  <div class="mtrack" style="margin-top:14px;height:8px"><span class="mf" style="width:62%"></span></div>
+                </div>
+              </div>
+              <div>
+                <div class="lbl" style="margin-top:0">Recent change, 6 weeks</div>
+                <div class="card rc">
+                  <div class="delta">
+                    <div class="dd"><div class="dk">Weight</div><div class="dv">&minus;2.4 kg</div></div>
+                    <div class="dd"><div class="dk">Waist</div><div class="dv">&minus;1.2 cm</div></div>
+                    <div class="dd"><div class="dk">Lifts</div><div class="dv">+8%</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bodygrid" style="margin-top:4px">
+              <div class="bcard">
+                <div class="lbl">Body weight</div>
+                <div class="bcard-inner">
+                  <div class="row2"><span class="trend">&darr; 0.6 kg this week</span></div>
+                  <div class="logbar"><span class="fld date">12 / 06 / 2026</span><span class="fld num">kg</span><button class="logbtn">Log</button></div>
+                  <div class="chart" style="height:108px">
+                    <svg viewBox="0 0 320 108" preserveAspectRatio="none">
+                      <defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7d66" stop-opacity="0.22"/><stop offset="1" stop-color="#ff7d66" stop-opacity="0"/></linearGradient></defs>
+                      <polygon points="8,28 60,36 112,38 164,52 216,58 268,66 312,74 312,108 8,108" fill="url(#gb)"/>
+                      <polyline points="8,28 60,36 112,38 164,52 216,58 268,66 312,74" fill="none" stroke="#ff7d66" stroke-width="2.5" stroke-linejoin="round"/>
+                      <g fill="#0e1113" stroke="#ff7d66" stroke-width="2"><circle cx="164" cy="52" r="3"/><circle cx="268" cy="66" r="3"/></g>
+                    </svg>
+                  </div>
+                  <div class="li"><span class="d">Today</span><span class="wv">79.6 kg</span></div>
+                  <div class="li"><span class="d">11 Jun</span><span class="wv">80.2 kg</span></div>
+                  <div class="li"><span class="d">10 Jun</span><span class="wv">79.9 kg</span></div>
+                  <button class="showall" onclick="openHist('Body weight')">Show all 16 entries <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+                </div>
+              </div>
+              <div class="bcard">
+                <div class="lbl secthead"><span>Measurements</span><span class="unit-tog"><span class="u on">cm</span><span class="u">in</span></span></div>
+                <div class="bcard-inner">
+                  <div class="row2"><button class="mpill on">Waist</button><button class="mpill">Hips</button><button class="mpill">Chest</button><button class="mpill">Arms</button></div>
+                  <div class="logbar"><span class="fld date">12 / 06 / 2026</span><span class="fld num">cm</span><button class="logbtn">Log</button></div>
+                  <div class="chart" style="height:108px">
+                    <svg viewBox="0 0 320 108" preserveAspectRatio="none">
+                      <defs><linearGradient id="gc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7d66" stop-opacity="0.2"/><stop offset="1" stop-color="#ff7d66" stop-opacity="0"/></linearGradient></defs>
+                      <polygon points="8,28 80,36 152,44 224,54 312,62 312,108 8,108" fill="url(#gc)"/>
+                      <polyline points="8,28 80,36 152,44 224,54 312,62" fill="none" stroke="#ff7d66" stroke-width="2.5" stroke-linejoin="round"/>
+                      <g fill="#0e1113" stroke="#ff7d66" stroke-width="2"><circle cx="152" cy="44" r="3"/></g>
+                    </svg>
+                  </div>
+                  <div class="li"><span class="d">Waist &middot; 1 Jun</span><span class="wv">86.0 cm</span></div>
+                  <div class="li"><span class="d">Waist &middot; 18 May</span><span class="wv">86.8 cm</span></div>
+                  <div class="li"><span class="d">Waist &middot; 4 May</span><span class="wv">88.0 cm</span></div>
+                  <button class="showall" onclick="openHist('Waist')">Show all 12 entries <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="bottomnav">
+          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h2v11h-2zM15.5 6.5h2v11h-2zM8.5 12h7M4 9.5v5M20 9.5v5"/></svg>Train</div>
+          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/></svg>Plan</div>
+          <div class="b on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 16l5-5 4 3 7-7"/></svg>Progress</div>
+          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Profile</div>
+          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h11a2 2 0 012 2v12H7a2 2 0 01-2-2z"/><path d="M9 5v14"/></svg>Library</div>
+        </div>
+
+        <!-- modal -->
+        <div class="modal" id="modal" onclick="if(event.target===this)closeM()">
+          <div class="sheet">
+            <div class="grip"></div>
+            <div class="sheethead"><div><span class="st" id="mTitle">Body weight</span><div class="sm" id="mSub" style="display:none"></div></div><button class="x" onclick="closeM()">&#10005;</button></div>
+
+            <!-- history body -->
+            <div id="mHist">
+              <div class="chart" style="height:150px;margin-bottom:6px">
+                <svg viewBox="0 0 320 150" preserveAspectRatio="none">
+                  <defs><linearGradient id="gm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7d66" stop-opacity="0.22"/><stop offset="1" stop-color="#ff7d66" stop-opacity="0"/></linearGradient></defs>
+                  <polygon points="8,34 50,44 92,56 134,64 176,78 218,86 260,96 312,104 312,150 8,150" fill="url(#gm)"/>
+                  <polyline points="8,34 50,44 92,56 134,64 176,78 218,86 260,96 312,104" fill="none" stroke="#ff7d66" stroke-width="2.5" stroke-linejoin="round"/>
+                  <g fill="#0e1113" stroke="#ff7d66" stroke-width="2"><circle cx="50" cy="44" r="3"/><circle cx="134" cy="64" r="3"/><circle cx="218" cy="86" r="3"/><circle cx="312" cy="104" r="3"/></g>
+                </svg>
+              </div>
+              <div class="sheetscroll">
+                <div class="monthhdr">June 2026</div>
+                <div class="li"><span class="d">Today</span><span class="wv">79.6 kg</span></div>
+                <div class="li"><span class="d">11 Jun</span><span class="wv">80.2 kg</span></div>
+                <div class="li"><span class="d">10 Jun</span><span class="wv">79.9 kg</span></div>
+                <div class="li"><span class="d">8 Jun</span><span class="wv">80.3 kg</span></div>
+                <div class="li"><span class="d">1 Jun</span><span class="wv">80.6 kg</span></div>
+                <div class="monthhdr">May 2026</div>
+                <div class="li"><span class="d">25 May</span><span class="wv">81.0 kg</span></div>
+                <div class="li"><span class="d">18 May</span><span class="wv">81.3 kg</span></div>
+                <div class="li"><span class="d">11 May</span><span class="wv">81.7 kg</span></div>
+                <div class="li"><span class="d">4 May</span><span class="wv">82.0 kg</span></div>
+              </div>
+            </div>
+
+            <!-- strength breakdown body -->
+            <div id="mStr" class="hidden">
+              <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px"><span class="big" style="font-size:2.4rem;color:var(--accent)">412</span><span style="font-weight:500">Intermediate</span><span style="margin-left:auto;color:var(--muted);font-size:0.8rem">/ 500</span></div>
+              <div class="lift-row"><span class="ll">Bench Press</span><span class="bar"><i style="width:68%"></i></span><span class="lv">68</span></div>
+              <div class="lift-row"><span class="ll">Back Squat</span><span class="bar"><i style="width:76%"></i></span><span class="lv">76</span></div>
+              <div class="lift-row"><span class="ll">Deadlift</span><span class="bar"><i style="width:81%"></i></span><span class="lv">81</span></div>
+              <div class="lift-row"><span class="ll">Overhead Press</span><span class="bar"><i style="width:63%"></i></span><span class="lv">63</span></div>
+              <p style="margin-top:14px;color:var(--muted);font-size:0.76rem;line-height:1.5">Scored against intermediate standards for your bodyweight. Set your gender in Profile to refine.</p>
+            </div>
+
+            <!-- session detail body -->
+            <div id="mSess" class="hidden">
+              <div class="li"><span class="d">Back Squat</span><span class="wv">110 kg &times; 5, 5, 5</span></div>
+              <div class="li"><span class="d">Romanian Deadlift</span><span class="wv">90 kg &times; 8, 8</span></div>
+              <div class="li"><span class="d">Leg Press</span><span class="wv">180 kg &times; 12, 12</span></div>
+              <div class="li"><span class="d">Walking Lunge</span><span class="wv">22 kg &times; 12, 12</span></div>
+              <div class="li"><span class="d">Calf Raise</span><span class="wv">60 kg &times; 15, 15</span></div>
+              <div class="li"><span class="d">Hanging Leg Raise</span><span class="wv">bodyweight &times; 12, 12</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">v3: Overview is the coach glance (metric strip, program status, recomp verdict, coach activity). Lifts merges Best Lifts (set + e1RM, by type), adds chart value readouts and a sessions calendar. Body aligns the two columns, goal weight is 50% (top on mobile), modal centers on desktop. The "Recent change" card is a stand-in to fill the goal-weight row, swap or drop it.</p>
+
+<script>
+  function bp(s,btn){var d=document.getElementById('device');d.classList.remove('m','t','d');d.classList.add(s);
+    btn.parentElement.querySelectorAll('button').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');}
+  function tb(id,btn){document.querySelectorAll('.pgtab').forEach(function(p){p.classList.remove('on')});
+    document.getElementById(id).classList.add('on');
+    var bar=btn.closest('.tabs');bar.querySelectorAll('button').forEach(function(b){b.classList.remove('on')});
+    bar.querySelectorAll('button').forEach(function(b){if(b.getAttribute('onclick').indexOf("'"+id+"'")>-1)b.classList.add('on')});
+    document.getElementById('scroll').scrollTop=0;}
+  function show(which){['mHist','mStr','mSess'].forEach(function(x){document.getElementById(x).classList.add('hidden')});
+    document.getElementById(which).classList.remove('hidden');}
+  function openHist(t){document.getElementById('mTitle').textContent=t;document.getElementById('mSub').style.display='none';show('mHist');document.getElementById('modal').classList.add('on');}
+  function openStr(){document.getElementById('mTitle').textContent='Strength score';document.getElementById('mSub').style.display='none';show('mStr');document.getElementById('modal').classList.add('on');}
+  function openSess(t,m){document.getElementById('mTitle').textContent=t;var s=document.getElementById('mSub');s.innerHTML=m;s.style.display='block';show('mSess');document.getElementById('modal').classList.add('on');}
+  function closeM(){document.getElementById('modal').classList.remove('on');}
+
+  // June 2026 calendar, Jun 1 is a Monday; mark session days
+  (function(){
+    var done={2:1,4:1,6:1,9:1,11:1,12:1};
+    var dows=['M','T','W','T','F','S','S'];
+    var cal=document.getElementById('cal');var html='';
+    dows.forEach(function(d){html+='<div class="dow">'+d+'</div>';});
+    for(var i=0;i<30;i++){var day=i+1;var cls='day'+(done[day]?' done':'')+(day===12?' today':'');
+      var click=done[day]?' onclick="openSess(\'Session, '+day+' Jun\',\''+day+' Jun &middot; 46 min &middot; 14 sets\')"':'';
+      html+='<div class="'+cls+'"'+click+'>'+day+'</div>';}
+    cal.innerHTML=html;
+  })();
+</script>
+</body>
+</html>

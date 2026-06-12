@@ -47,6 +47,8 @@ import type {
     SessionSummary,
     EquipmentKey,
     EquipmentProfile,
+    AdherenceStatus,
+    ProgramPosition,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -1299,4 +1301,68 @@ export function groupExercises(exercises: RoutineExercise[]): ExerciseItem[] {
         }
     }
     return items;
+}
+
+// A single-word (or short phrase) summary of the recovery state for the metric
+// strip. Counts muscles whose status is not 'optimal'; 0 => 'Fresh'.
+export function recoverySummaryWord(
+    recovery: Partial<Record<ExerciseCategory, Pick<RecoveryDetail, 'status'>>>,
+): string {
+    const n = Object.values(recovery).filter((d) => d && d.status !== 'optimal').length;
+    if (n === 0) return 'Fresh';
+    return `${n} flag${n > 1 ? 's' : ''}`;
+}
+
+// Formats a ProgramPosition + program length into display values for
+// ProgramStatusCard. Pure; all decision logic lives in adherence.ts.
+export interface FormattedProgramStatus {
+    statusLabel: string;
+    // 'success' for on_track, 'warn' for behind, 'muted' for lapsed/paused.
+    statusTone: 'success' | 'warn' | 'muted';
+    weekLabel: string;
+    // 0-1 fraction of the program block completed.
+    progress: number;
+    // The next deload week >= weekInteger, or programWeeks when none exists.
+    nextDeloadWeek: number;
+}
+
+const STATUS_LABEL: Record<AdherenceStatus, string> = {
+    on_track: 'On track',
+    behind: 'Behind',
+    lapsed: 'Lapsed',
+    paused: 'Paused',
+};
+
+const STATUS_TONE: Record<AdherenceStatus, FormattedProgramStatus['statusTone']> = {
+    on_track: 'success',
+    behind: 'warn',
+    lapsed: 'muted',
+    paused: 'muted',
+};
+
+export function formatProgramStatus(pos: ProgramPosition, programWeeks: number): FormattedProgramStatus {
+    const statusLabel = STATUS_LABEL[pos.status] ?? 'On track';
+    const statusTone = STATUS_TONE[pos.status] ?? 'success';
+    // weekInteger is monotonic and keeps counting past programWeeks once the
+    // block repeats, so report position relative to the current block (matching
+    // getPhase / getRIR, which wrap). Cycle 2 reads "Week 1 of 12", not "Week 13".
+    const weekOfBlock = weekInBlock(pos.weekInteger, programWeeks);
+    const weekLabel = `Week ${weekOfBlock} of ${programWeeks}`;
+    const progress = Math.min(1, weekOfBlock / programWeeks);
+
+    // Find the next deload week at or after the current block week. A deload week
+    // is identified by its phase subtitle containing 'Deload' and being the
+    // highest-RIR week in that phase (the recovery week).
+    let nextDeloadWeek = programWeeks;
+    for (let w = weekOfBlock; w <= programWeeks; w++) {
+        const phase = getPhase(w, programWeeks);
+        if (phase.subtitle.toLowerCase().includes('deload')) {
+            // Take the last week of this deload phase (the actual recovery week).
+            const lastInPhase = Math.max(...phase.weeks);
+            nextDeloadWeek = lastInPhase;
+            break;
+        }
+    }
+
+    return { statusLabel, statusTone, weekLabel, progress, nextDeloadWeek };
 }

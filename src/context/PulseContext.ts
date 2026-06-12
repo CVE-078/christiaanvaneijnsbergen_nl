@@ -19,6 +19,7 @@ import type {
     PRMap,
     DbExercise,
     WorkoutRoutine,
+    WorkoutSession,
     RoutineWithExercises,
     RoutineExercise,
     RoutineTemplate,
@@ -44,6 +45,9 @@ export interface PulseContextValue {
     profile: Profile;
     bodyweightLogs: BodyweightEntry[];
     bodyMeasurements: BodyMeasurement[];
+    // All of the user's workout sessions (completed + in-progress), newest-first.
+    // Used by the sessions calendar to mark completed days.
+    workoutSessions: WorkoutSession[];
 
     // Computed (memoized in PulseProvider)
     streak: number;

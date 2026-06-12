@@ -30,6 +30,7 @@ const mockContext = {
         timezone: 'UTC',
     },
     prMap: {},
+    workoutSessions: [],
     updateLog: vi.fn(),
     deleteLog: vi.fn(),
     timerTrigger: 0,

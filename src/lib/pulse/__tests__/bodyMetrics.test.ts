@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { metricSeries } from '@/lib/pulse/bodyMetrics';
+import { metricSeries, groupEntriesByMonth } from '@/lib/pulse/bodyMetrics';
 import type { BodyMeasurement } from '@/lib/pulse/types';
 
 function row(
@@ -56,5 +56,17 @@ describe('metricSeries', () => {
         expect(result).toHaveLength(2);
         expect(result[0]).toEqual({ date: '2026-06-01', value: 81 });
         expect(result[1]).toEqual({ date: '2026-06-01', value: 82 });
+    });
+});
+
+describe('groupEntriesByMonth', () => {
+    it('groups entries by month, newest month first, entries newest first', () => {
+        const groups = groupEntriesByMonth([
+            { date: '2026-05-04', value: 82.0 },
+            { date: '2026-06-11', value: 80.2 },
+            { date: '2026-06-01', value: 80.6 },
+        ]);
+        expect(groups.map((g) => g.label)).toEqual(['June 2026', 'May 2026']);
+        expect(groups[0].entries.map((e) => e.value)).toEqual([80.2, 80.6]);
     });
 });

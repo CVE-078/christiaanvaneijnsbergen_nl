@@ -24,17 +24,21 @@ const defaultContext = {
         length_unit: 'cm' as const,
         priority_muscle: null,
         goal_weight_kg: null,
+        timezone: 'UTC',
     },
     prMap: {},
     routines: [],
     streak: 0,
     activeWeek: 1,
     activeRoutine: null,
+    programPosition: null,
+    decisions: [],
     loading: {},
     errors: {},
     retry: vi.fn(),
     swaps: {},
     exercises: [],
+    workoutSessions: [],
     bodyweightLogs: [],
     bodyMeasurements: [],
     refreshMeasurements: vi.fn(),
@@ -85,14 +89,14 @@ describe('HistoryView', () => {
     it('switches to the Body tab and shows a measurements control', async () => {
         render(<HistoryView />);
         await userEvent.click(screen.getByRole('tab', { name: 'Body' }));
-        // MeasurementsCard renders a "+ Log" button
-        expect(screen.getByRole('button', { name: /\+ log/i })).toBeInTheDocument();
+        // MeasurementsCard renders its metric picker pills
+        expect(screen.getByRole('button', { name: /^waist$/i })).toBeInTheDocument();
     });
 
     it('shows the no-sessions empty state in the Lifts tab when there are no logs', async () => {
         render(<HistoryView />);
         await userEvent.click(screen.getByRole('tab', { name: 'Lifts' }));
-        expect(screen.getByText(/no sessions yet/i)).toBeInTheDocument();
+        expect(screen.getByText(/no workouts yet/i)).toBeInTheDocument();
     });
 
     it('renders the page title "Progress"', () => {

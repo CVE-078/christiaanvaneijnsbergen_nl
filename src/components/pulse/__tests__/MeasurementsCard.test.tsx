@@ -127,9 +127,35 @@ describe('MeasurementsCard', () => {
         expect(mockUpdateLengthUnit).toHaveBeenCalledWith('in');
     });
 
-    it('shows the log form when the "+ Log" button is clicked', async () => {
+    it('shows an always-visible inline log bar for the selected metric', () => {
         render(<MeasurementsCard />);
-        await userEvent.click(screen.getByRole('button', { name: /\+ log/i }));
         expect(screen.getByRole('spinbutton', { name: /waist in cm/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^log$/i })).toBeInTheDocument();
+    });
+
+    it('logs only the selected metric for the chosen date', async () => {
+        const { logBodyMeasurement } = await import('@/app/pulse/actions');
+        render(<MeasurementsCard />);
+        await userEvent.type(screen.getByRole('spinbutton', { name: /waist in cm/i }), '85');
+        await userEvent.click(screen.getByRole('button', { name: /^log$/i }));
+        expect(logBodyMeasurement).toHaveBeenCalledWith(
+            expect.objectContaining({ waist_cm: 85, hips_cm: undefined, chest_cm: undefined, arms_cm: undefined }),
+        );
+    });
+
+    it('opens the history modal when "Show all" is clicked and shows month headers', async () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyMeasurements: [
+                { id: 'm1', measured_at: '2026-06-01', waist_cm: 80, hips_cm: null, chest_cm: null, arms_cm: null },
+                { id: 'm2', measured_at: '2026-06-08', waist_cm: 79, hips_cm: null, chest_cm: null, arms_cm: null },
+                { id: 'm3', measured_at: '2026-06-10', waist_cm: 78, hips_cm: null, chest_cm: null, arms_cm: null },
+                { id: 'm4', measured_at: '2026-05-20', waist_cm: 82, hips_cm: null, chest_cm: null, arms_cm: null },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<MeasurementsCard />);
+        await userEvent.click(screen.getByRole('button', { name: /show all/i }));
+        expect(screen.getByText(/June 2026/)).toBeInTheDocument();
+        expect(screen.getByText(/May 2026/)).toBeInTheDocument();
     });
 });

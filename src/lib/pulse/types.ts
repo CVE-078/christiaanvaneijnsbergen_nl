@@ -4,6 +4,9 @@ export interface LogEntry {
     rir: number;
     saved: boolean;
     drops?: Array<{ kg: number; reps: number }>;
+    // Links this set to the workout_session it was logged in (null for older /
+    // unlinked rows). Used to assemble per-workout detail with real dates.
+    session_id?: string | null;
 }
 
 export type Logs = Record<string, LogEntry>;

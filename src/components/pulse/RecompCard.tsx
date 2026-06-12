@@ -54,7 +54,6 @@ export default function RecompCard({
 
     return (
         <div className="rounded-2xl bg-pulse-surface p-5">
-            <div className="font-pulse text-[0.6875rem] tracking-[0.12em] uppercase text-pulse-muted mb-2">Recomp</div>
             <p className="font-pulse text-[0.9375rem] text-pulse-text leading-[1.5] mb-1">{readout.verdict}</p>
             {evidenceLine && (
                 <p className="font-pulse text-[0.75rem] text-pulse-muted mb-4">{evidenceLine}</p>

@@ -32,13 +32,13 @@ describe('MetricLineChart', () => {
 
     it('renders one circle per data point', () => {
         const { container } = render(<MetricLineChart points={twoPoints} unitLabel="kg" />);
-        const circles = container.querySelectorAll('circle');
+        const circles = container.querySelectorAll('circle[fill="var(--color-pulse-accent)"]');
         expect(circles).toHaveLength(twoPoints.length);
     });
 
     it('renders one circle per data point for three points', () => {
         const { container } = render(<MetricLineChart points={threePoints} unitLabel="kg" />);
-        const circles = container.querySelectorAll('circle');
+        const circles = container.querySelectorAll('circle[fill="var(--color-pulse-accent)"]');
         expect(circles).toHaveLength(threePoints.length);
     });
 
@@ -49,14 +49,14 @@ describe('MetricLineChart', () => {
         }));
         const { container } = render(<MetricLineChart points={points} unitLabel="kg" />);
         expect(container.querySelector('svg')).not.toBeNull();
-        const circles = container.querySelectorAll('circle');
+        const circles = container.querySelectorAll('circle[fill="var(--color-pulse-accent)"]');
         // capped at 30
         expect(circles).toHaveLength(30);
     });
 
     it('the last circle has r=3 (emphasized), others have r=2', () => {
         const { container } = render(<MetricLineChart points={threePoints} unitLabel="kg" />);
-        const circles = Array.from(container.querySelectorAll('circle'));
+        const circles = Array.from(container.querySelectorAll('circle[fill="var(--color-pulse-accent)"]'));
         expect(circles[circles.length - 1].getAttribute('r')).toBe('3');
         for (const c of circles.slice(0, -1)) {
             expect(c.getAttribute('r')).toBe('2');

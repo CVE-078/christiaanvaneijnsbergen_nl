@@ -511,7 +511,10 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             refreshMeasurements,
         ],
     );
-    const computedValue = useMemo(() => ({ streak, prMap, email, userId }), [streak, prMap, email, userId]);
+    const computedValue = useMemo(
+        () => ({ streak, prMap, email, userId, workoutSessions: sessions }),
+        [streak, prMap, email, userId, sessions],
+    );
     const uiStateValue = useMemo(
         () => ({
             navigate,

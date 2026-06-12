@@ -10,6 +10,28 @@ export function formatLogDate(iso: string, todayIso: string): string {
     return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+// YYYY-MM-DD string for the wall-clock date of `iso` in `tz`. Uses `en-CA`
+// locale because it formats as YYYY-MM-DD natively. Falls back to UTC for an
+// unknown timezone string.
+export function localDateKey(iso: string, tz: string): string {
+    const d = new Date(iso);
+    try {
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: tz,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).format(d);
+    } catch {
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'UTC',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).format(d);
+    }
+}
+
 // Integer day number of the local calendar date of `iso` in `tz` (days since
 // the Unix epoch). Comparing day numbers sidesteps DST/elapsed-ms pitfalls: it
 // only ever looks at the Y/M/D the wall clock shows in `tz`. Falls back to UTC

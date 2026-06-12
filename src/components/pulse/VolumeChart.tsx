@@ -51,6 +51,11 @@ export default function VolumeChart({ volByWeek, currentWeek }: VolumeChartProps
                             fill={isAccent ? 'var(--color-pulse-accent)' : 'var(--color-pulse-dim)'}>
                             {total}
                         </text>
+                        {/* Full-height transparent hit area so the whole bar column is
+                            hoverable; the native tooltip shows the week and set count. */}
+                        <rect x={x - 4} y={PT} width={barW + 8} height={H} fill="transparent" style={{ cursor: 'pointer' }}>
+                            <title>{`Week ${week}: ${total} ${total === 1 ? 'set' : 'sets'}`}</title>
+                        </rect>
                     </g>
                 );
             })}

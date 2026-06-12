@@ -114,6 +114,14 @@ export default function E1RMChart({ history, unit }: E1RMChartProps) {
                     {i === history.length - 1 ? 'Now' : `W${p.week}`}
                 </text>
             ))}
+
+            {/* Enlarged transparent hit areas so each point is easy to hover; the
+                native tooltip surfaces the week and e1RM. */}
+            {history.map((p, i) => (
+                <circle key={`hit-${p.week}`} cx={px(p.week)} cy={py(p.e1rm)} r={11} fill="transparent" style={{ cursor: 'pointer' }}>
+                    <title>{`${i === history.length - 1 ? 'Now' : `Week ${p.week}`}: ${Math.round(toDisplay(p.e1rm, unit))} ${unit} e1RM`}</title>
+                </circle>
+            ))}
         </svg>
     );
 }

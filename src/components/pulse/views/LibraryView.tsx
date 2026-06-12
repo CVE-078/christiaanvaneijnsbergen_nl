@@ -16,7 +16,7 @@ export default function LibraryView() {
     if (loading?.exercises || loading?.routines) return <PageSkeleton />;
 
     return (
-        <div className="pt-5 px-4 pb-12 max-w-[600px] lg:max-w-[820px] mx-auto flex flex-col gap-5">
+        <div className="px-4 pt-5 pb-12 mx-auto w-full max-w-[600px] lg:max-w-[1000px] lg:px-6 lg:pt-6 lg:pb-12 flex flex-col gap-5">
             <PageTitle>Library</PageTitle>
 
             {/* Tab switcher */}

@@ -5,6 +5,7 @@ import { formatLogDate } from '@/lib/pulse/dates';
 import { usePulse } from '@/context/PulseContext';
 import SectionLabel from './SectionLabel';
 import MetricLineChart from './MetricLineChart';
+import MetricHistoryModal from './MetricHistoryModal';
 import { INPUT } from './ui';
 import { logBodyWeight as logBodyWeightAction } from '@/app/pulse/actions';
 
@@ -16,6 +17,7 @@ export default function BodyWeightCard() {
     const [bwInput, setBwInput] = useState('');
     const [bwError, setBwError] = useState<string | null>(null);
     const [bwDate, setBwDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+    const [showAllModal, setShowAllModal] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -66,14 +68,24 @@ export default function BodyWeightCard() {
         .reverse()
         .map((e) => ({ date: e.logged_at, value: toDisplay(e.weight_kg, unit) }));
 
+    // Modal entries: oldest-first for month grouping (MetricHistoryModal handles sorting)
+    const modalEntries = bodyweightLogs.map((e) => ({ date: e.logged_at, value: e.weight_kg }));
+
+    // Inline list: show at most 3 latest entries
+    const inlineEntries = bodyweightLogs.slice(0, 3);
+
     return (
         <div>
-            <div className="flex justify-between items-center mb-3 gap-2">
+            {/* Header: title only, fixed height to align with MeasurementsCard header */}
+            <div className="flex items-center h-[1.875rem] mb-1">
                 <SectionLabel>Body Weight</SectionLabel>
+            </div>
+            {/* row2: fixed-height metadata slot matching MeasurementsCard's pill row */}
+            <div className="h-[2.125rem] flex items-center gap-1.5 mb-3">
                 {bwTrend != null && (
                     <span
-                        className={`font-pulse text-[0.6875rem] font-medium tabular-nums rounded px-2 py-0.5 bg-pulse-surface-2 ${
-                            bwTrend < 0 ? 'text-pulse-success' : 'text-pulse-dim'
+                        className={`font-pulse text-[0.6875rem] font-medium tabular-nums rounded-full px-[10px] py-1 ${
+                            bwTrend < 0 ? 'text-pulse-success bg-pulse-success/10' : 'text-pulse-dim bg-pulse-surface-2'
                         }`}>
                         {bwTrend < 0 ? '↓' : '↑'} {toDisplay(Math.abs(bwTrend), unit)} {unit}
                     </span>
@@ -120,14 +132,14 @@ export default function BodyWeightCard() {
             </div>
 
             {bodyweightLogs.length >= 2 && (
-                <div className="bg-pulse-surface rounded-xl pt-[0.625rem] px-2 pb-2 mb-3">
+                <div className="bg-pulse-surface rounded-xl overflow-hidden mb-3">
                     <MetricLineChart points={chartPoints} unitLabel={unit} />
                 </div>
             )}
 
             {bodyweightLogs.length > 0 ? (
                 <div>
-                    {bodyweightLogs.map((entry) => (
+                    {inlineEntries.map((entry) => (
                         <div
                             key={entry.id}
                             className="flex items-center gap-3 py-[0.5rem] border-b border-pulse-border last:border-b-0">
@@ -146,10 +158,39 @@ export default function BodyWeightCard() {
                             </button>
                         </div>
                     ))}
+                    {bodyweightLogs.length > 3 && (
+                        <button
+                            type="button"
+                            onClick={() => setShowAllModal(true)}
+                            className="mt-2 w-full flex items-center justify-center gap-[7px] rounded-xl bg-pulse-surface-2 px-4 py-[11px] font-pulse text-[0.8rem] font-medium text-pulse-accent border-none cursor-pointer">
+                            Show all {bodyweightLogs.length} entries
+                            <svg
+                                width="13"
+                                height="13"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.4"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden>
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="font-pulse text-[0.75rem] text-pulse-muted tracking-[0.04em]">No entries yet.</div>
             )}
+
+            <MetricHistoryModal
+                open={showAllModal}
+                onClose={() => setShowAllModal(false)}
+                title="Body weight"
+                unit={unit}
+                entries={modalEntries}
+                format={(v) => `${toDisplay(v, unit)} ${unit}`}
+            />
         </div>
     );
 }

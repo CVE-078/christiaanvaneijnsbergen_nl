@@ -52,6 +52,8 @@ import {
     equipmentKey,
     matchingProfileId,
     exerciseReason,
+    recoverySummaryWord,
+    formatProgramStatus,
 } from '../utils';
 import type { EquipmentProfile } from '../types';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
@@ -1885,5 +1887,44 @@ describe('computeExerciseHistory (logging-time "what did I do last time", #13)',
         const h = computeExerciseHistory(regressed, rid, 3, {});
         expect(h.trend).toBe('down');
         expect(h.e1rmDeltaPct).toBeLessThan(0);
+    });
+});
+
+describe('recoverySummaryWord', () => {
+    it('returns Fresh when all entries are optimal or empty', () => {
+        expect(recoverySummaryWord({})).toBe('Fresh');
+        expect(recoverySummaryWord({ chest: { status: 'optimal' } as any })).toBe('Fresh');
+    });
+
+    it('counts entries whose status is not optimal', () => {
+        expect(recoverySummaryWord({ chest: { status: 'high_fatigue' } as any })).toBe('1 flag');
+        expect(recoverySummaryWord({
+            chest: { status: 'high_fatigue' } as any,
+            back: { status: 'under' } as any,
+        })).toBe('2 flags');
+    });
+});
+
+describe('formatProgramStatus', () => {
+    it('formats an on_track position', () => {
+        const s = formatProgramStatus({ status: 'on_track', calendarWeek: 6, weekInteger: 6 } as any, 12);
+        expect(s.statusLabel).toBe('On track');
+        expect(s.weekLabel).toBe('Week 6 of 12');
+        expect(s.progress).toBeCloseTo(0.5);
+    });
+
+    it('maps status labels correctly', () => {
+        expect(formatProgramStatus({ status: 'behind', weekInteger: 3 } as any, 12).statusLabel).toBe('Behind');
+        expect(formatProgramStatus({ status: 'lapsed', weekInteger: 3 } as any, 12).statusLabel).toBe('Lapsed');
+        expect(formatProgramStatus({ status: 'paused', weekInteger: 3 } as any, 12).statusLabel).toBe('Paused');
+    });
+
+    it('reports position relative to the block once it repeats', () => {
+        // weekInteger 15 in a 12-week block is cycle 2, week 3.
+        const s = formatProgramStatus({ status: 'on_track', weekInteger: 15 } as any, 12);
+        expect(s.weekLabel).toBe('Week 3 of 12');
+        expect(s.progress).toBeCloseTo(0.25);
+        // Next deload is still the block's recovery week, not a stale past week.
+        expect(s.nextDeloadWeek).toBe(12);
     });
 });

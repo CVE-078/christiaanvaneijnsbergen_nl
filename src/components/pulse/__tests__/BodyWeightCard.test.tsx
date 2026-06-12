@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/context/PulseContext', () => ({
@@ -89,5 +89,21 @@ describe('BodyWeightCard', () => {
     it('shows "No entries yet" when bodyweightLogs is empty', () => {
         render(<BodyWeightCard />);
         expect(screen.getByText(/no entries yet/i)).toBeInTheDocument();
+    });
+
+    it('opens the history modal when "Show all" is clicked and shows month headers', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyweightLogs: [
+                { id: 'b1', logged_at: '2026-06-11', weight_kg: 80.2 },
+                { id: 'b2', logged_at: '2026-06-08', weight_kg: 80.8 },
+                { id: 'b3', logged_at: '2026-06-01', weight_kg: 81 },
+                { id: 'b4', logged_at: '2026-05-20', weight_kg: 82 },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<BodyWeightCard />);
+        fireEvent.click(screen.getByRole('button', { name: /show all/i }));
+        expect(screen.getByText(/June 2026/)).toBeInTheDocument();
+        expect(screen.getByText(/May 2026/)).toBeInTheDocument();
     });
 });
