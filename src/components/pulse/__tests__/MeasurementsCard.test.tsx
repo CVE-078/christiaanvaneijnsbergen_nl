@@ -10,6 +10,13 @@ vi.mock('@/app/pulse/actions', () => ({
     logBodyMeasurement: vi.fn().mockResolvedValue(undefined),
 }));
 
+// MetricLineChart requires >=2 points to render; silence SVG rendering in jsdom.
+vi.mock('../MetricLineChart', () => ({
+    default: ({ points, unitLabel }: { points: { date: string; value: number }[]; unitLabel: string }) => (
+        <div data-testid="metric-line-chart" data-points={points.length} data-unit={unitLabel} />
+    ),
+}));
+
 import { usePulse } from '@/context/PulseContext';
 import MeasurementsCard from '../MeasurementsCard';
 
@@ -30,54 +37,88 @@ beforeEach(() => {
 });
 
 describe('MeasurementsCard', () => {
-    it('renders the measurements heading and all four field labels', () => {
+    it('renders the measurements heading and all four metric pills', () => {
         render(<MeasurementsCard />);
         expect(screen.getByText('Measurements')).toBeInTheDocument();
-        expect(screen.getByText(/waist/i)).toBeInTheDocument();
-        expect(screen.getByText(/hips/i)).toBeInTheDocument();
-        expect(screen.getByText(/chest/i)).toBeInTheDocument();
-        expect(screen.getByText(/arms/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^waist$/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^hips$/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^chest$/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^arms$/i })).toBeInTheDocument();
     });
 
-    it('renders the latest measurement readout and converts it when unit is in', () => {
+    it('shows "No entries yet" for the default metric when there are no measurements', () => {
+        render(<MeasurementsCard />);
+        expect(screen.getByText('No entries yet')).toBeInTheDocument();
+    });
+
+    it('shows the selected metric series in the chart and latest entries', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyMeasurements: [
+                { id: 'm1', measured_at: '2026-06-01', waist_cm: 80, hips_cm: 99, chest_cm: null, arms_cm: null },
+                { id: 'm2', measured_at: '2026-06-08', waist_cm: 79, hips_cm: 100, chest_cm: null, arms_cm: null },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<MeasurementsCard />);
+        // Default is Waist; chart should get 2 points
+        const chart = screen.getByTestId('metric-line-chart');
+        expect(chart).toHaveAttribute('data-points', '2');
+        // Latest waist entry: 79 cm (most recent)
+        expect(screen.getByText('79 cm')).toBeInTheDocument();
+    });
+
+    it('switching the metric picker changes the displayed series', async () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyMeasurements: [
+                { id: 'm1', measured_at: '2026-06-01', waist_cm: 80, hips_cm: 99, chest_cm: null, arms_cm: null },
+                { id: 'm2', measured_at: '2026-06-08', waist_cm: 79, hips_cm: 100, chest_cm: null, arms_cm: null },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<MeasurementsCard />);
+
+        // Switch to Hips
+        await userEvent.click(screen.getByRole('button', { name: /^hips$/i }));
+
+        const chart = screen.getByTestId('metric-line-chart');
+        expect(chart).toHaveAttribute('data-points', '2');
+        // Latest hips entry: 100 cm
+        expect(screen.getByText('100 cm')).toBeInTheDocument();
+        // Waist values should NOT be visible in the latest entries list
+        expect(screen.queryByText('79 cm')).not.toBeInTheDocument();
+    });
+
+    it('converts values to inches when length_unit is in', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             profile: { length_unit: 'in' as const },
             bodyMeasurements: [
-                {
-                    id: 'm1',
-                    measured_at: '2026-06-01',
-                    waist_cm: 81,
-                    hips_cm: 99,
-                    chest_cm: 106,
-                    arms_cm: 39,
-                },
+                { id: 'm1', measured_at: '2026-06-01', waist_cm: 81, hips_cm: null, chest_cm: null, arms_cm: null },
+                { id: 'm2', measured_at: '2026-06-08', waist_cm: 82, hips_cm: null, chest_cm: null, arms_cm: null },
             ],
         } as unknown as ReturnType<typeof usePulse>);
         render(<MeasurementsCard />);
-        // 81 cm -> 31.9 in
-        expect(screen.getByText(/31\.9 in/)).toBeInTheDocument();
-        // 99 cm -> 39 in (39.0 rounds to 39)
-        expect(screen.getByText(/^39 in$/)).toBeInTheDocument();
+        // 82 cm -> 32.3 in
+        expect(screen.getByText('32.3 in')).toBeInTheDocument();
     });
 
-    it('renders measurement readout in cm with em-dash for missing values', () => {
+    it('tolerates two rows with the same measured_at for a metric (both appear, no crash)', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             bodyMeasurements: [
-                {
-                    id: 'm1',
-                    measured_at: '2026-06-01',
-                    waist_cm: 81,
-                    hips_cm: null,
-                    chest_cm: null,
-                    arms_cm: null,
-                },
+                { id: 'm1', measured_at: '2026-06-01', waist_cm: 80, hips_cm: null, chest_cm: null, arms_cm: null },
+                { id: 'm2', measured_at: '2026-06-01', waist_cm: 81, hips_cm: null, chest_cm: null, arms_cm: null },
+                { id: 'm3', measured_at: '2026-06-08', waist_cm: 79, hips_cm: null, chest_cm: null, arms_cm: null },
             ],
         } as unknown as ReturnType<typeof usePulse>);
         render(<MeasurementsCard />);
-        expect(screen.getByText(/81 cm/)).toBeInTheDocument();
-        expect(screen.getAllByText('—').length).toBe(3);
+        // 3 points total (two for 2026-06-01, one for 2026-06-08)
+        const chart = screen.getByTestId('metric-line-chart');
+        expect(chart).toHaveAttribute('data-points', '3');
+        // Latest 3 entries in the list (most recent first): 79, 81, 80
+        expect(screen.getByText('79 cm')).toBeInTheDocument();
+        expect(screen.getByText('81 cm')).toBeInTheDocument();
+        expect(screen.getByText('80 cm')).toBeInTheDocument();
     });
 
     it('calls updateLengthUnit when the "in" unit toggle is clicked', async () => {

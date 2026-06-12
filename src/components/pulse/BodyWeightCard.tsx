@@ -1,6 +1,7 @@
 'use client';
 import { useTransition, useState } from 'react';
 import { toDisplay, toKg, MIN_KG, MAX_KG } from '@/lib/pulse/utils';
+import { formatLogDate } from '@/lib/pulse/dates';
 import { usePulse } from '@/context/PulseContext';
 import SectionLabel from './SectionLabel';
 import MetricLineChart from './MetricLineChart';
@@ -25,11 +26,7 @@ export default function BodyWeightCard() {
             ? Math.round((bodyweightLogs[0].weight_kg - bodyweightLogs[1].weight_kg) * 10) / 10
             : null;
 
-    function fmtDate(iso: string) {
-        if (iso === today) return 'Today';
-        const d = new Date(iso);
-        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    }
+    const fmtDate = (iso: string) => formatLogDate(iso, today);
 
     function handleLogBodyweight() {
         const val = parseFloat(bwInput);

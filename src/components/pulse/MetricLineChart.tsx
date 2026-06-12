@@ -39,7 +39,6 @@ export default function MetricLineChart({ points, unitLabel }: MetricLineChartPr
 
     const pts = values.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`);
     const lastX = px(capped.length - 1);
-    const lastY = py(values[values.length - 1]);
     const areaPath = `M ${pts[0]} L ${pts.slice(1).join(' L ')} L ${lastX.toFixed(1)},${(PT + ch).toFixed(1)} L ${PL},${(PT + ch).toFixed(1)} Z`;
     const fmt = (v: number) => (unitLabel === 'lbs' ? v.toFixed(1) : String(v));
 
@@ -60,7 +59,18 @@ export default function MetricLineChart({ points, unitLabel }: MetricLineChartPr
                 strokeLinejoin="round"
                 strokeLinecap="round"
             />
-            <circle cx={lastX} cy={lastY} r={3} fill="var(--color-pulse-accent)" />
+            {capped.map((p, i) => {
+                const isLast = i === capped.length - 1;
+                return (
+                    <circle
+                        key={i}
+                        cx={px(i)}
+                        cy={py(p.value)}
+                        r={isLast ? 3 : 2}
+                        fill="var(--color-pulse-accent)"
+                    />
+                );
+            })}
             {range > 0 && (
                 <>
                     <text

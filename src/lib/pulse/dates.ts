@@ -2,6 +2,14 @@
 // Kept separate from adherence.ts / utils.ts so both can import without a cycle
 // (adherence.ts imports from utils.ts, so utils.ts cannot import from it).
 
+// Short, friendly log-date label: "Today" for today's date, else "12 Jun".
+// `iso` and `todayIso` are YYYY-MM-DD strings compared directly. Shared by the
+// body-weight and measurement lists so dated rows read identically.
+export function formatLogDate(iso: string, todayIso: string): string {
+    if (iso === todayIso) return 'Today';
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
 // Integer day number of the local calendar date of `iso` in `tz` (days since
 // the Unix epoch). Comparing day numbers sidesteps DST/elapsed-ms pitfalls: it
 // only ever looks at the Y/M/D the wall clock shows in `tz`. Falls back to UTC
