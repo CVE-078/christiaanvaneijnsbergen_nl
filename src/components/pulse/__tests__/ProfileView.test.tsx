@@ -111,6 +111,42 @@ beforeEach(() => {
 });
 
 describe('ProfileView', () => {
+    describe('Tab navigation', () => {
+        it('renders You and Training tabs', () => {
+            renderWithToast(<ProfileView />);
+            expect(screen.getByRole('tab', { name: 'You' })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Training' })).toBeInTheDocument();
+        });
+
+        it('shows You panel content by default', () => {
+            renderWithToast(<ProfileView />);
+            // Identity and gender are on You tab
+            expect(screen.getByText('Test User')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /^male$/i })).toBeInTheDocument();
+        });
+
+        it('hides Training panel content on initial render', () => {
+            renderWithToast(<ProfileView />);
+            // Training priority select is on the Training tab; the panel carries
+            // the HTML hidden attribute, so ARIA queries don't find it.
+            expect(screen.queryByRole('combobox', { name: /training priority/i })).toBeNull();
+        });
+
+        it('switches to Training tab and reveals training controls', async () => {
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
+            expect(screen.getByRole('combobox', { name: /training priority/i })).toBeVisible();
+            expect(screen.getByTestId('training-preferences-section')).toBeVisible();
+        });
+
+        it('switches back to You tab after clicking Training', async () => {
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
+            await userEvent.click(screen.getByRole('tab', { name: 'You' }));
+            expect(screen.getByText('Test User')).toBeVisible();
+        });
+    });
+
     it('shows a saved confirmation after display name is updated', async () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByText('Test User'));
@@ -165,35 +201,61 @@ describe('ProfileView', () => {
         expect(mockUpdateProfile).toHaveBeenCalledWith('Test User', 'lbs');
     });
 
-    it('renders both gender options with neither active when gender is null', () => {
-        renderWithToast(<ProfileView />);
-        const male = screen.getByRole('button', { name: /^male$/i });
-        const female = screen.getByRole('button', { name: /^female$/i });
-        expect(male).toBeInTheDocument();
-        expect(female).toBeInTheDocument();
-        expect(male.className).not.toContain('bg-pulse-accent');
-        expect(female.className).not.toContain('bg-pulse-accent');
-    });
+    describe('Gender control', () => {
+        it('renders Male, Female, and Prefer not to say options', () => {
+            renderWithToast(<ProfileView />);
+            expect(screen.getByRole('button', { name: /^male$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /^female$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /prefer not to say/i })).toBeInTheDocument();
+        });
 
-    it('marks the stored gender as active', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            profile: { ...defaultContext.profile, gender: 'female' as const },
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        expect(screen.getByRole('button', { name: /^female$/i }).className).toContain('bg-pulse-accent');
-        expect(screen.getByRole('button', { name: /^male$/i }).className).not.toContain('bg-pulse-accent');
-    });
+        it('shows "Prefer not to say" as active when gender is null', () => {
+            renderWithToast(<ProfileView />);
+            const notSay = screen.getByRole('button', { name: /prefer not to say/i });
+            expect(notSay.className).toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /^male$/i }).className).not.toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /^female$/i }).className).not.toContain('bg-pulse-accent');
+        });
 
-    it('calls updateGender with the chosen value and shows a toast', async () => {
-        renderWithToast(<ProfileView />);
-        await userEvent.click(screen.getByRole('button', { name: /^female$/i }));
-        expect(mockUpdateGender).toHaveBeenCalledWith('female');
-        await waitFor(() => expect(screen.getByText(/gender updated/i)).toBeInTheDocument());
+        it('marks the stored gender as active', () => {
+            vi.mocked(usePulse).mockReturnValue({
+                ...defaultContext,
+                profile: { ...defaultContext.profile, gender: 'female' as const },
+            } as unknown as ReturnType<typeof usePulse>);
+            renderWithToast(<ProfileView />);
+            expect(screen.getByRole('button', { name: /^female$/i }).className).toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /^male$/i }).className).not.toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /prefer not to say/i }).className).not.toContain('bg-pulse-accent');
+        });
+
+        it('calls updateGender with the chosen value and shows a toast', async () => {
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('button', { name: /^female$/i }));
+            expect(mockUpdateGender).toHaveBeenCalledWith('female');
+            await waitFor(() => expect(screen.getByText(/gender updated/i)).toBeInTheDocument());
+        });
+
+        it('clicking "Prefer not to say" calls updateGender(null)', async () => {
+            vi.mocked(usePulse).mockReturnValue({
+                ...defaultContext,
+                profile: { ...defaultContext.profile, gender: 'male' as const },
+            } as unknown as ReturnType<typeof usePulse>);
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('button', { name: /prefer not to say/i }));
+            expect(mockUpdateGender).toHaveBeenCalledWith(null);
+        });
+
+        it('does not call updateGender when "Prefer not to say" is already active (gender null)', async () => {
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('button', { name: /prefer not to say/i }));
+            expect(mockUpdateGender).not.toHaveBeenCalled();
+        });
     });
 
     it('changing the training priority calls updatePriorityMuscle', async () => {
         renderWithToast(<ProfileView />);
+        // Training priority is on the Training tab
+        await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
         await userEvent.selectOptions(screen.getByRole('combobox', { name: /training priority/i }), 'glutes');
         expect(mockUpdatePriorityMuscle).toHaveBeenCalledWith('glutes');
     });
@@ -221,12 +283,17 @@ describe('ProfileView', () => {
     });
 
     describe('Training preferences editors', () => {
-        it('renders training preference editors and reflects current values', () => {
+        async function switchToTraining() {
+            await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
+        }
+
+        it('renders training preference editors and reflects current values', async () => {
             renderWithProfile({
                 training_style: 'strength',
                 variety_preference: 'consistent',
                 loading_lean: 'barbell',
             });
+            await switchToTraining();
             const prefsSection = screen.getByTestId('training-preferences-section');
             expect(within(prefsSection).getByRole('button', { name: /Strength/ })).toHaveAttribute(
                 'aria-pressed',
@@ -242,8 +309,9 @@ describe('ProfileView', () => {
             );
         });
 
-        it('renders null loading_lean as "No preference" active with no equipment row highlighted', () => {
+        it('renders null loading_lean as "No preference" active with no equipment row highlighted', async () => {
             renderWithProfile({ loading_lean: null });
+            await switchToTraining();
             const prefsSection = screen.getByTestId('training-preferences-section');
             expect(within(prefsSection).getByRole('button', { name: /No preference/ })).toHaveAttribute(
                 'aria-pressed',
@@ -258,6 +326,7 @@ describe('ProfileView', () => {
         it('clicking the already-active loading row is a no-op (setter not called)', async () => {
             const user = userEvent.setup();
             renderWithProfile({ loading_lean: 'barbell' });
+            await user.click(screen.getByRole('tab', { name: 'Training' }));
             const prefsSection = screen.getByTestId('training-preferences-section');
             await user.click(within(prefsSection).getByRole('button', { name: /^Barbell/ }));
             expect(mockUpdateLoadingLean).not.toHaveBeenCalled();
@@ -266,6 +335,7 @@ describe('ProfileView', () => {
         it('clicking "No preference" calls updateLoadingLean(null)', async () => {
             const user = userEvent.setup();
             renderWithProfile({ loading_lean: 'barbell' });
+            await user.click(screen.getByRole('tab', { name: 'Training' }));
             const prefsSection = screen.getByTestId('training-preferences-section');
             await user.click(within(prefsSection).getByRole('button', { name: /No preference/ }));
             expect(mockUpdateLoadingLean).toHaveBeenCalledWith(null);
@@ -274,6 +344,7 @@ describe('ProfileView', () => {
         it('clicking an inactive training style calls updateTrainingStyle', async () => {
             const user = userEvent.setup();
             renderWithProfile({ training_style: 'balanced' });
+            await user.click(screen.getByRole('tab', { name: 'Training' }));
             const prefsSection = screen.getByTestId('training-preferences-section');
             await user.click(within(prefsSection).getByRole('button', { name: /Strength/ }));
             expect(mockUpdateTrainingStyle).toHaveBeenCalledWith('strength');
@@ -282,13 +353,15 @@ describe('ProfileView', () => {
         it('clicking the already-active training style is a no-op', async () => {
             const user = userEvent.setup();
             renderWithProfile({ training_style: 'strength' });
+            await user.click(screen.getByRole('tab', { name: 'Training' }));
             const prefsSection = screen.getByTestId('training-preferences-section');
             await user.click(within(prefsSection).getByRole('button', { name: /Strength/ }));
             expect(mockUpdateTrainingStyle).not.toHaveBeenCalled();
         });
 
-        it('null training_style defaults to balanced active', () => {
+        it('null training_style defaults to balanced active', async () => {
             renderWithProfile({ training_style: null });
+            await switchToTraining();
             const prefsSection = screen.getByTestId('training-preferences-section');
             expect(within(prefsSection).getByRole('button', { name: /Balanced/ })).toHaveAttribute(
                 'aria-pressed',
@@ -296,8 +369,9 @@ describe('ProfileView', () => {
             );
         });
 
-        it('null variety_preference defaults to varied active', () => {
+        it('null variety_preference defaults to varied active', async () => {
             renderWithProfile({ variety_preference: null });
+            await switchToTraining();
             const prefsSection = screen.getByTestId('training-preferences-section');
             expect(within(prefsSection).getByRole('button', { name: /Varied/ })).toHaveAttribute(
                 'aria-pressed',

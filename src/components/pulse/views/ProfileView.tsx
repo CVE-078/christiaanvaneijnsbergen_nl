@@ -17,7 +17,15 @@ import EquipmentProfilesEditor from '../EquipmentProfilesEditor';
 import AccountSecuritySection from '../AccountSecuritySection';
 import PageTitle from '../PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
+import SegmentedTabs from '../SegmentedTabs';
 import { INPUT } from '../ui';
+
+type ProfileTab = 'you' | 'training';
+
+const PROFILE_TABS = [
+    { id: 'you', label: 'You' },
+    { id: 'training', label: 'Training' },
+];
 
 export default function ProfileView() {
     const {
@@ -55,6 +63,7 @@ export default function ProfileView() {
         'arms',
     ];
 
+    const [tab, setTab] = useState<ProfileTab>('you');
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(displayName ?? '');
@@ -77,7 +86,7 @@ export default function ProfileView() {
         });
     }
 
-    function handleGenderChange(newGender: Gender) {
+    function handleGenderChange(newGender: Gender | null) {
         if (newGender === gender || isPending) return;
         startTransition(async () => {
             await updateGender(newGender);
@@ -109,7 +118,27 @@ export default function ProfileView() {
     return (
         <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12">
             <PageTitle>Profile</PageTitle>
-            <div className="mt-6 flex flex-col gap-7 lg:flex-row lg:gap-10">
+
+            <div className="mt-4 mb-6">
+                <SegmentedTabs
+                    tabs={PROFILE_TABS}
+                    active={tab}
+                    onChange={(id) => setTab(id as ProfileTab)}
+                    ariaLabel="Profile sections"
+                />
+            </div>
+
+            {/* You panel. Both panels stay mounted so form state survives a tab
+                switch. Visibility uses two mechanisms on purpose: the `hidden`
+                attribute hides it for the a11y tree and for jsdom tests (which load
+                no CSS), while the `hidden` class handles real-browser display, since
+                the active `flex` class would otherwise override the attribute. */}
+            <div
+                id="panel-you"
+                role="tabpanel"
+                aria-labelledby="tab-you"
+                hidden={tab !== 'you'}
+                className={tab === 'you' ? 'flex flex-col gap-7 lg:flex-row lg:gap-10' : 'hidden'}>
                 <div className="flex flex-col gap-7 lg:w-[280px] lg:shrink-0">
                     {/* Identity */}
                     <div className="flex items-center gap-4">
@@ -140,6 +169,26 @@ export default function ProfileView() {
                             <div className="font-pulse text-[0.8125rem] text-pulse-dim mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
                                 {email}
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Gender */}
+                    <div>
+                        <SectionLabel className="mb-2">Gender</SectionLabel>
+                        <div className="flex gap-2 flex-wrap">
+                            {(['male', 'female'] as const).map((s) => (
+                                <button
+                                    key={s}
+                                    onClick={() => handleGenderChange(s)}
+                                    className={`font-pulse text-sm font-semibold tracking-[0.06em] uppercase py-2 px-4 rounded-lg cursor-pointer border-none ${gender === s ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
+                                    {s === 'male' ? 'Male' : 'Female'}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => handleGenderChange(null)}
+                                className={`font-pulse text-sm font-semibold tracking-[0.06em] py-2 px-4 rounded-lg cursor-pointer border-none ${gender == null ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
+                                Prefer not to say
+                            </button>
                         </div>
                     </div>
 
@@ -183,224 +232,6 @@ export default function ProfileView() {
                                 );
                             })}
                         </div>
-                    </div>
-
-                    {/* Training preferences group */}
-                    <div data-testid="training-preferences-section" className="flex flex-col gap-5">
-                        <div>
-                            <SectionLabel className="mb-1">Training preferences</SectionLabel>
-                            <p className="font-pulse text-[0.8125rem] text-pulse-dim">
-                                Shape how Pulse builds your routines. Applies to plans you generate from now on.
-                            </p>
-                        </div>
-
-                        {/* Training style */}
-                        <div>
-                            <SectionLabel className="mb-2">Training style</SectionLabel>
-                            <div className="flex flex-col gap-2">
-                                {TRAINING_STYLE_OPTIONS.map(({ key, label, desc }) => {
-                                    const active = (profile.training_style ?? 'balanced') === key;
-                                    return (
-                                        <button
-                                            key={key}
-                                            type="button"
-                                            aria-pressed={active}
-                                            disabled={isPending}
-                                            onClick={() => {
-                                                if (isPending || active) return;
-                                                startTransition(async () => {
-                                                    await updateTrainingStyle(key);
-                                                });
-                                            }}
-                                            className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                                active
-                                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                                    : 'bg-pulse-surface-2 ring-0'
-                                            } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                            <div className="flex flex-col">
-                                                <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                                <span className="font-pulse text-[0.75rem] text-pulse-dim">{desc}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Variety */}
-                        <div>
-                            <SectionLabel className="mb-2">Exercise variety</SectionLabel>
-                            <div className="flex flex-col gap-2">
-                                {VARIETY_OPTIONS.map(({ key, label, desc }) => {
-                                    const active = (profile.variety_preference ?? 'varied') === key;
-                                    return (
-                                        <button
-                                            key={key}
-                                            type="button"
-                                            aria-pressed={active}
-                                            disabled={isPending}
-                                            onClick={() => {
-                                                if (isPending || active) return;
-                                                startTransition(async () => {
-                                                    await updateVarietyPreference(key);
-                                                });
-                                            }}
-                                            className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                                active
-                                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                                    : 'bg-pulse-surface-2 ring-0'
-                                            } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                            <div className="flex flex-col">
-                                                <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                                <span className="font-pulse text-[0.75rem] text-pulse-dim">{desc}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Loading lean */}
-                        <div>
-                            <SectionLabel className="mb-2">Equipment preference</SectionLabel>
-                            <div className="flex flex-col gap-2">
-                                <button
-                                    type="button"
-                                    aria-pressed={profile.loading_lean == null}
-                                    disabled={isPending}
-                                    onClick={() => {
-                                        if (isPending || profile.loading_lean == null) return;
-                                        startTransition(async () => {
-                                            await updateLoadingLean(null);
-                                        });
-                                    }}
-                                    className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                        profile.loading_lean == null
-                                            ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                            : 'bg-pulse-surface-2 ring-0'
-                                    } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                    <div className="flex flex-col">
-                                        <span className="font-pulse-body text-sm text-pulse-text">No preference</span>
-                                        <span className="font-pulse text-[0.75rem] text-pulse-dim">
-                                            Pulse chooses freely from what you own.
-                                        </span>
-                                    </div>
-                                </button>
-                                {LOADING_LEAN_OPTIONS.map(({ key, label, desc }) => {
-                                    const active = profile.loading_lean === key;
-                                    return (
-                                        <button
-                                            key={key}
-                                            type="button"
-                                            aria-pressed={active}
-                                            disabled={isPending}
-                                            onClick={() => {
-                                                if (isPending || active) return;
-                                                startTransition(async () => {
-                                                    await updateLoadingLean(key);
-                                                });
-                                            }}
-                                            className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                                active
-                                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                                    : 'bg-pulse-surface-2 ring-0'
-                                            } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                            <div className="flex flex-col">
-                                                <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                                <span className="font-pulse text-[0.75rem] text-pulse-dim">{desc}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Equipment profiles */}
-                        <div>
-                            <SectionLabel className="mb-2">Equipment profiles</SectionLabel>
-                            <EquipmentProfilesEditor />
-                        </div>
-
-                        {/* Movement restrictions */}
-                        <div>
-                            <SectionLabel className="mb-2">Movement restrictions</SectionLabel>
-                            <p className="mb-3 font-pulse text-[0.8125rem] text-pulse-dim">
-                                Joints to work around. Applies to routines you generate from now on. To change your
-                                current plan, use the Swap option on any exercise.
-                            </p>
-                            <div className="flex flex-col gap-2">
-                                {RESTRICTION_OPTIONS.map(({ key, label }) => {
-                                    const active = (profile.movement_restrictions ?? []).includes(key);
-                                    return (
-                                        <button
-                                            key={key}
-                                            type="button"
-                                            aria-pressed={active}
-                                            disabled={isPending}
-                                            onClick={() => {
-                                                if (isPending) return;
-                                                const current = profile.movement_restrictions ?? [];
-                                                const next = active
-                                                    ? current.filter((r) => r !== key)
-                                                    : [...current, key];
-                                                startTransition(async () => {
-                                                    await updateMovementRestrictions(next);
-                                                });
-                                            }}
-                                            className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                                active
-                                                    ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                                    : 'bg-pulse-surface-2 ring-0'
-                                            } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                            <div
-                                                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 ${active ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
-                                                {active && (
-                                                    <span className="text-[10px] font-bold leading-none text-pulse-bg">
-                                                        ✓
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Gender toggle */}
-                    <div>
-                        <SectionLabel className="mb-2">Gender</SectionLabel>
-                        <div className="flex gap-2">
-                            {(['male', 'female'] as const).map((s) => (
-                                <button
-                                    key={s}
-                                    onClick={() => handleGenderChange(s)}
-                                    className={`font-pulse text-sm font-semibold tracking-[0.06em] uppercase py-2 px-4 rounded-lg cursor-pointer border-none ${gender === s ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
-                                    {s === 'male' ? 'Male' : 'Female'}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Training priority, tilts generated routines toward this muscle */}
-                    <div>
-                        <SectionLabel className="mb-2">Training priority</SectionLabel>
-                        <select
-                            aria-label="Training priority"
-                            value={priorityValue}
-                            onChange={(e) => handlePriorityChange(e.target.value as PriorityMuscle | 'balanced')}
-                            disabled={isPending}
-                            className={`${INPUT} capitalize`}>
-                            {PRIORITY_OPTIONS.map((p) => (
-                                <option key={p} value={p}>
-                                    {p === 'balanced' ? 'Balanced' : p[0].toUpperCase() + p.slice(1)}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="font-pulse text-[0.6875rem] text-pulse-muted mt-1.5">
-                            New generated routines lean toward this muscle.
-                        </p>
                     </div>
 
                     {/* Auto-advance rest timer */}
@@ -457,9 +288,228 @@ export default function ProfileView() {
                         </p>
                     </div>
                 </div>
+
                 <div className="lg:flex-1 lg:min-w-0 rounded-2xl bg-pulse-surface p-5 flex flex-col gap-6">
                     {/* Account & security */}
                     <AccountSecuritySection />
+                </div>
+            </div>
+
+            {/* Training panel */}
+            <div
+                id="panel-training"
+                role="tabpanel"
+                aria-labelledby="tab-training"
+                hidden={tab !== 'training'}
+                className={tab === 'training' ? 'flex flex-col gap-7' : 'hidden'}>
+                <div data-testid="training-preferences-section" className="flex flex-col gap-5">
+                    <div>
+                        <SectionLabel className="mb-1">Training preferences</SectionLabel>
+                        <p className="font-pulse text-[0.8125rem] text-pulse-dim">
+                            Shape how Pulse builds your routines. Applies to plans you generate from now on.
+                        </p>
+                    </div>
+
+                    {/* Training style */}
+                    <div>
+                        <SectionLabel className="mb-2">Training style</SectionLabel>
+                        <div className="flex flex-col gap-1.5">
+                            {TRAINING_STYLE_OPTIONS.map(({ key, label, desc }) => {
+                                const active = (profile.training_style ?? 'balanced') === key;
+                                return (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        aria-pressed={active}
+                                        disabled={isPending}
+                                        onClick={() => {
+                                            if (isPending || active) return;
+                                            startTransition(async () => {
+                                                await updateTrainingStyle(key);
+                                            });
+                                        }}
+                                        className={`flex items-center gap-3 rounded-xl px-3 text-left transition-colors ${
+                                            active
+                                                ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent py-3'
+                                                : 'bg-pulse-surface-2 ring-0 py-2.5'
+                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
+                                        <div className="flex flex-col">
+                                            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                                            {active && (
+                                                <span className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">{desc}</span>
+                                            )}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Variety */}
+                    <div>
+                        <SectionLabel className="mb-2">Exercise variety</SectionLabel>
+                        <div className="flex flex-col gap-1.5">
+                            {VARIETY_OPTIONS.map(({ key, label, desc }) => {
+                                const active = (profile.variety_preference ?? 'varied') === key;
+                                return (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        aria-pressed={active}
+                                        disabled={isPending}
+                                        onClick={() => {
+                                            if (isPending || active) return;
+                                            startTransition(async () => {
+                                                await updateVarietyPreference(key);
+                                            });
+                                        }}
+                                        className={`flex items-center gap-3 rounded-xl px-3 text-left transition-colors ${
+                                            active
+                                                ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent py-3'
+                                                : 'bg-pulse-surface-2 ring-0 py-2.5'
+                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
+                                        <div className="flex flex-col">
+                                            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                                            {active && (
+                                                <span className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">{desc}</span>
+                                            )}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Loading lean */}
+                    <div>
+                        <SectionLabel className="mb-2">Equipment preference</SectionLabel>
+                        <div className="flex flex-col gap-1.5">
+                            <button
+                                type="button"
+                                aria-pressed={profile.loading_lean == null}
+                                disabled={isPending}
+                                onClick={() => {
+                                    if (isPending || profile.loading_lean == null) return;
+                                    startTransition(async () => {
+                                        await updateLoadingLean(null);
+                                    });
+                                }}
+                                className={`flex items-center gap-3 rounded-xl px-3 text-left transition-colors ${
+                                    profile.loading_lean == null
+                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent py-3'
+                                        : 'bg-pulse-surface-2 ring-0 py-2.5'
+                                } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
+                                <div className="flex flex-col">
+                                    <span className="font-pulse-body text-sm text-pulse-text">No preference</span>
+                                    {profile.loading_lean == null && (
+                                        <span className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">
+                                            Pulse chooses freely from what you own.
+                                        </span>
+                                    )}
+                                </div>
+                            </button>
+                            {LOADING_LEAN_OPTIONS.map(({ key, label, desc }) => {
+                                const active = profile.loading_lean === key;
+                                return (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        aria-pressed={active}
+                                        disabled={isPending}
+                                        onClick={() => {
+                                            if (isPending || active) return;
+                                            startTransition(async () => {
+                                                await updateLoadingLean(key);
+                                            });
+                                        }}
+                                        className={`flex items-center gap-3 rounded-xl px-3 text-left transition-colors ${
+                                            active
+                                                ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent py-3'
+                                                : 'bg-pulse-surface-2 ring-0 py-2.5'
+                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
+                                        <div className="flex flex-col">
+                                            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                                            {active && (
+                                                <span className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">{desc}</span>
+                                            )}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Equipment profiles */}
+                    <div>
+                        <SectionLabel className="mb-2">Equipment profiles</SectionLabel>
+                        <EquipmentProfilesEditor />
+                    </div>
+
+                    {/* Movement restrictions */}
+                    <div>
+                        <SectionLabel className="mb-2">Movement restrictions</SectionLabel>
+                        <p className="mb-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                            Joints to work around. Applies to routines you generate from now on. To change your
+                            current plan, use the Swap option on any exercise.
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            {RESTRICTION_OPTIONS.map(({ key, label }) => {
+                                const active = (profile.movement_restrictions ?? []).includes(key);
+                                return (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        aria-pressed={active}
+                                        disabled={isPending}
+                                        onClick={() => {
+                                            if (isPending) return;
+                                            const current = profile.movement_restrictions ?? [];
+                                            const next = active
+                                                ? current.filter((r) => r !== key)
+                                                : [...current, key];
+                                            startTransition(async () => {
+                                                await updateMovementRestrictions(next);
+                                            });
+                                        }}
+                                        className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
+                                            active
+                                                ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
+                                                : 'bg-pulse-surface-2 ring-0'
+                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
+                                        <div
+                                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 ${active ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
+                                            {active && (
+                                                <span className="text-[10px] font-bold leading-none text-pulse-bg">
+                                                    ✓
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Training priority */}
+                    <div>
+                        <SectionLabel className="mb-2">Training priority</SectionLabel>
+                        <select
+                            aria-label="Training priority"
+                            value={priorityValue}
+                            onChange={(e) => handlePriorityChange(e.target.value as PriorityMuscle | 'balanced')}
+                            disabled={isPending}
+                            className={`${INPUT} capitalize`}>
+                            {PRIORITY_OPTIONS.map((p) => (
+                                <option key={p} value={p}>
+                                    {p === 'balanced' ? 'Balanced' : p[0].toUpperCase() + p.slice(1)}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="font-pulse text-[0.6875rem] text-pulse-muted mt-1.5">
+                            New generated routines lean toward this muscle.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
