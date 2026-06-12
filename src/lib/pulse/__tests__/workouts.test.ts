@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { assembleWorkouts, workoutDurationMin } from '../workouts';
+import { assembleWorkouts, workoutDurationMin, exerciseSetsByWeek } from '../workouts';
 import type { Logs, WorkoutSession } from '../types';
 
 const RE1 = '11111111-1111-4111-8111-111111111111';

@@ -140,7 +140,7 @@ export default function MeasurementsCard() {
                     disabled={isPending}
                     /* opacity/cursor are runtime booleans, must stay inline */
                     style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
-                    className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase py-2 px-4 bg-pulse-surface-2 border-none rounded-lg text-pulse-dim shrink-0">
+                    className="font-pulse text-[0.75rem] font-semibold tracking-[0.06em] uppercase py-2 px-4 bg-pulse-accent border-none rounded-lg text-pulse-bg shrink-0">
                     Log
                 </button>
             </div>

@@ -25,6 +25,7 @@
     --color-pulse-error: #f43f5e;
     --color-pulse-success: #4ade80;
     --color-pulse-text: #e7ebed;
+    --color-pulse-warn: #fb923c;       /* amber, recovery "watch" + milestone streak */
 }
 
 :focus-visible {

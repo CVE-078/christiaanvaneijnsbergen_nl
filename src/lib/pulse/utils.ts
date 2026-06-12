@@ -1313,6 +1313,48 @@ export function recoverySummaryWord(
     return `${n} flag${n > 1 ? 's' : ''}`;
 }
 
+export type RecoveryTone = 'fresh' | 'ready' | 'watch' | 'easeoff' | 'none';
+
+export interface RecoveryReadout {
+    tone: RecoveryTone;
+    word: string;
+    detail: string;        // render-ready sub-line (muscles already capped)
+    muscles: ExerciseCategory[]; // raw categories driving an amber/red state
+}
+
+// Compact recovery readout for the Overview tile. Worst meaningful state wins:
+// overreaching (ease off) > high_fatigue (watch) > all optimal (fresh) >
+// otherwise (some under, none fatigued = ready, room to train). The dot color
+// (chosen in the component) only goes amber/red on real fatigue, so an
+// early-week "under volume" no longer reads as an alarm.
+export function recoveryReadout(
+    recovery: Partial<Record<ExerciseCategory, Pick<RecoveryDetail, 'status'>>>,
+): RecoveryReadout {
+    const entries = Object.entries(recovery) as Array<[ExerciseCategory, Pick<RecoveryDetail, 'status'>]>;
+    if (entries.length === 0) {
+        return { tone: 'none', word: 'No data', detail: 'log a session', muscles: [] };
+    }
+    const at = (s: RecoveryDetail['status']) =>
+        entries.filter(([, d]) => d.status === s).map(([cat]) => cat);
+    const catLine = (cats: ExerciseCategory[], prefix = ''): string => {
+        const shown = cats.slice(0, 2);
+        const extra = cats.length - shown.length;
+        const list = extra > 0 ? `${shown.join(' · ')} +${extra}` : shown.join(' · ');
+        return prefix ? `${prefix} · ${list}` : list;
+    };
+
+    const over = at('overreaching');
+    if (over.length > 0) return { tone: 'easeoff', word: 'Ease off', detail: catLine(over, 'high fatigue'), muscles: over };
+
+    const fatigued = at('high_fatigue');
+    if (fatigued.length > 0) return { tone: 'watch', word: 'Watch', detail: catLine(fatigued), muscles: fatigued };
+
+    if (entries.every(([, d]) => d.status === 'optimal')) {
+        return { tone: 'fresh', word: 'Fresh', detail: 'all muscles optimal', muscles: [] };
+    }
+    return { tone: 'ready', word: 'Ready', detail: 'room to build', muscles: [] };
+}
+
 // Formats a ProgramPosition + program length into display values for
 // ProgramStatusCard. Pure; all decision logic lives in adherence.ts.
 export interface FormattedProgramStatus {

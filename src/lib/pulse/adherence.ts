@@ -201,6 +201,34 @@ export function attributeSessions(schedule: ScheduleEntry[], sessions: WorkoutSe
     };
 }
 
+// Week-completion events for the milestone feed. Replays the same matchSlot /
+// cycle-reset walk as attributeSessions (one definition of "week completed"),
+// emitting the absolute program week and the session that closed each cycle.
+export function completedWeekBoundaries(
+    schedule: ScheduleEntry[],
+    sessions: WorkoutSession[],
+): Array<{ week: number; session: WorkoutSession }> {
+    if (schedule.length === 0) return [];
+    const completed = sessions
+        .filter((s) => s.completed_at)
+        .slice()
+        .sort((a, b) => (a.completed_at as string).localeCompare(b.completed_at as string));
+    const out: Array<{ week: number; session: WorkoutSession }> = [];
+    let week = 1;
+    let remaining = schedule.slice();
+    for (const s of completed) {
+        const i = matchSlot(remaining, s);
+        if (i === -1) continue;
+        remaining.splice(i, 1);
+        if (remaining.length === 0) {
+            out.push({ week, session: s });
+            week++;
+            remaining = schedule.slice();
+        }
+    }
+    return out;
+}
+
 // ── Progression offset for inserted ramp-back weeks ─────────────────────────
 
 export interface ProgressionInfo {
