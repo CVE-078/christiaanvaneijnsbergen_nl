@@ -10,7 +10,7 @@ import {
     computeRecoveryFlags,
     priorityAdjustedTargets,
     priorityFocusLine,
-    recoverySummaryWord,
+    recoveryReadout,
     weekInBlock,
 } from '@/lib/pulse/utils';
 import { resolvePriority } from '@/lib/pulse/generation';
@@ -36,6 +36,7 @@ import RecentChangeCard from '@/components/pulse/RecentChangeCard';
 import SessionsCalendar from '@/components/pulse/SessionsCalendar';
 import SessionDetailModal from '@/components/pulse/SessionDetailModal';
 import ExerciseDetailModal from '@/components/pulse/ExerciseDetailModal';
+import RecoveryTile from '@/components/pulse/RecoveryTile';
 import ModalSheet from '@/components/pulse/ModalSheet';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { formatLogDate } from '@/lib/pulse/dates';
@@ -91,10 +92,7 @@ function GoalWeightSummary() {
     if (startDisplay !== null && currentDisplay !== null && startDisplay !== goalDisplay) {
         progressPct = Math.min(
             100,
-            Math.max(
-                0,
-                Math.round(((startDisplay - currentDisplay) / (startDisplay - goalDisplay)) * 100),
-            ),
+            Math.max(0, Math.round(((startDisplay - currentDisplay) / (startDisplay - goalDisplay)) * 100)),
         );
     }
 
@@ -179,7 +177,9 @@ function AllWorkoutsModal({
             onClose={onClose}
             title="All Workouts"
             ariaLabel="All workouts"
-            subtitle={workouts.length > 0 ? `${workouts.length} ${workouts.length === 1 ? 'workout' : 'workouts'}` : undefined}>
+            subtitle={
+                workouts.length > 0 ? `${workouts.length} ${workouts.length === 1 ? 'workout' : 'workouts'}` : undefined
+            }>
             {/* Month-grouped workout list */}
             <div className="flex-1 overflow-y-auto px-6 pb-1">
                 {groups.map((group) => (
@@ -205,14 +205,22 @@ function AllWorkoutsModal({
                                     onClick={() => onSelectWorkout(w)}
                                     className="w-full flex items-center justify-between border-b border-pulse-border py-[12px] last:border-b-0 text-left cursor-pointer bg-transparent border-x-0 border-t-0 hover:opacity-80 transition-opacity">
                                     <div>
-                                        <span className="font-pulse text-[0.9rem] text-pulse-text block">
-                                            {label}
-                                        </span>
+                                        <span className="font-pulse text-[0.9rem] text-pulse-text block">{label}</span>
                                         <span className="font-pulse text-[0.75rem] text-pulse-muted mt-[2px] block">
                                             {formatLogDate(dateIso, todayIso)} · {w.setCount} sets
                                         </span>
                                     </div>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="text-pulse-muted shrink-0">
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        aria-hidden
+                                        className="text-pulse-muted shrink-0">
                                         <polyline points="9 18 15 12 9 6" />
                                     </svg>
                                 </button>
@@ -331,7 +339,7 @@ export default function HistoryView() {
         [logs, activeRoutineExercises, activeWeek, targets],
     );
 
-    const recoverySummary = useMemo(() => recoverySummaryWord(recovery), [recovery]);
+    const recoverySummary = useMemo(() => recoveryReadout(recovery), [recovery]);
 
     // Real workouts assembled from workout_sessions + set_logs via session_id.
     // nameFor applies per-week swap resolution identical to the old sessionCardRows logic.
@@ -465,14 +473,7 @@ export default function HistoryView() {
                             </span>
                         </button>
                         {/* Recovery tile */}
-                        <div className="flex flex-col items-center rounded-2xl bg-pulse-surface p-3.5">
-                            <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-text">
-                                {recoverySummary}
-                            </span>
-                            <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
-                                Recovery
-                            </span>
-                        </div>
+                        <RecoveryTile readout={recoverySummary} />
                         {/* Program tile */}
                         <div className="flex flex-col items-center rounded-2xl bg-pulse-surface p-3.5">
                             <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-text">
@@ -548,26 +549,30 @@ export default function HistoryView() {
                                 )}
                             </div>
                             {/* Value readout: current e1RM + delta vs first */}
-                            {e1rmHistory.length > 0 && (() => {
-                                const last = e1rmHistory[e1rmHistory.length - 1];
-                                const first = e1rmHistory[0];
-                                const currentE1RM = toDisplay(last.e1rm, unit);
-                                const deltaPct = first.e1rm > 0
-                                    ? Math.round(((last.e1rm - first.e1rm) / first.e1rm) * 100)
-                                    : null;
-                                return (
-                                    <div className="flex items-baseline gap-1.5 mb-[7px]">
-                                        <span className="font-pulse font-semibold text-[0.86rem] text-pulse-text">
-                                            {currentE1RM} {unit}
-                                        </span>
-                                        {deltaPct !== null && (
-                                            <span className={`font-pulse text-[0.74rem] font-medium ${deltaPct >= 0 ? 'text-pulse-success' : 'text-pulse-dim'}`}>
-                                                {deltaPct >= 0 ? '+' : ''}{deltaPct}% / {e1rmHistory.length} wk
+                            {e1rmHistory.length > 0 &&
+                                (() => {
+                                    const last = e1rmHistory[e1rmHistory.length - 1];
+                                    const first = e1rmHistory[0];
+                                    const currentE1RM = toDisplay(last.e1rm, unit);
+                                    const deltaPct =
+                                        first.e1rm > 0
+                                            ? Math.round(((last.e1rm - first.e1rm) / first.e1rm) * 100)
+                                            : null;
+                                    return (
+                                        <div className="flex items-baseline gap-1.5 mb-[7px]">
+                                            <span className="font-pulse font-semibold text-[0.86rem] text-pulse-text">
+                                                {currentE1RM} {unit}
                                             </span>
-                                        )}
-                                    </div>
-                                );
-                            })()}
+                                            {deltaPct !== null && (
+                                                <span
+                                                    className={`font-pulse text-[0.74rem] font-medium ${deltaPct >= 0 ? 'text-pulse-success' : 'text-pulse-dim'}`}>
+                                                    {deltaPct >= 0 ? '+' : ''}
+                                                    {deltaPct}% / {e1rmHistory.length} wk
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             <E1RMChart history={e1rmHistory} unit={unit} />
                         </div>
 
@@ -627,7 +632,6 @@ export default function HistoryView() {
                                 }}
                             />
                         </div>
-
                     </div>
 
                     {/* Session History: calendar + recent workout rows */}
@@ -646,19 +650,40 @@ export default function HistoryView() {
                                             onClick={() => shiftMonth(-1)}
                                             aria-label="Previous month"
                                             className="cursor-pointer border-none bg-transparent p-1 text-pulse-muted hover:text-pulse-text">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                            <svg
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.4"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                aria-hidden>
                                                 <polyline points="15 18 9 12 15 6" />
                                             </svg>
                                         </button>
                                         <span className="font-pulse text-[0.8125rem] font-semibold text-pulse-text tracking-[0.02em]">
-                                            {new Date(calendarYear, calendarMonth).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                                            {new Date(calendarYear, calendarMonth).toLocaleDateString('en-GB', {
+                                                month: 'long',
+                                                year: 'numeric',
+                                            })}
                                         </span>
                                         <button
                                             type="button"
                                             onClick={() => shiftMonth(1)}
                                             aria-label="Next month"
                                             className="cursor-pointer border-none bg-transparent p-1 text-pulse-muted hover:text-pulse-text">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                            <svg
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.4"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                aria-hidden>
                                                 <polyline points="9 18 15 12 9 6" />
                                             </svg>
                                         </button>
@@ -706,7 +731,16 @@ export default function HistoryView() {
                                             onClick={() => setAllWorkoutsOpen(true)}
                                             className="mt-1 w-full flex items-center justify-center gap-[7px] rounded-xl bg-pulse-surface px-4 py-[11px] font-pulse text-[0.8rem] font-medium text-pulse-accent border-none cursor-pointer hover:bg-pulse-surface-2 transition-colors">
                                             Show all {workouts.length} workouts
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                            <svg
+                                                width="13"
+                                                height="13"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.4"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                aria-hidden>
                                                 <polyline points="6 9 12 15 18 9" />
                                             </svg>
                                         </button>
@@ -806,7 +840,13 @@ export default function HistoryView() {
                                 readout={recomp}
                                 unit={unit}
                                 lengthUnit={profile.length_unit}
-                                weeks={progressWindow === 'week' ? 1 : progressWindow === 'all' ? Math.max(...Object.keys(volByWeek).map(Number).filter(Boolean), 1) : 12}
+                                weeks={
+                                    progressWindow === 'week'
+                                        ? 1
+                                        : progressWindow === 'all'
+                                          ? Math.max(...Object.keys(volByWeek).map(Number).filter(Boolean), 1)
+                                          : 12
+                                }
                             />
                         </div>
                     </div>
