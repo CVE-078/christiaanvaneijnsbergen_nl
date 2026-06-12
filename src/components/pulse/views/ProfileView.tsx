@@ -177,7 +177,6 @@ export default function ProfileView() {
         updateLoadingLean,
         triggerOnboarding,
         handleExport,
-        routines,
         loading,
         errors,
         retry,
@@ -200,10 +199,6 @@ export default function ProfileView() {
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(displayName ?? '');
-
-    // Find active routine name for the "Routine & data" row
-    const activeRoutine = routines?.find((r) => r.id === profile.active_routine_id) ?? null;
-    const activeRoutineName = activeRoutine?.name ?? null;
 
     function handleUnitChange(newUnit: 'kg' | 'lbs') {
         if (newUnit === unit || isPending) return;
@@ -402,16 +397,7 @@ export default function ProfileView() {
                         {/* Routine & data */}
                         <Lbl first>Routine &amp; data</Lbl>
 
-                        <Row
-                            label="Active routine"
-                            right={
-                                <>
-                                    <span>{activeRoutineName ?? 'No routine'}</span>
-                                    <Chev />
-                                </>
-                            }
-                            onClick={triggerOnboarding}
-                        />
+                        <Row label="Generate new routine" right={<Chev />} onClick={triggerOnboarding} />
 
                         <Row
                             label="Export history (CSV)"
