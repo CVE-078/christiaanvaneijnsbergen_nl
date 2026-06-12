@@ -11,17 +11,12 @@ vi.mock('@/context/PulseContext', () => ({
 
 vi.mock('@/app/pulse/actions', () => ({
     updateGoalWeight: vi.fn().mockResolvedValue(undefined),
-    logBodyMeasurement: vi.fn().mockResolvedValue(undefined),
-    logBodyWeight: vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 }),
 }));
 
 import { usePulse } from '@/context/PulseContext';
-import { updateGoalWeight } from '@/app/pulse/actions';
 
 const mockUpdateProfile = vi.fn().mockResolvedValue(undefined);
 const mockUpdateGender = vi.fn().mockResolvedValue(undefined);
-const mockLogBodyWeight = vi.fn().mockResolvedValue({ id: 'x', logged_at: '2026-05-25', weight_kg: 80 });
-const mockDeleteBodyWeight = vi.fn().mockResolvedValue(undefined);
 const mockUpdateLengthUnit = vi.fn().mockResolvedValue(undefined);
 const mockUpdatePriorityMuscle = vi.fn().mockResolvedValue(undefined);
 const mockUpdateAccentColor = vi.fn().mockResolvedValue(undefined);
@@ -70,8 +65,6 @@ const defaultContext = {
     updateMovementRestrictions: mockUpdateMovementRestrictions,
     autoAdvance: false,
     setAutoAdvance: vi.fn(),
-    logBodyWeight: mockLogBodyWeight,
-    deleteBodyWeight: mockDeleteBodyWeight,
     streak: 0,
     prMap: {},
     exercises: [],
@@ -104,8 +97,6 @@ beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
     mockUpdateProfile.mockClear();
     mockUpdateGender.mockClear();
-    mockLogBodyWeight.mockClear();
-    mockDeleteBodyWeight.mockClear();
     mockUpdateLengthUnit.mockClear();
     mockUpdatePriorityMuscle.mockClear();
     mockUpdateAccentColor.mockClear();
@@ -117,10 +108,45 @@ beforeEach(() => {
     mockUpdateEquipmentProfile.mockClear();
     mockDeleteEquipmentProfile.mockClear();
     mockSetActiveEquipmentProfile.mockClear();
-    vi.mocked(updateGoalWeight).mockClear();
 });
 
 describe('ProfileView', () => {
+    describe('Tab navigation', () => {
+        it('renders You and Training tabs', () => {
+            renderWithToast(<ProfileView />);
+            expect(screen.getByRole('tab', { name: 'You' })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Training' })).toBeInTheDocument();
+        });
+
+        it('shows You panel content by default', () => {
+            renderWithToast(<ProfileView />);
+            // Identity and gender are on You tab
+            expect(screen.getByText('Test User')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /^male$/i })).toBeInTheDocument();
+        });
+
+        it('hides Training panel content on initial render', () => {
+            renderWithToast(<ProfileView />);
+            // Training priority select is on the Training tab; the panel carries
+            // the HTML hidden attribute, so ARIA queries don't find it.
+            expect(screen.queryByRole('combobox', { name: /training priority/i })).toBeNull();
+        });
+
+        it('switches to Training tab and reveals training controls', async () => {
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
+            expect(screen.getByRole('combobox', { name: /training priority/i })).toBeVisible();
+            expect(screen.getByTestId('training-preferences-section')).toBeVisible();
+        });
+
+        it('switches back to You tab after clicking Training', async () => {
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
+            await userEvent.click(screen.getByRole('tab', { name: 'You' }));
+            expect(screen.getByText('Test User')).toBeVisible();
+        });
+    });
+
     it('shows a saved confirmation after display name is updated', async () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByText('Test User'));
@@ -137,13 +163,6 @@ describe('ProfileView', () => {
         renderWithToast(<ProfileView />);
         await userEvent.click(screen.getByRole('button', { name: 'Emerald' }));
         expect(mockUpdateAccentColor).toHaveBeenCalledWith('emerald');
-    });
-
-    it('renders a date picker for body weight with today as the default', () => {
-        renderWithToast(<ProfileView />);
-        const today = new Date().toISOString().split('T')[0];
-        const datePicker = screen.getAllByDisplayValue(today);
-        expect(datePicker.length).toBeGreaterThan(0);
     });
 
     it('renders initials from displayName', () => {
@@ -182,35 +201,61 @@ describe('ProfileView', () => {
         expect(mockUpdateProfile).toHaveBeenCalledWith('Test User', 'lbs');
     });
 
-    it('renders both gender options with neither active when gender is null', () => {
-        renderWithToast(<ProfileView />);
-        const male = screen.getByRole('button', { name: /^male$/i });
-        const female = screen.getByRole('button', { name: /^female$/i });
-        expect(male).toBeInTheDocument();
-        expect(female).toBeInTheDocument();
-        expect(male.className).not.toContain('bg-pulse-accent');
-        expect(female.className).not.toContain('bg-pulse-accent');
-    });
+    describe('Gender control', () => {
+        it('renders Male, Female, and Prefer not to say options', () => {
+            renderWithToast(<ProfileView />);
+            expect(screen.getByRole('button', { name: /^male$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /^female$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /prefer not to say/i })).toBeInTheDocument();
+        });
 
-    it('marks the stored gender as active', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            profile: { ...defaultContext.profile, gender: 'female' as const },
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        expect(screen.getByRole('button', { name: /^female$/i }).className).toContain('bg-pulse-accent');
-        expect(screen.getByRole('button', { name: /^male$/i }).className).not.toContain('bg-pulse-accent');
-    });
+        it('shows "Prefer not to say" as active when gender is null', () => {
+            renderWithToast(<ProfileView />);
+            const notSay = screen.getByRole('button', { name: /prefer not to say/i });
+            expect(notSay.className).toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /^male$/i }).className).not.toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /^female$/i }).className).not.toContain('bg-pulse-accent');
+        });
 
-    it('calls updateGender with the chosen value and shows a toast', async () => {
-        renderWithToast(<ProfileView />);
-        await userEvent.click(screen.getByRole('button', { name: /^female$/i }));
-        expect(mockUpdateGender).toHaveBeenCalledWith('female');
-        await waitFor(() => expect(screen.getByText(/gender updated/i)).toBeInTheDocument());
+        it('marks the stored gender as active', () => {
+            vi.mocked(usePulse).mockReturnValue({
+                ...defaultContext,
+                profile: { ...defaultContext.profile, gender: 'female' as const },
+            } as unknown as ReturnType<typeof usePulse>);
+            renderWithToast(<ProfileView />);
+            expect(screen.getByRole('button', { name: /^female$/i }).className).toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /^male$/i }).className).not.toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /prefer not to say/i }).className).not.toContain('bg-pulse-accent');
+        });
+
+        it('calls updateGender with the chosen value and shows a toast', async () => {
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('button', { name: /^female$/i }));
+            expect(mockUpdateGender).toHaveBeenCalledWith('female');
+            await waitFor(() => expect(screen.getByText(/gender updated/i)).toBeInTheDocument());
+        });
+
+        it('clicking "Prefer not to say" calls updateGender(null)', async () => {
+            vi.mocked(usePulse).mockReturnValue({
+                ...defaultContext,
+                profile: { ...defaultContext.profile, gender: 'male' as const },
+            } as unknown as ReturnType<typeof usePulse>);
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('button', { name: /prefer not to say/i }));
+            expect(mockUpdateGender).toHaveBeenCalledWith(null);
+        });
+
+        it('does not call updateGender when "Prefer not to say" is already active (gender null)', async () => {
+            renderWithToast(<ProfileView />);
+            await userEvent.click(screen.getByRole('button', { name: /prefer not to say/i }));
+            expect(mockUpdateGender).not.toHaveBeenCalled();
+        });
     });
 
     it('changing the training priority calls updatePriorityMuscle', async () => {
         renderWithToast(<ProfileView />);
+        // Training priority is on the Training tab
+        await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
         await userEvent.selectOptions(screen.getByRole('combobox', { name: /training priority/i }), 'glutes');
         expect(mockUpdatePriorityMuscle).toHaveBeenCalledWith('glutes');
     });
@@ -237,122 +282,18 @@ describe('ProfileView', () => {
         expect(setAutoAdvance).toHaveBeenCalledWith(true);
     });
 
-    it('shows body weight entries in user unit', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            bodyweightLogs: [{ id: 'abc', logged_at: '2026-05-01', weight_kg: 80 }],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        expect(screen.getByText(/80 kg/i)).toBeInTheDocument();
-    });
-
-    it('shows a downward bodyweight trend chip when the two latest entries decrease', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            bodyweightLogs: [
-                { id: 'b2', logged_at: '2026-05-15', weight_kg: 79 },
-                { id: 'b1', logged_at: '2026-05-01', weight_kg: 81 },
-            ],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        const chip = screen.getByText(/↓\s*2\s*kg/);
-        expect(chip).toBeInTheDocument();
-        expect(chip.className).toContain('text-pulse-success');
-    });
-
-    it('rounds the bodyweight trend so a float subtraction shows no decimal noise', () => {
-        // 80.2 - 79.6 is 0.6000000000000085 in IEEE-754; the chip must read "0.6".
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            bodyweightLogs: [
-                { id: 'b2', logged_at: '2026-06-12', weight_kg: 79.6 },
-                { id: 'b1', logged_at: '2026-06-11', weight_kg: 80.2 },
-            ],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        expect(screen.getByText(/↓\s*0\.6\s*kg/)).toBeInTheDocument();
-        expect(screen.queryByText(/0\.60000/)).not.toBeInTheDocument();
-    });
-
-    it('shows error when non-numeric weight is submitted', async () => {
-        renderWithToast(<ProfileView />);
-        await userEvent.click(screen.getByRole('button', { name: /^log$/i }));
-        expect(screen.getByText(/enter a valid weight/i)).toBeInTheDocument();
-    });
-
-    it('stores goal weight in rounded kg when unit is lbs', async () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            profile: {
-                display_name: 'Test User',
-                unit: 'lbs',
-                active_routine_id: null,
-                onboarding_completed: false,
-                goal_weight_kg: null,
-            },
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        const input = screen.getByPlaceholderText('Goal (lbs)');
-        await userEvent.type(input, '180');
-        await userEvent.click(screen.getByRole('button', { name: /^set$/i }));
-        // 180 / 2.20462 = 81.6466..., rounded to 2 decimals by toKg
-        expect(vi.mocked(updateGoalWeight)).toHaveBeenCalledWith(81.65);
-    });
-
-    it('calls updateLengthUnit when the in measurement-unit toggle is clicked', async () => {
-        renderWithToast(<ProfileView />);
-        await userEvent.click(screen.getByRole('button', { name: /^in$/i }));
-        expect(mockUpdateLengthUnit).toHaveBeenCalledWith('in');
-    });
-
-    it('renders the latest measurement readout and converts it when unit is in', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            profile: { ...defaultContext.profile, length_unit: 'in' as const },
-            bodyMeasurements: [
-                {
-                    id: 'm1',
-                    measured_at: '2026-06-01',
-                    waist_cm: 81,
-                    hips_cm: 99,
-                    chest_cm: 106,
-                    arms_cm: 39,
-                },
-            ],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        // 81 cm -> 31.9 in
-        expect(screen.getByText(/31\.9 in/)).toBeInTheDocument();
-        // 99 cm -> 39 in (39.0 rounds to 39)
-        expect(screen.getByText(/^39 in$/)).toBeInTheDocument();
-    });
-
-    it('renders measurement readout in cm with em-dash for missing values', () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            bodyMeasurements: [
-                {
-                    id: 'm1',
-                    measured_at: '2026-06-01',
-                    waist_cm: 81,
-                    hips_cm: null,
-                    chest_cm: null,
-                    arms_cm: null,
-                },
-            ],
-        } as unknown as ReturnType<typeof usePulse>);
-        renderWithToast(<ProfileView />);
-        expect(screen.getByText(/81 cm/)).toBeInTheDocument();
-        expect(screen.getAllByText('—').length).toBe(3);
-    });
-
     describe('Training preferences editors', () => {
-        it('renders training preference editors and reflects current values', () => {
+        async function switchToTraining() {
+            await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
+        }
+
+        it('renders training preference editors and reflects current values', async () => {
             renderWithProfile({
                 training_style: 'strength',
                 variety_preference: 'consistent',
                 loading_lean: 'barbell',
             });
+            await switchToTraining();
             const prefsSection = screen.getByTestId('training-preferences-section');
             expect(within(prefsSection).getByRole('button', { name: /Strength/ })).toHaveAttribute(
                 'aria-pressed',
@@ -368,8 +309,9 @@ describe('ProfileView', () => {
             );
         });
 
-        it('renders null loading_lean as "No preference" active with no equipment row highlighted', () => {
+        it('renders null loading_lean as "No preference" active with no equipment row highlighted', async () => {
             renderWithProfile({ loading_lean: null });
+            await switchToTraining();
             const prefsSection = screen.getByTestId('training-preferences-section');
             expect(within(prefsSection).getByRole('button', { name: /No preference/ })).toHaveAttribute(
                 'aria-pressed',
@@ -384,6 +326,7 @@ describe('ProfileView', () => {
         it('clicking the already-active loading row is a no-op (setter not called)', async () => {
             const user = userEvent.setup();
             renderWithProfile({ loading_lean: 'barbell' });
+            await user.click(screen.getByRole('tab', { name: 'Training' }));
             const prefsSection = screen.getByTestId('training-preferences-section');
             await user.click(within(prefsSection).getByRole('button', { name: /^Barbell/ }));
             expect(mockUpdateLoadingLean).not.toHaveBeenCalled();
@@ -392,6 +335,7 @@ describe('ProfileView', () => {
         it('clicking "No preference" calls updateLoadingLean(null)', async () => {
             const user = userEvent.setup();
             renderWithProfile({ loading_lean: 'barbell' });
+            await user.click(screen.getByRole('tab', { name: 'Training' }));
             const prefsSection = screen.getByTestId('training-preferences-section');
             await user.click(within(prefsSection).getByRole('button', { name: /No preference/ }));
             expect(mockUpdateLoadingLean).toHaveBeenCalledWith(null);
@@ -400,6 +344,7 @@ describe('ProfileView', () => {
         it('clicking an inactive training style calls updateTrainingStyle', async () => {
             const user = userEvent.setup();
             renderWithProfile({ training_style: 'balanced' });
+            await user.click(screen.getByRole('tab', { name: 'Training' }));
             const prefsSection = screen.getByTestId('training-preferences-section');
             await user.click(within(prefsSection).getByRole('button', { name: /Strength/ }));
             expect(mockUpdateTrainingStyle).toHaveBeenCalledWith('strength');
@@ -408,13 +353,15 @@ describe('ProfileView', () => {
         it('clicking the already-active training style is a no-op', async () => {
             const user = userEvent.setup();
             renderWithProfile({ training_style: 'strength' });
+            await user.click(screen.getByRole('tab', { name: 'Training' }));
             const prefsSection = screen.getByTestId('training-preferences-section');
             await user.click(within(prefsSection).getByRole('button', { name: /Strength/ }));
             expect(mockUpdateTrainingStyle).not.toHaveBeenCalled();
         });
 
-        it('null training_style defaults to balanced active', () => {
+        it('null training_style defaults to balanced active', async () => {
             renderWithProfile({ training_style: null });
+            await switchToTraining();
             const prefsSection = screen.getByTestId('training-preferences-section');
             expect(within(prefsSection).getByRole('button', { name: /Balanced/ })).toHaveAttribute(
                 'aria-pressed',
@@ -422,8 +369,9 @@ describe('ProfileView', () => {
             );
         });
 
-        it('null variety_preference defaults to varied active', () => {
+        it('null variety_preference defaults to varied active', async () => {
             renderWithProfile({ variety_preference: null });
+            await switchToTraining();
             const prefsSection = screen.getByTestId('training-preferences-section');
             expect(within(prefsSection).getByRole('button', { name: /Varied/ })).toHaveAttribute(
                 'aria-pressed',

@@ -27,7 +27,19 @@ import PageTitle from '@/components/pulse/PageTitle';
 import { computeStrengthScore } from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
+import SegmentedTabs from '@/components/pulse/SegmentedTabs';
+import BodyWeightCard from '@/components/pulse/BodyWeightCard';
+import GoalWeightCard from '@/components/pulse/GoalWeightCard';
+import MeasurementsCard from '@/components/pulse/MeasurementsCard';
 import type { Unit, Logs } from '@/lib/pulse/types';
+
+type ProgressTab = 'overview' | 'lifts' | 'body';
+
+const PROGRESS_TABS: { id: ProgressTab; label: string }[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'lifts', label: 'Lifts' },
+    { id: 'body', label: 'Body' },
+];
 
 // Dashboard time window. 'cycle' is the current 12-week program (default), 'all'
 // is every logged week (distinct once data spans multiple cycles), 'week' zooms
@@ -272,13 +284,16 @@ export default function HistoryView() {
 
     const hasData = sessions.length > 0;
 
+    // Active progress tab (Overview / Lifts / Body). No persistence; defaults to Overview.
+    const [progressTab, setProgressTab] = useState<ProgressTab>('overview');
+
     if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
     if (loading?.routines || loading?.logs) return <PageSkeleton />;
 
     return (
         <div className="p-4 sm:p-8 max-w-[960px] mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
+            <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
                 <PageTitle>Progress</PageTitle>
                 <div className="flex items-center gap-3">
                     <span className="font-pulse-body text-[0.8125rem] text-pulse-muted tracking-[0.03em]">
@@ -301,135 +316,167 @@ export default function HistoryView() {
                 </div>
             </div>
 
-            {/* TIER 1: headline + recovery coaching */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                <StrengthScoreCard strength={strength} />
-                <RecoveryCard recovery={recovery} />
+            {/* Tab switcher */}
+            <div className="mb-6">
+                <SegmentedTabs
+                    tabs={PROGRESS_TABS}
+                    active={progressTab}
+                    onChange={(id) => setProgressTab(id as ProgressTab)}
+                    ariaLabel="Progress sections"
+                />
             </div>
 
-            {/* TIER 2: recomp readout, full width */}
-            <div className="mb-4">
-                <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
-            </div>
+            {/* Overview panel */}
+            {progressTab === 'overview' && (
+                <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+                    {/* TIER 1: headline + recovery coaching */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                        <StrengthScoreCard strength={strength} />
+                        <RecoveryCard recovery={recovery} />
+                    </div>
 
-            {/* TIER 3: training trends */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Weekly Volume */}
-                <div className="bg-pulse-surface rounded-2xl p-5">
-                    <SectionHeader>Sets per week</SectionHeader>
-                    {hasData ? (
-                        <VolumeChart volByWeek={volByWeek} currentWeek={activeWeek} />
-                    ) : (
-                        <p className="font-pulse text-[0.75rem] text-pulse-dim py-4">
-                            Log a session to see volume trends.
+                    {/* TIER 2: recomp readout, full width */}
+                    <div className="mb-4">
+                        <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
+                    </div>
+
+                    {/* Streak */}
+                    <div className="bg-pulse-surface rounded-2xl p-5">
+                        <SectionHeader>Weekly streak - 12 weeks</SectionHeader>
+                        <StreakCalendar logs={logs} currentWeek={activeWeek} />
+                        <p className="sr-only">
+                            {streak === 0
+                                ? 'No streak yet.'
+                                : `Current streak: ${streak} consecutive week${streak !== 1 ? 's' : ''}.`}
                         </p>
-                    )}
+                    </div>
                 </div>
+            )}
 
-                {/* e1RM Progression */}
-                <div className="bg-pulse-surface rounded-2xl p-5">
-                    <div className="flex items-center gap-2">
-                        <SectionHeader>e1RM Progression</SectionHeader>
-                        {allRoutineExercises.length > 0 && (
-                            <select
-                                aria-label="Exercise"
-                                value={exerciseId ?? ''}
-                                onChange={(e) => setSelectedExerciseId(e.target.value || null)}
-                                className="font-pulse text-[0.6875rem] bg-pulse-surface-2 rounded px-2 py-[3px] text-pulse-dim ml-auto -mt-3 mb-5">
-                                {allRoutineExercises.map((re) => (
-                                    <option key={re.id} value={re.id}>
-                                        {re.exercise.name}
-                                    </option>
+            {/* Lifts panel */}
+            {progressTab === 'lifts' && (
+                <div id="panel-lifts" role="tabpanel" aria-labelledby="tab-lifts">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Weekly Volume */}
+                        <div className="bg-pulse-surface rounded-2xl p-5">
+                            <SectionHeader>Sets per week</SectionHeader>
+                            {hasData ? (
+                                <VolumeChart volByWeek={volByWeek} currentWeek={activeWeek} />
+                            ) : (
+                                <p className="font-pulse text-[0.75rem] text-pulse-dim py-4">
+                                    Log a session to see volume trends.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* e1RM Progression */}
+                        <div className="bg-pulse-surface rounded-2xl p-5">
+                            <div className="flex items-center gap-2">
+                                <SectionHeader>e1RM Progression</SectionHeader>
+                                {allRoutineExercises.length > 0 && (
+                                    <select
+                                        aria-label="Exercise"
+                                        value={exerciseId ?? ''}
+                                        onChange={(e) => setSelectedExerciseId(e.target.value || null)}
+                                        className="font-pulse text-[0.6875rem] bg-pulse-surface-2 rounded px-2 py-[3px] text-pulse-dim ml-auto -mt-3 mb-5">
+                                        {allRoutineExercises.map((re) => (
+                                            <option key={re.id} value={re.id}>
+                                                {re.exercise.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+                            <E1RMChart history={e1rmHistory} unit={unit} />
+                        </div>
+
+                        {/* Per-muscle volume this week */}
+                        <div className="bg-pulse-surface rounded-2xl p-5">
+                            <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
+                            {focusLine && (
+                                <p className="-mt-1 mb-3 font-pulse text-[0.75rem] text-pulse-accent">{focusLine}</p>
+                            )}
+                            <MuscleVolumeBars volume={muscleVolume} targets={targets} />
+                        </div>
+
+                        {/* Best Lifts */}
+                        <div className="bg-pulse-surface rounded-2xl p-5">
+                            <SectionHeader>Best Lifts</SectionHeader>
+                            <BestLifts allRoutineExercises={allRoutineExercises} bestSets={bestSets} unit={unit} />
+                        </div>
+
+                        {/* Personal Records */}
+                        <div className="bg-pulse-surface rounded-2xl p-5">
+                            <SectionHeader>Personal Records</SectionHeader>
+                            {prRecords.length === 0 ? (
+                                <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">
+                                    No records yet, start logging sets.
+                                </p>
+                            ) : (
+                                <ul className="flex flex-col gap-2.5">
+                                    {prRecords.map((pr) => (
+                                        <li key={pr.name} className="flex items-center justify-between gap-3">
+                                            <span className="font-pulse text-[0.8125rem] text-pulse-dim overflow-hidden text-ellipsis whitespace-nowrap">
+                                                {pr.name}
+                                            </span>
+                                            <span className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent shrink-0">
+                                                {unit === 'kg'
+                                                    ? `${toDisplay(pr.e1rm, 'kg').toFixed(1)} kg`
+                                                    : `${toDisplay(pr.e1rm, 'lbs').toFixed(1)} lbs`}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Session History - last 4 by default, rest behind a toggle */}
+                    {hasData && (
+                        <div className="mt-12">
+                            <SectionHeader>Recent sessions</SectionHeader>
+                            <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+                                {visibleSessionCards.map((session) => (
+                                    <SessionCard key={session.week} session={session} unit={unit} />
                                 ))}
-                            </select>
-                        )}
-                    </div>
-                    <E1RMChart history={e1rmHistory} unit={unit} />
-                </div>
-
-                {/* Per-muscle volume this week */}
-                <div className="bg-pulse-surface rounded-2xl p-5">
-                    <SectionHeader>Volume by muscle - Week {activeWeek}</SectionHeader>
-                    {focusLine && <p className="-mt-1 mb-3 font-pulse text-[0.75rem] text-pulse-accent">{focusLine}</p>}
-                    <MuscleVolumeBars volume={muscleVolume} targets={targets} />
-                </div>
-
-                {/* Streak */}
-                <div className="bg-pulse-surface rounded-2xl p-5">
-                    <SectionHeader>Weekly streak - 12 weeks</SectionHeader>
-                    <StreakCalendar logs={logs} currentWeek={activeWeek} />
-                    <p className="sr-only">
-                        {streak === 0
-                            ? 'No streak yet.'
-                            : `Current streak: ${streak} consecutive week${streak !== 1 ? 's' : ''}.`}
-                    </p>
-                </div>
-
-                {/* Best Lifts */}
-                <div className="bg-pulse-surface rounded-2xl p-5">
-                    <SectionHeader>Best Lifts</SectionHeader>
-                    <BestLifts allRoutineExercises={allRoutineExercises} bestSets={bestSets} unit={unit} />
-                </div>
-
-                {/* Personal Records - pulled over from Profile */}
-                <div className="bg-pulse-surface rounded-2xl p-5">
-                    <SectionHeader>Personal Records</SectionHeader>
-                    {prRecords.length === 0 ? (
-                        <p className="font-pulse text-[0.75rem] text-pulse-dim py-2">
-                            No records yet, start logging sets.
-                        </p>
-                    ) : (
-                        <ul className="flex flex-col gap-2.5">
-                            {prRecords.map((pr) => (
-                                <li key={pr.name} className="flex items-center justify-between gap-3">
-                                    <span className="font-pulse text-[0.8125rem] text-pulse-dim overflow-hidden text-ellipsis whitespace-nowrap">
-                                        {pr.name}
+                            </div>
+                            {sortedSessionCards.length > 4 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAllSessions((v) => !v)}
+                                    aria-expanded={showAllSessions}
+                                    className="mt-3 w-full flex items-center justify-between rounded-xl bg-pulse-surface px-4 py-3 font-pulse text-[0.8125rem] text-pulse-dim hover:text-pulse-text transition-colors">
+                                    <span>
+                                        {showAllSessions
+                                            ? 'Show fewer sessions'
+                                            : `Show all ${sortedSessionCards.length} sessions`}
                                     </span>
-                                    <span className="font-pulse text-[0.8125rem] font-semibold text-pulse-accent shrink-0">
-                                        {unit === 'kg'
-                                            ? `${toDisplay(pr.e1rm, 'kg').toFixed(1)} kg`
-                                            : `${toDisplay(pr.e1rm, 'lbs').toFixed(1)} lbs`}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
+                                    <span className="text-pulse-muted">{showAllSessions ? '↑' : '↓'}</span>
+                                </button>
+                            )}
+                        </div>
                     )}
-                </div>
-            </div>
 
-            {/* Session History - last 4 by default, rest behind a toggle */}
-            {hasData && (
-                <div className="mt-12">
-                    <SectionHeader>Recent sessions</SectionHeader>
-                    <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-                        {visibleSessionCards.map((session) => (
-                            <SessionCard key={session.week} session={session} unit={unit} />
-                        ))}
-                    </div>
-                    {sortedSessionCards.length > 4 && (
-                        <button
-                            type="button"
-                            onClick={() => setShowAllSessions((v) => !v)}
-                            aria-expanded={showAllSessions}
-                            className="mt-3 w-full flex items-center justify-between rounded-xl bg-pulse-surface px-4 py-3 font-pulse text-[0.8125rem] text-pulse-dim hover:text-pulse-text transition-colors">
-                            <span>
-                                {showAllSessions
-                                    ? 'Show fewer sessions'
-                                    : `Show all ${sortedSessionCards.length} sessions`}
-                            </span>
-                            <span className="text-pulse-muted">{showAllSessions ? '↑' : '↓'}</span>
-                        </button>
+                    {!hasData && (
+                        <div className="py-16 px-4 text-center">
+                            <div className="font-pulse text-[0.8125rem] tracking-[0.1em] uppercase text-pulse-dim mb-3">
+                                No sessions yet
+                            </div>
+                            <div className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
+                                Head to Log to get started.
+                            </div>
+                        </div>
                     )}
                 </div>
             )}
 
-            {!hasData && (
-                <div className="py-16 px-4 text-center">
-                    <div className="font-pulse text-[0.8125rem] tracking-[0.1em] uppercase text-pulse-dim mb-3">
-                        No sessions yet
-                    </div>
-                    <div className="font-pulse text-[0.75rem] text-pulse-dim tracking-[0.04em]">
-                        Head to Log to get started.
+            {/* Body panel */}
+            {progressTab === 'body' && (
+                <div id="panel-body" role="tabpanel" aria-labelledby="tab-body">
+                    <div className="rounded-2xl bg-pulse-surface p-5 flex flex-col gap-6">
+                        <BodyWeightCard />
+                        <GoalWeightCard />
+                        <MeasurementsCard />
                     </div>
                 </div>
             )}
