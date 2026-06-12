@@ -14,6 +14,7 @@ import {
 } from '@/lib/pulse/generationPreferences';
 import SectionLabel from '../SectionLabel';
 import EquipmentProfilesEditor from '../EquipmentProfilesEditor';
+import AccountSecuritySection from '../AccountSecuritySection';
 import PageTitle from '../PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import { INPUT, BTN_PRIMARY } from '../ui';
@@ -868,6 +869,11 @@ export default function ProfileView() {
                                 </button>
                             </div>
                         )}
+                    </section>
+
+                    {/* Account & security */}
+                    <section className={SECTION + ' border-t border-pulse-border pt-4'}>
+                        <AccountSecuritySection />
                     </section>
                 </div>
             </div>

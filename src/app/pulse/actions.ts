@@ -13,3 +13,4 @@ export * from './actions/adjustments';
 export * from './actions/pause';
 export * from './actions/decisions';
 export * from './actions/equipment';
+export * from './actions/account';

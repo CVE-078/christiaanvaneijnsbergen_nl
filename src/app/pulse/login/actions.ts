@@ -7,17 +7,11 @@ export async function login(formData: FormData) {
     const password = (formData.get('password') as string) ?? '';
 
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) redirect('/pulse/login?error=1');
 
-    // Create the profile row for brand-new users. Existing users' rows are untouched.
-    if (data.user) {
-        const { data: existing } = await supabase.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
-        if (!existing) {
-            await supabase.from('profiles').insert({ id: data.user.id, unit: 'kg', onboarding_completed: false });
-        }
-    }
-
+    // The profile row is created by the on_auth_user_created trigger when the
+    // auth user is created at signup, so login no longer creates it lazily.
     redirect('/pulse/train');
 }

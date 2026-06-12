@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isPublicAuthPath } from '@/lib/pulse/authPaths';
 
 /** Generate a per-request base64 nonce using the Web Crypto API available in the middleware runtime. */
 export function generateNonce(): string {
@@ -11,11 +12,22 @@ export function generateNonce(): string {
  * Build the nonce-based Content-Security-Policy for /pulse.
  * Uses 'strict-dynamic' so Next's own inline bootstrap scripts load via the nonced script.
  * style-src keeps 'unsafe-inline' because Tailwind and inline styles need it.
+ *
+ * In development only, script-src also allows 'unsafe-eval': Next's dev webpack build
+ * wraps every module in eval() (the eval-source-map devtool) and React Fast Refresh
+ * uses eval, so without it the dev client bundle cannot execute, the page never
+ * hydrates, and forms fall back to a native (no-JS) POST. That no-JS path then trips a
+ * Next 15.1 regression that throws "cookies was called outside a request scope" inside
+ * the server action (e.g. login / signup). Production webpack does not use eval, so the
+ * strict policy (no 'unsafe-eval') is kept in prod.
  */
-export function buildCsp(nonce: string, supabaseHost: string): string {
+export function buildCsp(nonce: string, supabaseHost: string, isDev = false): string {
+    const scriptSrc = isDev
+        ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`
+        : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`;
     return [
         "default-src 'self'",
-        `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+        scriptSrc,
         "style-src 'self' 'unsafe-inline'",
         `connect-src 'self' https://${supabaseHost} wss://${supabaseHost}`,
         "img-src 'self' data:",
@@ -41,7 +53,7 @@ export async function updateSession(request: NextRequest) {
     // Per-request nonce. Propagated to Next via the x-nonce request header so
     // Server Components can apply it to inline scripts, and set on the CSP header.
     const nonce = generateNonce();
-    const csp = buildCsp(nonce, supabaseHostFromEnv());
+    const csp = buildCsp(nonce, supabaseHostFromEnv(), process.env.NODE_ENV !== 'production');
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-nonce', nonce);
@@ -73,8 +85,7 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    const isLoginPage = request.nextUrl.pathname.startsWith('/pulse/login');
-    if (!user && !isLoginPage) {
+    if (!user && !isPublicAuthPath(request.nextUrl.pathname)) {
         const url = request.nextUrl.clone();
         url.pathname = '/pulse/login';
         const redirect = NextResponse.redirect(url);

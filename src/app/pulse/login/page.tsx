@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { login } from './actions';
 import SubmitButton from './SubmitButton';
+import { LINK } from '@/components/pulse/authStyles';
 
 export const metadata: Metadata = {
     title: 'Pulse Login',
@@ -14,7 +16,15 @@ const FIELD =
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
     const params = await searchParams;
-    const hasError = params.error === '1';
+    const errorMessage =
+        params.error === 'expired'
+            ? 'That link has expired or was already used. Sign in, or request a new one.'
+            : params.error === 'invalid_link'
+              ? 'That link was invalid. Sign in, or request a new one.'
+              : params.error === '1'
+                ? 'Invalid email or password.'
+                : null;
+    const hasError = errorMessage !== null;
 
     return (
         <div className="min-h-screen bg-pulse-bg flex items-center justify-center p-4">
@@ -33,7 +43,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                         id="login-error"
                         role="alert"
                         className="font-pulse text-[0.8125rem] tracking-[0.02em] text-pulse-error mb-5">
-                        Invalid email or password.
+                        {errorMessage}
                     </p>
                 )}
 
@@ -71,6 +81,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 />
 
                 <SubmitButton />
+
+                <div className="mt-6 flex flex-col items-center gap-2">
+                    <Link href="/pulse/forgot-password" className={LINK}>
+                        Forgot password?
+                    </Link>
+                    <Link href="/pulse/signup" className={LINK}>
+                        Create an account
+                    </Link>
+                </div>
             </form>
         </div>
     );
