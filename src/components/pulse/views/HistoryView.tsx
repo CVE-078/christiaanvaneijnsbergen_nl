@@ -41,6 +41,8 @@ import ModalSheet from '@/components/pulse/ModalSheet';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { formatLogDate } from '@/lib/pulse/dates';
 import { assembleWorkouts, type Workout } from '@/lib/pulse/workouts';
+import MilestonesCard from '@/components/pulse/MilestonesCard';
+import { computeMilestones } from '@/lib/pulse/milestones';
 import type { Logs, WorkoutSession, WorkoutType } from '@/lib/pulse/types';
 
 type ProgressTab = 'overview' | 'lifts' | 'body';
@@ -370,6 +372,19 @@ export default function HistoryView() {
         [workoutSessions, logs, swaps, exerciseNameById, nameMap],
     );
 
+    const milestones = useMemo(
+        () =>
+            computeMilestones({
+                workouts,
+                logs,
+                sessions: workoutSessions,
+                schedule: activeRoutine?.schedule ?? [],
+                programWeeks: activeRoutine?.program_weeks ?? 12,
+                unit,
+            }),
+        [workouts, logs, workoutSessions, activeRoutine, unit],
+    );
+
     const [strengthModalOpen, setStrengthModalOpen] = useState(false);
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     const exerciseId = selectedExerciseId ?? defaultExerciseId;
@@ -522,6 +537,14 @@ export default function HistoryView() {
                             </span>
                         </div>
                     </div>
+
+                    {/* Recent milestones */}
+                    {milestones.length > 0 && (
+                        <div className="mb-4">
+                            <SectionHeader>Recent milestones</SectionHeader>
+                            <MilestonesCard milestones={milestones} />
+                        </div>
+                    )}
 
                     {/* Program status card */}
                     <div className="mb-4">

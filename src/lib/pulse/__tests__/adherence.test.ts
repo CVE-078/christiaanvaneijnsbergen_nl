@@ -8,6 +8,7 @@ import {
     computeProgramPosition,
     computeWeekAdherence,
     computeRegenSuggestion,
+    completedWeekBoundaries,
 } from '../adherence';
 import type {
     ScheduleEntry,
@@ -20,6 +21,34 @@ import type {
     ProgramPosition,
     WeekAdherence,
 } from '../types';
+
+function sessWB(id: string, type: string, completedAt: string): WorkoutSession {
+    return {
+        id, user_id: 'u', routine_id: 'r', workout_type: type, variant: null,
+        started_at: completedAt, completed_at: completedAt, session_rpe: null, session_note: null,
+    };
+}
+
+describe('completedWeekBoundaries', () => {
+    const schedule: ScheduleEntry[] = [
+        { day_of_week: 1, workout_type: 'upper' }, { day_of_week: 4, workout_type: 'lower' },
+    ];
+    it('emits one boundary per completed cycle, dated at the closing session', () => {
+        const sessions = [
+            sessWB('a', 'upper', '2026-05-01T10:00:00Z'),
+            sessWB('b', 'lower', '2026-05-04T10:00:00Z'), // completes week 1
+            sessWB('c', 'upper', '2026-05-08T10:00:00Z'),
+            sessWB('d', 'lower', '2026-05-11T10:00:00Z'), // completes week 2
+        ];
+        const b = completedWeekBoundaries(schedule, sessions);
+        expect(b.map((x) => x.week)).toEqual([1, 2]);
+        expect(b[0].session.id).toBe('b');
+        expect(b[1].session.id).toBe('d');
+    });
+    it('returns empty for an empty schedule', () => {
+        expect(completedWeekBoundaries([], [sessWB('a', 'upper', '2026-05-01T10:00:00Z')])).toEqual([]);
+    });
+});
 
 let idc = 0;
 const entry = (
