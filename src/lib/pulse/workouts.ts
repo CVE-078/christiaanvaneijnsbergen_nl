@@ -121,3 +121,30 @@ export function assembleWorkouts(
     workouts.sort((a, b) => (a.date < b.date ? 1 : -1));
     return workouts;
 }
+
+// All logged sets for a given routine-exercise, grouped by week and ordered
+// newest week first, sets within each week ordered by set_idx ascending.
+// Only saved sets are included. Returns [] when no matching logs exist.
+export function exerciseSetsByWeek(
+    logs: Logs,
+    routineExerciseId: string,
+): { week: number; sets: { kg: number; reps: number; rir: number }[] }[] {
+    const byWeek = new Map<number, { setIdx: number; kg: number; reps: number; rir: number }[]>();
+    for (const [key, val] of Object.entries(logs)) {
+        if (!val?.saved) continue;
+        const parsed = parseLogKey(key);
+        if (!parsed) continue;
+        if (parsed.routineExerciseId !== routineExerciseId) continue;
+        const arr = byWeek.get(parsed.week) ?? [];
+        arr.push({ setIdx: parsed.setIdx, kg: val.kg, reps: val.reps, rir: val.rir });
+        byWeek.set(parsed.week, arr);
+    }
+    return Array.from(byWeek.entries())
+        .sort((a, b) => b[0] - a[0]) // newest week first
+        .map(([week, sets]) => ({
+            week,
+            sets: sets
+                .sort((a, b) => a.setIdx - b.setIdx)
+                .map(({ kg, reps, rir }) => ({ kg, reps, rir })),
+        }));
+}

@@ -35,6 +35,7 @@ import MeasurementsCard from '@/components/pulse/MeasurementsCard';
 import RecentChangeCard from '@/components/pulse/RecentChangeCard';
 import SessionsCalendar from '@/components/pulse/SessionsCalendar';
 import SessionDetailModal from '@/components/pulse/SessionDetailModal';
+import ExerciseDetailModal from '@/components/pulse/ExerciseDetailModal';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { formatLogDate } from '@/lib/pulse/dates';
 import { assembleWorkouts, type Workout } from '@/lib/pulse/workouts';
@@ -390,6 +391,9 @@ export default function HistoryView() {
     // Active progress tab (Overview / Lifts / Body). No persistence; defaults to Overview.
     const [progressTab, setProgressTab] = useState<ProgressTab>('overview');
 
+    // Exercise drill-in: shows e1RM chart + history for a single routine-exercise.
+    const [drillExerciseId, setDrillExerciseId] = useState<string | null>(null);
+
     // Session detail modal: shows a single Workout.
     const [detailWorkout, setDetailWorkout] = useState<Workout | null>(null);
 
@@ -622,7 +626,12 @@ export default function HistoryView() {
                         {/* Best Lifts */}
                         <div className="bg-pulse-surface rounded-2xl p-5">
                             <SectionHeader>Best Lifts</SectionHeader>
-                            <BestLifts allRoutineExercises={allRoutineExercises} bestSets={bestSets} unit={unit} />
+                            <BestLifts
+                                allRoutineExercises={allRoutineExercises}
+                                bestSets={bestSets}
+                                unit={unit}
+                                onSelectExercise={setDrillExerciseId}
+                            />
                         </div>
 
                     </div>
@@ -719,6 +728,16 @@ export default function HistoryView() {
                         workout={detailWorkout}
                         unit={unit}
                         onClose={() => setDetailWorkout(null)}
+                    />
+
+                    {/* Exercise drill-in modal */}
+                    <ExerciseDetailModal
+                        open={drillExerciseId !== null}
+                        routineExerciseId={drillExerciseId ?? ''}
+                        name={nameMap.get(drillExerciseId ?? '') ?? ''}
+                        logs={logs}
+                        unit={unit}
+                        onClose={() => setDrillExerciseId(null)}
                     />
 
                     {/* All workouts modal */}

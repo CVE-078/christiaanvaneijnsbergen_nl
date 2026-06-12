@@ -11,12 +11,26 @@ interface BestLiftsProps {
     allRoutineExercises: RoutineExercise[];
     bestSets: Record<string, BestSet>;
     unit: Unit;
+    onSelectExercise?: (routineExerciseId: string) => void;
 }
 
 // Inline lift row used in both the collapsed view and the "all lifts" modal.
-function LiftRow({ name, best, unit, accent }: { name: string; best: BestSet; unit: Unit; accent: boolean }) {
-    return (
-        <div className="flex items-center justify-between gap-3 py-[13px] border-b border-pulse-border last:border-0">
+// When onClick is provided, the row renders as a tappable button.
+function LiftRow({
+    name,
+    best,
+    unit,
+    accent,
+    onClick,
+}: {
+    name: string;
+    best: BestSet;
+    unit: Unit;
+    accent: boolean;
+    onClick?: () => void;
+}) {
+    const inner = (
+        <>
             <div className="flex flex-col min-w-0">
                 <span className="text-pulse-text text-[0.9rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     {name}
@@ -31,6 +45,23 @@ function LiftRow({ name, best, unit, accent }: { name: string; best: BestSet; un
                     {unit} e1RM
                 </span>
             </span>
+        </>
+    );
+
+    if (onClick) {
+        return (
+            <button
+                type="button"
+                onClick={onClick}
+                className="flex items-center justify-between gap-3 py-[13px] border-b border-pulse-border last:border-0 w-full text-left bg-transparent border-x-0 border-t-0 cursor-pointer hover:opacity-80 transition-opacity">
+                {inner}
+            </button>
+        );
+    }
+
+    return (
+        <div className="flex items-center justify-between gap-3 py-[13px] border-b border-pulse-border last:border-0">
+            {inner}
         </div>
     );
 }
@@ -41,11 +72,13 @@ function AllLiftsModal({
     onClose,
     grouped,
     unit,
+    onSelectExercise,
 }: {
     open: boolean;
     onClose: () => void;
     grouped: { type: string; items: { re: RoutineExercise; best: BestSet }[] }[];
     unit: Unit;
+    onSelectExercise?: (routineExerciseId: string) => void;
 }) {
     useEffect(() => {
         if (!open) return;
@@ -100,6 +133,11 @@ function AllLiftsModal({
                                         best={best}
                                         unit={unit}
                                         accent={idx === 0}
+                                        onClick={
+                                            onSelectExercise
+                                                ? () => { onClose(); onSelectExercise(re.id); }
+                                                : undefined
+                                        }
                                     />
                                 ))}
                             </div>
@@ -111,7 +149,7 @@ function AllLiftsModal({
     );
 }
 
-export default function BestLifts({ allRoutineExercises, bestSets, unit }: BestLiftsProps) {
+export default function BestLifts({ allRoutineExercises, bestSets, unit, onSelectExercise }: BestLiftsProps) {
     const [modalOpen, setModalOpen] = useState(false);
 
     const entries = allRoutineExercises
@@ -149,6 +187,7 @@ export default function BestLifts({ allRoutineExercises, bestSets, unit }: BestL
                                     best={best}
                                     unit={unit}
                                     accent={idx === 0}
+                                    onClick={onSelectExercise ? () => onSelectExercise(re.id) : undefined}
                                 />
                             ))}
                         </div>
@@ -182,6 +221,7 @@ export default function BestLifts({ allRoutineExercises, bestSets, unit }: BestL
                 onClose={() => setModalOpen(false)}
                 grouped={grouped}
                 unit={unit}
+                onSelectExercise={onSelectExercise}
             />
         </div>
     );
