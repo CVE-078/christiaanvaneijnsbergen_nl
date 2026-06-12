@@ -3,7 +3,6 @@ import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import PasswordFields from './PasswordFields';
 import AuthSubmitButton from './AuthSubmitButton';
-import SectionLabel from './SectionLabel';
 import { FIELD, LABEL, ERROR_TEXT, fieldBorder } from './authStyles';
 import { updatePassword, deleteAccount, type PasswordUpdateState } from '@/app/pulse/actions/account';
 
@@ -12,8 +11,7 @@ const INITIAL: PasswordUpdateState = {};
 function ChangePassword() {
     const [state, formAction] = useActionState(updatePassword, INITIAL);
     return (
-        <form action={formAction} className="flex flex-col mb-8">
-            <SectionLabel className="mb-3">Change password</SectionLabel>
+        <form action={formAction} className="flex flex-col pt-4">
             {state.error && (
                 <p role="alert" className={`${ERROR_TEXT} mb-4`}>
                     {state.error}
@@ -25,7 +23,7 @@ function ChangePassword() {
                 </p>
             )}
             <PasswordFields passwordLabel="New password" />
-            <AuthSubmitButton label="Update password" pendingLabel="Updating…" />
+            <AuthSubmitButton label="Update password" pendingLabel="Updating..." />
         </form>
     );
 }
@@ -40,7 +38,7 @@ function DeleteButton({ armed }: { armed: boolean }) {
             disabled={!armed || pending}
             aria-busy={pending}
             className="block w-full py-3 rounded-lg border-none font-pulse font-semibold text-sm tracking-[0.04em] bg-pulse-error text-pulse-bg transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
-            {pending ? 'Deleting…' : 'Delete my account'}
+            {pending ? 'Deleting...' : 'Delete my account'}
         </button>
     );
 }
@@ -49,8 +47,7 @@ function DeleteAccount() {
     const [confirmText, setConfirmText] = useState('');
     const armed = confirmText === CONFIRM_WORD;
     return (
-        <div className="rounded-xl border border-pulse-error/30 bg-pulse-error/5 p-4">
-            <SectionLabel className="mb-2">Delete account</SectionLabel>
+        <div className="pt-4">
             <p className="font-pulse text-[0.8125rem] tracking-[0.02em] text-pulse-dim mb-4">
                 This permanently deletes your account and all your training data. This cannot be undone.
             </p>
@@ -73,12 +70,68 @@ function DeleteAccount() {
 }
 
 // Account security controls for the Profile screen: change password and the
-// delete-account danger zone. Kept out of the 800+ line ProfileView.
+// delete-account danger zone. Each section is hidden behind a tappable row
+// and expands inline (accordion). Kept out of the large ProfileView.
 export default function AccountSecuritySection() {
+    const [openSection, setOpenSection] = useState<'password' | 'delete' | null>(null);
+
+    function toggle(section: 'password' | 'delete') {
+        setOpenSection((prev) => (prev === section ? null : section));
+    }
+
     return (
-        <>
-            <ChangePassword />
-            <DeleteAccount />
-        </>
+        <div className="flex flex-col gap-[7px]">
+            {/* Change password row */}
+            <div className="bg-pulse-surface rounded-xl overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => toggle('password')}
+                    className="flex items-center justify-between w-full px-[13px] py-[13px] border-none bg-transparent cursor-pointer">
+                    <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">Change password</span>
+                    <svg
+                        className={`w-3.5 h-3.5 shrink-0 text-pulse-muted transition-transform ${openSection === 'password' ? 'rotate-90' : ''}`}
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden>
+                        <polyline points="6,3 11,8 6,13" />
+                    </svg>
+                </button>
+                {openSection === 'password' && (
+                    <div className="px-[13px] pb-4">
+                        <ChangePassword />
+                    </div>
+                )}
+            </div>
+
+            {/* Delete account row */}
+            <div className="bg-pulse-surface rounded-xl overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => toggle('delete')}
+                    className="flex items-center justify-between w-full px-[13px] py-[13px] border-none bg-transparent cursor-pointer">
+                    <span className="font-pulse font-medium text-[0.92rem] text-pulse-error">Delete account</span>
+                    <svg
+                        className={`w-3.5 h-3.5 shrink-0 text-pulse-muted transition-transform ${openSection === 'delete' ? 'rotate-90' : ''}`}
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden>
+                        <polyline points="6,3 11,8 6,13" />
+                    </svg>
+                </button>
+                {openSection === 'delete' && (
+                    <div className="px-[13px] pb-4">
+                        <DeleteAccount />
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }

@@ -1,6 +1,5 @@
 'use client';
 import { useTransition, useState } from 'react';
-import { getInitials } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import type { Gender, PriorityMuscle } from '@/lib/pulse/types';
@@ -12,7 +11,6 @@ import {
     LOADING_LEAN_OPTIONS,
     RESTRICTION_OPTIONS,
 } from '@/lib/pulse/generationPreferences';
-import SectionLabel from '../SectionLabel';
 import EquipmentProfilesEditor from '../EquipmentProfilesEditor';
 import AccountSecuritySection from '../AccountSecuritySection';
 import PageTitle from '../PageTitle';
@@ -26,6 +24,154 @@ const PROFILE_TABS = [
     { id: 'you', label: 'You' },
     { id: 'training', label: 'Training' },
 ];
+
+// Small section label matching the mockup's .lbl style
+function Lbl({ children, first = false }: { children: React.ReactNode; first?: boolean }) {
+    return (
+        <div
+            className={`text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted font-semibold ${first ? 'mt-[6px] mb-[9px]' : 'mt-[18px] mb-[9px]'}`}>
+            {children}
+        </div>
+    );
+}
+
+// A single info/action row matching .row style
+function Row({
+    label,
+    right,
+    onClick,
+    labelClass = '',
+}: {
+    label: React.ReactNode;
+    right?: React.ReactNode;
+    onClick?: () => void;
+    labelClass?: string;
+}) {
+    const inner = (
+        <>
+            <span className={`font-pulse font-medium text-[0.92rem] ${labelClass || 'text-pulse-text'}`}>
+                {label}
+            </span>
+            {right !== undefined && (
+                <span className="font-pulse text-[0.85rem] text-pulse-dim flex items-center gap-1">{right}</span>
+            )}
+        </>
+    );
+
+    if (onClick) {
+        return (
+            <button
+                type="button"
+                onClick={onClick}
+                className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px] w-full border-none cursor-pointer text-left">
+                {inner}
+            </button>
+        );
+    }
+    return (
+        <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
+            {inner}
+        </div>
+    );
+}
+
+// Chevron-right icon (replaces the text "›" glyph, which read as a stray "v")
+function Chev() {
+    return (
+        <svg
+            className="w-3.5 h-3.5 shrink-0 text-pulse-muted"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden>
+            <polyline points="6,3 11,8 6,13" />
+        </svg>
+    );
+}
+
+// Pill button: filled accent when active, surface-2 when not
+function Pill({
+    active,
+    onClick,
+    children,
+}: {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`px-[13px] py-[7px] rounded-full text-[0.78rem] font-medium border-none cursor-pointer ${
+                active ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'
+            }`}>
+            {children}
+        </button>
+    );
+}
+
+// Toggle pill: faint accent tint + accent text + border when active
+function TogPill({
+    active,
+    onClick,
+    children,
+}: {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`px-[13px] py-[7px] rounded-full text-[0.78rem] font-medium cursor-pointer border ${
+                active
+                    ? 'bg-pulse-accent/16 text-pulse-accent border-pulse-accent/50'
+                    : 'bg-pulse-surface-2 text-pulse-dim border-transparent'
+            }`}>
+            {children}
+        </button>
+    );
+}
+
+// Option card: .opt / .opt.sel style
+function OptCard({
+    active,
+    label,
+    desc,
+    onClick,
+    disabled,
+}: {
+    active: boolean;
+    label: string;
+    desc?: string;
+    onClick: () => void;
+    disabled?: boolean;
+}) {
+    return (
+        <button
+            type="button"
+            aria-pressed={active}
+            disabled={disabled}
+            onClick={onClick}
+            className={`w-full text-left rounded-xl px-[13px] py-[11px] mb-[7px] border-[1.5px] cursor-pointer transition-colors ${
+                active
+                    ? 'border-pulse-accent bg-pulse-accent/8 text-pulse-accent'
+                    : 'border-transparent bg-pulse-surface text-pulse-text'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <div className={`font-pulse font-semibold text-[0.9rem] ${active ? 'text-pulse-accent' : 'text-pulse-text'}`}>
+                {label}
+            </div>
+            {active && desc && (
+                <div className="font-pulse text-[0.76rem] text-pulse-dim leading-[1.4] mt-[3px]">{desc}</div>
+            )}
+        </button>
+    );
+}
 
 export default function ProfileView() {
     const {
@@ -50,8 +196,6 @@ export default function ProfileView() {
     const toast = useToast();
 
     const { display_name: displayName, unit, gender } = profile;
-    // What the priority control shows: the explicit choice, or the gender default
-    // when never set. 'balanced' renders as the "Balanced" option.
     const priorityValue: PriorityMuscle | 'balanced' = profile.priority_muscle ?? genderDefault(gender);
     const PRIORITY_OPTIONS: (PriorityMuscle | 'balanced')[] = [
         'balanced',
@@ -67,8 +211,6 @@ export default function ProfileView() {
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(displayName ?? '');
-
-    const initials = displayName ? getInitials(displayName, 2) : (email[0]?.toUpperCase() ?? '?');
 
     function handleUnitChange(newUnit: 'kg' | 'lbs') {
         if (newUnit === unit || isPending) return;
@@ -116,7 +258,7 @@ export default function ProfileView() {
     if (loading?.profile) return <PageSkeleton rows={3} />;
 
     return (
-        <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto lg:max-w-[860px] lg:pt-6 lg:px-6 lg:pb-12">
+        <div className="pt-5 px-4 pb-12 max-w-[480px] mx-auto lg:max-w-[1000px] lg:pt-6 lg:px-6 lg:pb-12">
             <PageTitle>Profile</PageTitle>
 
             <div className="mt-4 mb-6">
@@ -125,6 +267,7 @@ export default function ProfileView() {
                     active={tab}
                     onChange={(id) => setTab(id as ProfileTab)}
                     ariaLabel="Profile sections"
+                    variant="solid"
                 />
             </div>
 
@@ -132,20 +275,23 @@ export default function ProfileView() {
                 switch. Visibility uses two mechanisms on purpose: the `hidden`
                 attribute hides it for the a11y tree and for jsdom tests (which load
                 no CSS), while the `hidden` class handles real-browser display, since
-                the active `flex` class would otherwise override the attribute. */}
+                the active flex class would otherwise override the attribute. */}
             <div
                 id="panel-you"
                 role="tabpanel"
                 aria-labelledby="tab-you"
                 hidden={tab !== 'you'}
-                className={tab === 'you' ? 'flex flex-col gap-7 lg:flex-row lg:gap-10' : 'hidden'}>
-                <div className="flex flex-col gap-7 lg:w-[280px] lg:shrink-0">
-                    {/* Identity */}
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-xl shrink-0 bg-pulse-accent flex items-center justify-center font-pulse text-xl font-semibold text-pulse-bg tracking-[-0.02em]">
-                            {initials}
-                        </div>
-                        <div className="flex-1 min-w-0">
+                className={tab === 'you' ? 'grid2-you' : 'hidden'}>
+
+                {/* Wrapping grid: single column on mobile, two-column on lg */}
+                <div className={`${tab === 'you' ? 'grid gap-0 lg:grid-cols-2 lg:gap-[14px] lg:items-start' : ''}`}>
+                    {/* Left column: Identity, Gender, App */}
+                    <div>
+                        {/* Identity */}
+                        <Lbl first>Identity</Lbl>
+
+                        {/* Display name row (mockup: plain row, no avatar) + email subline */}
+                        <div className="bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
                             {editingName ? (
                                 <input
                                     autoFocus
@@ -154,7 +300,7 @@ export default function ProfileView() {
                                     onBlur={handleNameSave}
                                     onKeyDown={handleNameKeyDown}
                                     placeholder="Display name"
-                                    className="font-pulse text-base font-semibold text-pulse-text bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
+                                    className="font-pulse text-[0.92rem] font-semibold text-pulse-text bg-transparent border-none border-b border-pulse-accent outline-none w-full pb-0.5"
                                 />
                             ) : (
                                 <button
@@ -162,136 +308,132 @@ export default function ProfileView() {
                                         setNameInput(displayName ?? '');
                                         setEditingName(true);
                                     }}
-                                    className={`font-pulse text-base font-semibold bg-transparent border-none p-0 cursor-text text-left block w-full ${displayName ? 'text-pulse-text' : 'text-pulse-dim'}`}>
-                                    {displayName ?? 'Add display name'}
+                                    className="w-full flex items-center justify-between gap-3 bg-transparent border-none p-0 cursor-text text-left">
+                                    <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
+                                        Display name
+                                    </span>
+                                    <span className="flex items-center gap-1.5 min-w-0">
+                                        <span
+                                            className={`font-pulse text-[0.85rem] truncate ${displayName ? 'text-pulse-dim' : 'text-pulse-muted'}`}>
+                                            {displayName ?? 'Add display name'}
+                                        </span>
+                                        <Chev />
+                                    </span>
                                 </button>
                             )}
-                            <div className="font-pulse text-[0.8125rem] text-pulse-dim mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                            <div className="font-pulse text-[0.76rem] text-pulse-muted mt-1 overflow-hidden text-ellipsis whitespace-nowrap">
                                 {email}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Gender */}
-                    <div>
-                        <SectionLabel className="mb-2">Gender</SectionLabel>
-                        <div className="flex gap-2 flex-wrap">
-                            {(['male', 'female'] as const).map((s) => (
-                                <button
-                                    key={s}
-                                    onClick={() => handleGenderChange(s)}
-                                    className={`font-pulse text-sm font-semibold tracking-[0.06em] uppercase py-2 px-4 rounded-lg cursor-pointer border-none ${gender === s ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
-                                    {s === 'male' ? 'Male' : 'Female'}
-                                </button>
-                            ))}
-                            <button
-                                onClick={() => handleGenderChange(null)}
-                                className={`font-pulse text-sm font-semibold tracking-[0.06em] py-2 px-4 rounded-lg cursor-pointer border-none ${gender == null ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
+                        {/* Gender */}
+                        <Lbl>Gender</Lbl>
+                        <div className="flex gap-[6px] flex-wrap mb-[7px]">
+                            <Pill active={gender === 'male'} onClick={() => handleGenderChange('male')}>
+                                Male
+                            </Pill>
+                            <Pill active={gender === 'female'} onClick={() => handleGenderChange('female')}>
+                                Female
+                            </Pill>
+                            <Pill active={gender == null} onClick={() => handleGenderChange(null)}>
                                 Prefer not to say
-                            </button>
+                            </Pill>
                         </div>
-                    </div>
 
-                    {/* Unit toggle */}
-                    <div>
-                        <SectionLabel className="mb-2">Weight Unit</SectionLabel>
-                        <div className="flex gap-2">
-                            {(['kg', 'lbs'] as const).map((u) => (
-                                <button
-                                    key={u}
-                                    onClick={() => handleUnitChange(u)}
-                                    className={`font-pulse text-sm font-semibold tracking-[0.06em] uppercase py-2 px-4 rounded-lg cursor-pointer border-none ${unit === u ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'}`}>
-                                    {u}
-                                </button>
-                            ))}
+                        {/* App */}
+                        <Lbl>App</Lbl>
+
+                        {/* Weight unit row */}
+                        <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
+                                Weight unit
+                            </span>
+                            <div className="flex gap-[6px]">
+                                {(['kg', 'lbs'] as const).map((u) => (
+                                    <Pill key={u} active={unit === u} onClick={() => handleUnitChange(u)}>
+                                        {u}
+                                    </Pill>
+                                ))}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Accent colour */}
-                    <div>
-                        <SectionLabel className="mb-2">Accent colour</SectionLabel>
-                        <div className="flex flex-wrap gap-2.5">
-                            {ACCENT_PRESETS.map((p) => {
-                                const active = (profile.accent_color ?? DEFAULT_ACCENT_KEY) === p.key;
-                                return (
-                                    <button
-                                        key={p.key}
-                                        type="button"
-                                        aria-label={p.label}
-                                        aria-pressed={active}
-                                        title={p.label}
-                                        onClick={() => updateAccentColor(p.key)}
-                                        className={`h-9 w-9 cursor-pointer rounded-full border-none transition-transform ${active ? 'scale-110' : 'hover:scale-105'}`}
-                                        style={{
-                                            backgroundColor: p.accent,
-                                            boxShadow: active
-                                                ? `0 0 0 2px var(--color-pulse-bg), 0 0 0 4px ${p.accent}`
-                                                : 'none',
-                                        }}
-                                    />
-                                );
-                            })}
+                        {/* Accent colour row */}
+                        <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
+                                Accent colour
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                                {ACCENT_PRESETS.map((p) => {
+                                    const active = (profile.accent_color ?? DEFAULT_ACCENT_KEY) === p.key;
+                                    return (
+                                        <button
+                                            key={p.key}
+                                            type="button"
+                                            aria-label={p.label}
+                                            aria-pressed={active}
+                                            title={p.label}
+                                            onClick={() => updateAccentColor(p.key)}
+                                            className={`h-7 w-7 cursor-pointer rounded-full border-none transition-transform shrink-0 ${active ? 'scale-110' : 'hover:scale-105'}`}
+                                            style={{
+                                                backgroundColor: p.accent,
+                                                boxShadow: active
+                                                    ? `0 0 0 2px var(--color-pulse-bg), 0 0 0 4px ${p.accent}`
+                                                    : 'none',
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Auto-advance rest timer */}
-                    <div>
-                        <SectionLabel className="mb-2">Auto-advance rest timer</SectionLabel>
-                        <div className="flex items-center gap-3">
+                        {/* Auto-advance rest timer row */}
+                        <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
+                                Auto-advance rest timer
+                            </span>
                             <button
                                 role="switch"
                                 aria-checked={autoAdvance}
                                 aria-label="Auto-advance rest timer"
                                 onClick={() => setAutoAdvance(!autoAdvance)}
-                                className={`relative w-11 h-6 rounded-full shrink-0 cursor-pointer border-none transition-colors ${autoAdvance ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}>
+                                className={`relative w-[42px] h-6 rounded-full shrink-0 cursor-pointer border-none transition-colors ${autoAdvance ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}>
                                 <span
-                                    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-pulse-bg transition-transform ${autoAdvance ? 'translate-x-5' : 'translate-x-0'}`}
+                                    className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-pulse-bg transition-transform ${autoAdvance ? 'right-[3px]' : 'left-[3px]'}`}
                                 />
                             </button>
-                            <span className="font-pulse text-[0.8125rem] text-pulse-dim">
-                                In guided mode, jump to the next exercise when rest ends.
-                            </span>
                         </div>
                     </div>
 
-                    {/* Routine quiz */}
+                    {/* Right column: Routine & data, Account & security */}
                     <div>
-                        <SectionLabel className="mb-2">Routine</SectionLabel>
-                        <button
-                            onClick={triggerOnboarding}
-                            className="font-pulse text-xs text-pulse-accent bg-transparent border-none cursor-pointer underline">
-                            Retake quiz
-                        </button>
-                    </div>
+                        {/* Routine & data */}
+                        <Lbl first>Routine &amp; data</Lbl>
 
-                    {/* Data, export full history as CSV */}
-                    <div>
-                        <SectionLabel className="mb-2">Data</SectionLabel>
-                        <button
+                        <Row label="Generate new routine" right={<Chev />} onClick={triggerOnboarding} />
+
+                        <Row
+                            label="Export history (CSV)"
+                            right={
+                                <svg
+                                    className="w-4 h-4 text-pulse-muted"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={1.8}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    aria-hidden>
+                                    <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                                </svg>
+                            }
                             onClick={handleExport}
-                            className="font-pulse text-sm font-medium text-pulse-dim bg-pulse-surface-2 rounded-lg py-2 px-4 cursor-pointer border-none inline-flex items-center gap-2">
-                            <svg
-                                className="w-4 h-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={1.8}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden>
-                                <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-                            </svg>
-                            Export CSV
-                        </button>
-                        <p className="font-pulse text-[0.6875rem] text-pulse-muted mt-1.5">
-                            Download your full logged history as a spreadsheet.
-                        </p>
-                    </div>
-                </div>
+                        />
 
-                <div className="lg:flex-1 lg:min-w-0 rounded-2xl bg-pulse-surface p-5 flex flex-col gap-6">
-                    {/* Account & security */}
-                    <AccountSecuritySection />
+                        {/* Account & security */}
+                        <Lbl>Account &amp; security</Lbl>
+
+                        <AccountSecuritySection />
+                    </div>
                 </div>
             </div>
 
@@ -301,166 +443,110 @@ export default function ProfileView() {
                 role="tabpanel"
                 aria-labelledby="tab-training"
                 hidden={tab !== 'training'}
-                className={tab === 'training' ? 'flex flex-col gap-7' : 'hidden'}>
-                <div data-testid="training-preferences-section" className="flex flex-col gap-5">
+                className={tab === 'training' ? 'flex flex-col gap-0' : 'hidden'}>
+
+                <p className="font-pulse text-[0.78rem] text-pulse-muted mt-[8px] mb-[6px]">
+                    Shape how Pulse builds your routines. Applies to plans you generate from now on.
+                </p>
+
+                <div
+                    data-testid="training-preferences-section"
+                    className="grid gap-0 lg:grid-cols-2 lg:gap-[14px] lg:items-start">
+                    {/* Left column: Training style + Exercise variety */}
                     <div>
-                        <SectionLabel className="mb-1">Training preferences</SectionLabel>
-                        <p className="font-pulse text-[0.8125rem] text-pulse-dim">
-                            Shape how Pulse builds your routines. Applies to plans you generate from now on.
-                        </p>
+                        {/* Training style */}
+                        <Lbl first>Training style</Lbl>
+                        {TRAINING_STYLE_OPTIONS.map(({ key, label, desc }) => {
+                            const active = (profile.training_style ?? 'balanced') === key;
+                            return (
+                                <OptCard
+                                    key={key}
+                                    active={active}
+                                    label={label}
+                                    desc={desc}
+                                    disabled={isPending}
+                                    onClick={() => {
+                                        if (isPending || active) return;
+                                        startTransition(async () => {
+                                            await updateTrainingStyle(key);
+                                        });
+                                    }}
+                                />
+                            );
+                        })}
+
+                        {/* Exercise variety */}
+                        <Lbl>Exercise variety</Lbl>
+                        {VARIETY_OPTIONS.map(({ key, label, desc }) => {
+                            const active = (profile.variety_preference ?? 'varied') === key;
+                            return (
+                                <OptCard
+                                    key={key}
+                                    active={active}
+                                    label={label}
+                                    desc={desc}
+                                    disabled={isPending}
+                                    onClick={() => {
+                                        if (isPending || active) return;
+                                        startTransition(async () => {
+                                            await updateVarietyPreference(key);
+                                        });
+                                    }}
+                                />
+                            );
+                        })}
                     </div>
 
-                    {/* Training style */}
+                    {/* Right column: Equipment preference + Movement restrictions + Training priority */}
                     <div>
-                        <SectionLabel className="mb-2">Training style</SectionLabel>
-                        <div className="flex flex-col gap-1.5">
-                            {TRAINING_STYLE_OPTIONS.map(({ key, label, desc }) => {
-                                const active = (profile.training_style ?? 'balanced') === key;
-                                return (
-                                    <button
-                                        key={key}
-                                        type="button"
-                                        aria-pressed={active}
-                                        disabled={isPending}
-                                        onClick={() => {
-                                            if (isPending || active) return;
-                                            startTransition(async () => {
-                                                await updateTrainingStyle(key);
-                                            });
-                                        }}
-                                        className={`flex items-center gap-3 rounded-xl px-3 text-left transition-colors ${
-                                            active
-                                                ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent py-3'
-                                                : 'bg-pulse-surface-2 ring-0 py-2.5'
-                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                        <div className="flex flex-col">
-                                            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                            {active && (
-                                                <span className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">{desc}</span>
-                                            )}
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+                        {/* Equipment preference */}
+                        <Lbl first>Equipment preference</Lbl>
 
-                    {/* Variety */}
-                    <div>
-                        <SectionLabel className="mb-2">Exercise variety</SectionLabel>
-                        <div className="flex flex-col gap-1.5">
-                            {VARIETY_OPTIONS.map(({ key, label, desc }) => {
-                                const active = (profile.variety_preference ?? 'varied') === key;
-                                return (
-                                    <button
-                                        key={key}
-                                        type="button"
-                                        aria-pressed={active}
-                                        disabled={isPending}
-                                        onClick={() => {
-                                            if (isPending || active) return;
-                                            startTransition(async () => {
-                                                await updateVarietyPreference(key);
-                                            });
-                                        }}
-                                        className={`flex items-center gap-3 rounded-xl px-3 text-left transition-colors ${
-                                            active
-                                                ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent py-3'
-                                                : 'bg-pulse-surface-2 ring-0 py-2.5'
-                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                        <div className="flex flex-col">
-                                            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                            {active && (
-                                                <span className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">{desc}</span>
-                                            )}
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+                        {/* No preference option */}
+                        <OptCard
+                            active={profile.loading_lean == null}
+                            label="No preference"
+                            desc="Pulse chooses freely from what you own."
+                            disabled={isPending}
+                            onClick={() => {
+                                if (isPending || profile.loading_lean == null) return;
+                                startTransition(async () => {
+                                    await updateLoadingLean(null);
+                                });
+                            }}
+                        />
+                        {LOADING_LEAN_OPTIONS.map(({ key, label, desc }) => {
+                            const active = profile.loading_lean === key;
+                            return (
+                                <OptCard
+                                    key={key}
+                                    active={active}
+                                    label={label}
+                                    desc={desc}
+                                    disabled={isPending}
+                                    onClick={() => {
+                                        if (isPending || active) return;
+                                        startTransition(async () => {
+                                            await updateLoadingLean(key);
+                                        });
+                                    }}
+                                />
+                            );
+                        })}
 
-                    {/* Loading lean */}
-                    <div>
-                        <SectionLabel className="mb-2">Equipment preference</SectionLabel>
-                        <div className="flex flex-col gap-1.5">
-                            <button
-                                type="button"
-                                aria-pressed={profile.loading_lean == null}
-                                disabled={isPending}
-                                onClick={() => {
-                                    if (isPending || profile.loading_lean == null) return;
-                                    startTransition(async () => {
-                                        await updateLoadingLean(null);
-                                    });
-                                }}
-                                className={`flex items-center gap-3 rounded-xl px-3 text-left transition-colors ${
-                                    profile.loading_lean == null
-                                        ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent py-3'
-                                        : 'bg-pulse-surface-2 ring-0 py-2.5'
-                                } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                <div className="flex flex-col">
-                                    <span className="font-pulse-body text-sm text-pulse-text">No preference</span>
-                                    {profile.loading_lean == null && (
-                                        <span className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">
-                                            Pulse chooses freely from what you own.
-                                        </span>
-                                    )}
-                                </div>
-                            </button>
-                            {LOADING_LEAN_OPTIONS.map(({ key, label, desc }) => {
-                                const active = profile.loading_lean === key;
-                                return (
-                                    <button
-                                        key={key}
-                                        type="button"
-                                        aria-pressed={active}
-                                        disabled={isPending}
-                                        onClick={() => {
-                                            if (isPending || active) return;
-                                            startTransition(async () => {
-                                                await updateLoadingLean(key);
-                                            });
-                                        }}
-                                        className={`flex items-center gap-3 rounded-xl px-3 text-left transition-colors ${
-                                            active
-                                                ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent py-3'
-                                                : 'bg-pulse-surface-2 ring-0 py-2.5'
-                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                        <div className="flex flex-col">
-                                            <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                            {active && (
-                                                <span className="font-pulse text-[0.75rem] text-pulse-dim mt-0.5">{desc}</span>
-                                            )}
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Equipment profiles */}
-                    <div>
-                        <SectionLabel className="mb-2">Equipment profiles</SectionLabel>
-                        <EquipmentProfilesEditor />
-                    </div>
-
-                    {/* Movement restrictions */}
-                    <div>
-                        <SectionLabel className="mb-2">Movement restrictions</SectionLabel>
-                        <p className="mb-3 font-pulse text-[0.8125rem] text-pulse-dim">
+                        {/* Movement restrictions */}
+                        <Lbl>Movement restrictions</Lbl>
+                        <p className="font-pulse text-[0.8125rem] text-pulse-dim mb-[9px]">
                             Joints to work around. Applies to routines you generate from now on. To change your
                             current plan, use the Swap option on any exercise.
                         </p>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex gap-[6px] flex-wrap mb-[7px]">
                             {RESTRICTION_OPTIONS.map(({ key, label }) => {
                                 const active = (profile.movement_restrictions ?? []).includes(key);
                                 return (
-                                    <button
+                                    <TogPill
                                         key={key}
-                                        type="button"
-                                        aria-pressed={active}
-                                        disabled={isPending}
+                                        active={active}
                                         onClick={() => {
                                             if (isPending) return;
                                             const current = profile.movement_restrictions ?? [];
@@ -470,45 +556,41 @@ export default function ProfileView() {
                                             startTransition(async () => {
                                                 await updateMovementRestrictions(next);
                                             });
-                                        }}
-                                        className={`flex items-center gap-3 rounded-xl p-3 text-left transition-colors ${
-                                            active
-                                                ? 'bg-pulse-accent/10 ring-1 ring-pulse-accent'
-                                                : 'bg-pulse-surface-2 ring-0'
-                                        } ${isPending ? 'cursor-not-allowed opacity-50' : ''}`}>
-                                        <div
-                                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 ${active ? 'border-pulse-accent bg-pulse-accent' : 'border-pulse-muted'}`}>
-                                            {active && (
-                                                <span className="text-[10px] font-bold leading-none text-pulse-bg">
-                                                    ✓
-                                                </span>
-                                            )}
-                                        </div>
-                                        <span className="font-pulse-body text-sm text-pulse-text">{label}</span>
-                                    </button>
+                                        }}>
+                                        {label}
+                                    </TogPill>
                                 );
                             })}
                         </div>
-                    </div>
 
-                    {/* Training priority */}
-                    <div>
-                        <SectionLabel className="mb-2">Training priority</SectionLabel>
-                        <select
-                            aria-label="Training priority"
-                            value={priorityValue}
-                            onChange={(e) => handlePriorityChange(e.target.value as PriorityMuscle | 'balanced')}
-                            disabled={isPending}
-                            className={`${INPUT} capitalize`}>
-                            {PRIORITY_OPTIONS.map((p) => (
-                                <option key={p} value={p}>
-                                    {p === 'balanced' ? 'Balanced' : p[0].toUpperCase() + p.slice(1)}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="font-pulse text-[0.6875rem] text-pulse-muted mt-1.5">
-                            New generated routines lean toward this muscle.
-                        </p>
+                        {/* Training priority */}
+                        <Lbl>Training priority</Lbl>
+                        <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
+                                Lean toward
+                            </span>
+                            <div className="flex items-center gap-1 text-pulse-dim font-pulse text-[0.85rem]">
+                                <select
+                                    aria-label="Training priority"
+                                    value={priorityValue}
+                                    onChange={(e) =>
+                                        handlePriorityChange(e.target.value as PriorityMuscle | 'balanced')
+                                    }
+                                    disabled={isPending}
+                                    className={`${INPUT} capitalize bg-transparent border-none text-pulse-dim font-pulse text-[0.85rem] p-0 cursor-pointer appearance-none`}>
+                                    {PRIORITY_OPTIONS.map((p) => (
+                                        <option key={p} value={p}>
+                                            {p === 'balanced' ? 'Balanced' : p[0].toUpperCase() + p.slice(1)}
+                                        </option>
+                                    ))}
+                                </select>
+                                <Chev />
+                            </div>
+                        </div>
+
+                        {/* Equipment profiles */}
+                        <Lbl>Equipment profiles</Lbl>
+                        <EquipmentProfilesEditor />
                     </div>
                 </div>
             </div>

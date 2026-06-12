@@ -8,6 +8,7 @@ interface TabButtonProps {
     onKeyDown?: (e: React.KeyboardEvent) => void;
     badge?: string;
     className?: string;
+    variant?: 'soft' | 'solid';
     children: ReactNode;
 }
 
@@ -19,8 +20,18 @@ export default function TabButton({
     onKeyDown,
     badge,
     className = '',
+    variant = 'soft',
     children,
 }: TabButtonProps) {
+    const activeClass =
+        variant === 'solid'
+            ? 'bg-pulse-accent text-pulse-bg border-transparent'
+            : 'bg-pulse-accent/10 border-pulse-accent/25 text-pulse-accent';
+    const inactiveClass =
+        variant === 'solid'
+            ? 'bg-transparent border-transparent text-pulse-dim hover:text-pulse-text'
+            : 'bg-transparent border-pulse-border text-pulse-dim hover:text-pulse-text';
+
     return (
         <button
             role="tab"
@@ -30,9 +41,7 @@ export default function TabButton({
             onClick={onClick}
             onKeyDown={onKeyDown}
             className={`border cursor-pointer transition-all duration-150 ${
-                active
-                    ? 'bg-pulse-accent/10 border-pulse-accent/25 text-pulse-accent'
-                    : 'bg-transparent border-pulse-border text-pulse-dim hover:text-pulse-text'
+                active ? activeClass : inactiveClass
             } ${className}`}>
             {children}
             {badge != null && (

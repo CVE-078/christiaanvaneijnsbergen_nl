@@ -5,9 +5,10 @@ interface SegmentedTabsProps {
     active: string;
     onChange: (id: string) => void;
     ariaLabel: string;
+    variant?: 'soft' | 'solid';
 }
 
-export default function SegmentedTabs({ tabs, active, onChange, ariaLabel }: SegmentedTabsProps) {
+export default function SegmentedTabs({ tabs, active, onChange, ariaLabel, variant = 'soft' }: SegmentedTabsProps) {
     return (
         <div
             role="tablist"
@@ -20,7 +21,8 @@ export default function SegmentedTabs({ tabs, active, onChange, ariaLabel }: Seg
                     controls={`panel-${tab.id}`}
                     active={tab.id === active}
                     onClick={() => onChange(tab.id)}
-                    className="flex-1 justify-center rounded-lg py-2 text-sm font-semibold">
+                    variant={variant}
+                    className="flex-1 justify-center rounded-[9px] py-2 text-sm font-medium">
                     {tab.label}
                 </TabButton>
             ))}

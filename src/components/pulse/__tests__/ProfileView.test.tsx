@@ -165,7 +165,7 @@ describe('ProfileView', () => {
         expect(mockUpdateAccentColor).toHaveBeenCalledWith('emerald');
     });
 
-    it('renders initials from displayName', () => {
+    it('shows the display name and email in the Identity row', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             profile: {
@@ -177,10 +177,11 @@ describe('ProfileView', () => {
             },
         } as unknown as ReturnType<typeof usePulse>);
         renderWithToast(<ProfileView />);
-        expect(screen.getByText('JD')).toBeInTheDocument();
+        expect(screen.getByText('Display name')).toBeInTheDocument();
+        expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
 
-    it('renders first email letter as initials when displayName is null', () => {
+    it('prompts to add a display name when none is set', () => {
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             profile: {
@@ -192,7 +193,7 @@ describe('ProfileView', () => {
             },
         } as unknown as ReturnType<typeof usePulse>);
         renderWithToast(<ProfileView />);
-        expect(screen.getByText('T')).toBeInTheDocument();
+        expect(screen.getByText('Add display name')).toBeInTheDocument();
     });
 
     it('calls updateProfile when unit is toggled to lbs', async () => {
