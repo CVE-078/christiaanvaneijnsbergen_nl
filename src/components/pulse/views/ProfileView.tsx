@@ -49,7 +49,7 @@ function Row({
 }) {
     const inner = (
         <>
-            <span className={`font-pulse font-semibold text-[0.92rem] ${labelClass || 'text-pulse-text'}`}>
+            <span className={`font-pulse font-medium text-[0.92rem] ${labelClass || 'text-pulse-text'}`}>
                 {label}
             </span>
             {right !== undefined && (
@@ -302,7 +302,7 @@ export default function ProfileView() {
                                         setEditingName(true);
                                     }}
                                     className="w-full flex items-center justify-between gap-3 bg-transparent border-none p-0 cursor-text text-left">
-                                    <span className="font-pulse font-semibold text-[0.92rem] text-pulse-text">
+                                    <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
                                         Display name
                                     </span>
                                     <span className="flex items-center gap-1.5 min-w-0">
@@ -338,7 +338,7 @@ export default function ProfileView() {
 
                         {/* Weight unit row */}
                         <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
-                            <span className="font-pulse font-semibold text-[0.92rem] text-pulse-text">
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
                                 Weight unit
                             </span>
                             <div className="flex gap-[6px]">
@@ -352,7 +352,7 @@ export default function ProfileView() {
 
                         {/* Accent colour row */}
                         <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
-                            <span className="font-pulse font-semibold text-[0.92rem] text-pulse-text">
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
                                 Accent colour
                             </span>
                             <div className="flex flex-wrap gap-2">
@@ -381,7 +381,7 @@ export default function ProfileView() {
 
                         {/* Auto-advance rest timer row */}
                         <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
-                            <span className="font-pulse font-semibold text-[0.92rem] text-pulse-text">
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
                                 Auto-advance rest timer
                             </span>
                             <button
@@ -556,7 +556,7 @@ export default function ProfileView() {
                         {/* Training priority */}
                         <Lbl>Training priority</Lbl>
                         <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
-                            <span className="font-pulse font-semibold text-[0.92rem] text-pulse-text">
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
                                 Lean toward
                             </span>
                             <div className="flex items-center gap-1 text-pulse-dim font-pulse text-[0.85rem]">

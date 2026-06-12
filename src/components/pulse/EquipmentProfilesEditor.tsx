@@ -158,65 +158,65 @@ export default function EquipmentProfilesEditor() {
                     const canUseUntil = isOverlay || (!isDefault && equipmentProfiles.length >= 2);
                     return (
                         <div key={p.id} className="rounded-xl bg-pulse-surface-2 p-3">
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="flex min-w-0 flex-col">
-                                    <span className="flex items-center gap-2 font-pulse-body text-sm text-pulse-text">
-                                        {p.name}
-                                        {isOverlay ? (
-                                            <span className="rounded-full bg-pulse-accent/15 px-2 py-0.5 font-pulse text-[0.625rem] uppercase tracking-wide text-pulse-accent">
-                                                ✈ In use · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left · reverts to{' '}
-                                                {defName}
-                                            </span>
-                                        ) : isDefault ? (
-                                            <span
-                                                className={`rounded-full px-2 py-0.5 font-pulse text-[0.625rem] uppercase tracking-wide ${overlay ? 'bg-pulse-surface text-pulse-dim' : 'bg-pulse-accent/15 text-pulse-accent'}`}>
-                                                {overlay ? 'Default' : 'Active'}
-                                            </span>
-                                        ) : null}
+                            {/* Name + status badge */}
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span className="font-pulse-body text-sm text-pulse-text">{p.name}</span>
+                                {isOverlay ? (
+                                    <span className="rounded-full bg-pulse-accent/15 px-2 py-0.5 font-pulse text-[0.625rem] uppercase tracking-wide text-pulse-accent">
+                                        ✈ In use · {daysLeft}d left · reverts to {defName}
                                     </span>
-                                    <span className="truncate font-pulse text-[0.75rem] text-pulse-dim">
-                                        {summary(p.equipment)}
+                                ) : isDefault ? (
+                                    <span
+                                        className={`rounded-full px-2 py-0.5 font-pulse text-[0.625rem] uppercase tracking-wide ${overlay ? 'bg-pulse-surface text-pulse-dim' : 'bg-pulse-accent/15 text-pulse-accent'}`}>
+                                        {overlay ? 'Default' : 'Active'}
                                     </span>
-                                </div>
-                                <div className="flex shrink-0 items-center gap-2">
-                                    {isOverlay && (
-                                        <button
-                                            type="button"
-                                            onClick={handleEndTravel}
-                                            className="font-pulse text-[0.75rem] text-pulse-accent">
-                                            End travel
-                                        </button>
-                                    )}
-                                    {canUseUntil && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setTravelFor(travelFor === p.id ? null : p.id)}
-                                            className="font-pulse text-[0.75rem] text-pulse-dim">
-                                            Use until…
-                                        </button>
-                                    )}
-                                    {!isDefault && (
-                                        <button
-                                            type="button"
-                                            onClick={() => activate(p.id)}
-                                            className="font-pulse text-[0.75rem] text-pulse-accent">
-                                            Set active
-                                        </button>
-                                    )}
+                                ) : null}
+                            </div>
+
+                            {/* Equipment summary */}
+                            <span className="mt-1 block truncate font-pulse text-[0.75rem] text-pulse-dim">
+                                {summary(p.equipment)}
+                            </span>
+
+                            {/* Actions, on their own line so they never crowd the name/badge */}
+                            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-pulse-border pt-2.5">
+                                {isOverlay && (
                                     <button
                                         type="button"
-                                        onClick={() => openEdit(p)}
-                                        className="font-pulse text-[0.75rem] text-pulse-dim">
-                                        Edit
+                                        onClick={handleEndTravel}
+                                        className="font-pulse text-[0.75rem] text-pulse-accent">
+                                        End travel
                                     </button>
+                                )}
+                                {canUseUntil && (
                                     <button
                                         type="button"
-                                        aria-label={`Delete ${p.name}`}
-                                        onClick={() => remove(p)}
+                                        onClick={() => setTravelFor(travelFor === p.id ? null : p.id)}
                                         className="font-pulse text-[0.75rem] text-pulse-dim">
-                                        Delete
+                                        Use until…
                                     </button>
-                                </div>
+                                )}
+                                {!isDefault && (
+                                    <button
+                                        type="button"
+                                        onClick={() => activate(p.id)}
+                                        className="font-pulse text-[0.75rem] text-pulse-accent">
+                                        Set active
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => openEdit(p)}
+                                    className="ml-auto font-pulse text-[0.75rem] text-pulse-dim">
+                                    Edit
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-label={`Delete ${p.name}`}
+                                    onClick={() => remove(p)}
+                                    className="font-pulse text-[0.75rem] text-pulse-dim">
+                                    Delete
+                                </button>
                             </div>
 
                             {isOverlay && (
