@@ -94,7 +94,7 @@ function Pill({
         <button
             type="button"
             onClick={onClick}
-            className={`px-[13px] py-[7px] rounded-full text-[0.78rem] font-semibold border-none cursor-pointer ${
+            className={`px-[13px] py-[7px] rounded-full text-[0.78rem] font-medium border-none cursor-pointer ${
                 active ? 'bg-pulse-accent text-pulse-bg' : 'bg-pulse-surface-2 text-pulse-dim'
             }`}>
             {children}
@@ -116,7 +116,7 @@ function TogPill({
         <button
             type="button"
             onClick={onClick}
-            className={`px-[13px] py-[7px] rounded-full text-[0.78rem] font-semibold cursor-pointer border ${
+            className={`px-[13px] py-[7px] rounded-full text-[0.78rem] font-medium cursor-pointer border ${
                 active
                     ? 'bg-pulse-accent/16 text-pulse-accent border-pulse-accent/50'
                     : 'bg-pulse-surface-2 text-pulse-dim border-transparent'
