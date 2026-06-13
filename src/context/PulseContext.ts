@@ -86,6 +86,7 @@ export interface PulseContextValue {
         arms_cm?: number;
     }) => Promise<BodyMeasurement>;
     deleteBodyWeight: (id: string) => Promise<void>;
+    deleteBodyMeasurement: (id: string) => Promise<void>;
     refreshMeasurements: () => void;
 
     // Notes

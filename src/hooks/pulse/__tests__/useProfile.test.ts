@@ -10,6 +10,7 @@ vi.mock('@/app/pulse/actions', () => ({
     updateLoadingLean: vi.fn().mockResolvedValue(undefined),
     updateGoalWeight: vi.fn().mockResolvedValue(undefined),
     logBodyMeasurement: vi.fn(),
+    deleteBodyMeasurement: vi.fn().mockResolvedValue(undefined),
 }));
 
 import useSWR from 'swr';
@@ -21,6 +22,7 @@ import {
     updateLoadingLean,
     updateGoalWeight,
     logBodyMeasurement,
+    deleteBodyMeasurement,
 } from '@/app/pulse/actions';
 import { useProfile } from '../useProfile';
 import type { Profile, BodyweightEntry, BodyMeasurement } from '@/lib/pulse/types';
@@ -62,6 +64,7 @@ beforeEach(() => {
     vi.mocked(updateLoadingLean).mockClear();
     vi.mocked(updateGoalWeight).mockClear();
     vi.mocked(logBodyMeasurement).mockClear();
+    vi.mocked(deleteBodyMeasurement).mockClear();
 });
 
 describe('useProfile', () => {
@@ -195,9 +198,41 @@ describe('useProfile', () => {
         expect(returned).toEqual(row);
         const updater = measurementsMutate.mock.calls[0][0] as (prev: BodyMeasurement[]) => BodyMeasurement[];
         expect(updater([])).toEqual([row]);
+        // One row per date: logging a date replaces any existing row for that date.
+        const stale: BodyMeasurement = {
+            id: 'old',
+            measured_at: '2026-05-01',
+            waist_cm: 70,
+            hips_cm: null,
+            chest_cm: null,
+            arms_cm: null,
+        };
+        expect(updater([stale])).toEqual([row]);
         // No revalidate: the canonical row is already in the cache.
         expect(measurementsMutate).toHaveBeenCalledTimes(1);
         expect(measurementsMutate).toHaveBeenCalledWith(expect.any(Function), false);
+    });
+
+    it('deleteBodyMeasurement removes the row optimistically then calls the server action', async () => {
+        const rows: BodyMeasurement[] = [
+            { id: 'm1', measured_at: '2026-05-01', waist_cm: 80, hips_cm: null, chest_cm: null, arms_cm: null },
+        ];
+        vi.mocked(useSWR)
+            .mockReturnValueOnce({ data: defaultProfile, mutate: profileMutate } as unknown as ReturnType<
+                typeof useSWR
+            >)
+            .mockReturnValueOnce({ data: defaultBWLogs, mutate: bwMutate } as unknown as ReturnType<typeof useSWR>)
+            .mockReturnValueOnce({ data: rows, mutate: measurementsMutate } as unknown as ReturnType<typeof useSWR>);
+
+        const { result } = renderHook(() => useProfile());
+
+        await act(async () => {
+            await result.current.deleteBodyMeasurement('m1');
+        });
+
+        const updater = measurementsMutate.mock.calls[0][0] as (prev: BodyMeasurement[]) => BodyMeasurement[];
+        expect(updater(rows)).toEqual([]);
+        expect(deleteBodyMeasurement).toHaveBeenCalledWith('m1');
     });
 
     it('updateVarietyPreference optimistically mutates and calls the server action', async () => {

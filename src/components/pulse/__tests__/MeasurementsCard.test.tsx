@@ -27,16 +27,20 @@ const mockLogBodyMeasurement = vi.fn().mockResolvedValue({
     arms_cm: null,
 });
 
+const mockDeleteBodyMeasurement = vi.fn().mockResolvedValue(undefined);
+
 const defaultContext = {
     profile: { length_unit: 'cm' as const },
     bodyMeasurements: [],
     logBodyMeasurement: mockLogBodyMeasurement,
+    deleteBodyMeasurement: mockDeleteBodyMeasurement,
     updateLengthUnit: mockUpdateLengthUnit,
 };
 
 beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
     mockLogBodyMeasurement.mockClear();
+    mockDeleteBodyMeasurement.mockClear();
     mockUpdateLengthUnit.mockClear();
 });
 
@@ -131,19 +135,47 @@ describe('MeasurementsCard', () => {
         expect(mockUpdateLengthUnit).toHaveBeenCalledWith('in');
     });
 
-    it('shows an always-visible inline log bar for the selected metric', () => {
+    it('shows a trend chip for the selected metric (a drop reads green)', () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyMeasurements: [
+                { id: 'm1', measured_at: '2026-06-01', waist_cm: 80, hips_cm: null, chest_cm: null, arms_cm: null },
+                { id: 'm2', measured_at: '2026-06-08', waist_cm: 79, hips_cm: null, chest_cm: null, arms_cm: null },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
         render(<MeasurementsCard />);
-        expect(screen.getByRole('spinbutton', { name: /waist in cm/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /^log$/i })).toBeInTheDocument();
+        expect(screen.getByText(/↓\s*1\s*cm/)).toBeInTheDocument();
     });
 
-    it('logs only the selected metric for the chosen date', async () => {
+    it('opens the log sheet (with all four fields) from the Log measurements button', async () => {
         render(<MeasurementsCard />);
+        // Fields are not in the card until the sheet is opened.
+        expect(screen.queryByRole('spinbutton', { name: /waist in cm/i })).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /log measurements/i }));
+        expect(screen.getByRole('spinbutton', { name: /waist in cm/i })).toBeInTheDocument();
+        expect(screen.getByRole('spinbutton', { name: /arms in cm/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
+    });
+
+    it('logs every filled metric at once from the sheet', async () => {
+        render(<MeasurementsCard />);
+        await userEvent.click(screen.getByRole('button', { name: /log measurements/i }));
         await userEvent.type(screen.getByRole('spinbutton', { name: /waist in cm/i }), '85');
-        await userEvent.click(screen.getByRole('button', { name: /^log$/i }));
-        expect(mockLogBodyMeasurement).toHaveBeenCalledWith(
-            expect.objectContaining({ waist_cm: 85, hips_cm: undefined, chest_cm: undefined, arms_cm: undefined }),
-        );
+        await userEvent.type(screen.getByRole('spinbutton', { name: /hips in cm/i }), '100');
+        await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+        expect(mockLogBodyMeasurement).toHaveBeenCalledWith(expect.objectContaining({ waist_cm: 85, hips_cm: 100 }));
+    });
+
+    it('deletes the whole date entry from a history row', async () => {
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            bodyMeasurements: [
+                { id: 'm1', measured_at: '2026-06-08', waist_cm: 79, hips_cm: 100, chest_cm: null, arms_cm: null },
+            ],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<MeasurementsCard />);
+        await userEvent.click(screen.getByRole('button', { name: /delete measurements for 2026-06-08/i }));
+        expect(mockDeleteBodyMeasurement).toHaveBeenCalledWith('m1');
     });
 
     it('opens the history modal when "Show all" is clicked and shows month headers', async () => {

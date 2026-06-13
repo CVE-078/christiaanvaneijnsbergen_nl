@@ -90,6 +90,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         logBodyWeight,
         logBodyMeasurement,
         deleteBodyWeight,
+        deleteBodyMeasurement,
         loadingProfile,
         loadingBodyweight,
         profileError,
@@ -494,6 +495,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             logBodyWeight,
             logBodyMeasurement,
             deleteBodyWeight,
+            deleteBodyMeasurement,
             refreshMeasurements,
         }),
         [
@@ -514,6 +516,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
             logBodyWeight,
             logBodyMeasurement,
             deleteBodyWeight,
+            deleteBodyMeasurement,
             refreshMeasurements,
         ],
     );

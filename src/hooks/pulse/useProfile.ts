@@ -15,6 +15,7 @@ import {
     logBodyWeight as serverLogBodyWeight,
     deleteBodyWeight as serverDeleteBodyWeight,
     logBodyMeasurement as serverLogBodyMeasurement,
+    deleteBodyMeasurement as serverDeleteBodyMeasurement,
 } from '@/app/pulse/actions';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import type {
@@ -235,10 +236,9 @@ export function useProfile() {
     );
 
     const logBodyMeasurement = useCallback(
-        // Mirror logBodyWeight: await the server, get the inserted row back, and insert
-        // it straight into the cache (newest-first). Measurements are insert-only
-        // (same-date rows are allowed), so we prepend rather than dedupe. No revalidate,
-        // so the new entry shows live regardless of date.
+        // Mirror logBodyWeight: await the server, get the upserted row back, and insert
+        // it straight into the cache. One row per date, so replace any existing row for
+        // that date (dedupe by measured_at). No revalidate, so it shows live for any date.
         async (data: {
             measured_at?: string;
             waist_cm?: number;
@@ -247,11 +247,23 @@ export function useProfile() {
             arms_cm?: number;
         }): Promise<BodyMeasurement> => {
             const row = await serverLogBodyMeasurement(data);
-            mutateMeasurements(
-                (prev = []) => [row, ...prev].sort((a, b) => b.measured_at.localeCompare(a.measured_at)),
-                false,
-            );
+            mutateMeasurements((prev = []) => {
+                const deduped = prev.filter((m) => m.measured_at !== row.measured_at);
+                return [row, ...deduped].sort((a, b) => b.measured_at.localeCompare(a.measured_at));
+            }, false);
             return row;
+        },
+        [mutateMeasurements],
+    );
+
+    const deleteBodyMeasurement = useCallback(
+        async (id: string): Promise<void> => {
+            mutateMeasurements((prev = []) => prev.filter((m) => m.id !== id), false);
+            try {
+                await serverDeleteBodyMeasurement(id);
+            } finally {
+                mutateMeasurements();
+            }
         },
         [mutateMeasurements],
     );
@@ -287,6 +299,7 @@ export function useProfile() {
         logBodyWeight,
         logBodyMeasurement,
         deleteBodyWeight,
+        deleteBodyMeasurement,
         loadingProfile,
         loadingBodyweight,
         profileError,
