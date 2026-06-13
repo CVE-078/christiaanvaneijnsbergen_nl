@@ -168,3 +168,19 @@ export function explainCopy(concept: ExplainConcept, params: ExplainParams = {})
             };
     }
 }
+
+// Per-phase plain-language descriptions for the Plan block arc, keyed by the
+// phase subtitle (see data.ts PHASES). Data-accurate to the actual volume ramp
+// (volume climbs through the block, it is not the textbook "volume falls as
+// intensity rises" model), and deliberately free of any supercompensation
+// ("come back stronger") overclaim. Registry-homed here, not in program data, so
+// the i18n extraction has one canonical sentence per phase.
+export const PHASE_DESCRIPTIONS: Record<string, string> = {
+    Accumulation:
+        'Building your base. Volume starts manageable and climbs week to week, with a rep or two left in the tank so you adapt and recover well.',
+    Intensification: 'Pushing harder. Volume keeps building and you train closer to your limit as the block ramps up.',
+    Overreach: 'The hardest stretch, by design. Peak volume with sets taken close to failure to drive new adaptation.',
+    'Peak & Deload':
+        'One last hard push, then a lighter deload week so accumulated fatigue clears before the next block.',
+    Deload: 'A lighter week. Less volume and easier effort so fatigue clears before the next block.',
+};
