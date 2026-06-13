@@ -96,6 +96,9 @@ function GoalWeightSummary() {
     // persisted start weight we use the first logged entry as the baseline.
     const firstLog = bodyweightLogs[bodyweightLogs.length - 1]?.weight_kg ?? null;
     const startDisplay = firstLog !== null ? toDisplay(firstLog, unit) : null;
+    // Show the starting weight as a third readout once there are at least two
+    // weigh-ins (so Initial differs from Current); reads Initial -> Current -> Goal.
+    const showInitial = startDisplay !== null && bodyweightLogs.length >= 2;
     let progressPct = 0;
     if (startDisplay !== null && currentDisplay !== null && startDisplay !== goalDisplay) {
         progressPct = Math.min(
@@ -107,6 +110,33 @@ function GoalWeightSummary() {
     return (
         <div>
             <div className="flex items-center gap-4 flex-wrap">
+                {showInitial && (
+                    <>
+                        <div>
+                            <div className="font-pulse text-[0.6rem] tracking-[0.08em] uppercase text-pulse-muted">
+                                Initial
+                            </div>
+                            <div className="font-pulse-display mt-1 text-[1.45rem] font-semibold leading-none text-pulse-dim">
+                                {startDisplay?.toFixed(1)}
+                                <span className="font-pulse text-[0.82rem] text-pulse-muted ml-1">{unit}</span>
+                            </div>
+                        </div>
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="shrink-0 text-pulse-muted"
+                            aria-hidden>
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </>
+                )}
                 <div>
                     <div className="font-pulse text-[0.6rem] tracking-[0.08em] uppercase text-pulse-muted">Current</div>
                     <div className="font-pulse-display font-semibold text-[1.45rem] leading-none mt-1">
