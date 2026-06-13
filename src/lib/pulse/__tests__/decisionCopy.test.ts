@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { decisionCopy, groupDecisionsByWeek } from '@/lib/pulse/decisionCopy';
+import { explainCopy } from '@/lib/pulse/explainCopy';
 import type { DecisionEventRow } from '@/lib/pulse/types';
 
 const RE = '11111111-1111-4111-8111-111111111111';
@@ -34,6 +35,12 @@ describe('decisionCopy', () => {
     it('falls back to a generic headline when the lift name is unknown', () => {
         const c = decisionCopy(row({ type: 'deload' }), null);
         expect(c.headline).toBe('Lift deloaded');
+    });
+
+    it('sources the deload why and next from explainCopy (parity, no drift)', () => {
+        const c = decisionCopy(row({ type: 'deload', magnitude: { fromKg: 60, toKg: 54 } }), 'Squat');
+        expect(c.why).toBe(explainCopy('deload').why);
+        expect(c.next).toBe(explainCopy('deload').next);
     });
 
     it('describes a weight progression (top of range)', () => {

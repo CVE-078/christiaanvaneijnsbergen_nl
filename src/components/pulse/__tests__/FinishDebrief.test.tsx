@@ -5,9 +5,15 @@ import FinishDebrief from '../FinishDebrief';
 import type { WorkoutSession } from '@/lib/pulse/types';
 
 const session = {
-    id: 's1', user_id: 'u', routine_id: 'r', workout_type: 'push', variant: 'A',
-    started_at: '2026-05-30T10:00:00Z', completed_at: '2026-05-30T11:00:00Z',
-    session_rpe: null, session_note: null,
+    id: 's1',
+    user_id: 'u',
+    routine_id: 'r',
+    workout_type: 'push',
+    variant: 'A',
+    started_at: '2026-05-30T10:00:00Z',
+    completed_at: '2026-05-30T11:00:00Z',
+    session_rpe: null,
+    session_note: null,
 } as WorkoutSession;
 
 const baseProps = {
@@ -44,5 +50,24 @@ describe('FinishDebrief', () => {
         await userEvent.click(screen.getByRole('button', { name: /^done$/i }));
         expect(save).not.toHaveBeenCalled();
         expect(onDismiss).toHaveBeenCalled();
+    });
+
+    it('makes the auto-deload chip a tappable why, sourced from explainCopy', async () => {
+        const deload = {
+            id: 'd1',
+            routine_id: 'r',
+            type: 'deload',
+            trigger: 'plateau',
+            affectedArea: 'a',
+            week: 1,
+            magnitude: { fromKg: 100, toKg: 90 },
+            confidence: null,
+            created_at: '2026-05-30T11:00:00Z',
+        } as any;
+        render(<FinishDebrief {...baseProps} decisions={[deload]} saveSessionDebrief={vi.fn()} onDismiss={vi.fn()} />);
+        const chip = screen.getByRole('button', { name: /why this deload/i });
+        expect(chip).toHaveTextContent(/Auto-deload on 1 lift/);
+        await userEvent.click(chip);
+        expect(screen.getByText('No e1RM gain in 3 weeks, so the lift stalled.')).toBeInTheDocument();
     });
 });

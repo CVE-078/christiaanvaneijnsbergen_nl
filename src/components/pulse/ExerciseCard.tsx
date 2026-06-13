@@ -15,6 +15,7 @@ import {
     isBodyweight,
     isPlateLoaded,
 } from '@/lib/pulse/utils';
+import { explainCopy } from '@/lib/pulse/explainCopy';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
 import ExerciseHistoryPanel from './ExerciseHistoryPanel';
@@ -195,9 +196,7 @@ function ExerciseCard({
                         {stalled && (
                             <div className="rounded-lg bg-pulse-surface-2 px-3 py-2.5">
                                 <p className="font-pulse text-[0.78125rem] font-semibold text-pulse-accent">
-                                    {deload
-                                        ? '↓ Deloading this week to break the stall'
-                                        : '⚠ Stalled, no e1RM gain in 3 weeks'}
+                                    {deload ? `↓ ${explainCopy('deload').why}` : `⚠ ${explainCopy('stalled').why}`}
                                 </p>
                                 <p className="font-pulse text-[0.75rem] text-pulse-dim mt-1">
                                     {deload ? (

@@ -56,7 +56,9 @@ describe('SetLogger', () => {
     it('prefills a deloaded target when deload is set', () => {
         const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
         render(<SetLogger {...defaultProps} week={2} deload previousEntry={prev} repsRange="8-12" />);
-        expect(screen.getByLabelText(/deload target/i)).toBeInTheDocument();
+        // The deload target number is now an on-demand "why" trigger, so its label
+        // moved from the span to the button ("Why this deload").
+        expect(screen.getByRole('button', { name: /why this deload/i })).toBeInTheDocument();
         expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(90);
         expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
     });
@@ -234,10 +236,12 @@ describe('SetLogger', () => {
         expect(screen.getByLabelText(/auto-progression target/i)).toHaveTextContent(/^Go /);
     });
 
-    it('card target reads as a deliberate backoff ("Back off to") on a deload', () => {
+    it('card target reads as a deliberate backoff ("Back off to") on a deload, with a tappable why', () => {
         const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
         render(<SetLogger {...defaultProps} week={2} deload previousEntry={prev} repsRange="8-12" />);
-        expect(screen.getByLabelText(/deload target/i)).toHaveTextContent(/^Back off to /);
+        const why = screen.getByRole('button', { name: /why this deload/i });
+        expect(why).toHaveTextContent('90 kg × 8'); // the prescription stays on the number
+        expect(why.parentElement).toHaveTextContent(/^Back off to /);
     });
 
     it('card previous reads "Last ..." rather than a glyph', () => {
@@ -267,8 +271,12 @@ describe('SetLogger', () => {
             <SetLogger {...defaultProps} variant="editorial" week={2} deload previousEntry={prev} repsRange="8-12" />,
         );
         const hint = screen.getByLabelText(/deload target/i);
-        expect(hint).toHaveTextContent(/back off on purpose/);
+        // The guided sentence now carries the canonical deload why (single-sourced
+        // from explainCopy), then the unit-bearing prescription.
+        expect(hint).toHaveTextContent(/no e1RM gain in 3 weeks, so the lift stalled/i);
+        expect(hint).toHaveTextContent(/Drop to 90 kg × 8/);
         expect(hint).toHaveTextContent(/in the tank/);
+        expect(hint).toHaveTextContent(/to reset/);
     });
 
     it('guided shows the rep-target and RIR prescription chips', () => {

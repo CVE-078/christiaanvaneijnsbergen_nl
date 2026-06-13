@@ -5,6 +5,7 @@ import { computeSessionSummary } from '@/lib/pulse/utils';
 import { BTN_PRIMARY_BLOCK } from './ui';
 import RpeScale from './RpeScale';
 import ShareImageCard from './ShareImageCard';
+import Why from './Why';
 import type { WorkoutSession, RoutineExercise, Logs, PRMap, Unit, DecisionEventRow } from '@/lib/pulse/types';
 
 interface Props {
@@ -167,8 +168,10 @@ export default function FinishDebrief({
                             )}
                             {summary.decisions.deloads.length > 0 && (
                                 <div className="rounded-xl border border-pulse-border bg-pulse-surface px-3.5 py-2.5 font-pulse text-[0.8125rem] font-semibold text-pulse-dim">
-                                    ↓ Auto-deload on {summary.decisions.deloads.length}{' '}
-                                    {summary.decisions.deloads.length === 1 ? 'lift' : 'lifts'}
+                                    <Why concept="deload" variant="why">
+                                        ↓ Auto-deload on {summary.decisions.deloads.length}{' '}
+                                        {summary.decisions.deloads.length === 1 ? 'lift' : 'lifts'}
+                                    </Why>
                                 </div>
                             )}
                             {summary.decisions.rampBack.length > 0 && (

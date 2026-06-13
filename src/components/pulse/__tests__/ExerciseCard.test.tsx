@@ -91,7 +91,8 @@ describe('ExerciseCard', () => {
         };
         render(<ExerciseCard {...defaultProps} routineExercise={re} week={7} logs={logs} />);
         await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
-        expect(screen.getByText(/deloading this week to break the stall/i)).toBeInTheDocument();
+        // The banner why is single-sourced from explainCopy('deload') now.
+        expect(screen.getByText(/no e1RM gain in 3 weeks, so the lift stalled/i)).toBeInTheDocument();
     });
 
     it('renders the exercise name', () => {
