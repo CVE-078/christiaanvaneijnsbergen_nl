@@ -241,7 +241,7 @@ export default function ProfileView() {
     if (loading?.profile) return <PageSkeleton rows={3} />;
 
     return (
-        <div className="px-4 pt-5 pb-12 mx-auto w-full max-w-[600px] lg:max-w-[1000px] lg:px-6 lg:pt-6 lg:pb-12">
+        <div className="px-4 pt-5 pb-12 mx-auto w-full max-w-[600px] lg:px-6 lg:pt-6 lg:pb-12">
             <PageTitle>Profile</PageTitle>
 
             <div className="mt-4 mb-6">
@@ -265,9 +265,9 @@ export default function ProfileView() {
                 aria-labelledby="tab-you"
                 hidden={tab !== 'you'}
                 className={tab === 'you' ? 'grid2-you' : 'hidden'}>
-                {/* Wrapping grid: single column on mobile, two-column on lg */}
-                <div className={`${tab === 'you' ? 'grid gap-0 lg:grid-cols-2 lg:gap-[14px] lg:items-start' : ''}`}>
-                    {/* Left column: Identity, Gender, App */}
+                {/* Single column on every size. */}
+                <div className={`${tab === 'you' ? 'grid gap-0' : ''}`}>
+                    {/* Identity, Gender, App */}
                     <div>
                         {/* Identity */}
                         <Lbl first>Identity</Lbl>
@@ -382,7 +382,7 @@ export default function ProfileView() {
                         </div>
                     </div>
 
-                    {/* Right column: Routine & data, Account & security */}
+                    {/* Routine & data, Account & security */}
                     <div>
                         {/* Routine & data */}
                         <Lbl first>Routine &amp; data</Lbl>
@@ -426,10 +426,8 @@ export default function ProfileView() {
                     Shape how Pulse builds your routines. Applies to plans you generate from now on.
                 </p>
 
-                <div
-                    data-testid="training-preferences-section"
-                    className="grid gap-0 lg:grid-cols-2 lg:gap-[14px] lg:items-start">
-                    {/* Left column: Training style + Exercise variety */}
+                <div data-testid="training-preferences-section" className="grid gap-0">
+                    {/* Training style + Exercise variety */}
                     <div>
                         {/* Training style */}
                         <Lbl first>Training style</Lbl>
@@ -476,7 +474,7 @@ export default function ProfileView() {
                         })}
                     </div>
 
-                    {/* Right column: Equipment preference + Movement restrictions + Training priority */}
+                    {/* Equipment preference + Movement restrictions + Training priority */}
                     <div>
                         {/* Equipment preference */}
                         <Lbl first>Equipment preference</Lbl>
