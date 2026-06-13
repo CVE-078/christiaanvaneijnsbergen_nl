@@ -173,6 +173,18 @@ export interface VolumeEntry {
     sets: number;
 }
 
+// One week of a repeating training block, assembled for the Plan block-arc view:
+// the planned working-set volume, the target RIR, its phase, and whether it is a
+// deload (the lowest-volume week(s) in the block). Derived by buildBlockArc;
+// nothing persisted.
+export interface BlockArcWeek {
+    week: number;
+    volume: number;
+    rir: number;
+    phase: Phase;
+    isDeload: boolean;
+}
+
 export interface ScheduleDay {
     day: string;
     type: WorkoutType | 'rest';

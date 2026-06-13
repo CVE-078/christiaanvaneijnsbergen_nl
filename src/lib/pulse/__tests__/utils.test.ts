@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
     getPhase,
     getRIR,
+    buildBlockArc,
+    estimateSessionMinutes,
     logKey,
     parseLogKey,
     parseMaxSets,
@@ -63,7 +65,15 @@ import {
 } from '../utils';
 import type { EquipmentProfile } from '../types';
 import { buildProgram, PROGRAM_LENGTHS } from '../data';
-import type { Logs, RoutineExercise, WorkoutType, WorkoutSession, BodyweightEntry, BodyMeasurement, DbExercise } from '../types';
+import type {
+    Logs,
+    RoutineExercise,
+    WorkoutType,
+    WorkoutSession,
+    BodyweightEntry,
+    BodyMeasurement,
+    DbExercise,
+} from '../types';
 
 describe('computePlateau', () => {
     const h = (...e1rms: number[]) => e1rms.map((e1rm, i) => ({ week: i + 1, e1rm }));
@@ -444,6 +454,63 @@ describe('getRIR', () => {
         expect(getRIR(6)).toBe(1); // Phase 2 week 3
         expect(getRIR(9)).toBe(0); // Phase 3 week 3
         expect(getRIR(12)).toBe(3); // Deload
+    });
+});
+
+describe('buildBlockArc', () => {
+    it('returns one entry per week for each supported block length', () => {
+        expect(buildBlockArc(8)).toHaveLength(8);
+        expect(buildBlockArc(10)).toHaveLength(10);
+        expect(buildBlockArc(12)).toHaveLength(12);
+        expect(buildBlockArc(16)).toHaveLength(16);
+    });
+
+    it('carries the real volume, RIR and phase for the 12-week block', () => {
+        const arc = buildBlockArc(12);
+        expect(arc.map((w) => w.volume)).toEqual([12, 14, 16, 14, 16, 18, 16, 18, 20, 18, 20, 10]);
+        expect(arc.map((w) => w.rir)).toEqual([3, 3, 2, 2, 2, 1, 1, 1, 0, 1, 0, 3]);
+        expect(arc[0].phase.subtitle).toBe('Accumulation'); // week 1
+        expect(arc[5].phase.subtitle).toBe('Intensification'); // week 6
+        expect(arc[8].phase.subtitle).toBe('Overreach'); // week 9
+        expect(arc[11].phase.subtitle).toBe('Peak & Deload'); // week 12
+    });
+
+    it('flags only the end deload (lowest volume) in the 12-week block', () => {
+        const deloads = buildBlockArc(12)
+            .filter((w) => w.isDeload)
+            .map((w) => w.week);
+        expect(deloads).toEqual([12]);
+    });
+
+    it('flags both the mid-block and end deload in the 16-week block', () => {
+        const deloads = buildBlockArc(16)
+            .filter((w) => w.isDeload)
+            .map((w) => w.week);
+        expect(deloads).toEqual([8, 16]);
+    });
+});
+
+describe('estimateSessionMinutes', () => {
+    it('is 0 for an empty session', () => {
+        expect(estimateSessionMinutes([])).toBe(0);
+    });
+
+    it('estimates more time for compound-heavy than isolation-heavy work, rounded to 5', () => {
+        const compound = estimateSessionMinutes([
+            { sets: 4, is_compound: true },
+            { sets: 4, is_compound: true },
+        ]);
+        const iso = estimateSessionMinutes([
+            { sets: 4, is_compound: false },
+            { sets: 4, is_compound: false },
+        ]);
+        expect(compound).toBeGreaterThan(iso);
+        expect(compound % 5).toBe(0);
+        expect(iso % 5).toBe(0);
+    });
+
+    it('treats a missing is_compound flag as isolation rest', () => {
+        expect(estimateSessionMinutes([{ sets: 3 }])).toBe(estimateSessionMinutes([{ sets: 3, is_compound: false }]));
     });
 });
 
@@ -1699,7 +1766,10 @@ describe('recompDetail', () => {
     });
     it('strips a colon-separated lead and keeps the rest verbatim', () => {
         expect(
-            recompDetail('Gaining: strength up but weight up too. Tighten nutrition if fat loss is the goal.', 'Gaining'),
+            recompDetail(
+                'Gaining: strength up but weight up too. Tighten nutrition if fat loss is the goal.',
+                'Gaining',
+            ),
         ).toBe('Strength up but weight up too. Tighten nutrition if fat loss is the goal.');
     });
     it('leaves the sentence intact when the lead does not restate the pill word', () => {
@@ -2120,7 +2190,7 @@ describe('computeExerciseHistory (logging-time "what did I do last time", #13)',
         expect(h.previousNote).toBe('moved better');
     });
 
-    it("ignores the current and future weeks for last session and notes", () => {
+    it('ignores the current and future weeks for last session and notes', () => {
         // currentWeek = 2 -> only week 1 counts as prior.
         const h = computeExerciseHistory(logs, rid, 2, notes);
         expect(h.lastSession).toEqual({ kg: 100, reps: 5, setCount: 2 });
@@ -2146,10 +2216,12 @@ describe('recoverySummaryWord', () => {
 
     it('counts entries whose status is not optimal', () => {
         expect(recoverySummaryWord({ chest: { status: 'high_fatigue' } as any })).toBe('1 flag');
-        expect(recoverySummaryWord({
-            chest: { status: 'high_fatigue' } as any,
-            back: { status: 'under' } as any,
-        })).toBe('2 flags');
+        expect(
+            recoverySummaryWord({
+                chest: { status: 'high_fatigue' } as any,
+                back: { status: 'under' } as any,
+            }),
+        ).toBe('2 flags');
     });
 });
 
