@@ -37,4 +37,22 @@ describe('BlockArc', () => {
         expect(screen.getByText('Accumulation')).toBeInTheDocument();
         expect(screen.getByText('Peak & Deload')).toBeInTheDocument();
     });
+
+    it('follows currentWeek when it arrives after mount (programPosition loads via SWR)', () => {
+        // First render with the loading-time default of week 1, then the real
+        // position (week 12) arrives. The highlighted week must follow, not freeze.
+        const { rerender } = render(<BlockArc weeks={12} currentWeek={1} />);
+        expect(screen.getByText(/Week 1/)).toBeInTheDocument();
+        rerender(<BlockArc weeks={12} currentWeek={12} />);
+        expect(screen.getByText(/Week 12/)).toBeInTheDocument();
+        expect(screen.getByText('10 sets')).toBeInTheDocument(); // week 12 deload volume
+    });
+
+    it('stays on a user-picked week even if currentWeek later changes', () => {
+        const { rerender } = render(<BlockArc weeks={12} currentWeek={1} />);
+        fireEvent.click(screen.getByLabelText(/Week 9,/));
+        expect(screen.getByText(/Week 9/)).toBeInTheDocument();
+        rerender(<BlockArc weeks={12} currentWeek={12} />);
+        expect(screen.getByText(/Week 9/)).toBeInTheDocument(); // pick wins over the live week
+    });
 });

@@ -34,7 +34,12 @@ interface Props {
 export default function BlockArc({ weeks, currentWeek }: Props) {
     const arc = buildBlockArc(weeks);
     const maxVol = Math.max(...arc.map((w) => w.volume), 1);
-    const [selected, setSelected] = useState(currentWeek);
+    // Track only an explicit user pick; the highlighted week otherwise follows the
+    // live `currentWeek`. This matters because `currentWeek` is the loading-time
+    // default (week 1) on first render and updates once programPosition loads via
+    // SWR, a plain useState(currentWeek) would freeze on the stale default.
+    const [picked, setPicked] = useState<number | null>(null);
+    const selected = picked ?? currentWeek;
     const sel = arc.find((w) => w.week === selected) ?? arc[0];
 
     // Distinct phases in block order, for the legend (8-week has 3, 10-week's
@@ -64,7 +69,7 @@ export default function BlockArc({ weeks, currentWeek }: Props) {
                         <button
                             key={w.week}
                             type="button"
-                            onClick={() => setSelected(w.week)}
+                            onClick={() => setPicked(w.week)}
                             aria-pressed={isSel}
                             aria-label={`Week ${w.week}, ${w.phase.subtitle}, ${w.volume} sets, RIR ${w.rir}`}
                             className="relative flex h-full flex-1 cursor-pointer flex-col items-center justify-end border-none bg-transparent p-0">

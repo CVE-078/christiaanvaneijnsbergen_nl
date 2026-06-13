@@ -207,7 +207,10 @@ export default function ProgramView() {
             {/* L4: single column on mobile, sticky summary rail + scrolling content on desktop */}
             <div className="flex flex-col lg:grid lg:grid-cols-[340px_1fr] lg:items-start lg:gap-6">
                 {/* ── summary rail ───────────────────────────────────────────── */}
-                <div className="flex flex-col lg:sticky lg:top-0">
+                {/* Sticky on desktop; scrolls internally when taller than the
+                    viewport so the block arc at its foot stays reachable on
+                    laptop-height screens (no-op when the rail fits). */}
+                <div className="flex flex-col lg:sticky lg:top-0 lg:max-h-screen lg:overflow-y-auto lg:pb-4 lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
                     {/* program identity */}
                     <div className="rounded-xl border-l-2 border-pulse-accent bg-pulse-surface p-4">
                         <div className="flex items-start justify-between gap-3">
