@@ -1,5 +1,6 @@
 'use client';
 import ModalSheet from './ModalSheet';
+import { ModalGroupHeader } from './ui/ModalList';
 import MetricLineChart from './MetricLineChart';
 import { groupEntriesByMonth, type MetricEntry } from '@/lib/pulse/bodyMetrics';
 import { toDisplay } from '@/lib/pulse/utils';
@@ -49,20 +50,19 @@ export default function MetricHistoryModal({ open, onClose, title, unit, entries
             <div className="flex-1 overflow-y-auto px-6 pb-1">
                 {groups.map((group) => (
                     <div key={group.key}>
-                        <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
-                            {group.label}
-                        </div>
+                        <ModalGroupHeader
+                            label={group.label}
+                            count={`${group.entries.length} ${group.entries.length === 1 ? 'entry' : 'entries'}`}
+                        />
                         {group.entries.map((entry, i) => (
                             <div
                                 key={`${entry.date}-${i}`}
-                                className="flex items-center justify-between border-b border-pulse-border py-[10px] last:border-b-0">
+                                className="flex items-center justify-between border-b border-pulse-border py-3 last:border-b-0">
                                 <span className="font-pulse text-[0.82rem] text-pulse-dim">
                                     {formatLogDate(entry.date, today)}
                                 </span>
                                 <span className="font-pulse text-[0.9rem] font-medium text-pulse-text">
-                                    {format
-                                        ? format(entry.value)
-                                        : `${toDisplay(entry.value, unit as Unit)} ${unit}`}
+                                    {format ? format(entry.value) : `${toDisplay(entry.value, unit as Unit)} ${unit}`}
                                 </span>
                             </div>
                         ))}

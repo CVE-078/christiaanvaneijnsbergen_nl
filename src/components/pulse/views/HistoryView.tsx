@@ -25,7 +25,12 @@ import ProgramStatusCard from '@/components/pulse/ProgramStatusCard';
 import CoachActivityTimeline from '@/components/pulse/CoachActivityTimeline';
 import StrengthBreakdownModal from '@/components/pulse/StrengthBreakdownModal';
 import PageTitle from '@/components/pulse/PageTitle';
-import { computeStrengthScore, computeStrengthScoreSeries, strengthDeltaLabel, classifyLift } from '@/lib/pulse/strength';
+import {
+    computeStrengthScore,
+    computeStrengthScoreSeries,
+    strengthDeltaLabel,
+    classifyLift,
+} from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
 import SegmentedTabs from '@/components/pulse/SegmentedTabs';
@@ -42,6 +47,7 @@ import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { formatLogDate } from '@/lib/pulse/dates';
 import { assembleWorkouts, type Workout } from '@/lib/pulse/workouts';
 import MilestonesCard from '@/components/pulse/MilestonesCard';
+import { ModalGroupHeader } from '@/components/pulse/ui/ModalList';
 import { computeMilestones } from '@/lib/pulse/milestones';
 import type { Logs, WorkoutSession, WorkoutType } from '@/lib/pulse/types';
 
@@ -186,15 +192,10 @@ function AllWorkoutsModal({
             <div className="flex-1 overflow-y-auto px-6 pb-1">
                 {groups.map((group) => (
                     <div key={group.key}>
-                        <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 flex items-center gap-3">
-                            <span className="font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
-                                {group.label}
-                            </span>
-                            <span className="h-px flex-1 bg-pulse-border" />
-                            <span className="font-pulse text-[0.64rem] text-pulse-muted shrink-0">
-                                {group.items.length} {group.items.length === 1 ? 'workout' : 'workouts'}
-                            </span>
-                        </div>
+                        <ModalGroupHeader
+                            label={group.label}
+                            count={`${group.items.length} ${group.items.length === 1 ? 'workout' : 'workouts'}`}
+                        />
                         {group.items.map((w) => {
                             const label =
                                 (WORKOUT_TYPE_LABELS[w.workoutType as WorkoutType] ?? w.workoutType) +

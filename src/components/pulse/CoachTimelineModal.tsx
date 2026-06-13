@@ -1,5 +1,6 @@
 'use client';
 import ModalSheet from './ModalSheet';
+import { ModalGroupHeader, ModalIconBadge } from './ui/ModalList';
 import { decisionCopy } from '@/lib/pulse/decisionCopy';
 import { getPhase, toDisplay } from '@/lib/pulse/utils';
 import type { DecisionEventRow, DecisionEventType, Unit } from '@/lib/pulse/types';
@@ -10,6 +11,11 @@ const GLYPH: Record<DecisionEventType, string> = { progression: '↑', deload: '
 // themeable accent so the surface still tracks a user-picked accent colour.
 export function tone(kind: DecisionEventType): string {
     return kind === 'progression' ? 'text-pulse-success' : 'text-pulse-accent';
+}
+
+// Tint for the rounded-square icon badge (matches the milestone badge language).
+function badgeTint(kind: DecisionEventType): string {
+    return kind === 'progression' ? 'bg-pulse-success/15 text-pulse-success' : 'bg-pulse-accent/15 text-pulse-accent';
 }
 
 // The round glyph badge for a decision. Shared by the compact CoachPanel rows and
@@ -81,23 +87,20 @@ export default function CoachTimelineModal({
                     const phase = getPhase(g.week, programWeeks);
                     return (
                         <div key={g.week}>
-                            <div className="sticky top-0 z-10 -mx-6 mb-3 flex items-baseline gap-2 bg-pulse-surface px-6 pb-2 pt-6 first:pt-2">
-                                <span className="font-pulse text-xs font-semibold tracking-[0.03em] text-pulse-text">
-                                    Week {g.week}
-                                </span>
-                                {phase?.label && (
-                                    <span className="font-pulse text-[0.6875rem] tracking-[0.04em] text-pulse-muted">
-                                        · {phase.label}
-                                    </span>
-                                )}
-                                <span className="h-px flex-1 bg-pulse-border" />
-                            </div>
-                            <div className="flex flex-col">
+                            <ModalGroupHeader
+                                label={`Week ${g.week}${phase?.label ? ` · ${phase.label}` : ''}`}
+                                count={`${g.events.length} ${g.events.length === 1 ? 'decision' : 'decisions'}`}
+                            />
+                            <div>
                                 {g.events.map((e) => {
                                     const c = decisionCopy(e, nameFor(e.affectedArea));
                                     return (
-                                        <div key={e.id} className="flex gap-3 py-3">
-                                            <Dot kind={c.kind} />
+                                        <div
+                                            key={e.id}
+                                            className="flex items-start gap-3 border-b border-pulse-border py-3 last:border-b-0">
+                                            <ModalIconBadge className={`${badgeTint(c.kind)} text-[13px]`}>
+                                                {GLYPH[c.kind]}
+                                            </ModalIconBadge>
                                             <div className="min-w-0 flex-1">
                                                 <div className="font-pulse text-sm font-medium tracking-[-0.01em] text-pulse-text">
                                                     {c.headline}
