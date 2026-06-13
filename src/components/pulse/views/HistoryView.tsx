@@ -560,9 +560,10 @@ export default function HistoryView() {
                         </div>
                     ) : (
                         <>
-                            {/* Forward-looking "within reach" nudge: the one near-term goal. */}
+                            {/* Forward-looking "within reach" nudge: the one near-term goal.
+                                Sits with clear space above (under the tabs) and tighter below. */}
                             {withinReach && (
-                                <div className="mb-3 flex items-center gap-2.5 rounded-2xl bg-pulse-accent/10 px-4 py-3">
+                                <div className="mt-1 mb-2 flex items-center gap-2.5 rounded-2xl bg-pulse-accent/10 px-4 py-3">
                                     <svg
                                         width="16"
                                         height="16"
@@ -680,12 +681,31 @@ export default function HistoryView() {
                             {/* Recomp verdict card, the "is it working" outcome, leads after
                         the glance strip; program logistics follow. Tappable to Body. */}
                             <div className="mb-4">
-                                <SectionHeader>Recomp verdict</SectionHeader>
                                 <button
                                     type="button"
                                     onClick={() => setProgressTab('body')}
                                     aria-label="View body data"
                                     className="block w-full cursor-pointer border-none bg-transparent p-0 text-left">
+                                    <div className="mb-[9px] flex items-center justify-between">
+                                        <span className="font-pulse text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
+                                            Recomp verdict
+                                        </span>
+                                        <span className="flex items-center gap-1 font-pulse text-[0.7rem] font-medium text-pulse-accent">
+                                            Body
+                                            <svg
+                                                width="13"
+                                                height="13"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.4"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                aria-hidden>
+                                                <polyline points="9 18 15 12 9 6" />
+                                            </svg>
+                                        </span>
+                                    </div>
                                     <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
                                 </button>
                             </div>
