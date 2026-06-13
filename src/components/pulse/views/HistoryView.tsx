@@ -11,7 +11,6 @@ import {
     priorityAdjustedTargets,
     priorityFocusLine,
     recoveryReadout,
-    weekInBlock,
 } from '@/lib/pulse/utils';
 import { resolvePriority } from '@/lib/pulse/generation';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
@@ -397,6 +396,22 @@ export default function HistoryView() {
 
     const hasData = sessions.length > 0;
 
+    // Working-set count of the most recent program week that has any logs, for the
+    // Overview "Volume (wk)" tile. Window-independent (reads raw logs) so the tile
+    // is robust even when the current week hasn't been trained yet (e.g. a deload
+    // week just opened): it falls back to the latest week with data.
+    const weeklyVolume = useMemo(() => {
+        const byWeek = new Map<number, number>();
+        for (const key in logs) {
+            if (!logs[key]?.saved) continue;
+            const parsed = parseLogKey(key);
+            if (!parsed) continue;
+            byWeek.set(parsed.week, (byWeek.get(parsed.week) ?? 0) + 1);
+        }
+        if (byWeek.size === 0) return 0;
+        return byWeek.get(Math.max(...byWeek.keys())) ?? 0;
+    }, [logs]);
+
     // Active progress tab (Overview / Lifts / Body). No persistence; defaults to Overview.
     const [progressTab, setProgressTab] = useState<ProgressTab>('overview');
 
@@ -497,7 +512,7 @@ export default function HistoryView() {
                         <button
                             type="button"
                             onClick={() => setStrengthModalOpen(true)}
-                            className="flex flex-col items-center rounded-2xl bg-pulse-surface p-3.5 border border-transparent hover:border-pulse-border transition-colors cursor-pointer">
+                            className="flex flex-col items-center justify-center rounded-2xl bg-pulse-surface p-3.5 border border-transparent hover:border-pulse-border transition-colors cursor-pointer">
                             <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-accent">
                                 {strength.score ?? '—'}
                             </span>
@@ -517,38 +532,37 @@ export default function HistoryView() {
                         </button>
                         {/* Recovery tile */}
                         <RecoveryTile readout={recoverySummary} />
-                        {/* Program tile */}
-                        <div className="flex flex-col items-center rounded-2xl bg-pulse-surface p-3.5">
+                        {/* Sessions tile, total completed this block */}
+                        <div className="flex flex-col items-center justify-center rounded-2xl bg-pulse-surface p-3.5">
                             <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-text">
-                                {programPosition
-                                    ? `W${weekInBlock(programPosition.weekInteger, activeRoutine?.program_weeks ?? 12)}`
-                                    : '—'}
+                                {programPosition?.completedCount ?? sessions.length}
                             </span>
                             <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
-                                Program
+                                Sessions
                             </span>
                         </div>
-                        {/* Streak tile */}
-                        <div className="flex flex-col items-center rounded-2xl bg-pulse-surface p-3.5">
+                        {/* Weekly volume tile, most recent trained week's working sets */}
+                        <div className="flex flex-col items-center justify-center rounded-2xl bg-pulse-surface p-3.5">
                             <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-text">
-                                {streak}
+                                {weeklyVolume}
                             </span>
                             <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
-                                Streak (wk)
+                                Volume (wk)
                             </span>
                         </div>
+                    </div>
+
+                    {/* Recomp verdict card, the "is it working" outcome, leads after
+                        the glance strip; program logistics follow. */}
+                    <div className="mb-4">
+                        <SectionHeader>Recomp verdict</SectionHeader>
+                        <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
                     </div>
 
                     {/* Program status card */}
                     <div className="mb-4">
                         <SectionHeader>Program</SectionHeader>
                         <ProgramStatusCard />
-                    </div>
-
-                    {/* Recomp verdict card */}
-                    <div className="mb-4">
-                        <SectionHeader>Recomp verdict</SectionHeader>
-                        <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
                     </div>
 
                     {/* Recent activity: milestones + coach, paired side-by-side on
