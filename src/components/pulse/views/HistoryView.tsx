@@ -557,17 +557,17 @@ export default function HistoryView() {
                         lone feed stays full width. */}
                     {(milestones.length > 0 || decisions.length > 0) && (
                         <div
-                            className={`mb-4 grid items-start gap-4 ${
+                            className={`mb-4 grid items-stretch gap-4 ${
                                 milestones.length > 0 && decisions.length > 0 ? 'lg:grid-cols-2' : ''
                             }`}>
                             {milestones.length > 0 && (
-                                <div>
+                                <div className="flex flex-col">
                                     <SectionHeader>Recent milestones</SectionHeader>
                                     <MilestonesCard milestones={milestones} />
                                 </div>
                             )}
                             {decisions.length > 0 && (
-                                <div>
+                                <div className="flex flex-col">
                                     <SectionHeader>Coach activity</SectionHeader>
                                     <CoachActivityTimeline />
                                 </div>

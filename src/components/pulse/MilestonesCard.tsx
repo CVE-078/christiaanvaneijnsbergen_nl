@@ -101,7 +101,7 @@ export default function MilestonesCard({ milestones }: { milestones: Milestone[]
     const top = milestones.slice(0, 4);
 
     return (
-        <div className="rounded-2xl bg-pulse-surface px-4 py-1.5">
+        <div className="flex flex-1 flex-col rounded-2xl bg-pulse-surface px-4 py-1.5">
             {top.map((m) => (
                 <Row key={m.id} m={m} today={today} />
             ))}
@@ -109,7 +109,7 @@ export default function MilestonesCard({ milestones }: { milestones: Milestone[]
                 <button
                     type="button"
                     onClick={() => setAllOpen(true)}
-                    className="mt-1.5 mb-1 flex w-full items-center justify-center gap-[7px] rounded-xl bg-pulse-surface-2 px-4 py-[11px] font-pulse text-[0.8rem] font-medium text-pulse-accent border-none cursor-pointer">
+                    className="mb-1 mt-auto flex w-full items-center justify-center gap-[7px] rounded-xl bg-pulse-surface-2 px-4 py-[11px] font-pulse text-[0.8rem] font-medium text-pulse-accent border-none cursor-pointer">
                     Show all {milestones.length} milestones
                     <svg
                         width="13"

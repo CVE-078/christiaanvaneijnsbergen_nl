@@ -27,10 +27,10 @@ export default function CoachActivityTimeline() {
 
     if (decisions.length === 0) return null;
 
-    const recent = decisions.slice(0, 3);
+    const recent = decisions.slice(0, 4);
 
     return (
-        <div className="rounded-2xl bg-pulse-surface px-4 py-3">
+        <div className="flex flex-1 flex-col rounded-2xl bg-pulse-surface px-4 py-3">
             {/* Timeline rows */}
             <div className="relative pl-5">
                 {/* Vertical connector line */}
@@ -52,13 +52,27 @@ export default function CoachActivityTimeline() {
                 })}
             </div>
 
-            {/* Show all link */}
-            <button
-                type="button"
-                onClick={() => setOpen(true)}
-                className="mt-2 cursor-pointer border-none bg-transparent p-0 font-pulse text-xs font-semibold text-pulse-accent hover:underline">
-                Show all →
-            </button>
+            {/* Show all, matching the milestones card's full-width button */}
+            {decisions.length > 4 && (
+                <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="mb-1 mt-auto flex w-full items-center justify-center gap-[7px] rounded-xl bg-pulse-surface-2 px-4 py-[11px] font-pulse text-[0.8rem] font-medium text-pulse-accent border-none cursor-pointer">
+                    Show all {decisions.length} decisions
+                    <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden>
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+            )}
 
             <CoachTimelineModal
                 open={open}
