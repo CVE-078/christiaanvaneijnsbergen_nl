@@ -9,6 +9,7 @@ import {
     parseLogKey,
     computeStrengthByWeek,
     computeRecompSignal,
+    computeRecompTrend,
     computeRecoveryFlags,
     priorityAdjustedTargets,
     priorityFocusLine,
@@ -42,6 +43,7 @@ import BodyWeightCard from '@/components/pulse/BodyWeightCard';
 import GoalWeightCard from '@/components/pulse/GoalWeightCard';
 import MeasurementsCard from '@/components/pulse/MeasurementsCard';
 import RecentChangeCard from '@/components/pulse/RecentChangeCard';
+import RecompTrendCard from '@/components/pulse/RecompTrendCard';
 import SessionsCalendar from '@/components/pulse/SessionsCalendar';
 import SessionDetailModal from '@/components/pulse/SessionDetailModal';
 import ExerciseDetailModal from '@/components/pulse/ExerciseDetailModal';
@@ -386,6 +388,13 @@ export default function HistoryView() {
     }, [allRoutineExercises, windowedLogs, profile.gender, bodyweightLogs]);
 
     const strengthDelta = useMemo(() => strengthDeltaLabel(strengthSeries), [strengthSeries]);
+
+    // Bodyweight + strength score as two aligned trend series for the Body-tab
+    // recomp chart, so the recomp verdict is visible rather than asserted.
+    const recompTrend = useMemo(
+        () => computeRecompTrend({ bodyweight: bodyweightLogs, strengthSeries }),
+        [bodyweightLogs, strengthSeries],
+    );
 
     // One pass over logs replacing the former five independent scans
     // (buildHistory, computeVolumeByTypeAndWeek, computeBestSets,
@@ -756,15 +765,17 @@ export default function HistoryView() {
                                 </button>
                             )}
 
-                            {/* Recomp verdict card, the "is it working" outcome, leads after
-                        the glance strip; program logistics follow. Tappable to Body. */}
-                            <div className="mb-4">
+                            {/* Recomp: the verdict (the "is it working" outcome) paired with the
+                        trend chart (the evidence) so the claim and its proof sit together.
+                        Verdict is tappable to Body; the chart shows once a series is drawable. */}
+                            <div
+                                className={`mb-4 ${recompTrend.weight.length >= 2 || recompTrend.strength.length >= 2 ? 'grid grid-cols-1 items-stretch gap-[14px] lg:grid-cols-2' : ''}`}>
                                 <button
                                     type="button"
                                     onClick={() => goToTab('body')}
                                     aria-label="View body data"
-                                    className="group block w-full cursor-pointer border-none bg-transparent p-0 text-left">
-                                    <div className="mb-[9px] flex items-center justify-between">
+                                    className="group flex w-full cursor-pointer flex-col border-none bg-transparent p-0 text-left">
+                                    <div className="mb-[9px] flex w-full items-center justify-between">
                                         <span className="font-pulse text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
                                             Recomp verdict
                                         </span>
@@ -784,10 +795,25 @@ export default function HistoryView() {
                                             </svg>
                                         </span>
                                     </div>
-                                    <div className="rounded-2xl border border-transparent transition-colors group-hover:border-pulse-border">
+                                    <div className="flex-1 rounded-2xl border border-transparent transition-colors group-hover:border-pulse-border">
                                         <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
                                     </div>
                                 </button>
+                                {(recompTrend.weight.length >= 2 || recompTrend.strength.length >= 2) && (
+                                    <div className="flex flex-col">
+                                        <div className="mb-[9px] font-pulse text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
+                                            Recomp trend
+                                        </div>
+                                        <RecompTrendCard
+                                            trend={recompTrend}
+                                            verdict={recomp.verdict}
+                                            unit={unit}
+                                            showLabel={false}
+                                            showVerdict={false}
+                                            className="h-full flex-1"
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Program status card */}

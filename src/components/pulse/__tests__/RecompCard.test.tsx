@@ -4,7 +4,7 @@ import RecompCard from '@/components/pulse/RecompCard';
 import type { RecompReadout } from '@/lib/pulse/types';
 
 describe('RecompCard', () => {
-    it('renders the recomping verdict, labels and deltas', () => {
+    it('renders the status pill, the trimmed verdict detail, labels and deltas', () => {
         const readout: RecompReadout = {
             weight: 'flat',
             strength: 'up',
@@ -17,7 +17,9 @@ describe('RecompCard', () => {
         };
         render(<RecompCard readout={readout} unit="kg" lengthUnit="cm" />);
 
-        expect(screen.getByText(readout.verdict)).toBeInTheDocument();
+        // The pill carries the status word; the verdict drops its redundant lead.
+        expect(screen.getByText('Recomping')).toBeInTheDocument();
+        expect(screen.getByText('Strength up, waist down at a steady weight.')).toBeInTheDocument();
         expect(screen.getByText('Strength')).toBeInTheDocument();
         expect(screen.getByText('Weight')).toBeInTheDocument();
         expect(screen.getByText('Waist')).toBeInTheDocument();
