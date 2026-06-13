@@ -94,6 +94,11 @@ export default function SetLogger({
     const deloadTgt =
         !bodyweight && deload && previousEntry && week > 1 ? deloadTarget(previousEntry, repsRange ?? '') : null;
     const target = deloadTgt ?? progression;
+    // A rep advance holds the weight and adds a rep; a weight advance bumps the
+    // load and resets reps. Mirrors decisionCopy's read so the "why" matches the
+    // logged DecisionEvent. (Drives the explain-layer affordance on the target.)
+    const isRepAdvance =
+        !!previousEntry && !!progression && progression.kg <= previousEntry.kg && progression.reps > previousEntry.reps;
 
     function initKg() {
         // Bodyweight with no added load shows a blank field (placeholder), not "0".
@@ -487,10 +492,11 @@ export default function SetLogger({
                                                 </Why>
                                             </span>
                                         ) : (
-                                            <span
-                                                aria-label="Auto-progression target"
-                                                className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
-                                                Go {toDisplay(target.kg, unit)} {unit} × {target.reps}
+                                            <span className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
+                                                Go{' '}
+                                                <Why concept="progression" params={{ isRepAdvance }} variant="why">
+                                                    {toDisplay(target.kg, unit)} {unit} × {target.reps}
+                                                </Why>
                                             </span>
                                         ))}
                                     {inputError && (

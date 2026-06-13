@@ -57,6 +57,29 @@ describe('decisionCopy', () => {
         expect(c.next).toMatch(/heavier/i);
     });
 
+    it('sources the progression why and next from explainCopy (both branches, parity)', () => {
+        const weight = decisionCopy(
+            row({
+                type: 'progression',
+                trigger: 'targets_hit',
+                magnitude: { fromKg: 80, toKg: 82.5, fromReps: 12, toReps: 8 },
+            }),
+            'Squat',
+        );
+        expect(weight.why).toBe(explainCopy('progression', { isRepAdvance: false }).why);
+        expect(weight.next).toBe(explainCopy('progression', { isRepAdvance: false }).next);
+        const rep = decisionCopy(
+            row({
+                type: 'progression',
+                trigger: 'targets_hit',
+                magnitude: { fromKg: 80, toKg: 80, fromReps: 9, toReps: 10 },
+            }),
+            'Squat',
+        );
+        expect(rep.why).toBe(explainCopy('progression', { isRepAdvance: true }).why);
+        expect(rep.next).toBe(explainCopy('progression', { isRepAdvance: true }).next);
+    });
+
     it('describes a rep progression (same weight, +1 rep)', () => {
         const c = decisionCopy(
             row({

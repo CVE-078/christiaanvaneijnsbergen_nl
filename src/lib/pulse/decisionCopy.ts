@@ -41,15 +41,12 @@ export function decisionCopy(event: DecisionEventRow, exerciseName: string | nul
                 fromReps != null &&
                 toReps != null &&
                 toReps > fromReps;
+            const e = explainCopy('progression', { isRepAdvance });
             return {
                 kind: 'progression',
                 headline: name ? `${name} progressed` : 'Lift progressed',
-                why: isRepAdvance
-                    ? 'You hit your target reps at the prescribed RIR.'
-                    : 'You hit the top of the rep range at your target RIR.',
-                next: isRepAdvance
-                    ? 'Add a rep this session at the same weight.'
-                    : 'Heavier this session, reps reset to the bottom of the range.',
+                why: e.why,
+                next: e.next,
             };
         }
 
