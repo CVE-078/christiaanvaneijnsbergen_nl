@@ -6,13 +6,11 @@ vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
 }));
 
-vi.mock('@/app/pulse/actions', () => ({
-    updateGoalWeight: vi.fn().mockResolvedValue(undefined),
-}));
-
 import { usePulse } from '@/context/PulseContext';
-import { updateGoalWeight } from '@/app/pulse/actions';
 import GoalWeightCard from '../GoalWeightCard';
+
+// GoalWeightCard now goes through the optimistic context wrapper, not the raw action.
+const updateGoalWeight = vi.fn().mockResolvedValue(undefined);
 
 const defaultContext = {
     profile: {
@@ -20,11 +18,12 @@ const defaultContext = {
         goal_weight_kg: null as number | null,
     },
     bodyweightLogs: [] as Array<{ id: string; logged_at: string; weight_kg: number }>,
+    updateGoalWeight,
 };
 
 beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
-    vi.mocked(updateGoalWeight).mockClear();
+    updateGoalWeight.mockClear();
 });
 
 describe('GoalWeightCard', () => {

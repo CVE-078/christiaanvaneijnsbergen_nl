@@ -6,7 +6,18 @@ import { UUID_RE } from '@/lib/pulse/utils';
 import { getUserOrThrow } from '@/lib/pulse/auth';
 import { ACCENT_PRESETS } from '@/lib/pulse/constants';
 import { assertUuid } from './_shared';
-import type { Unit, LengthUnit, BodyweightEntry, Gender, PriorityMuscle, TrainingStyle, RestrictionFlag, VarietyPreference, LoadingPreference } from '@/lib/pulse/types';
+import type {
+    Unit,
+    LengthUnit,
+    BodyweightEntry,
+    BodyMeasurement,
+    Gender,
+    PriorityMuscle,
+    TrainingStyle,
+    RestrictionFlag,
+    VarietyPreference,
+    LoadingPreference,
+} from '@/lib/pulse/types';
 import { RESTRICTION_FLAGS } from '@/lib/pulse/types';
 
 const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'] as const;
@@ -160,7 +171,10 @@ export async function updateTrainingStyle(style: TrainingStyle | null): Promise<
 }
 
 export async function updateMovementRestrictions(restrictions: RestrictionFlag[]): Promise<void> {
-    if (!Array.isArray(restrictions) || !restrictions.every((r) => (RESTRICTION_FLAGS as readonly string[]).includes(r)))
+    if (
+        !Array.isArray(restrictions) ||
+        !restrictions.every((r) => (RESTRICTION_FLAGS as readonly string[]).includes(r))
+    )
         throw new Error('Invalid data');
     // De-dupe so the stored array is canonical.
     const unique = [...new Set(restrictions)];
@@ -169,7 +183,10 @@ export async function updateMovementRestrictions(restrictions: RestrictionFlag[]
 
     const { error } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, movement_restrictions: unique, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+        .upsert(
+            { id: user.id, movement_restrictions: unique, updated_at: new Date().toISOString() },
+            { onConflict: 'id' },
+        );
     if (error) throw new Error('Failed to update movement restrictions');
     revalidatePath('/pulse');
 }
@@ -205,7 +222,7 @@ export async function logBodyMeasurement(data: {
     hips_cm?: number;
     chest_cm?: number;
     arms_cm?: number;
-}): Promise<void> {
+}): Promise<BodyMeasurement> {
     // Validate each provided measurement is a finite number in a sane range (cm).
     const measurementFields = ['waist_cm', 'hips_cm', 'chest_cm', 'arms_cm'] as const;
     for (const field of measurementFields) {
@@ -222,16 +239,31 @@ export async function logBodyMeasurement(data: {
 
     const { supabase, user } = await getUserOrThrow();
 
-    const { error } = await supabase.from('body_measurements').insert({
-        user_id: user.id,
-        measured_at: data.measured_at ?? new Date().toISOString().split('T')[0],
-        waist_cm: data.waist_cm ?? null,
-        hips_cm: data.hips_cm ?? null,
-        chest_cm: data.chest_cm ?? null,
-        arms_cm: data.arms_cm ?? null,
-    });
-    if (error) throw new Error('Failed to log measurements');
+    const { data: row, error } = await supabase
+        .from('body_measurements')
+        .insert({
+            user_id: user.id,
+            measured_at: data.measured_at ?? new Date().toISOString().split('T')[0],
+            waist_cm: data.waist_cm ?? null,
+            hips_cm: data.hips_cm ?? null,
+            chest_cm: data.chest_cm ?? null,
+            arms_cm: data.arms_cm ?? null,
+        })
+        .select('id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm')
+        .single();
+    if (error || !row) throw new Error('Failed to log measurements');
     revalidatePath('/pulse');
+
+    // numeric(5,1) columns come back as strings; coerce like loadBodyMeasurements.
+    const num = (v: unknown): number | null => (v == null ? null : Number(v));
+    return {
+        id: row.id,
+        measured_at: row.measured_at,
+        waist_cm: num(row.waist_cm),
+        hips_cm: num(row.hips_cm),
+        chest_cm: num(row.chest_cm),
+        arms_cm: num(row.arms_cm),
+    };
 }
 
 export async function deleteBodyWeight(id: string) {

@@ -8,7 +8,6 @@ import SectionLabel from './SectionLabel';
 import MetricLineChart from './MetricLineChart';
 import MetricHistoryModal from './MetricHistoryModal';
 import { INPUT } from './ui';
-import { logBodyMeasurement } from '@/app/pulse/actions';
 import type { LengthUnit } from '@/lib/pulse/types';
 
 const METRIC_PILLS: { metric: MeasurementMetric; label: string }[] = [
@@ -19,7 +18,7 @@ const METRIC_PILLS: { metric: MeasurementMetric; label: string }[] = [
 ];
 
 export default function MeasurementsCard() {
-    const { profile, bodyMeasurements, refreshMeasurements, updateLengthUnit } = usePulse();
+    const { profile, bodyMeasurements, logBodyMeasurement, updateLengthUnit } = usePulse();
     const { length_unit: lengthUnit } = profile;
 
     const today = new Date().toISOString().split('T')[0];
@@ -27,6 +26,7 @@ export default function MeasurementsCard() {
     const [isPending, startTransition] = useTransition();
     const [showAllModal, setShowAllModal] = useState(false);
     const [valueInput, setValueInput] = useState('');
+    const [measureError, setMeasureError] = useState<string | null>(null);
     const [measureDate, setMeasureDate] = useState<string>(today);
     const [selectedMetric, setSelectedMetric] = useState<MeasurementMetric>('waist_cm');
 
@@ -60,16 +60,22 @@ export default function MeasurementsCard() {
         if (isNaN(val) || val <= 0) return;
         const cm = toCm(val, lengthUnit);
         startTransition(async () => {
-            await logBodyMeasurement({
-                measured_at: measureDate,
-                waist_cm: selectedMetric === 'waist_cm' ? cm : undefined,
-                hips_cm: selectedMetric === 'hips_cm' ? cm : undefined,
-                chest_cm: selectedMetric === 'chest_cm' ? cm : undefined,
-                arms_cm: selectedMetric === 'arms_cm' ? cm : undefined,
-            });
-            refreshMeasurements();
-            setValueInput('');
-            setMeasureDate(today);
+            try {
+                // The hook inserts the server-returned row into the cache, so the new
+                // entry shows live for any date (no reliance on a post-action refetch).
+                await logBodyMeasurement({
+                    measured_at: measureDate,
+                    waist_cm: selectedMetric === 'waist_cm' ? cm : undefined,
+                    hips_cm: selectedMetric === 'hips_cm' ? cm : undefined,
+                    chest_cm: selectedMetric === 'chest_cm' ? cm : undefined,
+                    arms_cm: selectedMetric === 'arms_cm' ? cm : undefined,
+                });
+                setValueInput('');
+                setMeasureDate(today);
+                setMeasureError(null);
+            } catch {
+                setMeasureError('Failed to save. Try again.');
+            }
         });
     }
 
@@ -127,13 +133,19 @@ export default function MeasurementsCard() {
                             placeholder={lengthUnit}
                             aria-label={`${selectedLabel} in ${lengthUnit}`}
                             value={valueInput}
-                            onChange={(e) => setValueInput(e.target.value)}
+                            onChange={(e) => {
+                                setValueInput(e.target.value);
+                                setMeasureError(null);
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleLog();
                             }}
                             className="w-[5.5rem] py-2 px-3 bg-pulse-bg rounded-lg text-pulse-text font-pulse text-sm outline-none border border-pulse-border focus:border-pulse-accent"
                         />
                     </div>
+                    {measureError && (
+                        <div className="font-pulse text-[0.75rem] text-pulse-error mt-1">{measureError}</div>
+                    )}
                 </div>
                 <button
                     onClick={handleLog}
