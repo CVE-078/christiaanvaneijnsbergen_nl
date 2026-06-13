@@ -135,11 +135,7 @@ export function isTravelActive(p: EquipmentProfile, nowIso: string, tz: string):
 
 // The active overlay. The DB partial unique index allows only one; if two ever
 // coexist, prefer the latest expiry (most remaining) deterministically.
-export function activeTravelProfile(
-    profiles: EquipmentProfile[],
-    nowIso: string,
-    tz: string,
-): EquipmentProfile | null {
+export function activeTravelProfile(profiles: EquipmentProfile[], nowIso: string, tz: string): EquipmentProfile | null {
     return (
         profiles
             .filter((p) => isTravelActive(p, nowIso, tz))
@@ -1187,7 +1183,7 @@ export function computeRecompSignal(args: {
     if (weight === 'none' && strength === 'none' && waist === 'none') {
         verdict = 'Keep logging to see your recomp trend.';
     } else if (isRecomping) {
-        verdict = `You're recomping: strength up, weight ${weight === 'down' ? 'down' : 'steady'}, waist down.`;
+        verdict = "You're recomping, gaining strength while losing fat.";
     } else if (strength === 'up' && weightOk && waist === 'none') {
         verdict = 'Likely recomping, strength up and weight steady. Log your waist to confirm.';
     } else if (strength === 'up' && weight === 'up') {
@@ -1318,7 +1314,7 @@ export type RecoveryTone = 'fresh' | 'ready' | 'watch' | 'easeoff' | 'none';
 export interface RecoveryReadout {
     tone: RecoveryTone;
     word: string;
-    detail: string;        // render-ready sub-line (muscles already capped)
+    detail: string; // render-ready sub-line (muscles already capped)
     muscles: ExerciseCategory[]; // raw categories driving an amber/red state
 }
 
@@ -1334,8 +1330,7 @@ export function recoveryReadout(
     if (entries.length === 0) {
         return { tone: 'none', word: 'No data', detail: 'log a session', muscles: [] };
     }
-    const at = (s: RecoveryDetail['status']) =>
-        entries.filter(([, d]) => d.status === s).map(([cat]) => cat);
+    const at = (s: RecoveryDetail['status']) => entries.filter(([, d]) => d.status === s).map(([cat]) => cat);
     const catLine = (cats: ExerciseCategory[], prefix = ''): string => {
         const shown = cats.slice(0, 2);
         const extra = cats.length - shown.length;
@@ -1344,7 +1339,8 @@ export function recoveryReadout(
     };
 
     const over = at('overreaching');
-    if (over.length > 0) return { tone: 'easeoff', word: 'Ease off', detail: catLine(over, 'high fatigue'), muscles: over };
+    if (over.length > 0)
+        return { tone: 'easeoff', word: 'Ease off', detail: catLine(over, 'high fatigue'), muscles: over };
 
     const fatigued = at('high_fatigue');
     if (fatigued.length > 0) return { tone: 'watch', word: 'Watch', detail: catLine(fatigued), muscles: fatigued };
