@@ -13,6 +13,12 @@ vi.mock('@/app/pulse/actions', () => ({
     updateGoalWeight: vi.fn().mockResolvedValue(undefined),
 }));
 
+const mockPush = vi.fn();
+vi.mock('next/navigation', () => ({
+    usePathname: () => '/pulse/profile',
+    useRouter: () => ({ push: mockPush }),
+}));
+
 import { usePulse } from '@/context/PulseContext';
 
 const mockUpdateProfile = vi.fn().mockResolvedValue(undefined);
@@ -137,6 +143,8 @@ describe('ProfileView', () => {
             await userEvent.click(screen.getByRole('tab', { name: 'Training' }));
             expect(screen.getByRole('combobox', { name: /training priority/i })).toBeVisible();
             expect(screen.getByTestId('training-preferences-section')).toBeVisible();
+            // ...and the tab is deep-linked into the URL.
+            expect(mockPush).toHaveBeenCalledWith('/pulse/profile/training');
         });
 
         it('switches back to You tab after clicking Training', async () => {
@@ -226,7 +234,9 @@ describe('ProfileView', () => {
             renderWithToast(<ProfileView />);
             expect(screen.getByRole('button', { name: /^female$/i }).className).toContain('bg-pulse-accent');
             expect(screen.getByRole('button', { name: /^male$/i }).className).not.toContain('bg-pulse-accent');
-            expect(screen.getByRole('button', { name: /prefer not to say/i }).className).not.toContain('bg-pulse-accent');
+            expect(screen.getByRole('button', { name: /prefer not to say/i }).className).not.toContain(
+                'bg-pulse-accent',
+            );
         });
 
         it('calls updateGender with the chosen value and shows a toast', async () => {

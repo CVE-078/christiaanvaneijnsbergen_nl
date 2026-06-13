@@ -1,5 +1,7 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { progressTabFromPath, progressTabPath, type ProgressTab } from '@/lib/pulse/navigation';
 import {
     toDisplay,
     computeE1RMHistory,
@@ -50,8 +52,6 @@ import { ModalGroupHeader } from '@/components/pulse/ui/ModalList';
 import { computeWithinReach } from '@/lib/pulse/withinReach';
 import { computeMilestones } from '@/lib/pulse/milestones';
 import type { Logs, WorkoutSession, WorkoutType, ExerciseCategory } from '@/lib/pulse/types';
-
-type ProgressTab = 'overview' | 'lifts' | 'body';
 
 const PROGRESS_TABS: { id: ProgressTab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
@@ -470,8 +470,22 @@ export default function HistoryView() {
         return { label: priority.charAt(0).toUpperCase() + priority.slice(1), current, floor };
     }, [profile.priority_muscle, muscleVolume, targets]);
 
-    // Active progress tab (Overview / Lifts / Body). No persistence; defaults to Overview.
-    const [progressTab, setProgressTab] = useState<ProgressTab>('overview');
+    // Active progress tab (Overview / Lifts / Body) is URL-driven and deep-linkable
+    // (/pulse/progress/lifts). Local state mirrors the path for instant switching and
+    // is re-synced from it on back/forward; clicks push the new path.
+    const pathname = usePathname();
+    const router = useRouter();
+    const [progressTab, setProgressTab] = useState<ProgressTab>(() => progressTabFromPath(pathname));
+    useEffect(() => {
+        setProgressTab(progressTabFromPath(pathname));
+    }, [pathname]);
+    const goToTab = useCallback(
+        (tab: ProgressTab) => {
+            setProgressTab(tab);
+            router.push(progressTabPath(tab));
+        },
+        [router],
+    );
 
     // Exercise drill-in: shows e1RM chart + history for a single routine-exercise.
     const [drillExerciseId, setDrillExerciseId] = useState<string | null>(null);
@@ -555,7 +569,7 @@ export default function HistoryView() {
                 <SegmentedTabs
                     tabs={PROGRESS_TABS}
                     active={progressTab}
-                    onChange={(id) => setProgressTab(id as ProgressTab)}
+                    onChange={(id) => goToTab(id as ProgressTab)}
                     ariaLabel="Progress sections"
                     variant="solid"
                 />
@@ -672,7 +686,7 @@ export default function HistoryView() {
                             {priorityVolume && (
                                 <button
                                     type="button"
-                                    onClick={() => setProgressTab('lifts')}
+                                    onClick={() => goToTab('lifts')}
                                     aria-label={`${priorityVolume.label} weekly volume, ${priorityVolume.current} of ${priorityVolume.floor} sets. View lifts.`}
                                     className="mb-4 flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-none bg-pulse-surface px-4 py-3 text-left">
                                     <span className="min-w-0 truncate font-pulse text-[0.8rem] text-pulse-dim">
@@ -713,7 +727,7 @@ export default function HistoryView() {
                             <div className="mb-4">
                                 <button
                                     type="button"
-                                    onClick={() => setProgressTab('body')}
+                                    onClick={() => goToTab('body')}
                                     aria-label="View body data"
                                     className="group block w-full cursor-pointer border-none bg-transparent p-0 text-left">
                                     <div className="mb-[9px] flex items-center justify-between">
