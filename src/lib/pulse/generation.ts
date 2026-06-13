@@ -1024,6 +1024,20 @@ function selectForSession(
                 const aRank = anchorRank(a, p);
                 const bRank = anchorRank(b, p);
                 if (aRank !== bRank) return aRank - bRank;
+                // (P0 3.1) Compound-first, below the named-anchor rank and above
+                // fatigue (anchor > compound > fatigue): a compound beats an
+                // isolation for the same slot regardless of fatigue cost. DEFENSIVE
+                // ARTIFACT, not a general policy: it is live for exactly the two
+                // mixed patterns `squat` (Leg Extension) and `hinge` (Leg Curl),
+                // which only mix compound + isolation because no quad_iso /
+                // hamstring_iso pattern exists; it is a no-op for the other 13
+                // (segregated) patterns and is expected to become effectively dead
+                // once those patterns are added. Do NOT propagate this to other
+                // ordering layers (the floor already filters is_compound, pick /
+                // backfill walk fixed slots, the role model orders post-selection).
+                const aComp = a.is_compound ? 0 : 1;
+                const bComp = b.is_compound ? 0 : 1;
+                if (aComp !== bComp) return aComp - bComp;
                 // (6) Role-aware fatigue tiebreak, below canonical now. Anchor patterns
                 // prefer the higher-fatigue primary lift (fatigue tracks mechanical stimulus
                 // for main compounds); accessories prefer the lower-fatigue option. Untagged
