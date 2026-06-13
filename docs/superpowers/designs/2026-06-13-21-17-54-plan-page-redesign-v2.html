@@ -115,6 +115,9 @@
   .arcgloss{display:none;margin-top:9px;background:var(--surface-2);border-radius:9px;padding:9px 11px;font-size:0.74rem;color:var(--dim);line-height:1.5}
   .arcgloss.on{display:block}
   .arcgloss b{color:var(--text);font-weight:600}
+  .arclegend{display:flex;gap:12px;margin-top:11px;flex-wrap:wrap}
+  .arclegend .lg{display:flex;align-items:center;gap:5px;font-size:0.62rem;color:var(--muted)}
+  .arclegend .lg i{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
 
   /* this week */
   .week{display:flex;gap:6px}
@@ -278,6 +281,12 @@
                 <div class="arccap" id="arccap"></div>
                 <div class="arcdesc" id="arcdesc"></div>
                 <div class="arcgloss" id="arcgloss"></div>
+                <div class="arclegend">
+                  <span class="lg"><i style="background:color-mix(in srgb,var(--p1) 60%,var(--surface-2))"></i>Accumulation</span>
+                  <span class="lg"><i style="background:color-mix(in srgb,var(--p2) 60%,var(--surface-2))"></i>Intensification</span>
+                  <span class="lg"><i style="background:color-mix(in srgb,var(--p3) 60%,var(--surface-2))"></i>Overreach</span>
+                  <span class="lg"><i style="background:color-mix(in srgb,var(--p4) 60%,var(--surface-2))"></i>Peak</span>
+                </div>
               </div>
 
               <div class="lbl">This week</div>

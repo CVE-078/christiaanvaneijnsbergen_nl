@@ -86,7 +86,8 @@ Reuse `computeSessionTargets` and the `NextSessionCard` visual. Enrich the heade
 Source: `buildProgram(program_weeks)` -> `{ phases, volume }`, plus `getRIR(week, weeks)` per week. Assemble a per-week array (6.4).
 
 - One **full-width bar per week** (no fixed max-width), 3px gap, height proportional to that week's volume.
-- **Phase tint at 10%**: unselected bars are `color-mix(phase-colour 10%, surface-2)`; the **selected/current week** bar is full phase colour. Default selection = current in-block week.
+- **Ascending phase tint** (locked, see Review reconciliation; flat 10% was dropped): unselected bars carry a faint per-phase tint that intensifies toward the peak (Accumulation lightest to Peak strongest, e.g. 18 / 28 / 40 / 52% `color-mix` with surface-2); the **selected/current week** bar is full phase colour. Default selection = current in-block week.
+- A compact **phase legend** (four swatches: Accumulation / Intensification / Overreach / Peak) sits at the **bottom of the block** (a quiet colour key under the caption/description, so the bar -> caption tap-readout stays tight), since the tint is now meaningful.
 - The **deload week** (min volume in the block) carries a `↓` marker above its bar, shown regardless of selection.
 - Week-number row beneath; current/selected week bold.
 - **Caption** (bold readout, updates on tap): "Week {n} | {phase name} | {volume} sets | RIR {rir}" and, on a deload week, an extra "deload" term.
