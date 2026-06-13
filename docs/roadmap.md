@@ -26,11 +26,11 @@
 
 **In progress:** (none).
 
-**In review (on a branch, not yet merged):** (none). Progress richness + modal consistency merged (#130, 2026-06-13).
+**In review (on a branch, not yet merged):** (none). Mobile polish + Progress-overview rework merged (#131, 2026-06-13). The **explain-layer spec** (`docs/superpowers/specs/2026-06-13-explain-layer-design.md`, reviewed) sits on the unmerged `feature/explain-layer` branch, ready to implement. A **CLS audit** (`docs/audits/2026-06-13-cls-data-fetch-audit.md`) is ready to action.
 
 **Migrations: none pending.** All hand-apply migrations verified live in prod 2026-06-12 (pg_catalog audit via the session pooler): the schema baseline, both auth migrations (trigger + FK cascades), the four merged-feature migrations, and the P0 Group 2 metadata corrections.
 
-**Recently merged:** Progress page redesign (squash `554a5ca`, 2026-06-12); Profile restyle (#129), Profile + Progress IA redesign (#128), quick UI fixes (#127); self-serve auth lifecycle (#126); schema-in-VCS baseline (#125); exercise history while logging (#13, #124); PHUL + split rationale (#122/#123); live-test fixes (#121); P0 Group 2 seed (#120); `ppl-x2-6` A/B (#119); day-picker frequency (#118). Full detail per feature in **Shipped**.
+**Recently merged:** Mobile polish + Progress-overview rework (#131, 2026-06-13): the wife-test feedback batch (ModalSheet scroll-lock + swipe-to-dismiss + sticky-header `-top-px` + desktop `p-6`; shared `ModalGroupHeader`/`ModalIconBadge` unifying all list modals; Coach timeline on ModalSheet, week-grouped; training-prefs save toasts; e1RM decimals; top-bar "Week N + flame streak"; password show/hide; goal-weight Initial readout; Profile single-column) plus the Progress-overview rework (Sessions+Volume strip, Recomp-above-Program, equal-height Milestones/Coach pair, `computeWithinReach` forward hook, priority-muscle volume line, strength level on tile, tab deep-links, empty state). Progress page redesign (squash `554a5ca`, 2026-06-12); Profile restyle (#129), Profile + Progress IA redesign (#128), quick UI fixes (#127); self-serve auth lifecycle (#126); schema-in-VCS baseline (#125); exercise history while logging (#13, #124); PHUL + split rationale (#122/#123); live-test fixes (#121); P0 Group 2 seed (#120); `ppl-x2-6` A/B (#119); day-picker frequency (#118). Full detail per feature in **Shipped**.
 
 **Billing, deliberately deferred (product decision, 2026-06-12):** auth shipped without billing. Prove the product is good before charging for it; the billing/cancel/refund lifecycle waits until validation earns it (it stays specified in "Launch floor" below for when that time comes).
 
@@ -47,7 +47,7 @@
 - **Tier 2 moat complete:** the personalization-in-generation items all shipped, training style + variety + loading lean (#4), the GQ1-GQ3 ranking passes, movement restrictions (#5), equipment profiles (#6, both branches), and travel mode (#322). Exercise-history-while-logging (#13) shipped (#124). One non-personalization refinement remains in the Tier 2 table: reason-driven manual deload dose (#16).
 - **Tier 3:** Coach Decision Timeline (#10), program pause / injury mode (#14), behavior-driven adaptation (#7, swaps/demote slice), and smart substitution v2 (#8) shipped; open: #9 (progress photos) and #17 (swap scope, designed 2026-06-11, deferred).
 - **Launch floor:** auth lifecycle now shipped (signup, email verify, password reset, account delete; #126) on top of the earlier offline-queue safety + dead-letter hardening, decimal-comma parsing, rest-timer-survives-lock, live RLS audit, the 2026-06-06 code/security audit, and the schema-in-VCS baseline (#125). Billing deferred by product decision. The rest is still open, see "Launch floor".
-- **Suite:** typecheck clean, **1313 tests**. Per-feature detail lives in **Shipped**; strategy + specs are frozen in the two 2026-06-06 design docs plus the equipment-profiles + travel-mode + behavior-adaptation + smart-substitution specs/plans.
+- **Suite:** typecheck clean, **1323 tests**. Per-feature detail lives in **Shipped**; strategy + specs are frozen in the two 2026-06-06 design docs plus the equipment-profiles + travel-mode + behavior-adaptation + smart-substitution specs/plans.
 
 **Next up, in order (converged 2026-06-10, pruned + re-cut 2026-06-12 after migrations applied + auth shipped):**
 

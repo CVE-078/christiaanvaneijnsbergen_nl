@@ -7,7 +7,6 @@ import SectionLabel from './SectionLabel';
 import MetricLineChart from './MetricLineChart';
 import MetricHistoryModal from './MetricHistoryModal';
 import { INPUT } from './ui';
-import { logBodyWeight as logBodyWeightAction } from '@/app/pulse/actions';
 
 export default function BodyWeightCard() {
     const { profile, bodyweightLogs, logBodyWeight, deleteBodyWeight } = usePulse();
@@ -44,12 +43,9 @@ export default function BodyWeightCard() {
         setBwError(null);
         startTransition(async () => {
             try {
-                // Use direct action so we can pass the selected date
-                if (bwDate === today) {
-                    await logBodyWeight(kgVal);
-                } else {
-                    await logBodyWeightAction(kgVal, bwDate);
-                }
+                // The hook updates the SWR cache for any date (the server returns the
+                // upserted row, which it inserts directly), so backdated logs show live.
+                await logBodyWeight(kgVal, bwDate === today ? undefined : bwDate);
                 setBwInput('');
             } catch {
                 setBwError('Failed to save. Try again.');

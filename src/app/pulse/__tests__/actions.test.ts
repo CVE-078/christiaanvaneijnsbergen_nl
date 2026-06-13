@@ -52,12 +52,20 @@ beforeEach(() => {
 });
 
 describe('logBodyMeasurement validation', () => {
-    it('accepts valid finite measurements within range', async () => {
-        // insert(...) result is awaited directly
-        queue.push({ data: null, error: null });
-        await expect(
-            logBodyMeasurement({ waist_cm: 80, hips_cm: 95, chest_cm: 100, arms_cm: 35 }),
-        ).resolves.toBeUndefined();
+    it('accepts valid finite measurements within range and returns the inserted row', async () => {
+        // insert(...).select(...).single() resolves the queued row.
+        queue.push({
+            data: { id: 'm1', measured_at: '2026-05-01', waist_cm: 80, hips_cm: 95, chest_cm: 100, arms_cm: 35 },
+            error: null,
+        });
+        await expect(logBodyMeasurement({ waist_cm: 80, hips_cm: 95, chest_cm: 100, arms_cm: 35 })).resolves.toEqual({
+            id: 'm1',
+            measured_at: '2026-05-01',
+            waist_cm: 80,
+            hips_cm: 95,
+            chest_cm: 100,
+            arms_cm: 35,
+        });
     });
 
     it('rejects a measurement above the sane range', async () => {
@@ -77,8 +85,15 @@ describe('logBodyMeasurement validation', () => {
     });
 
     it('accepts a valid measured_at date', async () => {
-        queue.push({ data: null, error: null });
-        await expect(logBodyMeasurement({ waist_cm: 80, measured_at: '2024-01-15' })).resolves.toBeUndefined();
+        queue.push({
+            data: { id: 'm2', measured_at: '2024-01-15', waist_cm: 80, hips_cm: null, chest_cm: null, arms_cm: null },
+            error: null,
+        });
+        await expect(logBodyMeasurement({ waist_cm: 80, measured_at: '2024-01-15' })).resolves.toMatchObject({
+            id: 'm2',
+            measured_at: '2024-01-15',
+            waist_cm: 80,
+        });
     });
 });
 
