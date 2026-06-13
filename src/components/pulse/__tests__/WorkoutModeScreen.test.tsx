@@ -156,6 +156,36 @@ describe('WorkoutModeScreen', () => {
         expect(showToast).not.toHaveBeenCalled();
     });
 
+    it('prefills the auto-deload target for a stalled lift in guided mode', () => {
+        // The Train card auto-deloads a stalled lift; guided mode must match. A
+        // flat e1RM across weeks 1-4 (plateau, no recent drop) makes shouldDeload
+        // fire. The id MUST be a real v4 UUID: parseLogKey/computeE1RMHistory
+        // silently drop non-UUID keys, so a fake id would read as "no history"
+        // and the deload would never trigger.
+        const reId = '11111111-1111-4111-8111-111111111111';
+        const stalled: RoutineExercise = {
+            ...mockExercise(reId, 'Barbell Bench Press'),
+            exercise: {
+                id: 'e1',
+                name: 'Barbell Bench Press',
+                category: 'chest',
+                default_sets: '3',
+                default_reps: '8-12',
+                user_id: null,
+                equipment: ['barbell'],
+            },
+        };
+        const logs: Logs = {};
+        for (let w = 1; w <= 4; w++) logs[`${w}-${reId}-0`] = { kg: 100, reps: 8, rir: 2, saved: true };
+        render(<WorkoutModeScreen {...defaultProps} week={5} exercises={[stalled]} logs={logs} />);
+        // deloadTarget = round(100 * 0.9 / 2.5) * 2.5 = 90 kg, reps reset to range bottom (8).
+        const kgInput = screen.getByRole('spinbutton', { name: /weight in kg/i }) as HTMLInputElement;
+        const repsInput = screen.getByRole('spinbutton', { name: /repetitions/i }) as HTMLInputElement;
+        expect(kgInput.value).toBe('90');
+        expect(repsInput.value).toBe('8');
+        expect(screen.getByLabelText('Deload target')).toBeInTheDocument();
+    });
+
     it('shows "Superset" in the header when the current step is a pair', () => {
         const mockRE = mockExercise('re1', 'Bench Press');
         const reA = {

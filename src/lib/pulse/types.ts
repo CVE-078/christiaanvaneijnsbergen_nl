@@ -195,6 +195,19 @@ export interface BestSet {
     e1rm: number;
 }
 
+// One row of the Plan "next session" preview: the working weight the Train screen
+// will prefill for an exercise. Built by computeSessionTargets.
+export interface SessionTargetRow {
+    routineExerciseId: string;
+    name: string;
+    sets: string;
+    reps: string;
+    bodyweight: boolean;
+    // Prefilled working weight in kg, or null when there is none yet (week 1, or a
+    // fresh lift with no starting weight).
+    weightKg: number | null;
+}
+
 export interface ShareStats {
     workoutLabel: string;
     date: string;

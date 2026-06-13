@@ -49,6 +49,7 @@ import type {
     EquipmentProfile,
     AdherenceStatus,
     ProgramPosition,
+    SessionTargetRow,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -374,6 +375,24 @@ export function deloadTarget(
     return { kg, reps };
 }
 
+export type LiftTrend = 'progressing' | 'stalled' | 'deload';
+
+// The engine's read on a lift's e1RM trajectory, for the Progress chart readout.
+// Mirrors the Train card's stall/deload classification (computePlateau /
+// shouldDeload) exactly, so the chart annotation matches what logging a set
+// would say: a clean plateau suggests a deload, a plateau while rebuilding from
+// a recent drop reads "stalled", anything climbing reads "progressing". Returns
+// null when there is not enough history to call it (a new or flat-but-short
+// lift). Callers gate this on !bodyweight, since a bodyweight lift's e1RM is 0
+// by construction and would false-flag as stalled.
+export function liftTrend(history: Array<{ week: number; e1rm: number }>): LiftTrend | null {
+    if (shouldDeload(history)) return 'deload';
+    if (computePlateau(history)) return 'stalled';
+    if (history.length < 2) return null;
+    const sorted = [...history].sort((a, b) => a.week - b.week);
+    return sorted[sorted.length - 1].e1rm > sorted[0].e1rm ? 'progressing' : null;
+}
+
 // The adaptive decision the engine made for one lift in one week, ready to log
 // as a DecisionEvent, or null when no tracked decision applies. Pure mirror of
 // what ExerciseCard/SetLogger already compute on render: a stall auto-deloads
@@ -620,6 +639,26 @@ export function computeProgression(
         return { kg: previousEntry.kg + 2.5, reps: lo };
     }
     return { kg: previousEntry.kg, reps: Math.min(previousEntry.reps + 1, hi) };
+}
+
+// Read-only preview of the working weight the Train screen will prefill for each
+// exercise in a session: computeSuggestion off the prior week's top set, falling
+// back to the routine's starting weight. Mirrors ExerciseCard's workingWeightKg
+// exactly, so the Plan preview never drifts from what you see when you train.
+export function computeSessionTargets(exercises: RoutineExercise[], logs: Logs, week: number): SessionTargetRow[] {
+    return exercises.map((re) => {
+        const prevEntry = week > 1 ? logs[logKey(week - 1, re.id, 0)] : undefined;
+        const weightKg =
+            computeSuggestion(prevEntry?.saved ? prevEntry : undefined, week) ?? re.starting_weight_kg ?? null;
+        return {
+            routineExerciseId: re.id,
+            name: re.exercise?.name ?? '',
+            sets: re.sets,
+            reps: re.reps,
+            bodyweight: isBodyweight(re.exercise?.equipment),
+            weightKg,
+        };
+    });
 }
 
 export function weekHasData(week: number, logs: Logs): boolean {

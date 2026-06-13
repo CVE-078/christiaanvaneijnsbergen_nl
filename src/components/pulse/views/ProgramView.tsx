@@ -1,11 +1,19 @@
 ﻿'use client';
 import { useMemo, useState } from 'react';
 import { WEEK_NOTES, buildProgram, PROGRAM_LENGTHS } from '@/lib/pulse/data';
-import { getPhase, sessionTypeFor, weekInBlock, swapCandidates, exerciseReason } from '@/lib/pulse/utils';
+import {
+    getPhase,
+    sessionTypeFor,
+    weekInBlock,
+    swapCandidates,
+    exerciseReason,
+    computeSessionTargets,
+} from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { WORKOUT_TYPE_LABELS, EQUIPMENT_LABELS } from '@/lib/pulse/constants';
 import type { WorkoutType, WorkoutVariant, RoutineExercise, SwapReason } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
+import NextSessionCard from '../NextSessionCard';
 import GenerateRoutineButton from '../GenerateRoutineButton';
 import PageTitle from '@/components/pulse/PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
@@ -15,6 +23,7 @@ import ExerciseSwapPicker from '../ExerciseSwapPicker';
 type Section = { type: WorkoutType; variant: WorkoutVariant | null; exercises: RoutineExercise[] };
 
 const BAR_MAX_HEIGHT_PX = 64;
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ProgramView() {
     const {
@@ -24,6 +33,12 @@ export default function ProgramView() {
         activeRoutine,
         profile,
         exercises,
+        logs,
+        programPosition,
+        routineExercisesByTabKey,
+        resolveTabForEntry,
+        setActiveTab,
+        navigate,
         updateRoutineProgramWeeks,
         setProgramAnchor,
         swapRoutineExercisePermanently,
@@ -110,6 +125,25 @@ export default function ProgramView() {
         }
         return groups;
     }, [activeRoutine]);
+
+    // The next scheduled session and the weights Train will prefill for it: the
+    // adherence engine's nextEntry, resolved to its session tab, with per-exercise
+    // targets off the current program week. Null when there is no next session yet
+    // (no schedule / unresolved tab), so the card simply does not render.
+    const nextSession = useMemo(() => {
+        const entry = programPosition?.nextEntry;
+        if (!entry) return null;
+        const tabKey = resolveTabForEntry(entry);
+        const exs = routineExercisesByTabKey[tabKey] ?? [];
+        if (exs.length === 0) return null;
+        const week = programPosition?.weekInteger ?? activeWeek;
+        return {
+            tabKey,
+            rows: computeSessionTargets(exs, logs, week),
+            sessionLabel: `${WORKOUT_TYPE_LABELS[entry.workout_type] ?? entry.workout_type}${entry.variant ? ` ${entry.variant}` : ''}`,
+            dayLabel: DAY_LABELS[entry.day_of_week] ?? '',
+        };
+    }, [programPosition, routineExercisesByTabKey, resolveTabForEntry, logs, activeWeek]);
 
     if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
     if (loading?.routines || loading?.logs) return <PageSkeleton />;
@@ -229,6 +263,20 @@ export default function ProgramView() {
             </div>
 
             <div className="flex flex-col gap-4">
+                {/* next scheduled session + the weights Train will prefill for it */}
+                {nextSession && (
+                    <NextSessionCard
+                        sessionLabel={nextSession.sessionLabel}
+                        dayLabel={nextSession.dayLabel}
+                        rows={nextSession.rows}
+                        unit={profile?.unit ?? 'kg'}
+                        onStart={() => {
+                            setActiveTab(nextSession.tabKey);
+                            navigate('train');
+                        }}
+                    />
+                )}
+
                 {/* weekly schedule + weekly volume */}
                 <div className="bg-pulse-surface rounded-2xl p-4">
                     <SectionLabel className="mb-3">Weekly Schedule</SectionLabel>

@@ -9,6 +9,8 @@ import {
     toDisplay,
     isBodyweight,
     isPlateLoaded,
+    computeE1RMHistory,
+    shouldDeload,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
@@ -328,6 +330,11 @@ function ExerciseSetRows({
     // Bodyweight + plate-loaded both follow the displayed exercise so a swap is honored.
     const bodyweight = isBodyweight(display.equipment);
     const plateLoaded = isPlateLoaded(display.equipment);
+    // Auto-deload a stalled lift, matching the Train card path (ExerciseCard): a
+    // plateaued, not-recently-deloaded e1RM history backs the prefilled target off
+    // to ~90%. Bodyweight lifts have a 0 e1RM by construction, so the detector
+    // would false-flag them; shouldDeload reads e1rm history, skip it there.
+    const deload = !bodyweight && shouldDeload(computeE1RMHistory(logs, re.id));
     // Single-active focus: the next unsaved set is the only one showing inputs; the
     // rest render as dimmed "not started" previews. -1 when every set is logged.
     const activeIdx = Array.from({ length: maxSets }, (_, s) => logKey(week, re.id, s)).findIndex(
@@ -356,6 +363,7 @@ function ExerciseSetRows({
                         repsRange={re.reps}
                         unit={unit}
                         isPR={isPR}
+                        deload={deload}
                         bodyweight={bodyweight}
                         variant="editorial"
                         active={s === activeIdx}

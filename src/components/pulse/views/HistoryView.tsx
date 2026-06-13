@@ -13,6 +13,9 @@ import {
     priorityAdjustedTargets,
     priorityFocusLine,
     recoveryReadout,
+    liftTrend,
+    isBodyweight,
+    type LiftTrend,
 } from '@/lib/pulse/utils';
 import { resolvePriority } from '@/lib/pulse/generation';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
@@ -73,6 +76,28 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
         <div className="font-pulse text-[0.6875rem] font-semibold tracking-[0.1em] uppercase text-pulse-muted mb-[9px]">
             {children}
         </div>
+    );
+}
+
+// The engine's read on the selected lift's e1RM trajectory, shown beside the
+// chart value readout. Stalled / deload carry an on-demand "why" (the same
+// explain concepts the Train card uses, so the chart and Train never drift);
+// progressing is a quiet positive cue. Caller passes null for new / bodyweight
+// lifts, where the engine makes no call, and nothing renders.
+function LiftTrendPill({ trend }: { trend: LiftTrend }) {
+    if (trend === 'progressing') {
+        return (
+            <span className="rounded-md bg-pulse-success/12 px-1.5 py-0.5 font-pulse text-[0.7rem] font-medium text-pulse-success">
+                Progressing
+            </span>
+        );
+    }
+    return (
+        <span className="rounded-md bg-pulse-warn/15 px-1.5 py-0.5 font-pulse text-[0.7rem] font-medium text-pulse-warn">
+            <Why concept={trend === 'deload' ? 'deload' : 'stalled'} variant="why">
+                {trend === 'deload' ? 'Deload suggested' : 'Stalled'}
+            </Why>
+        </span>
     );
 }
 
@@ -425,6 +450,14 @@ export default function HistoryView() {
         () => (exerciseId ? computeE1RMHistory(windowedLogs, exerciseId) : []),
         [windowedLogs, exerciseId],
     );
+
+    // The engine's stall / deload / progressing read on the selected lift, for the
+    // chart readout. Gated on !bodyweight, matching the Train card: a bodyweight
+    // lift's e1RM is 0 by construction and would false-flag as stalled.
+    const e1rmTrend = useMemo(() => {
+        const meta = allRoutineExercises.find((re) => re.id === exerciseId)?.exercise;
+        return isBodyweight(meta?.equipment) ? null : liftTrend(e1rmHistory);
+    }, [allRoutineExercises, exerciseId, e1rmHistory]);
 
     const hasData = sessions.length > 0;
 
@@ -849,6 +882,7 @@ export default function HistoryView() {
                                                     {deltaPct}% over {e1rmHistory.length} wk
                                                 </span>
                                             )}
+                                            {e1rmTrend && <LiftTrendPill trend={e1rmTrend} />}
                                         </div>
                                     );
                                 })()}

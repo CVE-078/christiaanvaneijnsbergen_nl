@@ -43,6 +43,8 @@ import {
     recentDrop,
     shouldDeload,
     deloadTarget,
+    liftTrend,
+    computeSessionTargets,
     decisionForExercise,
     computeSessionTonnage,
     sessionDecisions,
@@ -122,6 +124,95 @@ describe('auto-deload', () => {
         it('returns null without a previous entry', () => {
             expect(deloadTarget(undefined, '8-12')).toBeNull();
         });
+    });
+
+    describe('liftTrend', () => {
+        it('returns null for a new lift with too little history', () => {
+            expect(liftTrend(h(100))).toBeNull();
+        });
+        it('flags deload on a clean stall (mirrors shouldDeload)', () => {
+            expect(liftTrend(h(100, 105, 110, 108, 109, 110))).toBe('deload');
+        });
+        it('flags stalled (not deload) while rebuilding from a recent drop', () => {
+            expect(liftTrend(h(100, 105, 110, 110, 110, 99))).toBe('stalled');
+        });
+        it('flags progressing when the lift is climbing', () => {
+            expect(liftTrend(h(100, 105, 110, 112, 114, 116))).toBe('progressing');
+        });
+        it('flags progressing on a short climbing history before a plateau can be judged', () => {
+            expect(liftTrend(h(100, 105))).toBe('progressing');
+        });
+        it('returns null when flat with too little history to call a stall', () => {
+            expect(liftTrend(h(100, 100, 100))).toBeNull();
+        });
+    });
+});
+
+describe('computeSessionTargets', () => {
+    const RE = '11111111-1111-4111-8111-111111111111';
+    const mkRE = (over: Partial<RoutineExercise> = {}): RoutineExercise => ({
+        id: RE,
+        routine_id: 'r1',
+        exercise_id: 'e1',
+        workout_type: 'push',
+        variant: null,
+        order: 0,
+        sets: '3',
+        reps: '8-12',
+        starting_weight_kg: null,
+        superset_group_id: null,
+        exercise: {
+            id: 'e1',
+            name: 'Bench Press',
+            category: 'chest',
+            default_sets: '3',
+            default_reps: '8-12',
+            user_id: null,
+            equipment: ['barbell'],
+        },
+        ...over,
+    });
+
+    it('falls back to the starting weight in week 1 (no prior set)', () => {
+        const rows = computeSessionTargets([mkRE({ starting_weight_kg: 60 })], {}, 1);
+        expect(rows[0]).toMatchObject({
+            routineExerciseId: RE,
+            name: 'Bench Press',
+            sets: '3',
+            reps: '8-12',
+            bodyweight: false,
+            weightKg: 60,
+        });
+    });
+
+    it('is null when there is no prior set and no starting weight', () => {
+        expect(computeSessionTargets([mkRE()], {}, 1)[0].weightKg).toBeNull();
+    });
+
+    it('mirrors computeSuggestion off the prior week top set', () => {
+        const prev = { kg: 80, reps: 10, rir: 5, saved: true };
+        const logs: Logs = { [logKey(2, RE, 0)]: prev };
+        expect(computeSessionTargets([mkRE()], logs, 3)[0].weightKg).toBe(computeSuggestion(prev, 3));
+    });
+
+    it('ignores an unsaved prior set and falls back to the starting weight', () => {
+        const logs: Logs = { [logKey(2, RE, 0)]: { kg: 80, reps: 10, rir: 5, saved: false } };
+        expect(computeSessionTargets([mkRE({ starting_weight_kg: 60 })], logs, 3)[0].weightKg).toBe(60);
+    });
+
+    it('flags a bodyweight exercise from its (empty) equipment', () => {
+        const bw = mkRE({
+            exercise: {
+                id: 'e2',
+                name: 'Pull-Up',
+                category: 'back',
+                default_sets: '3',
+                default_reps: '8-12',
+                user_id: null,
+                equipment: [],
+            },
+        });
+        expect(computeSessionTargets([bw], {}, 1)[0].bodyweight).toBe(true);
     });
 });
 
