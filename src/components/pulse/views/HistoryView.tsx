@@ -539,14 +539,6 @@ export default function HistoryView() {
                         </div>
                     </div>
 
-                    {/* Recent milestones */}
-                    {milestones.length > 0 && (
-                        <div className="mb-4">
-                            <SectionHeader>Recent milestones</SectionHeader>
-                            <MilestonesCard milestones={milestones} />
-                        </div>
-                    )}
-
                     {/* Program status card */}
                     <div className="mb-4">
                         <SectionHeader>Program</SectionHeader>
@@ -559,11 +551,27 @@ export default function HistoryView() {
                         <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
                     </div>
 
-                    {/* Coach activity timeline, only when the coach has acted */}
-                    {decisions.length > 0 && (
-                        <div>
-                            <SectionHeader>Coach activity</SectionHeader>
-                            <CoachActivityTimeline />
+                    {/* Recent activity: milestones + coach, paired side-by-side on
+                        desktop and stacked on mobile. Each renders its own card; the
+                        two-column grid only kicks in when both feeds have content, so a
+                        lone feed stays full width. */}
+                    {(milestones.length > 0 || decisions.length > 0) && (
+                        <div
+                            className={`mb-4 grid items-start gap-4 ${
+                                milestones.length > 0 && decisions.length > 0 ? 'lg:grid-cols-2' : ''
+                            }`}>
+                            {milestones.length > 0 && (
+                                <div>
+                                    <SectionHeader>Recent milestones</SectionHeader>
+                                    <MilestonesCard milestones={milestones} />
+                                </div>
+                            )}
+                            {decisions.length > 0 && (
+                                <div>
+                                    <SectionHeader>Coach activity</SectionHeader>
+                                    <CoachActivityTimeline />
+                                </div>
+                            )}
                         </div>
                     )}
 

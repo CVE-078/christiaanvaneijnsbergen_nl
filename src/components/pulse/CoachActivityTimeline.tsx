@@ -30,7 +30,7 @@ export default function CoachActivityTimeline() {
     const recent = decisions.slice(0, 3);
 
     return (
-        <>
+        <div className="rounded-2xl bg-pulse-surface px-4 py-3">
             {/* Timeline rows */}
             <div className="relative pl-5">
                 {/* Vertical connector line */}
@@ -68,6 +68,6 @@ export default function CoachActivityTimeline() {
                 unit={unit}
                 programWeeks={programWeeks}
             />
-        </>
+        </div>
     );
 }
