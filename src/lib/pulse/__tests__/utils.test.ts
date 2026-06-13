@@ -33,6 +33,10 @@ import {
     rankSubstitutes,
     computeStrengthByWeek,
     computeRecompSignal,
+    computeRecompTrend,
+    recompStatus,
+    recompDetail,
+    recompLines,
     toLengthDisplay,
     toCm,
     priorityAdjustedTargets,
@@ -1658,6 +1662,159 @@ describe('computeRecompSignal', () => {
         expect(out.weight).toBe('up');
         expect(out.isRecomping).toBe(false);
         expect(out.verdict.startsWith('Gaining')).toBe(true);
+    });
+});
+
+describe('recompStatus', () => {
+    // Build a readout with only the fields recompStatus reads.
+    type Tr = 'up' | 'down' | 'flat' | 'none';
+    const ro = (weight: Tr, strength: Tr, waist: Tr, isRecomping = false) =>
+        ({ weight, strength, waist, isRecomping }) as ReturnType<typeof computeRecompSignal>;
+
+    it('returns null when there is no data', () => {
+        expect(recompStatus(ro('none', 'none', 'none'))).toBeNull();
+    });
+    it('reads Recomping (good) when confirmed', () => {
+        expect(recompStatus(ro('down', 'up', 'down', true))).toEqual({ word: 'Recomping', tone: 'good' });
+    });
+    it('reads Recomping (good) when strength up and weight steady, even without waist', () => {
+        expect(recompStatus(ro('flat', 'up', 'none'))).toEqual({ word: 'Recomping', tone: 'good' });
+    });
+    it('reads Gaining (neutral) when strength and weight both rise', () => {
+        expect(recompStatus(ro('up', 'up', 'none'))).toEqual({ word: 'Gaining', tone: 'neutral' });
+    });
+    it('reads Cutting (neutral) when weight drops without strength gains', () => {
+        expect(recompStatus(ro('down', 'flat', 'none'))).toEqual({ word: 'Cutting', tone: 'neutral' });
+    });
+    it('reads Watch (warn) when strength dips while weight rises', () => {
+        expect(recompStatus(ro('up', 'down', 'none'))).toEqual({ word: 'Watch', tone: 'warn' });
+    });
+});
+
+describe('recompDetail', () => {
+    it('strips the redundant leading clause when it restates the pill word', () => {
+        expect(recompDetail("You're recomping, gaining strength while losing fat.", 'Recomping')).toBe(
+            'Gaining strength while losing fat.',
+        );
+    });
+    it('strips a colon-separated lead and keeps the rest verbatim', () => {
+        expect(
+            recompDetail('Gaining: strength up but weight up too. Tighten nutrition if fat loss is the goal.', 'Gaining'),
+        ).toBe('Strength up but weight up too. Tighten nutrition if fat loss is the goal.');
+    });
+    it('leaves the sentence intact when the lead does not restate the pill word', () => {
+        const v = 'Strength dipping while weight rises, then stalls.';
+        expect(recompDetail(v, 'Watch')).toBe(v);
+    });
+    it('returns the verdict unchanged when there is no status word', () => {
+        const v = 'Keep logging to see your recomp trend.';
+        expect(recompDetail(v, null)).toBe(v);
+    });
+});
+
+describe('recompLines', () => {
+    const ro = (over: Partial<ReturnType<typeof computeRecompSignal>>) =>
+        ({
+            weight: 'flat',
+            strength: 'up',
+            waist: 'down',
+            isRecomping: true,
+            verdict: '',
+            weightDeltaKg: null,
+            strengthDeltaPct: null,
+            waistDeltaCm: null,
+            ...over,
+        }) as ReturnType<typeof computeRecompSignal>;
+
+    it('supplies an affirmation description for the single-sentence recomping verdict', () => {
+        const out = recompLines(ro({ verdict: "You're recomping, gaining strength while losing fat." }));
+        expect(out.headline).toBe('Gaining strength while losing fat.');
+        expect(out.description).toBe("This is the hardest result to get, and you're getting it.");
+    });
+    it('splits a two-sentence verdict into headline + its own next-step', () => {
+        const out = recompLines(
+            ro({
+                weight: 'up',
+                strength: 'up',
+                waist: 'none',
+                isRecomping: false,
+                verdict: 'Gaining: strength up but weight up too. Tighten nutrition if fat loss is the goal.',
+            }),
+        );
+        expect(out.headline).toBe('Strength up but weight up too.');
+        expect(out.description).toBe('Tighten nutrition if fat loss is the goal.');
+    });
+    it('splits the Watch verdict into a headline and a next-step description', () => {
+        const out = recompLines(
+            ro({
+                weight: 'up',
+                strength: 'down',
+                waist: 'none',
+                isRecomping: false,
+                verdict: 'Strength dipping while weight rises. Check recovery before adding load.',
+            }),
+        );
+        expect(out.headline).toBe('Strength dipping while weight rises.');
+        expect(out.description).toBe('Check recovery before adding load.');
+    });
+    it('returns no description for a single-sentence verdict with no status (no data)', () => {
+        const out = recompLines(
+            ro({
+                weight: 'none',
+                strength: 'none',
+                waist: 'none',
+                isRecomping: false,
+                verdict: 'Keep logging to see your recomp trend.',
+            }),
+        );
+        expect(out.headline).toBe('Keep logging to see your recomp trend.');
+        expect(out.description).toBeNull();
+    });
+});
+
+describe('computeRecompTrend', () => {
+    const bw = (logged_at: string, weight_kg: number): BodyweightEntry => ({ id: logged_at, logged_at, weight_kg });
+
+    it('returns empty series and null deltas for empty inputs', () => {
+        expect(computeRecompTrend({ bodyweight: [], strengthSeries: [] })).toEqual({
+            weight: [],
+            strength: [],
+            weightDeltaKg: null,
+            strengthDelta: null,
+        });
+    });
+
+    it('sorts bodyweight ascending (input is newest-first) and computes the kg delta', () => {
+        // newest-first input, as queries.ts returns it
+        const out = computeRecompTrend({
+            bodyweight: [bw('2026-03-01', 80.2), bw('2026-02-01', 81), bw('2026-01-01', 82)],
+            strengthSeries: [],
+        });
+        expect(out.weight).toEqual([82, 81, 80.2]);
+        expect(out.weightDeltaKg).toBeCloseTo(-1.8);
+    });
+
+    it('orders strength by week ascending and computes the score delta', () => {
+        const out = computeRecompTrend({
+            bodyweight: [],
+            strengthSeries: [
+                { week: 4, score: 59 },
+                { week: 1, score: 48 },
+                { week: 2, score: 51 },
+            ],
+        });
+        expect(out.strength).toEqual([48, 51, 59]);
+        expect(out.strengthDelta).toBe(11);
+    });
+
+    it('leaves a single-point series with a null delta', () => {
+        const out = computeRecompTrend({
+            bodyweight: [bw('2026-01-01', 80)],
+            strengthSeries: [{ week: 1, score: 50 }],
+        });
+        expect(out.weight).toEqual([80]);
+        expect(out.weightDeltaKg).toBeNull();
+        expect(out.strengthDelta).toBeNull();
     });
 });
 
