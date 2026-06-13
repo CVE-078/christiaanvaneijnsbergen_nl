@@ -1,6 +1,7 @@
 'use client';
 import { usePulse } from '@/context/PulseContext';
 import { formatProgramStatus } from '@/lib/pulse/utils';
+import Why from './Why';
 
 // Pill tint per status tone.
 const PILL_CLASS: Record<'success' | 'warn' | 'muted', string> = {
@@ -25,13 +26,30 @@ export default function ProgramStatusCard() {
 
     const weeksAway = Math.max(0, nextDeloadWeek - programPosition.weekInteger);
 
+    // Behind / lapsed get an on-demand, never-punish "why" on the pill (never an
+    // always-on banner). Other statuses (on track, paused) stay plain.
+    const explainConcept =
+        programPosition.status === 'lapsed' ? 'lapsed' : programPosition.status === 'behind' ? 'behind' : null;
+    const explainParams =
+        explainConcept === 'lapsed'
+            ? { daysAway: programPosition.daysSinceLastSession ?? undefined }
+            : explainConcept === 'behind'
+              ? { behindBy: programPosition.behindBy }
+              : undefined;
+
     return (
         <div className="rounded-2xl bg-pulse-surface p-5">
             {/* Top row: status pill + week label */}
             <div className="flex items-center justify-between mb-3">
                 <span
                     className={`font-pulse text-[0.72rem] font-semibold rounded-full px-[11px] py-1 ${PILL_CLASS[statusTone]}`}>
-                    {statusLabel}
+                    {explainConcept ? (
+                        <Why concept={explainConcept} params={explainParams} variant="why">
+                            {statusLabel}
+                        </Why>
+                    ) : (
+                        statusLabel
+                    )}
                 </span>
                 <span className="font-pulse text-[0.85rem] text-pulse-dim">{weekLabel}</span>
             </div>
@@ -48,8 +66,7 @@ export default function ProgramStatusCard() {
             {/* Sub-stats */}
             <div className="flex gap-5 mt-3 flex-wrap">
                 <span className="font-pulse text-[0.78rem] text-pulse-muted">
-                    Next deload{' '}
-                    <strong className="font-semibold text-pulse-text">week {nextDeloadWeek}</strong>
+                    Next deload <strong className="font-semibold text-pulse-text">week {nextDeloadWeek}</strong>
                     {weeksAway > 0 && (
                         <span className="text-pulse-muted">
                             {', '}
