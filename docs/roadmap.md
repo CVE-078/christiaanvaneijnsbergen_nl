@@ -489,7 +489,7 @@ One idempotent seed migration (`UPDATE`s scoped to `user_id IS NULL`). **Status:
 
 #### 3.1 Isolation exercises can win a primary compound slot when the pool is thin
 
-**Status:** Spec drafted 2026-06-13 (`docs/superpowers/specs/2026-06-13-19-12-33-compound-first-selection-guard-design.md`), awaiting the review loop, then TDD. NOT the same item as Bug 2: the #115 notes labeled the canonical-anchor rank "P0 3.1", but that rank only orders named compounds within the sort; no `is_compound` term exists in `byPattern` (re-verified 2026-06-11).
+**Status:** Implemented 2026-06-13 on `feature/generation-compound-first-spec` (in review, not merged). Spec `docs/superpowers/specs/2026-06-13-19-12-33-compound-first-selection-guard-design.md`. A Phase 1 verification (prompted by a reviewer challenge sourced from the stale 2026-06-10 audit) stood in for the loop: confirmed `COMPOUND_FLOOR` exists and protects the session level, the audit's knee+lower_back "all-isolation" claim does NOT reproduce (safe compounds are left untagged in the seed + the floor backstops), and 3.1 is a within-pattern tiebreaker for the two mixed patterns (`squat`/`hinge`) only. The `is_compound` term sits after the canonical-anchor rank, before the fatigue tiebreak; goldens unchanged (1379) + 1 regression. NOT the same item as Bug 2.
 **Track:** Generation quality
 **Prerequisites:** 1.2 and 2.2 (they reduce how often this fallback is reached); both shipped as of 2026-06-11.
 **Decision needed:** Exact sort placement and golden-test handling (see below). This is **not** purely additive.
