@@ -263,7 +263,7 @@
               <div class="lbl">Next session</div>
               <div class="card">
                 <div class="nshead"><span class="nm">Upper A</span><span class="sess">Mon<span class="day"> &middot; up next</span></span></div>
-                <div class="nsmeta">~52 min &middot; 18 sets &middot; Chest &middot; Back &middot; Shoulders</div>
+                <div class="nsmeta">~55 min &middot; 18 sets &middot; Chest &middot; Back &middot; Shoulders</div>
                 <div class="nsrow"><div><div class="n">Barbell Bench Press</div><div class="sr">4 &times; 6</div></div><span class="wt">80 kg</span></div>
                 <div class="nsrow"><div><div class="n">Barbell Row</div><div class="sr">4 &times; 8</div></div><span class="wt">72.5 kg</span></div>
                 <div class="nsrow"><div><div class="n">Overhead Press</div><div class="sr">3 &times; 8</div></div><span class="wt">47.5 kg</span></div>
@@ -334,7 +334,7 @@
     </div>
   </div>
 
-  <p class="note">Plan redesign v2: block-arc <b>A</b> (phase-tinted bars, deload &darr;, tap a week), desktop <b>L4</b> sticky rail (identity / next / arc / week pinned; sessions + settings scroll). Sessions are a <b>selector on mobile &amp; tablet</b> and an <b>accordion on desktop</b>. Resize via the toggle. Why-this-plan, generation warning, and settings all collapse.</p>
+  <p class="note">Plan redesign v2 (decisions locked): block-arc <b>A</b> with an <b>ascending phase tint</b> (faint, intensifies toward the peak; live week full colour; deload &darr;; tap a week to inspect, read-only). Desktop <b>L4</b> sticky rail (identity / next / arc / week pinned; sessions + settings scroll). Sessions are a <b>selector on mobile &amp; tablet</b> and a <b>single-open accordion on desktop</b>. Phase descriptions match the real volume ramp. Why-this-plan, generation warning, and settings all collapse.</p>
 
 <script>
   function bp(s,btn){var d=document.getElementById('device');d.classList.remove('m','t','d');d.classList.add(s);
@@ -347,11 +347,13 @@
   var PNAME={1:'Accumulation',2:'Intensification',3:'Overreach',4:'Peak & Deload'};
   var PVAR={1:'--p1',2:'--p2',3:'--p3',4:'--p4'};
   var CUR=6,maxV=20,minV=10;
+  var TINT={1:18,2:28,3:40,4:52};
+  function barBg(i,sel){return sel?'var('+PVAR[PHASE[i]]+')':'color-mix(in srgb,var('+PVAR[PHASE[i]]+') '+TINT[PHASE[i]]+'%,var(--surface-2))';}
   var PDESC={
-    1:'Building your base. Higher volume at an easier effort, so your body adapts and recovers well.',
-    2:'Turning up the intensity. Volume eases while the weights climb and you train closer to your limit.',
-    3:'The hardest weeks, by design. Training near failure to drive new muscle and strength.',
-    4:'A final overload, then a lighter deload week so fatigue clears and you come back stronger.'};
+    1:'Building your base. Volume starts manageable and climbs week to week, with a rep or two left in the tank so you adapt and recover well.',
+    2:'Pushing harder. Volume keeps building and you train closer to your limit as the block ramps up.',
+    3:'The hardest stretch, by design. Peak volume with sets taken close to failure to drive new adaptation.',
+    4:'One last hard push, then a lighter deload week so accumulated fatigue clears before the next block.'};
   var GLOSS={
     rir:'<b>RIR (reps in reserve)</b> is how many more reps you could do before failure. RIR 3 leaves a few in the tank; RIR 0 is all-out.',
     deload:'<b>A deload</b> is a planned easy week, less volume and lighter effort, so built-up fatigue clears and you come back stronger.'};
@@ -364,10 +366,11 @@
     document.getElementById('arcdesc').textContent=PDESC[ph];
     document.getElementById('arcgloss').classList.remove('on');}
   (function(){var h='',w='';for(var i=0;i<12;i++){var wk=i+1,cur=wk===CUR,dl=VOL[i]===minV,ht=Math.round(VOL[i]/maxV*100);
-    h+='<div class="c'+(cur?' cur':'')+'" style="--c:var('+PVAR[PHASE[i]]+')" onclick="pickArc('+wk+')">'+(dl?'<span class="dl">&darr;</span>':'')+'<div class="bar" style="height:'+ht+'%"></div></div>';
+    h+='<div class="c'+(cur?' cur':'')+'" style="--c:var('+PVAR[PHASE[i]]+')" onclick="pickArc('+wk+')">'+(dl?'<span class="dl">&darr;</span>':'')+'<div class="bar" style="height:'+ht+'%;background:'+barBg(i,cur)+'"></div></div>';
     w+='<div class="w'+(cur?' cur':'')+'">'+wk+'</div>';}
     document.getElementById('barsA').innerHTML=h;document.getElementById('wknA').innerHTML=w;setArc(CUR);})();
-  function pickArc(wk){document.querySelectorAll('#barsA .c').forEach(function(c,i){c.classList.toggle('cur',i===wk-1)});
+  function pickArc(wk){var bars=document.getElementById('barsA').children;
+    for(var i=0;i<12;i++){bars[i].classList.toggle('cur',i===wk-1);bars[i].querySelector('.bar').style.background=barBg(i,i===wk-1);}
     document.querySelectorAll('#wknA .w').forEach(function(c,i){c.classList.toggle('cur',i===wk-1)});
     setArc(wk);}
 
@@ -375,7 +378,7 @@
   var INFO='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7" x2="8" y2="11" stroke-linecap="round"/><circle cx="8" cy="4.75" r="0.6" fill="currentColor" stroke="none"/></svg>';
   var CLOCK='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   var SESS=[
-    {name:'Upper A',dur:'~52 min',sets:18,focus:'Chest · Back · Shoulders · Arms',ex:[
+    {name:'Upper A',dur:'~55 min',sets:18,focus:'Chest · Back · Shoulders · Arms',ex:[
       ['Barbell Bench Press','4 sets · 6 reps','Primary horizontal push, builds chest and triceps strength.',['Barbell','Bench']],
       ['Barbell Row','4 sets · 8 reps','Primary horizontal pull for mid-back thickness.',['Barbell']],
       ['Overhead Press','3 sets · 8 reps','Vertical push for front-delt and shoulder size.',['Barbell']],
@@ -389,7 +392,7 @@
       ['Lying Leg Curl','3 sets · 12 reps','Hamstring isolation.',['Machines']],
       ['Standing Calf Raise','3 sets · 15 reps','Calf isolation.',['Machines']],
       ['Hanging Leg Raise','3 sets · 12 reps','Core, to finish.',['Bodyweight']]]},
-    {name:'Upper B',dur:'~52 min',sets:18,focus:'Chest · Back · Shoulders · Arms',ex:[
+    {name:'Upper B',dur:'~55 min',sets:18,focus:'Chest · Back · Shoulders · Arms',ex:[
       ['Incline Dumbbell Press','4 sets · 8 reps','Upper-chest emphasis.',['Dumbbells','Bench']],
       ['Weighted Pull-Up','4 sets · 6 reps','Vertical pull, lat strength.',['Pull-up bar']],
       ['Seated Cable Row','3 sets · 10 reps','Horizontal pull for mid-back.',['Cables']],
@@ -416,9 +419,12 @@
     document.getElementById('oneSess').innerHTML='<div class="shead"><div class="sn">'+s.name+'</div><div class="meta"><span>'+CLOCK+s.dur+'</span><span>&middot; '+s.sets+' sets</span><span>&middot; '+s.ex.length+' exercises</span></div></div><div class="focusline">'+s.focus+'</div>'+exRows(s.ex);}
   function pickSess(i,btn){document.querySelectorAll('#ssel button').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');renderOne(i);}
 
-  /* desktop accordion */
+  /* desktop accordion, single-open: opening one closes the others (caps why-line density) */
+  function accToggle(head){var item=head.parentElement,open=item.classList.contains('open');
+    document.querySelectorAll('#acc .accitem').forEach(function(it){it.classList.remove('open')});
+    if(!open)item.classList.add('open');}
   (function(){var h='';SESS.forEach(function(s,i){
-    h+='<div class="accitem'+(i===0?' open':'')+'"><div class="acchead" onclick="this.parentElement.classList.toggle(\'open\')"><div class="acchead-l"><div class="sn">'+s.name+'</div><div class="meta"><span>'+CLOCK+s.dur+'</span><span>&middot; '+s.sets+' sets</span><span>&middot; '+s.focus+'</span></div></div><svg class="accchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="accbody">'+exRows(s.ex)+'</div></div>';
+    h+='<div class="accitem'+(i===0?' open':'')+'"><div class="acchead" onclick="accToggle(this)"><div class="acchead-l"><div class="sn">'+s.name+'</div><div class="meta"><span>'+CLOCK+s.dur+'</span><span>&middot; '+s.sets+' sets</span><span>&middot; '+s.focus+'</span></div></div><svg class="accchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="accbody">'+exRows(s.ex)+'</div></div>';
   });document.getElementById('acc').innerHTML=h;})();
 </script>
 </body>

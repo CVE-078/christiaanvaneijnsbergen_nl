@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Block arc tint A/B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--accent:#ff7d66;--bg:#0e1113;--surface:#161a1d;--surface-2:#1c2125;--border:#262c31;
+    --dim:#aab2b7;--muted:#6f787e;--text:#e7ebed;--success:#4ade80;
+    --p1:#4ade80;--p2:#facc15;--p3:#f97316;--p4:#f43f5e}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#07090a;color:var(--text);font-family:'Hanken Grotesk',sans-serif;-webkit-font-smoothing:antialiased;padding:18px 14px 60px}
+  .hint{max-width:420px;margin:0 auto 16px;color:var(--muted);font-size:0.8rem;text-align:center;line-height:1.55}
+  .stage{display:flex;justify-content:center}
+  .device{width:390px;background:var(--bg);border:1px solid var(--border);border-radius:22px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+  .scroll{padding:16px 16px 28px}
+  .lbl{font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:22px 0 9px;font-weight:600;display:flex;gap:8px;align-items:baseline}
+  .lbl:first-of-type{margin-top:4px}
+  .lbl .vtag{color:var(--accent);font-weight:700}
+  .lbl .desc{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.72rem}
+  .card{background:var(--surface);border-radius:14px;padding:15px}
+  .ahead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:13px}
+  .ahead .h{font-weight:600;font-size:0.92rem}.ahead .s{color:var(--muted);font-size:0.72rem}
+  .bars{display:flex;align-items:flex-end;gap:3px;height:74px}
+  .bars .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer;position:relative}
+  .bars .c .bar{width:100%;border-radius:3px 3px 0 0;transition:background .12s}
+  .bars .c .dl{position:absolute;top:-13px;font-size:0.62rem;color:var(--p4)}
+  .wkn{display:flex;gap:3px;margin-top:6px}
+  .wkn .w{flex:1;text-align:center;font-size:0.56rem;color:var(--muted)}
+  .wkn .w.cur{color:var(--text);font-weight:700}
+  .cap{font-size:0.78rem;color:var(--dim);margin-top:11px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .cap .dot{width:8px;height:8px;border-radius:99px;flex:none}.cap b{color:var(--text);font-weight:600}.cap .sep{color:var(--border)}
+  .pdesc{font-size:0.78rem;color:var(--muted);line-height:1.5;margin-top:8px}
+  .legend{display:flex;gap:12px;margin-top:11px;flex-wrap:wrap}
+  .legend .lg{display:flex;align-items:center;gap:5px;font-size:0.62rem;color:var(--muted)}
+  .legend .lg i{width:9px;height:9px;border-radius:2px;display:inline-block}
+</style>
+</head>
+<body>
+  <div class="hint">Same arc, two tint treatments. <b>A</b> is what you picked (flat 10%, only the live week coloured). <b>B</b> is Claude.ai's idea: a faint phase tint that intensifies toward the peak, so the four phases read at a glance. Tap weeks in both. Which reads better to you?</div>
+  <div class="stage">
+    <div class="device">
+      <div class="scroll">
+
+        <div class="lbl"><span class="vtag">A</span><span>Flat 10% tint</span><span class="desc">your pick</span></div>
+        <div class="card">
+          <div class="ahead"><span class="h">12-week cycle</span><span class="s">repeats &middot; deloads at the end</span></div>
+          <div class="bars" id="barsA"></div>
+          <div class="wkn" id="wknA"></div>
+          <div class="cap" id="capA"></div>
+          <div class="pdesc" id="descA"></div>
+        </div>
+
+        <div class="lbl"><span class="vtag">B</span><span>Ascending phase tint</span><span class="desc">intensifies toward the peak</span></div>
+        <div class="card">
+          <div class="ahead"><span class="h">12-week cycle</span><span class="s">repeats &middot; deloads at the end</span></div>
+          <div class="bars" id="barsB"></div>
+          <div class="wkn" id="wknB"></div>
+          <div class="cap" id="capB"></div>
+          <div class="pdesc" id="descB"></div>
+          <div class="legend">
+            <span class="lg"><i style="background:color-mix(in srgb,var(--p1) 60%,var(--surface-2))"></i>Accumulation</span>
+            <span class="lg"><i style="background:color-mix(in srgb,var(--p2) 60%,var(--surface-2))"></i>Intensification</span>
+            <span class="lg"><i style="background:color-mix(in srgb,var(--p3) 60%,var(--surface-2))"></i>Overreach</span>
+            <span class="lg"><i style="background:color-mix(in srgb,var(--p4) 60%,var(--surface-2))"></i>Peak</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+  var VOL=[12,14,16,14,16,18,16,18,20,18,20,10];
+  var RIR=[3,3,2,2,2,1,1,1,0,1,0,3];
+  var PHASE=[1,1,1,2,2,2,3,3,3,4,4,4];
+  var PNAME={1:'Accumulation',2:'Intensification',3:'Overreach',4:'Peak & Deload'};
+  var PVAR={1:'--p1',2:'--p2',3:'--p3',4:'--p4'};
+  // ascending tint per phase for B (intensifies toward the peak)
+  var TINT_B={1:18,2:28,3:40,4:52};
+  var PDESC={
+    1:'Building your base. Volume starts manageable and climbs week to week, with a rep or two left in the tank.',
+    2:'Pushing harder. Volume keeps building and you train closer to your limit as the block ramps up.',
+    3:'The hardest stretch, by design. Peak volume with sets taken close to failure to drive new adaptation.',
+    4:'One last hard push, then a lighter deload week so accumulated fatigue clears before the next block.'};
+  var CUR=6,maxV=20,minV=10;
+
+  function cap(wk){var i=wk-1,ph=PHASE[i],dl=(VOL[i]===minV)?' &middot; <b>deload</b>':'';
+    return '<span class="dot" style="background:var('+PVAR[ph]+')"></span><span><b>Week '+wk+'</b> &middot; '+PNAME[ph]+'</span><span class="sep">|</span><span><b>'+VOL[i]+' sets</b></span><span class="sep">|</span><span>RIR <b>'+RIR[i]+'</b></span>'+dl;}
+
+  function build(prefix, tintMode){
+    var bars=document.getElementById('bars'+prefix), wkn=document.getElementById('wkn'+prefix);
+    var bh='',wh='';
+    for(var i=0;i<12;i++){var wk=i+1,cur=wk===CUR,dl=VOL[i]===minV,ht=Math.round(VOL[i]/maxV*100);
+      var tint = tintMode==='flat' ? 10 : TINT_B[PHASE[i]];
+      var bg = cur ? 'var('+PVAR[PHASE[i]]+')' : 'color-mix(in srgb,var('+PVAR[PHASE[i]]+') '+tint+'%,var(--surface-2))';
+      bh+='<div class="c'+(cur?' cur':'')+'" data-bg="'+bg+'" data-cur="'+(cur?1:0)+'" style="--c:var('+PVAR[PHASE[i]]+')" onclick="pick(\''+prefix+'\','+wk+',\''+tintMode+'\')">'+(dl?'<span class="dl">&darr;</span>':'')+'<div class="bar" style="height:'+ht+'%;background:'+bg+'"></div></div>';
+      wh+='<div class="w'+(cur?' cur':'')+'">'+wk+'</div>';}
+    bars.innerHTML=bh; wkn.innerHTML=wh;
+    document.getElementById('cap'+prefix).innerHTML=cap(CUR);
+    document.getElementById('desc'+prefix).textContent=PDESC[PHASE[CUR-1]];
+  }
+  function pick(prefix,wk,tintMode){
+    var bars=document.getElementById('bars'+prefix).children;
+    for(var i=0;i<12;i++){var c=bars[i],bar=c.querySelector('.bar'),sel=(i===wk-1);
+      var tint = tintMode==='flat' ? 10 : TINT_B[PHASE[i]];
+      bar.style.background = sel ? 'var('+PVAR[PHASE[i]]+')' : 'color-mix(in srgb,var('+PVAR[PHASE[i]]+') '+tint+'%,var(--surface-2))';
+      c.classList.toggle('cur',sel);}
+    document.querySelectorAll('#wkn'+prefix+' .w').forEach(function(w,i){w.classList.toggle('cur',i===wk-1)});
+    document.getElementById('cap'+prefix).innerHTML=cap(wk);
+    document.getElementById('desc'+prefix).textContent=PDESC[PHASE[wk-1]];
+  }
+  build('A','flat'); build('B','asc');
+</script>
+</body>
+</html>

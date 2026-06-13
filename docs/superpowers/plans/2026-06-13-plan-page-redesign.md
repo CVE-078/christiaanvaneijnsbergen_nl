@@ -6,21 +6,22 @@ Branch: `feature/plan-page-redesign`
 
 TDD throughout: pure helpers red/green first, then the presentational rebuild, then the wiring. Each numbered step is roughly one reviewable commit. Run the full suite (`bun run test:run`) + `bun run typecheck` after each logic step; only `git add` the listed paths (never a repo-wide `bun run format`).
 
-## Pre-req decisions (resolve from the review loop before step 5+)
-- O1 warnings: parse-from-rationale + localStorage dismiss (v1, no migration). Default unless the loop says otherwise.
-- O2 restructure: reuse `TuneYourPlanPanel` regenerate-in-place from Plan.
-- O3 arc taps drive `setActiveWeek` (arc replaces the standalone week stepper).
-- O5 reuse vs new status mapper (check `formatProgramStatus`).
-- O6 phase-description home (`data.ts` vs `explainCopy`).
+## Resolved decisions (review loop, 2026-06-13, see the spec's Review reconciliation)
+- **O1 warnings:** dedicated `routines.warnings text[]` column storing stable KEYS; render copy from the registry; dismiss in localStorage by `(routine id, key)`. Adds a migration + generation/actions/loader/types touch (step 3).
+- **O5:** reuse `formatProgramStatus` (label, tone, block-relative week, progress, next-deload). No new status/deload helpers.
+- **O6:** phase / RIR / deload copy in `explainCopy`; phase-to-week mapping stays in `data.ts`.
+- **O2:** split tune (in-place regen, keeps week) vs "change split or days" (starts a new block from week 1, confirm when logged history exists).
+- **O3:** arc tap is inspection-only; "Week N of M" stays the authoritative position; no standalone stepper.
+- **O4:** `estimateSessionMinutes` uses `is_compound`; round to nearest 5, labeled an estimate.
+- **Arc tint:** ascending per-phase tint (live week full colour). **Accordion:** single-open on desktop. **Phase copy:** the data-accurate rewrites in the reconciliation.
 
 ## Step 1, pure helpers (utils.ts + tests)
 - `buildBlockArc(weeks)` -> `Array<{ week, volume, rir, phase:{label,subtitle,color}, isDeload }>` over `buildProgram` + `getRIR` + `getPhase`.
-- `nextDeload(weekInBlock, weeks)` -> `{ week, weeksAway }` (min-volume week; handle 16's mid-block deload).
-- `estimateSessionMinutes(rows)` -> minutes (compound/isolation rest model + per-set work; tidy round).
-- `programStatusPill(status)` -> `{ label, tone }` (or reuse/extend `formatProgramStatus`, per O5).
-- Tests for each across 8/10/12/16 blocks + edge cases (empty session, all-isolation).
-- Files: `src/lib/pulse/utils.ts`, `src/lib/pulse/__tests__/utils.test.ts` (or the existing arc/program test file).
-- Commit: `feat(pulse): pure helpers for plan block arc, est duration, status pill`.
+- `estimateSessionMinutes(rows: { sets: number; is_compound?: boolean }[])` -> minutes (compound/isolation rest model + per-set work; round to nearest 5).
+- Status + next-deload: **reuse `formatProgramStatus`** (no new helper). Confirm its output covers the identity card's needs.
+- Tests across 8/10/12/16 blocks + edge cases (empty session, all-isolation).
+- Files: `src/lib/pulse/utils.ts`, the existing utils/program test file.
+- Commit: `feat(pulse): pure helpers for plan block arc + est duration`.
 
 ## Step 2, explainCopy concepts (additive + parity test)
 - Add `rir`, `phase` glossary concepts to `ExplainConcept` + `explainCopy()`. Phase-description sentences land per O6.
@@ -28,28 +29,30 @@ TDD throughout: pure helpers red/green first, then the presentational rebuild, t
 - Files: `src/lib/pulse/explainCopy.ts`, its test.
 - Commit: `feat(pulse): add rir + phase explain concepts`.
 
-## Step 3, warning constants exported + strip parser (pure + test)
-- Export `LIMITED_VARIETY_WARNING` / `NO_COMPOUND_WARNING` from `generation.ts` (or relocate to `constants.ts`).
-- Pure `splitRationaleWarnings(rationale)` -> `{ prose, warnings: string[] }` that pulls the known warning sentences out of the prose (extends the existing de-blob logic in ProgramView, lifted to a tested pure fn).
-- Tests: rationale with neither / one / both warnings.
-- Files: `src/lib/pulse/generation.ts` (export), a pure helper + test.
-- Commit: `feat(pulse): extract generation warnings from rationale prose`.
+## Step 3, warnings column (migration + keys + write path + loader + type)
+- **Migration** `docs/migrations/<ts>-routine-warnings.sql`: `alter table routines add column warnings text[] not null default '{}'`. Hand-apply (user runs it; the classifier blocks me from running a prod migration).
+- `generation.ts`: the two warning constants become stable KEYS (`'limited_variety'`, `'no_compound'`); `RoutineBlueprint.warnings` carries keys.
+- `actions/routines.ts`: `generateAndSaveRoutine` writes `warnings` to the column and STOPS concatenating warning sentences into `rationale` (line ~552).
+- `queries.ts`: add `warnings` to `ROUTINES_SELECT`. `types.ts`: `WorkoutRoutine` gains `warnings: string[]`.
+- Warning copy moves to the registry (keyed by warning key); `GenerationWarningNotice` renders from it.
+- Tests: generation emits the right keys under duress; the notice renders + dismisses (component). No server-action harness (actions hit Supabase).
+- Commit: `feat(pulse): store generation warnings as keyed column, not rationale prose`.
 
 ## Step 4, sub-components (presentational, mockup-faithful)
 Build the pieces the rebuilt view composes, each matching the mockup:
 - `PlanProgramCard` (identity + status pill + block progress + stat row + Why-this-plan collapse with inline facts chips).
 - `BlockArc` (variation A bars + caption + phase description + RIR/deload `Why` glossary; tap selects a week).
-- `SessionList` with a `mode: 'selector' | 'accordion'` prop and a shared `PlanExerciseRow` (number, name, sets x reps, `exerciseReason`, equipment chips, Swap, How-to). Mobile/tablet render selector, desktop renders accordion (container query / `useMediaQuery` matching `AppShell`).
+- `SessionList` with a `mode: 'selector' | 'accordion'` prop and a shared `PlanExerciseRow` (number, name, sets x reps, `exerciseReason`, equipment chips, Swap, How-to). Mobile/tablet render selector, desktop renders a **single-open** accordion (opening one closes the others), via `useMediaQuery` matching `AppShell`.
 - `ProgramSettings` (collapsed group: length, start date, change split or days).
 - `GenerationWarningNotice` (dismissible, localStorage-keyed).
 - Component tests for the non-trivial ones (BlockArc tap, SessionList both modes, Why-collapse, notice dismiss).
 - Commit(s): one per component or grouped by `feat(pulse): plan <component>`.
 
 ## Step 5, rebuild ProgramView + wire data
-- Recompose `ProgramView.tsx` to the new IA using the sub-components; wire `programPosition` (status, weekInteger, progressionIndex), `buildBlockArc`, `estimateSessionMinutes`, `nextDeload`.
-- Arc tap -> `setActiveWeek` (O3); remove the standalone stepper.
-- Desktop L4 sticky rail layout (sticky left rail + scrolling right column) via the container-query / media-query split already used by `AppShell`.
-- Restructure entry -> `TuneYourPlanPanel` regenerate-in-place (O2), seeded from the active routine + threaded callbacks like the existing consumers.
+- Recompose `ProgramView.tsx` to the new IA using the sub-components; wire `programPosition` + `formatProgramStatus` (status, week label, next-deload), `buildBlockArc`, `estimateSessionMinutes`.
+- Arc tap is **inspection-only** local state (preview a week's phase/volume/RIR); "Week N of M" stays the authoritative position; no standalone stepper.
+- Desktop L4 sticky rail (sticky left rail + scrolling right column) via the `useMediaQuery` split used by `AppShell`; rail scrolls independently / drops "This week" on short viewports (O8).
+- Restructure: "tune" -> `TuneYourPlanPanel` in-place regen (keeps week); **"change split or days" -> a path that starts a new block from week 1 with a confirm when the current block has logged history** (O2). Do not route a structure change through silent in-place regen.
 - Update `ProgramView.test.tsx`.
 - Commit: `feat(pulse): rebuild plan page (block arc, sticky rail, responsive sessions)`.
 
@@ -60,6 +63,6 @@ Build the pieces the rebuilt view composes, each matching the mockup:
 - Commit: `docs(roadmap): finish plan page redesign`.
 
 ## Notes
-- No migration. No generator logic change. The only server-touching change is exporting warning constants (pure).
+- One small migration (the `routines.warnings` column, step 3); user hand-applies it. No change to the generation algorithm (only the warnings become keyed and write to the column instead of the rationale).
 - Match the format:check state policy: only format files you touch.
 - Stacked branch: when `chore/roadmap-sync-137-138` squash-merges, rebase `--onto main` (grab the old head sha first); user force-pushes.
