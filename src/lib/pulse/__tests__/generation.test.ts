@@ -1492,6 +1492,42 @@ describe('GQ3: anchor patterns prefer higher fatigue', () => {
     });
 });
 
+describe('P0 3.1: compound-first within a mixed pattern (squat / hinge)', () => {
+    // `squat` and `hinge` are the only compound/isolation MIXED patterns (Leg
+    // Extension lives in `squat`, Leg Curl in `hinge`, for lack of a quad_iso /
+    // hamstring_iso pattern). When a thin pool removes the named-anchor compounds,
+    // an UNNAMED compound competes in-pattern with the isolation. Without the
+    // compound-first guard the anchor-pattern fatigue tiebreak (higher-first) lets
+    // a higher-fatigue isolation win the primary slot, and COMPOUND_FLOOR then
+    // re-adds the compound redundantly (so the isolation is still present and an
+    // accessory is displaced). The guard seats the compound in the slot directly.
+    // byPattern is a closure, so this exercises the guard end-to-end via generateRoutine.
+    function poolMixedSquat(): ExerciseMeta[] {
+        return [
+            metaFatigue('squat-compound', 'squat', 1, ['dumbbells'], true), // unnamed compound, low fatigue
+            metaFatigue('squat-iso', 'squat', 5, ['dumbbells'], false), // isolation, high fatigue
+            ...ALL_PATTERNS.filter((p) => p !== 'squat').flatMap((p) => [
+                meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+            ]),
+        ];
+    }
+
+    it('seats the unnamed compound in the squat slot, not the higher-fatigue isolation', () => {
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const legs = sessionIds(
+            generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: poolMixedSquat() })),
+            'legs',
+            null,
+        );
+        // Invariant: a primary compound slot prefers a compound over an isolation
+        // when both survive filtering. Without the guard, `not.toContain('squat-iso')`
+        // fails (the isolation wins the slot; the floor re-adds squat-compound, so both appear).
+        expect(legs).toContain('squat-compound');
+        expect(legs).not.toContain('squat-iso');
+    });
+});
+
 describe('GQ3: substitution-class cross-session deduplication', () => {
     it('prefers a distinct movement family over a redundant variant of an already-used class', () => {
         // Two bench-press variants share substitution_class 'horizontal_press';
