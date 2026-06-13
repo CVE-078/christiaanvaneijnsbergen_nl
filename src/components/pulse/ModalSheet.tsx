@@ -113,8 +113,9 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
                     <span className="h-1 w-10 rounded-full bg-pulse-border" aria-hidden />
                 </div>
 
-                {/* Standardized header */}
-                <div className="flex items-start gap-3 px-6 pt-4 pb-3">
+                {/* Standardized header. Desktop gets the full p-6 top; mobile keeps a
+                    tighter top because the grip handle already sits above it. */}
+                <div className="flex items-start gap-3 px-6 pb-3 pt-4 lg:pt-6">
                     {onBack && (
                         <button
                             type="button"
