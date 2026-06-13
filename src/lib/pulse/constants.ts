@@ -14,6 +14,21 @@ export const EQUIPMENT_LABELS: Record<EquipmentKey, string> = {
 
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
+// Display copy for generation duress-warning keys (stored in the routine's
+// `warnings` column by the generator). The Plan page renders these as a distinct,
+// dismissible notice. Keep the body wording stable; tests lock the key phrases.
+// An unknown key falls back to a generic notice at the call site.
+export const WARNING_COPY: Record<string, { title: string; body: string }> = {
+    limited_variety: {
+        title: 'Fewer compounds than ideal',
+        body: 'Some sessions have fewer compound exercises than recommended due to your equipment or movement restriction settings. The plan still works, this is a heads-up, not an error.',
+    },
+    no_compound: {
+        title: 'Accessory work only',
+        body: 'Your movement restrictions removed all compound options for one or more sessions, so they use accessory work only. Consider adjusting your restrictions or equipment.',
+    },
+};
+
 export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
     push: 'Push',
     pull: 'Pull',
