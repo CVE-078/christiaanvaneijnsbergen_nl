@@ -241,7 +241,7 @@ export default function ProfileView() {
     if (loading?.profile) return <PageSkeleton rows={3} />;
 
     return (
-        <div className="px-4 pt-5 pb-12 mx-auto w-full max-w-[600px] lg:px-6 lg:pt-6 lg:pb-12">
+        <div className="px-4 pt-5 pb-12 mx-auto w-full max-w-[600px] lg:max-w-[1000px] lg:px-6 lg:pt-6 lg:pb-12">
             <PageTitle>Profile</PageTitle>
 
             <div className="mt-4 mb-6">
