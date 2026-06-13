@@ -20,6 +20,28 @@ const METRIC_PILLS: { metric: MeasurementMetric; label: string }[] = [
 
 const EMPTY_INPUTS: Record<MeasurementMetric, string> = { waist_cm: '', hips_cm: '', chest_cm: '', arms_cm: '' };
 
+// cm/in segmented toggle, shared by the card header and the log sheet (both drive
+// the same length unit, so switching in either place updates view + entry).
+function UnitToggle({ value, onChange }: { value: LengthUnit; onChange: (u: LengthUnit) => void }) {
+    return (
+        <div
+            className="inline-flex bg-pulse-surface-2 rounded-lg p-0.5 gap-0.5"
+            role="group"
+            aria-label="Measurement unit">
+            {(['cm', 'in'] as const).map((u) => (
+                <button
+                    key={u}
+                    type="button"
+                    onClick={() => onChange(u)}
+                    aria-pressed={value === u}
+                    className={`font-pulse text-[0.6875rem] font-semibold tracking-[0.04em] uppercase py-1 px-2.5 rounded-md cursor-pointer border-none ${value === u ? 'bg-pulse-accent text-pulse-bg' : 'bg-transparent text-pulse-dim'}`}>
+                    {u}
+                </button>
+            ))}
+        </div>
+    );
+}
+
 export default function MeasurementsCard() {
     const { profile, bodyMeasurements, logBodyMeasurement, deleteBodyMeasurement, updateLengthUnit } = usePulse();
     const { length_unit: lengthUnit } = profile;
@@ -118,20 +140,7 @@ export default function MeasurementsCard() {
             {/* Header: title + unit toggle, fixed height to align with BodyWeightCard header */}
             <div className="flex justify-between items-center h-[1.875rem] mb-1 gap-2">
                 <SectionLabel>Measurements</SectionLabel>
-                <div
-                    className="inline-flex bg-pulse-surface-2 rounded-lg p-0.5 gap-0.5"
-                    role="group"
-                    aria-label="Measurement unit">
-                    {(['cm', 'in'] as const).map((u) => (
-                        <button
-                            key={u}
-                            onClick={() => handleLengthUnitChange(u)}
-                            aria-pressed={lengthUnit === u}
-                            className={`font-pulse text-[0.6875rem] font-semibold tracking-[0.04em] uppercase py-1 px-2.5 rounded-md cursor-pointer border-none ${lengthUnit === u ? 'bg-pulse-accent text-pulse-bg' : 'bg-transparent text-pulse-dim'}`}>
-                            {u}
-                        </button>
-                    ))}
-                </div>
+                <UnitToggle value={lengthUnit} onChange={handleLengthUnitChange} />
             </div>
 
             {/* row2: selected-metric trend chip, matching BodyWeightCard's trend slot */}
@@ -234,6 +243,9 @@ export default function MeasurementsCard() {
             {/* All-four entry sheet (keeps the card compact + equal-height to BodyWeightCard) */}
             <ModalSheet open={showLogModal} onClose={() => setShowLogModal(false)} title="Log measurements">
                 <div className="flex flex-col gap-3 px-6 pb-2">
+                    <div className="flex justify-end">
+                        <UnitToggle value={lengthUnit} onChange={handleLengthUnitChange} />
+                    </div>
                     <input
                         type="date"
                         max={today}
