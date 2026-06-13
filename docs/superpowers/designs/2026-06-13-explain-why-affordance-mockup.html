@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pulse · "Why" affordance drafts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Sora:wght@300;400;500&family=Big+Shoulders+Display:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --color-pulse-accent:#ff7d66; --color-pulse-accent-dim:#b0503d;
+    --color-pulse-bg:#0e1113; --color-pulse-surface:#161a1d; --color-pulse-surface-2:#1c2125;
+    --color-pulse-border:#262c31; --color-pulse-dim:#aab2b7; --color-pulse-muted:#6f787e;
+    --color-pulse-error:#f43f5e; --color-pulse-success:#4ade80; --color-pulse-text:#e7ebed; --color-pulse-warn:#fb923c;
+    --font-pulse:"Hanken Grotesk",system-ui,sans-serif;
+    --font-body:"Sora",system-ui,sans-serif;
+    --font-display:"Big Shoulders Display",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--color-pulse-bg);color:var(--color-pulse-text);font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;padding:48px 28px 96px;line-height:1.5}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-family:var(--font-pulse);font-weight:600;font-size:1.5rem;letter-spacing:-.01em;margin-bottom:6px}
+  .lede{font-size:.85rem;color:var(--color-pulse-dim);max-width:60ch;margin-bottom:8px}
+  .note{font-size:.78rem;color:var(--color-pulse-muted);max-width:64ch;margin-bottom:34px}
+  .note b{color:var(--color-pulse-dim);font-weight:500}
+
+  /* The trigger context: a section header like Progress > Lifts, plus a numeric trigger row. */
+  .context{background:var(--color-pulse-surface);border-radius:16px;padding:20px;margin-bottom:14px}
+  .eyebrow{font-family:var(--font-pulse);font-size:.6875rem;font-weight:600;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--color-pulse-muted);margin-bottom:12px}
+  .glossary{ text-decoration:underline; text-decoration-style:dotted;
+    text-decoration-color:var(--color-pulse-muted); text-underline-offset:2px;cursor:pointer}
+  .trigrow{display:flex;align-items:center;gap:10px;font-family:var(--font-pulse);font-size:.95rem;color:var(--color-pulse-dim)}
+  .num{display:inline-flex;align-items:center;gap:5px;color:var(--color-pulse-text);font-weight:500;cursor:pointer}
+  .info{width:13px;height:13px;color:var(--color-pulse-muted);flex:none}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;margin-top:8px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .cell{position:relative}
+  .tag{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+  .tag .lt{font-family:var(--font-pulse);font-weight:600;font-size:.95rem;color:var(--color-pulse-text)}
+  .tag .ds{font-size:.74rem;color:var(--color-pulse-muted)}
+
+  /* Shared popover body type - sentence case, calm. */
+  .pop{position:relative;width:300px;max-width:100%;background:var(--color-pulse-surface);
+    border-radius:14px;font-family:var(--font-pulse)}
+  .pop .title{font-weight:600;font-size:.92rem;letter-spacing:-.005em;color:var(--color-pulse-text)}
+  .pop .why{font-family:var(--font-body);font-weight:300;font-size:.85rem;line-height:1.5;color:var(--color-pulse-dim)}
+  .pop .next{font-family:var(--font-body);font-weight:300;font-size:.8rem;line-height:1.5;color:var(--color-pulse-muted);margin-top:8px}
+  .x{appearance:none;border:none;background:transparent;color:var(--color-pulse-muted);cursor:pointer;
+    line-height:1;font-size:1rem;padding:2px;border-radius:6px}
+  .x:hover{color:var(--color-pulse-text)}
+
+  /* A - bordered card, header row with × */
+  .A{border:1px solid var(--color-pulse-border);box-shadow:0 14px 40px -12px rgba(0,0,0,.6);padding:16px}
+  .A .hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .A .why{margin-top:2px}
+  .caret{position:absolute;width:12px;height:12px;background:var(--color-pulse-surface);
+    border-left:1px solid var(--color-pulse-border);border-top:1px solid var(--color-pulse-border);
+    transform:rotate(45deg);top:-7px;left:26px}
+
+  /* B - coach accent bar + "Got it" footer */
+  .B{border:1px solid var(--color-pulse-border);box-shadow:0 14px 40px -12px rgba(0,0,0,.6);
+    padding:16px 16px 12px 18px;overflow:hidden}
+  .B::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--color-pulse-accent);opacity:.85}
+  .B .title{margin-bottom:6px}
+  .B .foot{display:flex;justify-content:flex-end;margin-top:12px}
+  .gotit{appearance:none;border:none;background:transparent;color:var(--color-pulse-accent);
+    font-family:var(--font-pulse);font-weight:600;font-size:.78rem;cursor:pointer;padding:4px 2px}
+
+  /* C - minimal definition, ghost × */
+  .C{border:1px solid var(--color-pulse-border);box-shadow:0 10px 30px -12px rgba(0,0,0,.55);padding:14px 14px 14px 15px}
+  .C::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;background:var(--color-pulse-border)}
+  .C .row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .C .why{margin:0}
+
+  /* D - micro eyebrow label + corner × */
+  .D{border:1px solid var(--color-pulse-border);box-shadow:0 14px 40px -12px rgba(0,0,0,.6);padding:16px}
+  .D .lab{font-size:.62rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--color-pulse-accent);opacity:.9;margin-bottom:7px}
+  .D .hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .D .why{margin-top:5px}
+
+  .foot-hint{margin-top:9px;font-family:var(--font-body);font-size:.68rem;color:var(--color-pulse-muted)}
+  .legend{margin-top:42px;border-top:1px solid var(--color-pulse-border);padding-top:18px}
+  .legend h2{font-family:var(--font-pulse);font-weight:600;font-size:.95rem;margin-bottom:8px}
+  .legend ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+  .legend li{font-size:.8rem;color:var(--color-pulse-dim)}
+  .legend b{color:var(--color-pulse-text);font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>"Why" affordance - calmer drafts</h1>
+  <p class="lede">The current popover renders ALL CAPS with wide tracking because it inherits <code style="font-family:var(--font-body);color:var(--color-pulse-warn)">text-transform: uppercase</code> from the section header it sits under. Every draft below is sentence case (the fix) and adds a clear close affordance.</p>
+  <p class="note"><b>Context (unchanged):</b> the same two triggers it opens from. A glossary term gets a dotted underline; a number/status gets a trailing ⓘ.</p>
+
+  <div class="context">
+    <div class="eyebrow"><span class="glossary">e1RM</span> progression</div>
+    <div class="trigrow">Target
+      <span class="num">47.5 kg × 8
+        <svg class="info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- A -->
+    <div class="cell">
+      <div class="tag"><span class="lt">A · Header + ×</span><span class="ds">structured, obvious close</span></div>
+      <div class="pop A">
+        <span class="caret"></span>
+        <div class="hd">
+          <span class="title">What is e1RM</span>
+          <button class="x" aria-label="Close">✕</button>
+        </div>
+        <p class="why">Estimated one-rep max: the most you could lift once, calculated from your sets.</p>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="cell">
+      <div class="tag"><span class="lt">B · Coach bar + "Got it"</span><span class="ds">warmest, explicit dismiss</span></div>
+      <div class="pop B">
+        <span class="title">Why this target</span>
+        <p class="why">You hit the top of the rep range at your target RIR.</p>
+        <p class="next">Heavier this session, reps reset to the bottom of the range.</p>
+        <div class="foot"><button class="gotit">Got it</button></div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="cell">
+      <div class="tag"><span class="lt">C · Minimal definition</span><span class="ds">lightest, ghost ×</span></div>
+      <div class="pop C">
+        <div class="row">
+          <p class="why">Estimated one-rep max: the most you could lift once, calculated from your sets.</p>
+          <button class="x" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <p class="foot-hint">Best for glossary terms (no "next" line).</p>
+    </div>
+
+    <!-- D -->
+    <div class="cell">
+      <div class="tag"><span class="lt">D · Eyebrow label + ×</span><span class="ds">labeled, tiny intentional caps</span></div>
+      <div class="pop D">
+        <div class="lab">Why</div>
+        <div class="hd">
+          <span class="title">Why this deload</span>
+          <button class="x" aria-label="Close">✕</button>
+        </div>
+        <p class="why">No e1RM gain in 3 weeks, so the lift stalled.</p>
+        <p class="next">Lighter targets this week to break the plateau, then build back up.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <h2>What changes vs the live version</h2>
+    <ul>
+      <li><b>Sentence case.</b> The popover is portaled out / case-reset so it never inherits the header's uppercase + wide tracking. No more shouting.</li>
+      <li><b>Clear close.</b> A · D use a corner ✕, B uses a "Got it" text button, C uses a ghost ✕. Escape / tap-outside / re-tap still work as backups.</li>
+      <li><b>Calmer frame.</b> Subtle 1px border + soft shadow instead of a bright glowing outline. The accent shows up only as a thin coach bar (B) or a tiny eyebrow (D), never the whole border.</li>
+      <li><b>Mobile is already fine</b> - it uses the bottom sheet (grip + ✕). This pass is the desktop popover.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

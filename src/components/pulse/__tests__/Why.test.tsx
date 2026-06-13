@@ -156,6 +156,20 @@ describe('Why affordance', () => {
         expect(dialog.contains(document.activeElement)).toBe(true);
     });
 
+    it('closes from the "Got it" button in the desktop popover and returns focus', () => {
+        mockMedia.isDesktop = true; // desktop
+        render(
+            <Why concept="progression" params={{ isRepAdvance: false }} variant="why">
+                <span>47.5 kg</span>
+            </Why>,
+        );
+        const trigger = screen.getByRole('button', { name: 'Why this target' });
+        fireEvent.click(trigger);
+        fireEvent.click(screen.getByRole('button', { name: /got it/i }));
+        expect(screen.queryByRole('dialog')).toBeNull();
+        expect(document.activeElement).toBe(trigger);
+    });
+
     it('defaults to the why variant (info glyph) when variant is omitted', () => {
         render(<Why concept="recovery">Ready</Why>);
         const trigger = screen.getByRole('button', { name: 'Recovery' });

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { explainCopy, type ExplainConcept, type ExplainCopy, type ExplainParams } from '@/lib/pulse/explainCopy';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
 import ModalSheet from './ModalSheet';
@@ -47,19 +48,23 @@ function InfoGlyph() {
 function WhyBody({ copy, className }: { copy: ExplainCopy; className?: string }) {
     return (
         <div className={className}>
-            <p className="font-pulse text-[0.9rem] leading-relaxed text-pulse-text">{copy.why}</p>
-            {copy.next && <p className="mt-2 font-pulse text-[0.85rem] leading-relaxed text-pulse-dim">{copy.next}</p>}
+            <p className="font-pulse-body text-[0.85rem] leading-relaxed text-pulse-dim">{copy.why}</p>
+            {copy.next && (
+                <p className="mt-2 font-pulse-body text-[0.8rem] leading-relaxed text-pulse-muted">{copy.next}</p>
+            )}
         </div>
     );
 }
 
-const PANEL_WIDTH = 280;
+const PANEL_WIDTH = 300;
 
 // A real (non-modal) dialog anchored to the trigger, mirroring how ModalSheet
 // owns its overlay: a transparent full-screen backdrop owns click-outside so
-// dismissal never fights the surface underneath (e.g. SetLogger's inputs). Focus
-// moves into it on open, is contained while open, and the parent returns it to
-// the trigger on close.
+// dismissal never fights the surface underneath (e.g. SetLogger's inputs). It is
+// portaled to document.body so it never inherits an ancestor's text-transform /
+// tracking (e.g. an uppercase section header). Focus moves into it on open, is
+// trapped while open, and the parent returns it to the trigger on close. A "Got
+// it" button makes dismissal obvious (Escape / click-outside / re-tap still work).
 function WhyPopover({
     copy,
     anchorRect,
@@ -73,9 +78,11 @@ function WhyPopover({
 }) {
     const dialogRef = useRef<HTMLDivElement>(null);
 
-    // Move focus into the popover on open.
+    // Move focus to the first control (the "Got it" button) on open.
     useEffect(() => {
-        dialogRef.current?.focus();
+        const root = dialogRef.current;
+        const focusable = root?.querySelector<HTMLElement>('button, [href], [tabindex]:not([tabindex="-1"])');
+        (focusable ?? root)?.focus();
     }, []);
 
     // Escape closes (document-level, like ModalSheet, so it works regardless of
@@ -108,18 +115,46 @@ function WhyPopover({
                 tabIndex={-1}
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
-                    // Nothing else is focusable inside, so contain Tab to the dialog.
-                    if (e.key === 'Tab') {
+                    // Trap Tab / Shift+Tab to the dialog's own focusables so focus
+                    // never leaks to the page behind a non-modal dialog.
+                    if (e.key !== 'Tab') return;
+                    const root = dialogRef.current;
+                    if (!root) return;
+                    const focusables = Array.from(
+                        root.querySelectorAll<HTMLElement>(
+                            'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+                        ),
+                    );
+                    if (focusables.length === 0) {
                         e.preventDefault();
-                        dialogRef.current?.focus();
+                        root.focus();
+                        return;
+                    }
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+                    const active = document.activeElement;
+                    if (e.shiftKey && (active === first || active === root)) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && active === last) {
+                        e.preventDefault();
+                        first.focus();
                     }
                 }}
                 style={{ position: 'fixed', width: PANEL_WIDTH, ...placement }}
-                className="rounded-[14px] border border-pulse-border bg-pulse-surface p-4 shadow-xl outline-none">
-                <p className="font-pulse-display text-[0.95rem] font-bold leading-tight text-pulse-text">
-                    {copy.title}
-                </p>
+                className="relative overflow-hidden rounded-[14px] border border-pulse-border bg-pulse-surface py-4 pl-[18px] pr-4 normal-case tracking-normal shadow-[0_14px_40px_-12px_rgba(0,0,0,0.6)] outline-none">
+                {/* Coach signature: a thin accent bar down the left edge. */}
+                <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-pulse-accent/85" />
+                <p className="font-pulse text-[0.92rem] font-semibold leading-snug text-pulse-text">{copy.title}</p>
                 <WhyBody copy={copy} className="mt-1.5" />
+                <div className="mt-3 flex justify-end">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="cursor-pointer rounded-md border-none bg-transparent p-1 font-pulse text-[0.78rem] font-semibold text-pulse-accent hover:opacity-80">
+                        Got it
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -168,13 +203,17 @@ export default function Why({ concept, params, variant = 'why', position = 'auto
             </button>
 
             {open &&
-                (isDesktop ? (
-                    <WhyPopover copy={copy} anchorRect={anchorRect} position={position} onClose={close} />
-                ) : (
-                    <ModalSheet open title={copy.title} onClose={close}>
-                        <WhyBody copy={copy} className="px-6 pb-2" />
-                    </ModalSheet>
-                ))}
+                typeof document !== 'undefined' &&
+                createPortal(
+                    isDesktop ? (
+                        <WhyPopover copy={copy} anchorRect={anchorRect} position={position} onClose={close} />
+                    ) : (
+                        <ModalSheet open title={copy.title} onClose={close}>
+                            <WhyBody copy={copy} className="px-6 pb-2" />
+                        </ModalSheet>
+                    ),
+                    document.body,
+                )}
         </>
     );
 }
