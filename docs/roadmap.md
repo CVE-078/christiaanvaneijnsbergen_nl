@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-13)
 
-**In progress:** (none).
+**In progress:** Guided-mode deload prefill (correctness gap) on `feature/guided-mode-deload-prefill`.
 
 **In review (on a branch, not yet merged):** (none). A **CLS audit** (`docs/audits/2026-06-13-cls-data-fetch-audit.md`) is ready to action.
 
