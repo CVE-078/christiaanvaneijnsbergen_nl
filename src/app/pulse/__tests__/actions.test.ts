@@ -17,6 +17,7 @@ function makeBuilder(): Record<string, unknown> {
     }
     builder.insert = vi.fn(() => builder);
     builder.single = vi.fn(() => Promise.resolve(nextResult()));
+    builder.maybeSingle = vi.fn(() => Promise.resolve(nextResult()));
     // Allow awaiting the builder directly (e.g. .in(...).eq(...))
     builder.then = (resolve: (v: QueuedResult) => unknown) => resolve(nextResult());
     return builder;
@@ -36,6 +37,7 @@ vi.mock('next/navigation', () => ({ redirect: vi.fn() }));
 
 import {
     logBodyMeasurement,
+    deleteBodyMeasurement,
     addExerciseToRoutine,
     updateGender,
     recordDecisionEvent,
@@ -52,12 +54,12 @@ beforeEach(() => {
 });
 
 describe('logBodyMeasurement validation', () => {
-    it('accepts valid finite measurements within range and returns the inserted row', async () => {
-        // insert(...).select(...).single() resolves the queued row.
+    it('accepts valid finite measurements within range and returns the upserted row', async () => {
+        queue.push({ data: null, error: null }); // existing-row read (maybeSingle) -> none
         queue.push({
             data: { id: 'm1', measured_at: '2026-05-01', waist_cm: 80, hips_cm: 95, chest_cm: 100, arms_cm: 35 },
             error: null,
-        });
+        }); // upsert(...).select(...).single()
         await expect(logBodyMeasurement({ waist_cm: 80, hips_cm: 95, chest_cm: 100, arms_cm: 35 })).resolves.toEqual({
             id: 'm1',
             measured_at: '2026-05-01',
@@ -84,16 +86,30 @@ describe('logBodyMeasurement validation', () => {
         await expect(logBodyMeasurement({ waist_cm: 80, measured_at: 'not-a-date' })).rejects.toThrow('Invalid date');
     });
 
-    it('accepts a valid measured_at date', async () => {
+    it('accepts a valid measured_at date and coalesces over the existing row', async () => {
+        // Existing row already has hips; logging only waist must keep hips (COALESCE).
+        queue.push({ data: { waist_cm: null, hips_cm: 95, chest_cm: null, arms_cm: null }, error: null }); // read
         queue.push({
-            data: { id: 'm2', measured_at: '2024-01-15', waist_cm: 80, hips_cm: null, chest_cm: null, arms_cm: null },
+            data: { id: 'm2', measured_at: '2024-01-15', waist_cm: 80, hips_cm: 95, chest_cm: null, arms_cm: null },
             error: null,
-        });
+        }); // upsert
         await expect(logBodyMeasurement({ waist_cm: 80, measured_at: '2024-01-15' })).resolves.toMatchObject({
             id: 'm2',
             measured_at: '2024-01-15',
             waist_cm: 80,
+            hips_cm: 95,
         });
+    });
+});
+
+describe('deleteBodyMeasurement', () => {
+    it('deletes by id for a valid uuid', async () => {
+        queue.push({ data: null, error: null }); // delete
+        await expect(deleteBodyMeasurement(VALID_UUID)).resolves.toBeUndefined();
+    });
+
+    it('rejects a malformed id before any query', async () => {
+        await expect(deleteBodyMeasurement('not-a-uuid')).rejects.toThrow('Invalid id');
     });
 });
 

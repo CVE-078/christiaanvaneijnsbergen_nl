@@ -27,7 +27,7 @@
 // for the consuming view files.
 
 export const INPUT =
-    'bg-pulse-bg border border-pulse-border rounded-lg px-3 py-2 text-pulse-text font-pulse text-sm outline-none focus:border-pulse-accent';
+    'bg-pulse-bg border border-pulse-border rounded-lg px-3 py-2 text-pulse-text font-pulse text-sm outline-none focus:border-pulse-accent [color-scheme:dark]';
 
 export const BTN_PRIMARY =
     'bg-pulse-accent text-pulse-bg font-pulse text-sm font-semibold rounded-lg px-4 py-2 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed';

@@ -239,23 +239,37 @@ export async function logBodyMeasurement(data: {
 
     const { supabase, user } = await getUserOrThrow();
 
+    const measured_at = data.measured_at ?? new Date().toISOString().split('T')[0];
+    // numeric(5,1) columns come back as strings; coerce like loadBodyMeasurements.
+    const num = (v: unknown): number | null => (v == null ? null : Number(v));
+
+    // One row per (user, date): read the existing row and COALESCE the new non-null
+    // values over it, so a partial entry fills blanks instead of clearing other metrics.
+    // The read-then-upsert is not atomic: two concurrent same-date logs from the same
+    // user could lose one metric. Acceptable here (single user, sequential logging); a
+    // server-side COALESCE trigger is the v1.5 fix if that ever matters.
+    const { data: existing } = await supabase
+        .from('body_measurements')
+        .select('waist_cm, hips_cm, chest_cm, arms_cm')
+        .eq('user_id', user.id)
+        .eq('measured_at', measured_at)
+        .maybeSingle();
+
+    const merged = {
+        waist_cm: data.waist_cm ?? num(existing?.waist_cm),
+        hips_cm: data.hips_cm ?? num(existing?.hips_cm),
+        chest_cm: data.chest_cm ?? num(existing?.chest_cm),
+        arms_cm: data.arms_cm ?? num(existing?.arms_cm),
+    };
+
     const { data: row, error } = await supabase
         .from('body_measurements')
-        .insert({
-            user_id: user.id,
-            measured_at: data.measured_at ?? new Date().toISOString().split('T')[0],
-            waist_cm: data.waist_cm ?? null,
-            hips_cm: data.hips_cm ?? null,
-            chest_cm: data.chest_cm ?? null,
-            arms_cm: data.arms_cm ?? null,
-        })
+        .upsert({ user_id: user.id, measured_at, ...merged }, { onConflict: 'user_id,measured_at' })
         .select('id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm')
         .single();
     if (error || !row) throw new Error('Failed to log measurements');
     revalidatePath('/pulse');
 
-    // numeric(5,1) columns come back as strings; coerce like loadBodyMeasurements.
-    const num = (v: unknown): number | null => (v == null ? null : Number(v));
     return {
         id: row.id,
         measured_at: row.measured_at,
@@ -264,6 +278,16 @@ export async function logBodyMeasurement(data: {
         chest_cm: num(row.chest_cm),
         arms_cm: num(row.arms_cm),
     };
+}
+
+export async function deleteBodyMeasurement(id: string): Promise<void> {
+    assertUuid(id);
+
+    const { supabase, user } = await getUserOrThrow();
+
+    const { error } = await supabase.from('body_measurements').delete().eq('id', id).eq('user_id', user.id);
+    if (error) throw new Error('Failed to delete measurement');
+    revalidatePath('/pulse');
 }
 
 export async function deleteBodyWeight(id: string) {

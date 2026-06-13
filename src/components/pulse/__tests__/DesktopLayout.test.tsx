@@ -49,6 +49,7 @@ const mockContext = {
     logBodyWeight: vi.fn(),
     logBodyMeasurement: vi.fn(),
     deleteBodyWeight: vi.fn(),
+    deleteBodyMeasurement: vi.fn(),
     isLoading: false,
     exercises: [],
     routines: [],

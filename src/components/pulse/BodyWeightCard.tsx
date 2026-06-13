@@ -120,10 +120,11 @@ export default function BodyWeightCard() {
                 <button
                     onClick={handleLogBodyweight}
                     disabled={isPending}
+                    aria-label="Log"
                     /* opacity/cursor are runtime booleans, must stay inline */
                     style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
-                    className="font-pulse text-[0.75rem] font-semibold tracking-[0.06em] uppercase py-2 px-4 bg-pulse-accent border-none rounded-lg text-pulse-bg shrink-0">
-                    Log
+                    className="inline-flex items-center gap-1 font-pulse text-[0.75rem] font-semibold tracking-[0.06em] uppercase py-2 px-4 bg-pulse-accent border-none rounded-lg text-pulse-bg shrink-0">
+                    <span className="text-base leading-none">+</span> Log
                 </button>
             </div>
 
