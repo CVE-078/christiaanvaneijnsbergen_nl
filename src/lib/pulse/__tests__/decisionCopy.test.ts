@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { decisionCopy, groupDecisionsByWeek } from '@/lib/pulse/decisionCopy';
+import { explainCopy } from '@/lib/pulse/explainCopy';
 import type { DecisionEventRow } from '@/lib/pulse/types';
 
 const RE = '11111111-1111-4111-8111-111111111111';
@@ -36,6 +37,12 @@ describe('decisionCopy', () => {
         expect(c.headline).toBe('Lift deloaded');
     });
 
+    it('sources the deload why and next from explainCopy (parity, no drift)', () => {
+        const c = decisionCopy(row({ type: 'deload', magnitude: { fromKg: 60, toKg: 54 } }), 'Squat');
+        expect(c.why).toBe(explainCopy('deload').why);
+        expect(c.next).toBe(explainCopy('deload').next);
+    });
+
     it('describes a weight progression (top of range)', () => {
         const c = decisionCopy(
             row({
@@ -48,6 +55,29 @@ describe('decisionCopy', () => {
         expect(c.kind).toBe('progression');
         expect(c.headline).toBe('Bench Press progressed');
         expect(c.next).toMatch(/heavier/i);
+    });
+
+    it('sources the progression why and next from explainCopy (both branches, parity)', () => {
+        const weight = decisionCopy(
+            row({
+                type: 'progression',
+                trigger: 'targets_hit',
+                magnitude: { fromKg: 80, toKg: 82.5, fromReps: 12, toReps: 8 },
+            }),
+            'Squat',
+        );
+        expect(weight.why).toBe(explainCopy('progression', { isRepAdvance: false }).why);
+        expect(weight.next).toBe(explainCopy('progression', { isRepAdvance: false }).next);
+        const rep = decisionCopy(
+            row({
+                type: 'progression',
+                trigger: 'targets_hit',
+                magnitude: { fromKg: 80, toKg: 80, fromReps: 9, toReps: 10 },
+            }),
+            'Squat',
+        );
+        expect(rep.why).toBe(explainCopy('progression', { isRepAdvance: true }).why);
+        expect(rep.next).toBe(explainCopy('progression', { isRepAdvance: true }).next);
     });
 
     it('describes a rep progression (same weight, +1 rep)', () => {

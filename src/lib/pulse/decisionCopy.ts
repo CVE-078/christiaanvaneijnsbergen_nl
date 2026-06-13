@@ -1,4 +1,5 @@
 import type { DecisionEventRow, DecisionEventType } from './types';
+import { explainCopy } from './explainCopy';
 
 export interface DecisionCopy {
     // The event type, kept for the UI to pick the glyph and colour.
@@ -17,13 +18,17 @@ export function decisionCopy(event: DecisionEventRow, exerciseName: string | nul
     const name = exerciseName?.trim() || null;
 
     switch (event.type) {
-        case 'deload':
+        case 'deload': {
+            // The why/next are single-sourced from the canonical concept registry
+            // so the timeline and the Train surfaces render the same sentence.
+            const e = explainCopy('deload');
             return {
                 kind: 'deload',
                 headline: name ? `${name} deloaded` : 'Lift deloaded',
-                why: 'No e1RM gain in 3 weeks, so the lift stalled.',
-                next: 'Lighter targets this week to break the plateau, then build back up.',
+                why: e.why,
+                next: e.next,
             };
+        }
 
         case 'progression': {
             // A weight advance resets reps to the bottom of the range; a rep advance
@@ -36,15 +41,12 @@ export function decisionCopy(event: DecisionEventRow, exerciseName: string | nul
                 fromReps != null &&
                 toReps != null &&
                 toReps > fromReps;
+            const e = explainCopy('progression', { isRepAdvance });
             return {
                 kind: 'progression',
                 headline: name ? `${name} progressed` : 'Lift progressed',
-                why: isRepAdvance
-                    ? 'You hit your target reps at the prescribed RIR.'
-                    : 'You hit the top of the rep range at your target RIR.',
-                next: isRepAdvance
-                    ? 'Add a rep this session at the same weight.'
-                    : 'Heavier this session, reps reset to the bottom of the range.',
+                why: e.why,
+                next: e.next,
             };
         }
 

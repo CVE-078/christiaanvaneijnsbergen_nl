@@ -43,6 +43,7 @@ import SessionsCalendar from '@/components/pulse/SessionsCalendar';
 import SessionDetailModal from '@/components/pulse/SessionDetailModal';
 import ExerciseDetailModal from '@/components/pulse/ExerciseDetailModal';
 import RecoveryTile from '@/components/pulse/RecoveryTile';
+import Why from '@/components/pulse/Why';
 import ModalSheet from '@/components/pulse/ModalSheet';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { formatLogDate } from '@/lib/pulse/dates';
@@ -806,7 +807,12 @@ export default function HistoryView() {
                         <div className="bg-pulse-surface rounded-2xl p-5">
                             {/* Chart label row */}
                             <div className="flex items-baseline justify-between mb-[7px]">
-                                <SectionHeader>e1RM progression</SectionHeader>
+                                <SectionHeader>
+                                    <Why concept="e1rm" variant="glossary">
+                                        e1RM
+                                    </Why>{' '}
+                                    progression
+                                </SectionHeader>
                                 {allRoutineExercises.length > 0 && (
                                     <select
                                         aria-label="Exercise"
@@ -878,7 +884,12 @@ export default function HistoryView() {
 
                         {/* Per-muscle volume this week */}
                         <div className="bg-pulse-surface rounded-2xl p-5">
-                            <SectionHeader>Volume by muscle, Week {activeWeek}</SectionHeader>
+                            <SectionHeader>
+                                <Why concept="volume_target" variant="glossary">
+                                    Volume by muscle
+                                </Why>
+                                , Week {activeWeek}
+                            </SectionHeader>
                             {focusLine && (
                                 <p className="-mt-1 mb-3 font-pulse text-[0.75rem] text-pulse-accent">{focusLine}</p>
                             )}

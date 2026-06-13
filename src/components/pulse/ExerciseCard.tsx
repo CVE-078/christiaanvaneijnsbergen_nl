@@ -15,10 +15,12 @@ import {
     isBodyweight,
     isPlateLoaded,
 } from '@/lib/pulse/utils';
+import { explainCopy } from '@/lib/pulse/explainCopy';
 import { useToast } from '@/lib/pulse/toast';
 import SetLogger from './SetLogger';
 import ExerciseHistoryPanel from './ExerciseHistoryPanel';
 import ExerciseInstructionModal from './ExerciseInstructionModal';
+import Why from './Why';
 import type { Logs, LogEntry, Unit, LastSession, DbExercise } from '@/lib/pulse/types';
 import type { RoutineExercise } from '@/lib/pulse/types';
 
@@ -195,9 +197,7 @@ function ExerciseCard({
                         {stalled && (
                             <div className="rounded-lg bg-pulse-surface-2 px-3 py-2.5">
                                 <p className="font-pulse text-[0.78125rem] font-semibold text-pulse-accent">
-                                    {deload
-                                        ? '↓ Deloading this week to break the stall'
-                                        : '⚠ Stalled, no e1RM gain in 3 weeks'}
+                                    {deload ? `↓ ${explainCopy('deload').why}` : `⚠ ${explainCopy('stalled').why}`}
                                 </p>
                                 <p className="font-pulse text-[0.75rem] text-pulse-dim mt-1">
                                     {deload ? (
@@ -284,7 +284,9 @@ function ExerciseCard({
                         {warmupSets.length > 0 && (
                             <div className="pb-3 border-b border-pulse-border mb-1">
                                 <div className="font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted mb-1.5">
-                                    Warm-up
+                                    <Why concept="warmup" variant="glossary">
+                                        Warm-up
+                                    </Why>
                                 </div>
                                 {warmupSets.map(({ percent, displayWeight, reps }) => (
                                     <div key={percent} className="flex items-center gap-2 py-[0.3rem]">

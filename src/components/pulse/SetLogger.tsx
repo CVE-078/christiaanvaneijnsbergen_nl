@@ -12,7 +12,9 @@ import {
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { BARBELL_KG } from '@/lib/pulse/constants';
+import { explainCopy } from '@/lib/pulse/explainCopy';
 import PlateCalculator from './PlateCalculator';
+import Why from './Why';
 import type { LogEntry, WorkoutType, Unit } from '@/lib/pulse/types';
 
 interface Props {
@@ -92,6 +94,11 @@ export default function SetLogger({
     const deloadTgt =
         !bodyweight && deload && previousEntry && week > 1 ? deloadTarget(previousEntry, repsRange ?? '') : null;
     const target = deloadTgt ?? progression;
+    // A rep advance holds the weight and adds a rep; a weight advance bumps the
+    // load and resets reps. Mirrors decisionCopy's read so the "why" matches the
+    // logged DecisionEvent. (Drives the explain-layer affordance on the target.)
+    const isRepAdvance =
+        !!previousEntry && !!progression && progression.kg <= previousEntry.kg && progression.reps > previousEntry.reps;
 
     function initKg() {
         // Bodyweight with no added load shows a blank field (placeholder), not "0".
@@ -398,7 +405,7 @@ export default function SetLogger({
                                             aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
                                             className="font-pulse-body text-[0.6875rem] font-medium leading-[1.45] tracking-[0.02em] text-pulse-accent">
                                             {deloadTgt
-                                                ? `You stalled around ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}, so back off on purpose. Drop to ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}${deloadTankClause} to reset.`
+                                                ? `${explainCopy('deload').why} Drop to ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}${deloadTankClause} to reset.`
                                                 : bodyweight
                                                   ? `Last time you hit ${previousEntry.reps} reps${previousEntry.kg > 0 ? ` at +${toDisplay(previousEntry.kg, unit)} ${unit}` : ''}. Go for ${target.reps} and ${rirClause}.`
                                                   : `Last time you hit ${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}. Go for ${toDisplay(target.kg, unit)} ${unit} × ${target.reps} and ${rirClause}.`}
@@ -470,15 +477,28 @@ export default function SetLogger({
                                                 : `${toDisplay(previousEntry.kg, unit)} ${unit} × ${previousEntry.reps}`}
                                         </span>
                                     )}
-                                    {target && (
-                                        <span
-                                            aria-label={deloadTgt ? 'Deload target' : 'Auto-progression target'}
-                                            className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
-                                            {bodyweight
-                                                ? `Aim for ${target.reps} reps`
-                                                : `${deloadTgt ? 'Back off to' : 'Go'} ${toDisplay(target.kg, unit)} ${unit} × ${target.reps}`}
-                                        </span>
-                                    )}
+                                    {target &&
+                                        (bodyweight ? (
+                                            <span
+                                                aria-label="Auto-progression target"
+                                                className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
+                                                Aim for {target.reps} reps
+                                            </span>
+                                        ) : deloadTgt ? (
+                                            <span className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
+                                                Back off to{' '}
+                                                <Why concept="deload" variant="why">
+                                                    {toDisplay(target.kg, unit)} {unit} × {target.reps}
+                                                </Why>
+                                            </span>
+                                        ) : (
+                                            <span className="font-pulse text-[0.75rem] text-pulse-accent tracking-[0.04em]">
+                                                Go{' '}
+                                                <Why concept="progression" params={{ isRepAdvance }} variant="why">
+                                                    {toDisplay(target.kg, unit)} {unit} × {target.reps}
+                                                </Why>
+                                            </span>
+                                        ))}
                                     {inputError && (
                                         <span className="font-pulse text-[0.6875rem] text-[#f43f5e]">{inputError}</span>
                                     )}

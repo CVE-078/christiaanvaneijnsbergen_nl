@@ -48,7 +48,8 @@ describe('SetLogger', () => {
     it('prefills the normal progression target by default', () => {
         const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
         render(<SetLogger {...defaultProps} week={2} previousEntry={prev} repsRange="8-12" />);
-        expect(screen.getByLabelText(/auto-progression target/i)).toBeInTheDocument();
+        // The card progression number is now an on-demand "why" trigger.
+        expect(screen.getByRole('button', { name: /why this target/i })).toBeInTheDocument();
         // rir 1 < target rir → progression deloads 2.5 kg to 97.5, not the 10% deload.
         expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(97.5);
     });
@@ -56,7 +57,9 @@ describe('SetLogger', () => {
     it('prefills a deloaded target when deload is set', () => {
         const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
         render(<SetLogger {...defaultProps} week={2} deload previousEntry={prev} repsRange="8-12" />);
-        expect(screen.getByLabelText(/deload target/i)).toBeInTheDocument();
+        // The deload target number is now an on-demand "why" trigger, so its label
+        // moved from the span to the button ("Why this deload").
+        expect(screen.getByRole('button', { name: /why this deload/i })).toBeInTheDocument();
         expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(90);
         expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
     });
@@ -131,7 +134,7 @@ describe('SetLogger', () => {
         render(<SetLogger {...defaultProps} week={2} previousEntry={prev} repsRange="8-12" />);
         expect(screen.getByRole('spinbutton', { name: /weight in kg/i })).toHaveValue(62.5);
         expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(8);
-        expect(screen.getByLabelText(/auto-progression target/i)).toHaveTextContent('62.5');
+        expect(screen.getByRole('button', { name: /why this target/i })).toHaveTextContent('62.5');
     });
 
     it('pre-fills a rep bump when mid-range', () => {
@@ -144,7 +147,7 @@ describe('SetLogger', () => {
 
     it('shows no target hint when there is no previous entry', () => {
         render(<SetLogger {...defaultProps} repsRange="8-12" />);
-        expect(screen.queryByLabelText(/auto-progression target/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /why this target/i })).not.toBeInTheDocument();
         expect(screen.getByRole('spinbutton', { name: /repetitions/i })).toHaveValue(null);
     });
 
@@ -231,13 +234,24 @@ describe('SetLogger', () => {
     it('card target reads as an instruction ("Go") for a normal progression', () => {
         const prev: LogEntry = { kg: 60, reps: 12, rir: 3, saved: true };
         render(<SetLogger {...defaultProps} week={2} previousEntry={prev} repsRange="8-12" />);
-        expect(screen.getByLabelText(/auto-progression target/i)).toHaveTextContent(/^Go /);
+        expect(screen.getByRole('button', { name: /why this target/i }).parentElement).toHaveTextContent(/^Go /);
     });
 
-    it('card target reads as a deliberate backoff ("Back off to") on a deload', () => {
+    it('card target reads as a deliberate backoff ("Back off to") on a deload, with a tappable why', () => {
         const prev: LogEntry = { kg: 100, reps: 8, rir: 1, saved: true };
         render(<SetLogger {...defaultProps} week={2} deload previousEntry={prev} repsRange="8-12" />);
-        expect(screen.getByLabelText(/deload target/i)).toHaveTextContent(/^Back off to /);
+        const why = screen.getByRole('button', { name: /why this deload/i });
+        expect(why).toHaveTextContent('90 kg × 8'); // the prescription stays on the number
+        expect(why.parentElement).toHaveTextContent(/^Back off to /);
+    });
+
+    it('card progression target is a tappable why, keeping the terse number', async () => {
+        const prev: LogEntry = { kg: 90, reps: 12, rir: 1, saved: true };
+        render(<SetLogger {...defaultProps} week={3} previousEntry={prev} repsRange="8-12" />);
+        const why = screen.getByRole('button', { name: /why this target/i });
+        expect(why).toHaveTextContent(/×\s*\d/); // the dense card still shows the number
+        await userEvent.click(why);
+        expect(screen.getByRole('dialog')).toHaveTextContent(/RIR/);
     });
 
     it('card previous reads "Last ..." rather than a glyph', () => {
@@ -267,8 +281,12 @@ describe('SetLogger', () => {
             <SetLogger {...defaultProps} variant="editorial" week={2} deload previousEntry={prev} repsRange="8-12" />,
         );
         const hint = screen.getByLabelText(/deload target/i);
-        expect(hint).toHaveTextContent(/back off on purpose/);
+        // The guided sentence now carries the canonical deload why (single-sourced
+        // from explainCopy), then the unit-bearing prescription.
+        expect(hint).toHaveTextContent(/no e1RM gain in 3 weeks, so the lift stalled/i);
+        expect(hint).toHaveTextContent(/Drop to 90 kg × 8/);
         expect(hint).toHaveTextContent(/in the tank/);
+        expect(hint).toHaveTextContent(/to reset/);
     });
 
     it('guided shows the rep-target and RIR prescription chips', () => {

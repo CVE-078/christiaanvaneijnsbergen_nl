@@ -30,6 +30,7 @@ import WorkoutModeScreen from '../WorkoutModeScreen';
 import FinishDebrief from '../FinishDebrief';
 import GenerateRoutineButton from '../GenerateRoutineButton';
 import PendingSyncBadge from '../PendingSyncBadge';
+import Why from '../Why';
 import type { LogEntry, RoutineExercise, WorkoutSession, WorkoutVariant } from '@/lib/pulse/types';
 
 export default function LogView() {
@@ -107,6 +108,14 @@ export default function LogView() {
                     ? '1 session behind'
                     : `${programPosition.behindBy} sessions behind`
             : null;
+    // Behind / lapsed get an on-demand, never-punish "why" on the status pill.
+    // The pill word is unchanged; only a tap reveals the reassuring explanation.
+    const statusExplain =
+        programPosition && programPosition.status === 'lapsed'
+            ? { concept: 'lapsed' as const, params: { daysAway: programPosition.daysSinceLastSession ?? undefined } }
+            : programPosition && programPosition.status === 'behind'
+              ? { concept: 'behind' as const, params: { behindBy: programPosition.behindBy } }
+              : null;
     const unit = profile.unit;
     const routineExercises: RoutineExercise[] = useMemo(
         () => routineExercisesByTabKey[activeTab] ?? [],
@@ -366,7 +375,16 @@ export default function LogView() {
                                 <PendingSyncBadge />
                                 {statusLabel && (
                                     <span className="whitespace-nowrap rounded-md bg-pulse-surface-2 px-2 py-0.5 font-pulse text-[0.6875rem] font-semibold text-pulse-accent">
-                                        {statusLabel}
+                                        {statusExplain ? (
+                                            <Why
+                                                concept={statusExplain.concept}
+                                                params={statusExplain.params}
+                                                variant="why">
+                                                {statusLabel}
+                                            </Why>
+                                        ) : (
+                                            statusLabel
+                                        )}
                                     </span>
                                 )}
                                 {currentWeek !== activeWeek && (
