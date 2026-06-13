@@ -21,7 +21,10 @@ export type ExplainConcept =
     | 'warmup' // warm-up ramp scheme
     | 'volume_target' // per-muscle weekly volume target
     | 'recovery' // recovery readout
-    | 'strength_score'; // strength-score methodology
+    | 'strength_score' // strength-score methodology
+    | 'rir' // reps in reserve (proximity to failure)
+    | 'phase' // periodized training phases (the block arc)
+    | 'deload_week'; // a planned program deload week (distinct from the stalled-lift `deload` above)
 
 export interface ExplainParams {
     /** progression: true if the engine advanced reps (same weight), false if it advanced weight. */
@@ -142,6 +145,26 @@ export function explainCopy(concept: ExplainConcept, params: ExplainParams = {})
             return {
                 title: 'Strength score',
                 why: 'How strong your main lifts are relative to typical standards for your bodyweight.',
+            };
+
+        case 'rir':
+            return {
+                title: 'What is RIR',
+                why: 'Reps in reserve: how many more reps you could do before failure. RIR 3 leaves a few in the tank; RIR 0 is all-out.',
+            };
+
+        case 'phase':
+            return {
+                title: 'Training phases',
+                why: 'Your program runs in phases that gradually raise the effort, then a deload week to recover. The cycle then repeats.',
+            };
+
+        case 'deload_week':
+            // The planned program deload (block-arc), NOT the stalled-lift auto-deload.
+            // No supercompensation overclaim: fatigue management is the defensible claim.
+            return {
+                title: 'What is a deload',
+                why: 'A planned lighter week, less volume and easier effort, so built-up fatigue clears before the next block. Not a break, just easier.',
             };
     }
 }

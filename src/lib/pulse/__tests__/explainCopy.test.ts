@@ -12,6 +12,9 @@ const ALL_CONCEPTS: ExplainConcept[] = [
     'volume_target',
     'recovery',
     'strength_score',
+    'rir',
+    'phase',
+    'deload_week',
 ];
 
 describe('explainCopy', () => {
@@ -68,8 +71,24 @@ describe('explainCopy', () => {
     });
 
     it('keeps glossary concepts as definitions (no "next")', () => {
-        for (const concept of ['e1rm', 'warmup', 'volume_target', 'recovery', 'strength_score'] as const) {
+        for (const concept of [
+            'e1rm',
+            'warmup',
+            'volume_target',
+            'recovery',
+            'strength_score',
+            'rir',
+            'phase',
+            'deload_week',
+        ] as const) {
             expect(explainCopy(concept).next, concept).toBeUndefined();
         }
+    });
+
+    it('keeps the planned deload_week distinct from the stalled-lift deload, with no strength-jump overclaim', () => {
+        expect(explainCopy('deload_week').why).not.toBe(explainCopy('deload').why);
+        expect(explainCopy('deload_week').why).not.toMatch(/stronger/i);
+        expect(explainCopy('rir').why.toLowerCase()).toContain('reserve');
+        expect(explainCopy('phase').why.toLowerCase()).toContain('phase');
     });
 });
