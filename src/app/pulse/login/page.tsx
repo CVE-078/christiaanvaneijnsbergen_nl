@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { login } from './actions';
 import SubmitButton from './SubmitButton';
 import { LINK } from '@/components/pulse/authStyles';
+import PasswordInput from '@/components/pulse/PasswordInput';
 
 export const metadata: Metadata = {
     title: 'Pulse Login',
@@ -69,15 +70,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                     className="block font-pulse text-[0.6875rem] tracking-[0.1em] uppercase text-pulse-muted mb-1.5">
                     Password
                 </label>
-                <input
+                <PasswordInput
                     id="password"
-                    type="password"
                     name="password"
                     required
                     autoComplete="current-password"
                     aria-invalid={hasError ? true : undefined}
                     aria-describedby={hasError ? 'login-error' : undefined}
-                    className={`${FIELD} mb-6 ${hasError ? 'border-pulse-error/40' : 'border-pulse-border'}`}
+                    wrapperClassName="mb-6"
+                    className={`${FIELD} ${hasError ? 'border-pulse-error/40' : 'border-pulse-border'}`}
                 />
 
                 <SubmitButton />

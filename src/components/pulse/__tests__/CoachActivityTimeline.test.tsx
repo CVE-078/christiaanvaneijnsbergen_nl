@@ -56,19 +56,18 @@ describe('CoachActivityTimeline', () => {
         expect(screen.getByText('Bench Press progressed')).toBeInTheDocument();
     });
 
-    it('renders at most 3 decisions', () => {
-        const many: DecisionEventRow[] = [1, 2, 3, 4, 5].map((i) =>
-            progression({ id: `p${i}`, week: i }),
-        );
+    it('renders at most 4 recent decisions inline', () => {
+        const many: DecisionEventRow[] = [1, 2, 3, 4, 5].map((i) => progression({ id: `p${i}`, week: i }));
         makeCtx(many);
         render(<CoachActivityTimeline />);
-        // Each item renders the same headline; 3 are visible.
-        expect(screen.getAllByText('Bench Press progressed')).toHaveLength(3);
+        // Each item renders the same headline; 4 are visible inline.
+        expect(screen.getAllByText('Bench Press progressed')).toHaveLength(4);
     });
 
-    it('renders a "Show all" link', () => {
-        makeCtx([progression()]);
+    it('shows a "Show all" button only when there are more than 4 decisions', () => {
+        const many: DecisionEventRow[] = [1, 2, 3, 4, 5].map((i) => progression({ id: `p${i}`, week: i }));
+        makeCtx(many);
         render(<CoachActivityTimeline />);
-        expect(screen.getByText(/show all/i)).toBeInTheDocument();
+        expect(screen.getByText(/show all 5 decisions/i)).toBeInTheDocument();
     });
 });

@@ -11,7 +11,6 @@ import {
     priorityAdjustedTargets,
     priorityFocusLine,
     recoveryReadout,
-    weekInBlock,
 } from '@/lib/pulse/utils';
 import { resolvePriority } from '@/lib/pulse/generation';
 import { computeHistoryBundle } from '@/lib/pulse/historyBundle';
@@ -25,7 +24,12 @@ import ProgramStatusCard from '@/components/pulse/ProgramStatusCard';
 import CoachActivityTimeline from '@/components/pulse/CoachActivityTimeline';
 import StrengthBreakdownModal from '@/components/pulse/StrengthBreakdownModal';
 import PageTitle from '@/components/pulse/PageTitle';
-import { computeStrengthScore, computeStrengthScoreSeries, strengthDeltaLabel, classifyLift } from '@/lib/pulse/strength';
+import {
+    computeStrengthScore,
+    computeStrengthScoreSeries,
+    strengthDeltaLabel,
+    classifyLift,
+} from '@/lib/pulse/strength';
 import PageSkeleton, { ErrorState } from '@/components/pulse/PageSkeleton';
 import { VOLUME_TARGETS } from '@/lib/pulse/data';
 import SegmentedTabs from '@/components/pulse/SegmentedTabs';
@@ -42,8 +46,10 @@ import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { formatLogDate } from '@/lib/pulse/dates';
 import { assembleWorkouts, type Workout } from '@/lib/pulse/workouts';
 import MilestonesCard from '@/components/pulse/MilestonesCard';
+import { ModalGroupHeader } from '@/components/pulse/ui/ModalList';
+import { computeWithinReach } from '@/lib/pulse/withinReach';
 import { computeMilestones } from '@/lib/pulse/milestones';
-import type { Logs, WorkoutSession, WorkoutType } from '@/lib/pulse/types';
+import type { Logs, WorkoutSession, WorkoutType, ExerciseCategory } from '@/lib/pulse/types';
 
 type ProgressTab = 'overview' | 'lifts' | 'body';
 
@@ -90,6 +96,9 @@ function GoalWeightSummary() {
     // persisted start weight we use the first logged entry as the baseline.
     const firstLog = bodyweightLogs[bodyweightLogs.length - 1]?.weight_kg ?? null;
     const startDisplay = firstLog !== null ? toDisplay(firstLog, unit) : null;
+    // Show the starting weight as a third readout once there are at least two
+    // weigh-ins (so Initial differs from Current); reads Initial -> Current -> Goal.
+    const showInitial = startDisplay !== null && bodyweightLogs.length >= 2;
     let progressPct = 0;
     if (startDisplay !== null && currentDisplay !== null && startDisplay !== goalDisplay) {
         progressPct = Math.min(
@@ -101,6 +110,33 @@ function GoalWeightSummary() {
     return (
         <div>
             <div className="flex items-center gap-4 flex-wrap">
+                {showInitial && (
+                    <>
+                        <div>
+                            <div className="font-pulse text-[0.6rem] tracking-[0.08em] uppercase text-pulse-muted">
+                                Initial
+                            </div>
+                            <div className="font-pulse-display mt-1 text-[1.45rem] font-semibold leading-none text-pulse-dim">
+                                {startDisplay?.toFixed(1)}
+                                <span className="font-pulse text-[0.82rem] text-pulse-muted ml-1">{unit}</span>
+                            </div>
+                        </div>
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="shrink-0 text-pulse-muted"
+                            aria-hidden>
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </>
+                )}
                 <div>
                     <div className="font-pulse text-[0.6rem] tracking-[0.08em] uppercase text-pulse-muted">Current</div>
                     <div className="font-pulse-display font-semibold text-[1.45rem] leading-none mt-1">
@@ -186,15 +222,10 @@ function AllWorkoutsModal({
             <div className="flex-1 overflow-y-auto px-6 pb-1">
                 {groups.map((group) => (
                     <div key={group.key}>
-                        <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 flex items-center gap-3">
-                            <span className="font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
-                                {group.label}
-                            </span>
-                            <span className="h-px flex-1 bg-pulse-border" />
-                            <span className="font-pulse text-[0.64rem] text-pulse-muted shrink-0">
-                                {group.items.length} {group.items.length === 1 ? 'workout' : 'workouts'}
-                            </span>
-                        </div>
+                        <ModalGroupHeader
+                            label={group.label}
+                            count={`${group.items.length} ${group.items.length === 1 ? 'workout' : 'workouts'}`}
+                        />
                         {group.items.map((w) => {
                             const label =
                                 (WORKOUT_TYPE_LABELS[w.workoutType as WorkoutType] ?? w.workoutType) +
@@ -396,6 +427,49 @@ export default function HistoryView() {
 
     const hasData = sessions.length > 0;
 
+    // Working-set count of the most recent program week that has any logs, for the
+    // Overview "Volume (wk)" tile. Window-independent (reads raw logs) so the tile
+    // is robust even when the current week hasn't been trained yet (e.g. a deload
+    // week just opened): it falls back to the latest week with data.
+    const weeklyVolume = useMemo(() => {
+        const byWeek = new Map<number, number>();
+        for (const key in logs) {
+            if (!logs[key]?.saved) continue;
+            const parsed = parseLogKey(key);
+            if (!parsed) continue;
+            byWeek.set(parsed.week, (byWeek.get(parsed.week) ?? 0) + 1);
+        }
+        if (byWeek.size === 0) return 0;
+        return byWeek.get(Math.max(...byWeek.keys())) ?? 0;
+    }, [logs]);
+
+    // A single forward-looking "within reach" nudge for the top of the overview
+    // (e.g. "4 sessions to finish your 12-week block"). Null most of the time.
+    const withinReach = useMemo(() => {
+        if (!programPosition) return null;
+        return computeWithinReach({
+            completedCount: programPosition.completedCount,
+            sessionsPerWeek: activeRoutine?.schedule?.length ?? 0,
+            programWeeks: activeRoutine?.program_weeks ?? 12,
+            status: programPosition.status,
+        });
+    }, [programPosition, activeRoutine?.schedule, activeRoutine?.program_weeks]);
+
+    // Priority-muscle volume vs floor for the current week, the most coach-relevant
+    // glance for someone with a chosen priority. Uses the same bridge-credited
+    // muscleVolume as the Lifts tab. Hidden when no priority is set or when the
+    // muscle hasn't been trained this week (e.g. an untrained deload week), so it
+    // never reads as a misleading "0 / target, add volume".
+    const priorityVolume = useMemo(() => {
+        const priority = resolvePriority(profile.priority_muscle);
+        if (!priority) return null;
+        const cats: ExerciseCategory[] = priority === 'arms' ? ['biceps', 'triceps'] : [priority as ExerciseCategory];
+        const current = Math.round(cats.reduce((s, c) => s + (muscleVolume[c] ?? 0), 0));
+        if (current <= 0) return null;
+        const floor = Math.round(cats.reduce((s, c) => s + (targets[c]?.[0] ?? 0), 0));
+        return { label: priority.charAt(0).toUpperCase() + priority.slice(1), current, floor };
+    }, [profile.priority_muscle, muscleVolume, targets]);
+
     // Active progress tab (Overview / Lifts / Body). No persistence; defaults to Overview.
     const [progressTab, setProgressTab] = useState<ProgressTab>('overview');
 
@@ -490,89 +564,223 @@ export default function HistoryView() {
             {/* Overview panel */}
             {progressTab === 'overview' && (
                 <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
-                    {/* Metric strip: 4 glanceable tiles */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-4">
-                        {/* Strength tile, tappable to open the breakdown modal */}
-                        <button
-                            type="button"
-                            onClick={() => setStrengthModalOpen(true)}
-                            className="flex flex-col items-center rounded-2xl bg-pulse-surface p-3.5 border border-transparent hover:border-pulse-border transition-colors cursor-pointer">
-                            <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-accent">
-                                {strength.score ?? '—'}
-                            </span>
-                            <span
-                                className={`font-pulse text-[0.62rem] font-semibold mt-1 ${
-                                    strengthDelta.tone === 'up'
-                                        ? 'text-pulse-success'
-                                        : strengthDelta.tone === 'down'
-                                          ? 'text-pulse-dim'
-                                          : 'text-pulse-muted'
-                                }`}>
-                                {strengthDelta.text}
-                            </span>
-                            <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
-                                Strength &rsaquo;
-                            </span>
-                        </button>
-                        {/* Recovery tile */}
-                        <RecoveryTile readout={recoverySummary} />
-                        {/* Program tile */}
-                        <div className="flex flex-col items-center rounded-2xl bg-pulse-surface p-3.5">
-                            <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-text">
-                                {programPosition
-                                    ? `W${weekInBlock(programPosition.weekInteger, activeRoutine?.program_weeks ?? 12)}`
-                                    : '—'}
-                            </span>
-                            <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
-                                Program
-                            </span>
+                    {!hasData ? (
+                        <div className="flex flex-col items-center rounded-2xl bg-pulse-surface px-6 py-12 text-center">
+                            <svg
+                                width="28"
+                                height="28"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="mb-3 text-pulse-muted"
+                                aria-hidden>
+                                <path d="M3 3v18h18" />
+                                <path d="m7 14 4-4 3 3 5-6" />
+                            </svg>
+                            <p className="font-pulse-display text-[1.15rem] font-bold text-pulse-text">
+                                No progress yet
+                            </p>
+                            <p className="mt-1.5 max-w-xs font-pulse text-[0.85rem] leading-relaxed text-pulse-muted">
+                                Log your first workout and your strength score, recomp verdict, and milestones will show
+                                up here.
+                            </p>
                         </div>
-                        {/* Streak tile */}
-                        <div className="flex flex-col items-center rounded-2xl bg-pulse-surface p-3.5">
-                            <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-text">
-                                {streak}
-                            </span>
-                            <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
-                                Streak (wk)
-                            </span>
-                        </div>
-                    </div>
+                    ) : (
+                        <>
+                            {/* Forward-looking "within reach" nudge: the one near-term goal.
+                                Sits with clear space above (under the tabs) and tighter below. */}
+                            {withinReach && (
+                                <div className="mt-1 mb-2 flex items-center gap-2.5 rounded-2xl bg-pulse-accent/10 px-4 py-3">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="shrink-0 text-pulse-accent"
+                                        aria-hidden>
+                                        <circle cx="12" cy="12" r="9" />
+                                        <circle cx="12" cy="12" r="4.5" />
+                                        <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+                                    </svg>
+                                    <span className="font-pulse text-[0.84rem] font-medium text-pulse-text">
+                                        {withinReach.text}
+                                    </span>
+                                </div>
+                            )}
 
-                    {/* Recent milestones */}
-                    {milestones.length > 0 && (
-                        <div className="mb-4">
-                            <SectionHeader>Recent milestones</SectionHeader>
-                            <MilestonesCard milestones={milestones} />
-                        </div>
+                            {/* Metric strip: 4 glanceable tiles */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-4">
+                                {/* Strength tile, tappable to open the breakdown modal */}
+                                <button
+                                    type="button"
+                                    onClick={() => setStrengthModalOpen(true)}
+                                    className="flex flex-col items-center justify-center rounded-2xl bg-pulse-surface p-3.5 border border-transparent hover:border-pulse-border transition-colors cursor-pointer">
+                                    <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-accent">
+                                        {strength.score ?? '—'}
+                                    </span>
+                                    {/* Level gives the score meaning; trend delta rides alongside. */}
+                                    <span className="mt-1 font-pulse text-[0.62rem] font-semibold">
+                                        {strength.level && <span className="text-pulse-dim">{strength.level}</span>}
+                                        {strength.level && strengthDelta.text ? (
+                                            <span className="text-pulse-muted"> · </span>
+                                        ) : null}
+                                        <span
+                                            className={
+                                                strengthDelta.tone === 'up'
+                                                    ? 'text-pulse-success'
+                                                    : strengthDelta.tone === 'down'
+                                                      ? 'text-pulse-dim'
+                                                      : 'text-pulse-muted'
+                                            }>
+                                            {strengthDelta.text}
+                                        </span>
+                                    </span>
+                                    <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
+                                        Strength &rsaquo;
+                                    </span>
+                                </button>
+                                {/* Recovery tile */}
+                                <RecoveryTile readout={recoverySummary} />
+                                {/* Sessions tile, total completed this block */}
+                                <div className="flex flex-col items-center justify-center rounded-2xl bg-pulse-surface p-3.5">
+                                    <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-text">
+                                        {programPosition?.completedCount ?? sessions.length}
+                                    </span>
+                                    <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
+                                        Sessions
+                                    </span>
+                                </div>
+                                {/* Weekly volume tile, most recent trained week's working sets */}
+                                <div className="flex flex-col items-center justify-center rounded-2xl bg-pulse-surface p-3.5">
+                                    <span className="font-pulse-display font-bold text-[1.85rem] leading-none text-pulse-text">
+                                        {weeklyVolume}
+                                    </span>
+                                    <span className="font-pulse text-[0.6rem] tracking-[0.09em] uppercase text-pulse-muted mt-1.5">
+                                        Volume (wk)
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Priority-muscle volume vs floor this week, tappable to Lifts. */}
+                            {priorityVolume && (
+                                <button
+                                    type="button"
+                                    onClick={() => setProgressTab('lifts')}
+                                    aria-label={`${priorityVolume.label} weekly volume, ${priorityVolume.current} of ${priorityVolume.floor} sets. View lifts.`}
+                                    className="mb-4 flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border-none bg-pulse-surface px-4 py-3 text-left">
+                                    <span className="min-w-0 truncate font-pulse text-[0.8rem] text-pulse-dim">
+                                        <span className="font-semibold text-pulse-text">{priorityVolume.label}</span>{' '}
+                                        volume this week
+                                    </span>
+                                    <span className="flex shrink-0 items-center gap-2">
+                                        <span className="font-pulse text-[0.82rem] font-medium text-pulse-text">
+                                            {priorityVolume.current}/{priorityVolume.floor} sets
+                                        </span>
+                                        <span
+                                            className={`font-pulse text-[0.68rem] ${
+                                                priorityVolume.current >= priorityVolume.floor
+                                                    ? 'text-pulse-success'
+                                                    : 'text-pulse-dim'
+                                            }`}>
+                                            {priorityVolume.current >= priorityVolume.floor ? 'on track' : 'add volume'}
+                                        </span>
+                                        <svg
+                                            width="15"
+                                            height="15"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2.2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="text-pulse-muted"
+                                            aria-hidden>
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    </span>
+                                </button>
+                            )}
+
+                            {/* Recomp verdict card, the "is it working" outcome, leads after
+                        the glance strip; program logistics follow. Tappable to Body. */}
+                            <div className="mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setProgressTab('body')}
+                                    aria-label="View body data"
+                                    className="group block w-full cursor-pointer border-none bg-transparent p-0 text-left">
+                                    <div className="mb-[9px] flex items-center justify-between">
+                                        <span className="font-pulse text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
+                                            Recomp verdict
+                                        </span>
+                                        <span className="flex items-center gap-1 font-pulse text-[0.7rem] font-medium text-pulse-accent">
+                                            Body
+                                            <svg
+                                                width="13"
+                                                height="13"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.4"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                aria-hidden>
+                                                <polyline points="9 18 15 12 9 6" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div className="rounded-2xl border border-transparent transition-colors group-hover:border-pulse-border">
+                                        <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
+                                    </div>
+                                </button>
+                            </div>
+
+                            {/* Program status card */}
+                            <div className="mb-4">
+                                <SectionHeader>Program</SectionHeader>
+                                <ProgramStatusCard />
+                            </div>
+
+                            {/* Recent activity: milestones + coach, paired side-by-side on
+                        desktop and stacked on mobile. Each renders its own card; the
+                        two-column grid only kicks in when both feeds have content, so a
+                        lone feed stays full width. */}
+                            {(milestones.length > 0 || decisions.length > 0) && (
+                                <div
+                                    className={`mb-4 grid items-stretch gap-4 ${
+                                        milestones.length > 0 && decisions.length > 0 ? 'lg:grid-cols-2' : ''
+                                    }`}>
+                                    {milestones.length > 0 && (
+                                        <div className="flex flex-col">
+                                            <SectionHeader>Recent milestones</SectionHeader>
+                                            <MilestonesCard milestones={milestones} />
+                                        </div>
+                                    )}
+                                    {decisions.length > 0 && (
+                                        <div className="flex flex-col">
+                                            <SectionHeader>Coach activity</SectionHeader>
+                                            <CoachActivityTimeline />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Strength breakdown modal */}
+                            <StrengthBreakdownModal
+                                open={strengthModalOpen}
+                                strength={strength}
+                                series={strengthSeries}
+                                onClose={() => setStrengthModalOpen(false)}
+                            />
+                        </>
                     )}
-
-                    {/* Program status card */}
-                    <div className="mb-4">
-                        <SectionHeader>Program</SectionHeader>
-                        <ProgramStatusCard />
-                    </div>
-
-                    {/* Recomp verdict card */}
-                    <div className="mb-4">
-                        <SectionHeader>Recomp verdict</SectionHeader>
-                        <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
-                    </div>
-
-                    {/* Coach activity timeline, only when the coach has acted */}
-                    {decisions.length > 0 && (
-                        <div>
-                            <SectionHeader>Coach activity</SectionHeader>
-                            <CoachActivityTimeline />
-                        </div>
-                    )}
-
-                    {/* Strength breakdown modal */}
-                    <StrengthBreakdownModal
-                        open={strengthModalOpen}
-                        strength={strength}
-                        series={strengthSeries}
-                        onClose={() => setStrengthModalOpen(false)}
-                    />
                 </div>
             )}
 
@@ -612,13 +820,13 @@ export default function HistoryView() {
                                     return (
                                         <div className="flex items-baseline gap-1.5 mb-[7px]">
                                             <span className="font-pulse font-semibold text-[0.86rem] text-pulse-text">
-                                                {currentE1RM} {unit}
+                                                {Math.round(currentE1RM)} {unit}
                                             </span>
                                             {deltaPct !== null && (
                                                 <span
                                                     className={`font-pulse text-[0.74rem] font-medium ${deltaPct >= 0 ? 'text-pulse-success' : 'text-pulse-dim'}`}>
                                                     {deltaPct >= 0 ? '+' : ''}
-                                                    {deltaPct}% / {e1rmHistory.length} wk
+                                                    {deltaPct}% over {e1rmHistory.length} wk
                                                 </span>
                                             )}
                                         </div>

@@ -49,9 +49,7 @@ function Row({
 }) {
     const inner = (
         <>
-            <span className={`font-pulse font-medium text-[0.92rem] ${labelClass || 'text-pulse-text'}`}>
-                {label}
-            </span>
+            <span className={`font-pulse font-medium text-[0.92rem] ${labelClass || 'text-pulse-text'}`}>{label}</span>
             {right !== undefined && (
                 <span className="font-pulse text-[0.85rem] text-pulse-dim flex items-center gap-1">{right}</span>
             )}
@@ -93,15 +91,7 @@ function Chev() {
 }
 
 // Pill button: filled accent when active, surface-2 when not
-function Pill({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) {
+function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
     return (
         <button
             type="button"
@@ -115,15 +105,7 @@ function Pill({
 }
 
 // Toggle pill: faint accent tint + accent text + border when active
-function TogPill({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) {
+function TogPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
     return (
         <button
             type="button"
@@ -163,7 +145,8 @@ function OptCard({
                     ? 'border-pulse-accent bg-pulse-accent/8 text-pulse-accent'
                     : 'border-transparent bg-pulse-surface text-pulse-text'
             } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            <div className={`font-pulse font-semibold text-[0.9rem] ${active ? 'text-pulse-accent' : 'text-pulse-text'}`}>
+            <div
+                className={`font-pulse font-semibold text-[0.9rem] ${active ? 'text-pulse-accent' : 'text-pulse-text'}`}>
                 {label}
             </div>
             {active && desc && (
@@ -282,10 +265,9 @@ export default function ProfileView() {
                 aria-labelledby="tab-you"
                 hidden={tab !== 'you'}
                 className={tab === 'you' ? 'grid2-you' : 'hidden'}>
-
-                {/* Wrapping grid: single column on mobile, two-column on lg */}
-                <div className={`${tab === 'you' ? 'grid gap-0 lg:grid-cols-2 lg:gap-[14px] lg:items-start' : ''}`}>
-                    {/* Left column: Identity, Gender, App */}
+                {/* Single column on every size. */}
+                <div className={`${tab === 'you' ? 'grid gap-0' : ''}`}>
+                    {/* Identity, Gender, App */}
                     <div>
                         {/* Identity */}
                         <Lbl first>Identity</Lbl>
@@ -345,9 +327,7 @@ export default function ProfileView() {
 
                         {/* Weight unit row */}
                         <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
-                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
-                                Weight unit
-                            </span>
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">Weight unit</span>
                             <div className="flex gap-[6px]">
                                 {(['kg', 'lbs'] as const).map((u) => (
                                     <Pill key={u} active={unit === u} onClick={() => handleUnitChange(u)}>
@@ -359,9 +339,7 @@ export default function ProfileView() {
 
                         {/* Accent colour row */}
                         <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
-                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
-                                Accent colour
-                            </span>
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">Accent colour</span>
                             <div className="flex flex-wrap gap-2">
                                 {ACCENT_PRESETS.map((p) => {
                                     const active = (profile.accent_color ?? DEFAULT_ACCENT_KEY) === p.key;
@@ -404,7 +382,7 @@ export default function ProfileView() {
                         </div>
                     </div>
 
-                    {/* Right column: Routine & data, Account & security */}
+                    {/* Routine & data, Account & security */}
                     <div>
                         {/* Routine & data */}
                         <Lbl first>Routine &amp; data</Lbl>
@@ -444,15 +422,12 @@ export default function ProfileView() {
                 aria-labelledby="tab-training"
                 hidden={tab !== 'training'}
                 className={tab === 'training' ? 'flex flex-col gap-0' : 'hidden'}>
-
                 <p className="font-pulse text-[0.78rem] text-pulse-muted mt-[8px] mb-[6px]">
                     Shape how Pulse builds your routines. Applies to plans you generate from now on.
                 </p>
 
-                <div
-                    data-testid="training-preferences-section"
-                    className="grid gap-0 lg:grid-cols-2 lg:gap-[14px] lg:items-start">
-                    {/* Left column: Training style + Exercise variety */}
+                <div data-testid="training-preferences-section" className="grid gap-0">
+                    {/* Training style + Exercise variety */}
                     <div>
                         {/* Training style */}
                         <Lbl first>Training style</Lbl>
@@ -469,6 +444,7 @@ export default function ProfileView() {
                                         if (isPending || active) return;
                                         startTransition(async () => {
                                             await updateTrainingStyle(key);
+                                            toast.show('Training style updated', 'success');
                                         });
                                     }}
                                 />
@@ -490,6 +466,7 @@ export default function ProfileView() {
                                         if (isPending || active) return;
                                         startTransition(async () => {
                                             await updateVarietyPreference(key);
+                                            toast.show('Exercise variety updated', 'success');
                                         });
                                     }}
                                 />
@@ -497,7 +474,7 @@ export default function ProfileView() {
                         })}
                     </div>
 
-                    {/* Right column: Equipment preference + Movement restrictions + Training priority */}
+                    {/* Equipment preference + Movement restrictions + Training priority */}
                     <div>
                         {/* Equipment preference */}
                         <Lbl first>Equipment preference</Lbl>
@@ -512,6 +489,7 @@ export default function ProfileView() {
                                 if (isPending || profile.loading_lean == null) return;
                                 startTransition(async () => {
                                     await updateLoadingLean(null);
+                                    toast.show('Equipment preference updated', 'success');
                                 });
                             }}
                         />
@@ -528,6 +506,7 @@ export default function ProfileView() {
                                         if (isPending || active) return;
                                         startTransition(async () => {
                                             await updateLoadingLean(key);
+                                            toast.show('Equipment preference updated', 'success');
                                         });
                                     }}
                                 />
@@ -537,8 +516,8 @@ export default function ProfileView() {
                         {/* Movement restrictions */}
                         <Lbl>Movement restrictions</Lbl>
                         <p className="font-pulse text-[0.8125rem] text-pulse-dim mb-[9px]">
-                            Joints to work around. Applies to routines you generate from now on. To change your
-                            current plan, use the Swap option on any exercise.
+                            Joints to work around. Applies to routines you generate from now on. To change your current
+                            plan, use the Swap option on any exercise.
                         </p>
                         <div className="flex gap-[6px] flex-wrap mb-[7px]">
                             {RESTRICTION_OPTIONS.map(({ key, label }) => {
@@ -550,11 +529,10 @@ export default function ProfileView() {
                                         onClick={() => {
                                             if (isPending) return;
                                             const current = profile.movement_restrictions ?? [];
-                                            const next = active
-                                                ? current.filter((r) => r !== key)
-                                                : [...current, key];
+                                            const next = active ? current.filter((r) => r !== key) : [...current, key];
                                             startTransition(async () => {
                                                 await updateMovementRestrictions(next);
+                                                toast.show('Movement restrictions updated', 'success');
                                             });
                                         }}>
                                         {label}
@@ -566,9 +544,7 @@ export default function ProfileView() {
                         {/* Training priority */}
                         <Lbl>Training priority</Lbl>
                         <div className="flex items-center justify-between bg-pulse-surface rounded-xl px-[13px] py-[13px] mb-[7px]">
-                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">
-                                Lean toward
-                            </span>
+                            <span className="font-pulse font-medium text-[0.92rem] text-pulse-text">Lean toward</span>
                             <div className="flex items-center gap-1 text-pulse-dim font-pulse text-[0.85rem]">
                                 <select
                                     aria-label="Training priority"

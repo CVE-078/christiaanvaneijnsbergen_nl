@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModalSheet from '../ModalSheet';
 
@@ -52,5 +52,49 @@ describe('ModalSheet', () => {
         );
         await userEvent.click(screen.getByRole('button', { name: /back/i }));
         expect(onBack).toHaveBeenCalledTimes(1);
+    });
+
+    it('locks body scroll while open and restores it on close', () => {
+        document.body.style.overflow = 'scroll';
+        const { rerender } = render(
+            <ModalSheet open title="x" onClose={() => {}}>
+                <p>body</p>
+            </ModalSheet>,
+        );
+        expect(document.body.style.overflow).toBe('hidden');
+        rerender(
+            <ModalSheet open={false} title="x" onClose={() => {}}>
+                <p>body</p>
+            </ModalSheet>,
+        );
+        expect(document.body.style.overflow).toBe('scroll');
+    });
+
+    it('dismisses on a downward swipe of the grip past the threshold', () => {
+        const onClose = vi.fn();
+        render(
+            <ModalSheet open title="x" onClose={onClose}>
+                <p>body</p>
+            </ModalSheet>,
+        );
+        const grip = screen.getByRole('button', { name: /drag down to dismiss/i });
+        fireEvent.touchStart(grip, { touches: [{ clientY: 0 }] });
+        fireEvent.touchMove(grip, { touches: [{ clientY: 160 }] });
+        fireEvent.touchEnd(grip, {});
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not dismiss on a small grip drag', () => {
+        const onClose = vi.fn();
+        render(
+            <ModalSheet open title="x" onClose={onClose}>
+                <p>body</p>
+            </ModalSheet>,
+        );
+        const grip = screen.getByRole('button', { name: /drag down to dismiss/i });
+        fireEvent.touchStart(grip, { touches: [{ clientY: 0 }] });
+        fireEvent.touchMove(grip, { touches: [{ clientY: 25 }] });
+        fireEvent.touchEnd(grip, {});
+        expect(onClose).not.toHaveBeenCalled();
     });
 });
