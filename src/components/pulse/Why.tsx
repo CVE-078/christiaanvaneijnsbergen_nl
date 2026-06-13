@@ -56,7 +56,7 @@ function WhyBody({ copy, className }: { copy: ExplainCopy; className?: string })
     );
 }
 
-const PANEL_WIDTH = 300;
+const PANEL_WIDTH = 264;
 
 // A real (non-modal) dialog anchored to the trigger, mirroring how ModalSheet
 // owns its overlay: a transparent full-screen backdrop owns click-outside so
@@ -142,19 +142,20 @@ function WhyPopover({
                     }
                 }}
                 style={{ position: 'fixed', width: PANEL_WIDTH, ...placement }}
-                className="relative overflow-hidden rounded-[14px] border border-pulse-border bg-pulse-surface py-4 pl-[18px] pr-4 normal-case tracking-normal shadow-[0_14px_40px_-12px_rgba(0,0,0,0.6)] outline-none">
+                className="relative overflow-hidden rounded-[14px] border border-pulse-border bg-pulse-surface py-3 pl-4 pr-2.5 normal-case tracking-normal shadow-[0_14px_40px_-12px_rgba(0,0,0,0.6)] outline-none">
                 {/* Coach signature: a thin accent bar down the left edge. */}
                 <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-pulse-accent/85" />
-                <p className="font-pulse text-[0.92rem] font-semibold leading-snug text-pulse-text">{copy.title}</p>
-                <WhyBody copy={copy} className="mt-1.5" />
-                <div className="mt-3 flex justify-end">
+                <div className="flex items-start justify-between gap-2.5">
+                    <p className="font-pulse text-[0.9rem] font-semibold leading-snug text-pulse-text">{copy.title}</p>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="cursor-pointer rounded-md border-none bg-transparent p-1 font-pulse text-[0.78rem] font-semibold text-pulse-accent hover:opacity-80">
-                        Got it
+                        aria-label="Close"
+                        className="-mt-0.5 shrink-0 cursor-pointer rounded-md border-none bg-transparent p-1 font-pulse text-[0.9rem] leading-none text-pulse-muted hover:text-pulse-text">
+                        &#x2715;
                     </button>
                 </div>
+                <WhyBody copy={copy} className="mt-1 pr-1.5" />
             </div>
         </div>
     );

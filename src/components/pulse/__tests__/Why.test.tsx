@@ -156,7 +156,7 @@ describe('Why affordance', () => {
         expect(dialog.contains(document.activeElement)).toBe(true);
     });
 
-    it('closes from the "Got it" button in the desktop popover and returns focus', () => {
+    it('closes from the popover close button and returns focus to the trigger', () => {
         mockMedia.isDesktop = true; // desktop
         render(
             <Why concept="progression" params={{ isRepAdvance: false }} variant="why">
@@ -165,7 +165,7 @@ describe('Why affordance', () => {
         );
         const trigger = screen.getByRole('button', { name: 'Why this target' });
         fireEvent.click(trigger);
-        fireEvent.click(screen.getByRole('button', { name: /got it/i }));
+        fireEvent.click(screen.getByRole('button', { name: /close/i }));
         expect(screen.queryByRole('dialog')).toBeNull();
         expect(document.activeElement).toBe(trigger);
     });
