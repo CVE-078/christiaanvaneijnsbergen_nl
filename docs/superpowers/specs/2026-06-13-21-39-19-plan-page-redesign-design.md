@@ -61,8 +61,8 @@ Mobile is a single column in this order. Desktop (>=1024px) is the **L4 sticky-r
 
 1. **Program identity card** (accent left border).
 2. **Next session** (the `NextSessionCard` look, lightly enriched).
-3. **Training block arc** (the hero; variation A).
-4. **This week** (the 7-day schedule strip).
+3. **This week** (the 7-day schedule strip) sits directly under Next session, the two near-term items grouped before the macro view.
+4. **Training block arc** (the hero; variation A).
 5. **Sessions** (selector on mobile/tablet, accordion on desktop).
 6. **Program settings** (collapsed): length, start date, change split or days.
 
