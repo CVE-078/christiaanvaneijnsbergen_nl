@@ -374,6 +374,24 @@ export function deloadTarget(
     return { kg, reps };
 }
 
+export type LiftTrend = 'progressing' | 'stalled' | 'deload';
+
+// The engine's read on a lift's e1RM trajectory, for the Progress chart readout.
+// Mirrors the Train card's stall/deload classification (computePlateau /
+// shouldDeload) exactly, so the chart annotation matches what logging a set
+// would say: a clean plateau suggests a deload, a plateau while rebuilding from
+// a recent drop reads "stalled", anything climbing reads "progressing". Returns
+// null when there is not enough history to call it (a new or flat-but-short
+// lift). Callers gate this on !bodyweight, since a bodyweight lift's e1RM is 0
+// by construction and would false-flag as stalled.
+export function liftTrend(history: Array<{ week: number; e1rm: number }>): LiftTrend | null {
+    if (shouldDeload(history)) return 'deload';
+    if (computePlateau(history)) return 'stalled';
+    if (history.length < 2) return null;
+    const sorted = [...history].sort((a, b) => a.week - b.week);
+    return sorted[sorted.length - 1].e1rm > sorted[0].e1rm ? 'progressing' : null;
+}
+
 // The adaptive decision the engine made for one lift in one week, ready to log
 // as a DecisionEvent, or null when no tracked decision applies. Pure mirror of
 // what ExerciseCard/SetLogger already compute on render: a stall auto-deloads

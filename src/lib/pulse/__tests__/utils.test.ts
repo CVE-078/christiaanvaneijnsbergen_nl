@@ -43,6 +43,7 @@ import {
     recentDrop,
     shouldDeload,
     deloadTarget,
+    liftTrend,
     decisionForExercise,
     computeSessionTonnage,
     sessionDecisions,
@@ -121,6 +122,27 @@ describe('auto-deload', () => {
         });
         it('returns null without a previous entry', () => {
             expect(deloadTarget(undefined, '8-12')).toBeNull();
+        });
+    });
+
+    describe('liftTrend', () => {
+        it('returns null for a new lift with too little history', () => {
+            expect(liftTrend(h(100))).toBeNull();
+        });
+        it('flags deload on a clean stall (mirrors shouldDeload)', () => {
+            expect(liftTrend(h(100, 105, 110, 108, 109, 110))).toBe('deload');
+        });
+        it('flags stalled (not deload) while rebuilding from a recent drop', () => {
+            expect(liftTrend(h(100, 105, 110, 110, 110, 99))).toBe('stalled');
+        });
+        it('flags progressing when the lift is climbing', () => {
+            expect(liftTrend(h(100, 105, 110, 112, 114, 116))).toBe('progressing');
+        });
+        it('flags progressing on a short climbing history before a plateau can be judged', () => {
+            expect(liftTrend(h(100, 105))).toBe('progressing');
+        });
+        it('returns null when flat with too little history to call a stall', () => {
+            expect(liftTrend(h(100, 100, 100))).toBeNull();
         });
     });
 });
