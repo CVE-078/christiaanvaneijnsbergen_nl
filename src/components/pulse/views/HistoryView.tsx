@@ -790,13 +790,13 @@ export default function HistoryView() {
                                     return (
                                         <div className="flex items-baseline gap-1.5 mb-[7px]">
                                             <span className="font-pulse font-semibold text-[0.86rem] text-pulse-text">
-                                                {currentE1RM} {unit}
+                                                {Math.round(currentE1RM)} {unit}
                                             </span>
                                             {deltaPct !== null && (
                                                 <span
                                                     className={`font-pulse text-[0.74rem] font-medium ${deltaPct >= 0 ? 'text-pulse-success' : 'text-pulse-dim'}`}>
                                                     {deltaPct >= 0 ? '+' : ''}
-                                                    {deltaPct}% / {e1rmHistory.length} wk
+                                                    {deltaPct}% over {e1rmHistory.length} wk
                                                 </span>
                                             )}
                                         </div>
