@@ -24,9 +24,9 @@
 
 ## Status & next session (2026-06-13)
 
-**In progress:** (none).
+**In progress:** Explain layer (canonical reason registry + shared "why" affordance), on `feature/explain-layer`. Spec `docs/superpowers/specs/2026-06-13-explain-layer-design.md` (reviewed). Open decisions resolved 2026-06-13: split affordance (ⓘ glyph on numbers/status, dotted underline on glossary terms) + keep the "behind" pill word, add the on-demand why only (pill softening logged as a follow-on).
 
-**In review (on a branch, not yet merged):** (none). Mobile polish + Progress-overview rework merged (#131, 2026-06-13). The **explain-layer spec** (`docs/superpowers/specs/2026-06-13-explain-layer-design.md`, reviewed) sits on the unmerged `feature/explain-layer` branch, ready to implement. A **CLS audit** (`docs/audits/2026-06-13-cls-data-fetch-audit.md`) is ready to action.
+**In review (on a branch, not yet merged):** (none). Mobile polish + Progress-overview rework merged (#131, 2026-06-13). A **CLS audit** (`docs/audits/2026-06-13-cls-data-fetch-audit.md`) is ready to action.
 
 **Migrations: none pending.** All hand-apply migrations verified live in prod 2026-06-12 (pg_catalog audit via the session pooler): the schema baseline, both auth migrations (trigger + FK cascades), the four merged-feature migrations, and the P0 Group 2 metadata corrections.
 
