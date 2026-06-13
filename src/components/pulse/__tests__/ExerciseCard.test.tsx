@@ -95,6 +95,14 @@ describe('ExerciseCard', () => {
         expect(screen.getByText(/no e1RM gain in 3 weeks, so the lift stalled/i)).toBeInTheDocument();
     });
 
+    it('makes the warm-up label a tappable glossary why', async () => {
+        const re = { ...routineExercise, starting_weight_kg: 40 };
+        render(<ExerciseCard {...defaultProps} routineExercise={re} />);
+        await userEvent.click(screen.getByRole('button', { name: /expand dumbbell bench press/i }));
+        await userEvent.click(screen.getByRole('button', { name: /warm-up sets/i }));
+        expect(screen.getByText(/lighter ramp-up sets to prep the movement/i)).toBeInTheDocument();
+    });
+
     it('renders the exercise name', () => {
         render(<ExerciseCard {...defaultProps} />);
         expect(screen.getByText('Dumbbell Bench Press')).toBeInTheDocument();

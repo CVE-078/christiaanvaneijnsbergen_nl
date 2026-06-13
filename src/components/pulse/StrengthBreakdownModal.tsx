@@ -1,5 +1,6 @@
 'use client';
 import ModalSheet from './ModalSheet';
+import Why from './Why';
 import type { StrengthScore } from '@/lib/pulse/types';
 
 interface Props {
@@ -21,42 +22,46 @@ export default function StrengthBreakdownModal({ open, strength, series, onClose
             {strength.score !== null && (
                 <div className="flex items-baseline gap-3 px-6 pb-3">
                     <span className="font-pulse-display font-bold text-[3rem] leading-none text-pulse-accent">
-                        {strength.score}
+                        <Why concept="strength_score" variant="why">
+                            {strength.score}
+                        </Why>
                     </span>
                     <span className="font-pulse text-[0.8rem] text-pulse-muted">/ 100</span>
                 </div>
             )}
 
-            {series && series.length >= 2 && (() => {
-                const scores = series.map((p) => p.score);
-                const min = Math.min(...scores);
-                const max = Math.max(...scores);
-                const span = max - min || 1;
-                const pts = series
-                    .map((p, i) => {
-                        const x = (i / (series.length - 1)) * 100;
-                        const y = 28 - ((p.score - min) / span) * 24 - 2;
-                        return `${x.toFixed(1)},${y.toFixed(1)}`;
-                    })
-                    .join(' ');
-                return (
-                    <div className="px-6 pb-3">
-                        <div className="mb-1.5 font-pulse text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
-                            Score trend
+            {series &&
+                series.length >= 2 &&
+                (() => {
+                    const scores = series.map((p) => p.score);
+                    const min = Math.min(...scores);
+                    const max = Math.max(...scores);
+                    const span = max - min || 1;
+                    const pts = series
+                        .map((p, i) => {
+                            const x = (i / (series.length - 1)) * 100;
+                            const y = 28 - ((p.score - min) / span) * 24 - 2;
+                            return `${x.toFixed(1)},${y.toFixed(1)}`;
+                        })
+                        .join(' ');
+                    return (
+                        <div className="px-6 pb-3">
+                            <div className="mb-1.5 font-pulse text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
+                                Score trend
+                            </div>
+                            <svg viewBox="0 0 100 28" preserveAspectRatio="none" className="h-10 w-full">
+                                <polyline
+                                    points={pts}
+                                    fill="none"
+                                    stroke="var(--color-pulse-accent)"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
                         </div>
-                        <svg viewBox="0 0 100 28" preserveAspectRatio="none" className="h-10 w-full">
-                            <polyline
-                                points={pts}
-                                fill="none"
-                                stroke="var(--color-pulse-accent)"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </div>
-                );
-            })()}
+                    );
+                })()}
 
             {/* Per-lift sub-score rows, mirroring StrengthScoreCard markup */}
             <div className="flex-1 overflow-y-auto px-6 pb-2">

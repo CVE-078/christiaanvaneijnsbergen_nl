@@ -15,9 +15,7 @@ const strength: StrengthScore = {
 
 describe('StrengthBreakdownModal', () => {
     it('renders nothing when closed', () => {
-        const { container } = render(
-            <StrengthBreakdownModal open={false} strength={strength} onClose={() => {}} />,
-        );
+        const { container } = render(<StrengthBreakdownModal open={false} strength={strength} onClose={() => {}} />);
         expect(container).toBeEmptyDOMElement();
     });
 
@@ -46,12 +44,24 @@ describe('StrengthBreakdownModal', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
+    it('makes the score a tappable why explaining the methodology', async () => {
+        const { default: userEvent } = await import('@testing-library/user-event');
+        render(<StrengthBreakdownModal open strength={strength} onClose={() => {}} />);
+        const why = screen.getByRole('button', { name: /strength score/i });
+        expect(why).toHaveTextContent('62');
+        await userEvent.click(why);
+        expect(screen.getByText(/relative to typical standards for your bodyweight/i)).toBeInTheDocument();
+    });
+
     it('renders a score trend header when a multi-point series is passed', () => {
         render(
             <StrengthBreakdownModal
                 open
                 strength={strength}
-                series={[{ week: 1, score: 40 }, { week: 4, score: 46 }]}
+                series={[
+                    { week: 1, score: 40 },
+                    { week: 4, score: 46 },
+                ]}
                 onClose={() => {}}
             />,
         );
