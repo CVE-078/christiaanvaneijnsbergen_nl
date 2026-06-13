@@ -685,7 +685,7 @@ export default function HistoryView() {
                                     type="button"
                                     onClick={() => setProgressTab('body')}
                                     aria-label="View body data"
-                                    className="block w-full cursor-pointer border-none bg-transparent p-0 text-left">
+                                    className="group block w-full cursor-pointer border-none bg-transparent p-0 text-left">
                                     <div className="mb-[9px] flex items-center justify-between">
                                         <span className="font-pulse text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
                                             Recomp verdict
@@ -706,7 +706,9 @@ export default function HistoryView() {
                                             </svg>
                                         </span>
                                     </div>
-                                    <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
+                                    <div className="rounded-2xl border border-transparent transition-colors group-hover:border-pulse-border">
+                                        <RecompCard readout={recomp} unit={unit} lengthUnit={profile.length_unit} />
+                                    </div>
                                 </button>
                             </div>
 
