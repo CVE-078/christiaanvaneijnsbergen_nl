@@ -107,6 +107,15 @@ export interface BodyweightEntry {
     weight_kg: number;
 }
 
+// Two aligned trend series for the Body-tab recomp chart, each chronological and
+// on its own scale, plus their first->last deltas. Built by computeRecompTrend.
+export interface RecompTrend {
+    weight: number[]; // bodyweight (kg), oldest to newest
+    strength: number[]; // strength score (0-100), by week ascending
+    weightDeltaKg: number | null; // last - first, null when fewer than 2 points
+    strengthDelta: number | null; // last - first (score points), null when fewer than 2 points
+}
+
 // Strength score readout. Pure logic and the standards table live in
 // strength.ts; this type stays here so types.ts remains the single source for
 // domain types. MainLift is imported from strength.ts to avoid duplicating it.

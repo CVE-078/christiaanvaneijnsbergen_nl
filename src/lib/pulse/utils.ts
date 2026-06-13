@@ -50,6 +50,7 @@ import type {
     AdherenceStatus,
     ProgramPosition,
     SessionTargetRow,
+    RecompTrend,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -1228,14 +1229,80 @@ export function computeRecompSignal(args: {
     } else if (strength === 'up' && weight === 'up') {
         verdict = 'Gaining: strength up but weight up too. Tighten nutrition if fat loss is the goal.';
     } else if ((strength === 'flat' || strength === 'down') && weight === 'down') {
-        verdict = 'Cutting: weight down but strength flat. Hold protein and keep intensity up.';
+        verdict = 'Cutting: weight down but strength flat. Keep the weights heavy to hold strength.';
     } else if (strength === 'down' && weight === 'up') {
-        verdict = 'Strength dipping while weight rises, check recovery and nutrition.';
+        verdict = 'Strength dipping while weight rises. Check recovery before adding load.';
     } else {
         verdict = 'Keep logging to see your recomp trend.';
     }
 
     return { weight, strength, waist, isRecomping, verdict, weightDeltaKg, strengthDeltaPct, waistDeltaCm };
+}
+
+export type RecompStatusTone = 'good' | 'neutral' | 'warn';
+
+// A short status word + tone for the recomp verdict pill, derived from the same
+// trend signals computeRecompSignal reads for its verdict sentence (kept in step
+// with those branches). Null when there is not enough data to call it, so the
+// pill simply does not render. `Recomping` covers the confirmed and the
+// likely-recomping (no waist yet) cases, matching the verdict copy.
+export function recompStatus(readout: RecompReadout): { word: string; tone: RecompStatusTone } | null {
+    const { weight, strength, waist, isRecomping } = readout;
+    if (weight === 'none' && strength === 'none' && waist === 'none') return null;
+    const weightOk = weight === 'flat' || weight === 'down';
+    if (isRecomping || (strength === 'up' && weightOk)) return { word: 'Recomping', tone: 'good' };
+    if (strength === 'up' && weight === 'up') return { word: 'Gaining', tone: 'neutral' };
+    if ((strength === 'flat' || strength === 'down') && weight === 'down') return { word: 'Cutting', tone: 'neutral' };
+    if (strength === 'down' && weight === 'up') return { word: 'Watch', tone: 'warn' };
+    return null;
+}
+
+// The verdict sentence with its leading clause stripped when that clause merely
+// restates the status pill word (so "Recomping" pill + "You're recomping, gaining
+// strength..." reads just "Gaining strength..."). Left untouched when the lead
+// carries real information the pill does not (e.g. the Watch verdict opens with
+// "Strength dipping...", which must stay). Display-only, pairs with recompStatus.
+export function recompDetail(verdict: string, statusWord: string | null | undefined): string {
+    if (!statusWord) return verdict;
+    const m = verdict.match(/^(.*?)[,:]\s+(.*)$/);
+    if (m && m[1].toLowerCase().includes(statusWord.toLowerCase())) {
+        return m[2].charAt(0).toUpperCase() + m[2].slice(1);
+    }
+    return verdict;
+}
+
+// Splits the (pill-trimmed) recomp verdict into a headline, the interpretation,
+// and a secondary description, the coaching next-step. Most verdicts already
+// carry both as two sentences; the clean recomping verdict is a single sentence,
+// so a next-step is supplied for it. Display-only, pairs with recompStatus.
+export function recompLines(readout: RecompReadout): { headline: string; description: string | null } {
+    const status = recompStatus(readout);
+    const detail = recompDetail(readout.verdict, status?.word);
+    const idx = detail.indexOf('. ');
+    if (idx !== -1) return { headline: detail.slice(0, idx + 1), description: detail.slice(idx + 2) };
+    if (status?.word === 'Recomping') {
+        // Best-case state: an affirmation, not a next-step (the engine deliberately
+        // hands no instruction when everything is on track). User-authored copy.
+        return { headline: detail, description: "This is the hardest result to get, and you're getting it." };
+    }
+    return { headline: detail, description: null };
+}
+
+// Two aligned trend series for the Body-tab recomp chart: bodyweight and strength
+// score over the window, each chronological and on its own scale, plus their
+// first->last deltas. Pure shaping of already-computed inputs; the recomp verdict
+// stays in computeRecompSignal. Bodyweight arrives newest-first (queries.ts orders
+// logged_at desc), so it is sorted ascending here.
+export function computeRecompTrend(args: {
+    bodyweight: BodyweightEntry[];
+    strengthSeries: Array<{ week: number; score: number }>;
+}): RecompTrend {
+    const weight = [...args.bodyweight]
+        .sort((a, b) => a.logged_at.localeCompare(b.logged_at))
+        .map((e) => e.weight_kg);
+    const strength = [...args.strengthSeries].sort((a, b) => a.week - b.week).map((p) => p.score);
+    const delta = (xs: number[]) => (xs.length >= 2 ? xs[xs.length - 1] - xs[0] : null);
+    return { weight, strength, weightDeltaKg: delta(weight), strengthDelta: delta(strength) };
 }
 
 // Adaptive-engine events attributable to this session: same program week, and
