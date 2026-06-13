@@ -1,5 +1,8 @@
 'use client';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
+
+// Drag the grip down past this many pixels to dismiss the sheet.
+const SWIPE_DISMISS_PX = 90;
 
 interface Props {
     open: boolean;
@@ -38,6 +41,49 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
         return () => document.removeEventListener('keydown', onKey);
     }, [open, onClose]);
 
+    // Lock the page behind the sheet so it cannot scroll while a modal is open;
+    // restore the prior value on close so nested/sequential modals don't leak it.
+    useEffect(() => {
+        if (!open) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prev;
+        };
+    }, [open]);
+
+    // Swipe-down-to-dismiss from the grip (mobile). Tracks a downward drag,
+    // follows the finger, and closes past the threshold, snapping back otherwise.
+    const [dragY, setDragY] = useState(0);
+    const [dragging, setDragging] = useState(false);
+    const startY = useRef<number | null>(null);
+
+    // Reset any in-flight drag when the sheet is dismissed externally, so it never
+    // reopens mid-translated.
+    useEffect(() => {
+        if (!open) {
+            setDragY(0);
+            setDragging(false);
+            startY.current = null;
+        }
+    }, [open]);
+
+    const onGripTouchStart = (e: ReactTouchEvent) => {
+        startY.current = e.touches[0]?.clientY ?? null;
+        setDragging(true);
+    };
+    const onGripTouchMove = (e: ReactTouchEvent) => {
+        if (startY.current === null) return;
+        const dy = (e.touches[0]?.clientY ?? startY.current) - startY.current;
+        setDragY(dy > 0 ? dy : 0);
+    };
+    const onGripTouchEnd = () => {
+        if (dragY > SWIPE_DISMISS_PX) onClose();
+        setDragY(0);
+        setDragging(false);
+        startY.current = null;
+    };
+
     if (!open) return null;
 
     return (
@@ -49,9 +95,23 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
             onClick={onClose}>
             <div
                 className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-6 lg:max-h-[78vh] lg:rounded-[18px] lg:mx-6"
+                style={{
+                    transform: dragY ? `translateY(${dragY}px)` : undefined,
+                    transition: dragging ? 'none' : 'transform 0.2s ease',
+                }}
                 onClick={(e) => e.stopPropagation()}>
-                {/* Grip handle, mobile only */}
-                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-pulse-border lg:hidden" aria-hidden />
+                {/* Grip handle, mobile only. The whole strip is the drag target so a
+                    downward swipe dismisses the sheet (see onGripTouch* above). */}
+                <div
+                    className="flex touch-none justify-center pb-1 pt-2 lg:hidden"
+                    role="button"
+                    aria-label="Drag down to dismiss"
+                    tabIndex={-1}
+                    onTouchStart={onGripTouchStart}
+                    onTouchMove={onGripTouchMove}
+                    onTouchEnd={onGripTouchEnd}>
+                    <span className="h-1 w-10 rounded-full bg-pulse-border" aria-hidden />
+                </div>
 
                 {/* Standardized header */}
                 <div className="flex items-start gap-3 px-6 pt-4 pb-3">
