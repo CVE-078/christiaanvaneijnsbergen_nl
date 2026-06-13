@@ -14,6 +14,7 @@ import {
 } from './constants';
 import type {
     Phase,
+    BlockArcWeek,
     Logs,
     HistorySession,
     LogEntry,
@@ -325,6 +326,41 @@ export function volumeForWeek(week: number, weeks = 12): number {
     const { volume } = buildProgram(weeks);
     const w = weekInBlock(week, weeks);
     return volume.find((v) => v.week === w)?.sets ?? volume[0]?.sets ?? 0;
+}
+
+// Assemble one full block for the Plan block-arc view: per week, the planned
+// volume + target RIR + phase, and whether it is a deload (the lowest-volume
+// week(s) in the block, so a mid-block deload like the 16-week's week 8 is also
+// flagged). Pure; nothing persisted. The week range comes from the block's own
+// volume table, so an 8/10/12/16-week block yields exactly that many entries.
+export function buildBlockArc(weeks: number): BlockArcWeek[] {
+    const { volume } = buildProgram(weeks);
+    const minVol = Math.min(...volume.map((v) => v.sets));
+    return volume.map((v) => ({
+        week: v.week,
+        volume: v.sets,
+        rir: getRIR(v.week, weeks),
+        phase: getPhase(v.week, weeks),
+        isDeload: v.sets === minVol,
+    }));
+}
+
+// Rough estimate of how long a planned session takes, in minutes. Per working
+// set: a fixed work estimate plus rest, where compounds rest longer than
+// isolation. Rounded to the nearest 5 so it reads as the estimate it is ("~50
+// min"), never false precision. Constants are defensible defaults to be tuned
+// against logged session durations, not researched values.
+export function estimateSessionMinutes(rows: Array<{ sets: number; is_compound?: boolean }>): number {
+    const WORK_PER_SET_S = 40;
+    const REST_COMPOUND_S = 150;
+    const REST_ISO_S = 75;
+    let seconds = 0;
+    for (const r of rows) {
+        const sets = Math.max(0, Math.floor(r.sets ?? 0));
+        const rest = r.is_compound ? REST_COMPOUND_S : REST_ISO_S;
+        seconds += sets * (WORK_PER_SET_S + rest);
+    }
+    return Math.max(0, Math.round(seconds / 60 / 5) * 5);
 }
 
 // A lift is plateaued when its best e1RM has not improved across the last
@@ -1297,9 +1333,7 @@ export function computeRecompTrend(args: {
     bodyweight: BodyweightEntry[];
     strengthSeries: Array<{ week: number; score: number }>;
 }): RecompTrend {
-    const weight = [...args.bodyweight]
-        .sort((a, b) => a.logged_at.localeCompare(b.logged_at))
-        .map((e) => e.weight_kg);
+    const weight = [...args.bodyweight].sort((a, b) => a.logged_at.localeCompare(b.logged_at)).map((e) => e.weight_kg);
     const strength = [...args.strengthSeries].sort((a, b) => a.week - b.week).map((p) => p.score);
     const delta = (xs: number[]) => (xs.length >= 2 ? xs[xs.length - 1] - xs[0] : null);
     return { weight, strength, weightDeltaKg: delta(weight), strengthDelta: delta(strength) };

@@ -21,7 +21,10 @@ export type ExplainConcept =
     | 'warmup' // warm-up ramp scheme
     | 'volume_target' // per-muscle weekly volume target
     | 'recovery' // recovery readout
-    | 'strength_score'; // strength-score methodology
+    | 'strength_score' // strength-score methodology
+    | 'rir' // reps in reserve (proximity to failure)
+    | 'phase' // periodized training phases (the block arc)
+    | 'deload_week'; // a planned program deload week (distinct from the stalled-lift `deload` above)
 
 export interface ExplainParams {
     /** progression: true if the engine advanced reps (same weight), false if it advanced weight. */
@@ -143,5 +146,41 @@ export function explainCopy(concept: ExplainConcept, params: ExplainParams = {})
                 title: 'Strength score',
                 why: 'How strong your main lifts are relative to typical standards for your bodyweight.',
             };
+
+        case 'rir':
+            return {
+                title: 'What is RIR',
+                why: 'Reps in reserve: how many more reps you could do before failure. RIR 3 leaves a few in the tank; RIR 0 is all-out.',
+            };
+
+        case 'phase':
+            return {
+                title: 'Training phases',
+                why: 'Your program runs in phases that gradually raise the effort, then a deload week to recover. The cycle then repeats.',
+            };
+
+        case 'deload_week':
+            // The planned program deload (block-arc), NOT the stalled-lift auto-deload.
+            // No supercompensation overclaim: fatigue management is the defensible claim.
+            return {
+                title: 'What is a deload',
+                why: 'A planned lighter week, less volume and easier effort, so built-up fatigue clears before the next block. Not a break, just easier.',
+            };
     }
 }
+
+// Per-phase plain-language descriptions for the Plan block arc, keyed by the
+// phase subtitle (see data.ts PHASES). Data-accurate to the actual volume ramp
+// (volume climbs through the block, it is not the textbook "volume falls as
+// intensity rises" model), and deliberately free of any supercompensation
+// ("come back stronger") overclaim. Registry-homed here, not in program data, so
+// the i18n extraction has one canonical sentence per phase.
+export const PHASE_DESCRIPTIONS: Record<string, string> = {
+    Accumulation:
+        'Building your base. Volume starts manageable and climbs week to week, with a rep or two left in the tank so you adapt and recover well.',
+    Intensification: 'Pushing harder. Volume keeps building and you train closer to your limit as the block ramps up.',
+    Overreach: 'The hardest stretch, by design. Peak volume with sets taken close to failure to drive new adaptation.',
+    'Peak & Deload':
+        'One last hard push, then a lighter deload week so accumulated fatigue clears before the next block.',
+    Deload: 'A lighter week. Less volume and easier effort so fatigue clears before the next block.',
+};

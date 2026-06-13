@@ -13,6 +13,7 @@ import type {
     WorkoutType,
     WorkoutVariant,
     ScheduleEntry,
+    ProgramPosition,
 } from '@/lib/pulse/types';
 
 let reCounter = 0;
@@ -35,17 +36,18 @@ const makeRE = (
         starting_weight_kg: null,
         superset_group_id: null,
         exercise: { id, name, category: 'chest', default_sets: '3', default_reps: '8', user_id: null },
-    };
+    } as unknown as RoutineExercise;
 };
 
-const makeRoutine = (exercises: RoutineExercise[], schedule: ScheduleEntry[]): RoutineWithExercises => ({
-    id: 'r1',
-    user_id: 'u1',
-    name: 'Test Routine',
-    created_at: '',
-    schedule,
-    exercises,
-});
+const makeRoutine = (exercises: RoutineExercise[], schedule: ScheduleEntry[]): RoutineWithExercises =>
+    ({
+        id: 'r1',
+        user_id: 'u1',
+        name: 'Test Routine',
+        created_at: '',
+        schedule,
+        exercises,
+    }) as RoutineWithExercises;
 
 const baseContext = {
     activeWeek: 1,
@@ -53,8 +55,19 @@ const baseContext = {
     logs: {},
     activeSchedule: [],
     activeRoutine: null,
+    programPosition: null,
+    profile: { unit: 'kg', timezone: 'UTC' },
+    exercises: [],
+    routineExercisesByTabKey: {},
+    resolveTabForEntry: vi.fn(),
+    setActiveTab: vi.fn(),
+    navigate: vi.fn(),
     updateRoutineProgramWeeks: vi.fn(),
     setProgramAnchor: vi.fn(),
+    swapRoutineExercisePermanently: vi.fn(),
+    loading: {},
+    errors: {},
+    retry: vi.fn(),
 };
 
 beforeEach(() => {
@@ -62,115 +75,139 @@ beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(baseContext as unknown as ReturnType<typeof usePulse>);
 });
 
-function mockContext(routine: RoutineWithExercises) {
+function mockContext(routine: RoutineWithExercises, extra: Record<string, unknown> = {}) {
     vi.mocked(usePulse).mockReturnValue({
         ...baseContext,
         activeRoutine: routine,
         activeSchedule: [...routine.schedule].sort((a, b) => a.day_of_week - b.day_of_week),
+        ...extra,
     } as unknown as ReturnType<typeof usePulse>);
 }
 
 describe('ProgramView', () => {
-    it('groups exercises by raw type when the routine has no schedule', () => {
-        const routine = makeRoutine([makeRE('Bench Press', 'push'), makeRE('Row', 'pull')], []);
-        mockContext(routine);
+    it('shows an empty state when there is no active routine', () => {
         render(<ProgramView />);
-        expect(screen.getByText('Push')).toBeInTheDocument();
-        expect(screen.getByText('Pull')).toBeInTheDocument();
+        expect(screen.getByText(/no active plan/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /generate routine/i })).toBeInTheDocument();
     });
 
-    it('lets the user set the program start date', () => {
-        const setProgramAnchor = vi.fn();
-        const routine = makeRoutine([makeRE('Bench Press', 'push')], []);
-        vi.mocked(usePulse).mockReturnValue({
-            ...baseContext,
-            activeRoutine: routine,
-            activeSchedule: [],
-            setProgramAnchor,
-        } as unknown as ReturnType<typeof usePulse>);
+    it('renders a session chip per distinct type (no schedule)', () => {
+        mockContext(makeRoutine([makeRE('Bench Press', 'push'), makeRE('Row', 'pull')], []));
         render(<ProgramView />);
-        expect(screen.getByText(/program start/i)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Today' }));
-        expect(setProgramAnchor).toHaveBeenCalledWith('r1', expect.stringMatching(/T12:00:00\.000Z$/));
+        expect(screen.getByRole('button', { name: 'Push' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Pull' })).toBeInTheDocument();
     });
 
     it('rolls granular exercises up into a single Full Body session', () => {
-        const routine = makeRoutine([makeRE('Bench Press', 'push'), makeRE('Row', 'pull'), makeRE('Squat', 'legs')], [
-            { day_of_week: 1, workout_type: 'full_body', variant: null },
-            { day_of_week: 3, workout_type: 'full_body', variant: null },
-            { day_of_week: 5, workout_type: 'full_body', variant: null },
-        ] as ScheduleEntry[]);
-        mockContext(routine);
+        mockContext(
+            makeRoutine([makeRE('Bench Press', 'push'), makeRE('Row', 'pull'), makeRE('Squat', 'legs')], [
+                { day_of_week: 1, workout_type: 'full_body', variant: null },
+                { day_of_week: 3, workout_type: 'full_body', variant: null },
+                { day_of_week: 5, workout_type: 'full_body', variant: null },
+            ] as ScheduleEntry[]),
+        );
         render(<ProgramView />);
-        expect(screen.getByText('Full Body')).toBeInTheDocument();
-        expect(screen.queryByText('Push')).not.toBeInTheDocument();
-        expect(screen.queryByText('Pull')).not.toBeInTheDocument();
-        expect(screen.queryByText('Legs')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Full Body' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Push' })).not.toBeInTheDocument();
+        // all three lifts live in the one (selected) Full Body session
         expect(screen.getByText('Bench Press')).toBeInTheDocument();
         expect(screen.getByText('Row')).toBeInTheDocument();
         expect(screen.getByText('Squat')).toBeInTheDocument();
     });
 
-    it('splits two same-type days into separate variant sections (does not merge)', () => {
-        // The aesthetic upper/lower bug: Upper A + Upper B must not collapse into
-        // one 12-exercise "Upper" list.
-        const routine = makeRoutine(
-            [
-                makeRE('Dumbbell Bench Press', 'upper', 'A'),
-                makeRE('Dumbbell Single-Arm Row', 'upper', 'A'),
-                makeRE('Dumbbell Overhead Press', 'upper', 'B'),
-                makeRE('Preacher Curl', 'upper', 'B'),
-                makeRE('Romanian Deadlift', 'lower', 'A'),
-                makeRE('Hip Thrust', 'lower', 'B'),
-            ],
-            [
-                { day_of_week: 1, workout_type: 'upper', variant: 'A' },
-                { day_of_week: 2, workout_type: 'lower', variant: 'A' },
-                { day_of_week: 4, workout_type: 'upper', variant: 'B' },
-                { day_of_week: 5, workout_type: 'lower', variant: 'B' },
-            ] as ScheduleEntry[],
+    it('splits two same-type days into separate variant chips and shows one at a time', () => {
+        mockContext(
+            makeRoutine(
+                [
+                    makeRE('Dumbbell Bench Press', 'upper', 'A'),
+                    makeRE('Dumbbell Single-Arm Row', 'upper', 'A'),
+                    makeRE('Dumbbell Overhead Press', 'upper', 'B'),
+                    makeRE('Preacher Curl', 'upper', 'B'),
+                    makeRE('Romanian Deadlift', 'lower', 'A'),
+                    makeRE('Hip Thrust', 'lower', 'B'),
+                ],
+                [
+                    { day_of_week: 1, workout_type: 'upper', variant: 'A' },
+                    { day_of_week: 2, workout_type: 'lower', variant: 'A' },
+                    { day_of_week: 4, workout_type: 'upper', variant: 'B' },
+                    { day_of_week: 5, workout_type: 'lower', variant: 'B' },
+                ] as ScheduleEntry[],
+            ),
         );
-        mockContext(routine);
         render(<ProgramView />);
-
-        expect(screen.getByText('Upper · A')).toBeInTheDocument();
-        expect(screen.getByText('Upper · B')).toBeInTheDocument();
-        expect(screen.getByText('Lower · A')).toBeInTheDocument();
-        expect(screen.getByText('Lower · B')).toBeInTheDocument();
-
-        // Each Upper section holds only its own two lifts.
+        // four distinct session chips
+        for (const label of ['Upper A', 'Upper B', 'Lower A', 'Lower B']) {
+            expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+        }
+        // selector default = Upper A: only its lifts show
         expect(screen.getByText('Dumbbell Bench Press')).toBeInTheDocument();
-        expect(screen.getByText('Dumbbell Single-Arm Row')).toBeInTheDocument();
+        expect(screen.queryByText('Dumbbell Overhead Press')).not.toBeInTheDocument();
+        // switch to Upper B
+        fireEvent.click(screen.getByRole('button', { name: 'Upper B' }));
         expect(screen.getByText('Dumbbell Overhead Press')).toBeInTheDocument();
-        expect(screen.getByText('Preacher Curl')).toBeInTheDocument();
+        expect(screen.queryByText('Dumbbell Bench Press')).not.toBeInTheDocument();
     });
 
-    it('shows one section per distinct workout type for a PPL split', () => {
-        const routine = makeRoutine([makeRE('Bench Press', 'push'), makeRE('Row', 'pull')], [
-            { day_of_week: 1, workout_type: 'push', variant: null },
-            { day_of_week: 3, workout_type: 'pull', variant: null },
-        ] as ScheduleEntry[]);
-        mockContext(routine);
-        render(<ProgramView />);
-        expect(screen.getByText('Push')).toBeInTheDocument();
-        expect(screen.getByText('Pull')).toBeInTheDocument();
-        expect(screen.queryByText('Legs')).not.toBeInTheDocument();
-    });
-
-    it('splits the rationale into fact chips plus prose', () => {
+    it('shows the rationale fact chips inline and the prose behind "Why this plan"', () => {
         const routine = {
             ...makeRoutine([makeRE('Bench Press', 'push')], []),
             rationale:
                 'Push Pull Legs for intermediate lifters · 4 days/week · Build muscle · 45-60 min sessions. A balanced split.',
-        };
+        } as RoutineWithExercises;
         mockContext(routine);
         render(<ProgramView />);
+        // facts are always-on chips
         expect(screen.getByText('4 days/week')).toBeInTheDocument();
         expect(screen.getByText('Build muscle')).toBeInTheDocument();
+        // prose is collapsed until "Why this plan" is tapped
+        expect(screen.queryByText('A balanced split.')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /why this plan/i }));
         expect(screen.getByText('A balanced split.')).toBeInTheDocument();
     });
 
-    it('shows resolved equipment chips per exercise', () => {
+    it('renders the program status pill from programPosition', () => {
+        const pos: ProgramPosition = {
+            weekInteger: 6,
+            progressionIndex: 6,
+            isRampBack: false,
+            completedCount: 5,
+            calendarWeek: 6,
+            behindBy: 0,
+            daysSinceLastSession: 1,
+            status: 'on_track',
+            isPaused: false,
+            pausedDays: null,
+            nextEntry: null,
+        };
+        mockContext(makeRoutine([makeRE('Bench Press', 'push')], []), { programPosition: pos });
+        render(<ProgramView />);
+        expect(screen.getByText('On track')).toBeInTheDocument();
+        expect(screen.getByText(/Week 6 of 12/)).toBeInTheDocument();
+    });
+
+    it('surfaces a generation warning notice when the routine carries warnings', () => {
+        const routine = {
+            ...makeRoutine([makeRE('Bench Press', 'push')], []),
+            warnings: ['no_compound'],
+        } as RoutineWithExercises;
+        mockContext(routine);
+        render(<ProgramView />);
+        expect(screen.getByText('Accessory work only')).toBeInTheDocument();
+    });
+
+    it('exposes the program start date inside the collapsed Program settings', () => {
+        const setProgramAnchor = vi.fn();
+        mockContext(makeRoutine([makeRE('Bench Press', 'push')], []), { setProgramAnchor });
+        render(<ProgramView />);
+        // settings collapsed by default
+        expect(screen.queryByText(/program start/i)).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /length, start date/i }));
+        expect(screen.getByText(/program start/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+        expect(setProgramAnchor).toHaveBeenCalledWith('r1', expect.stringMatching(/T12:00:00\.000Z$/));
+    });
+
+    it('shows resolved equipment chips on an exercise row', () => {
         const re = makeRE('Bench Press', 'push');
         re.exercise = { ...re.exercise!, equipment: ['barbell', 'bench'] };
         mockContext(makeRoutine([re], []));
@@ -180,11 +217,8 @@ describe('ProgramView', () => {
     });
 
     it('opens the how-to-perform modal for a built-in exercise', () => {
-        // The modal fetches instructions on mount; keep it pending so it just
-        // renders its header (we only assert the modal opens).
         global.fetch = vi.fn(() => new Promise(() => {})) as unknown as typeof fetch;
-        const routine = makeRoutine([makeRE('Bench Press', 'push')], []);
-        mockContext(routine);
+        mockContext(makeRoutine([makeRE('Bench Press', 'push')], []));
         render(<ProgramView />);
         fireEvent.click(screen.getByRole('button', { name: /how to perform bench press/i }));
         expect(screen.getByRole('button', { name: /close instructions/i })).toBeInTheDocument();

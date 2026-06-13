@@ -512,11 +512,7 @@ export function recommendStyle(sessionCount: number): string {
  *  for anyone who ignores it. The `phul-4` presence check keeps it safe if the style
  *  is ever removed. */
 export function suggestedStyleKey(sessionCount: number, trainingStyle?: TrainingStyle | null): string {
-    if (
-        trainingStyle === 'powerbuilding' &&
-        sessionCount === 4 &&
-        (STYLES[4] ?? []).some((s) => s.key === 'phul-4')
-    ) {
+    if (trainingStyle === 'powerbuilding' && sessionCount === 4 && (STYLES[4] ?? []).some((s) => s.key === 'phul-4')) {
         return 'phul-4';
     }
     return recommendStyle(sessionCount);
@@ -785,8 +781,10 @@ const FLOOR_REGION: Record<Focus, 'lower' | 'upper'> = {
 // unchanged; the quad/posterior split softens only under thin equipment.
 const LOWER_BUCKET_FALLBACK: MovementPattern[] = ['squat', 'hinge', 'lunge', 'glute_iso'];
 const FINISHER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['calf', 'core']);
-const LIMITED_VARIETY_WARNING =
-    'Some sessions have fewer compound exercises than recommended due to your equipment or movement restriction settings.';
+// Stable warning KEY (not the user-facing sentence). Display copy lives in
+// WARNING_COPY (constants.ts) and renders in the Plan generation-warning notice;
+// stored in the routine's `warnings` column.
+const LIMITED_VARIETY_WARNING = 'limited_variety';
 
 // ── Lower-compound pattern priority + duress-fallback contract ───────────────
 // Lower-body compound priority (squat anchors over hinge over lunge). Used by
@@ -1502,8 +1500,10 @@ export interface RoutineBlueprint {
         reps: string;
         superset_group_id: string | null;
     }>;
-    /** Non-blocking generation-time notices (Item 2). Empty in the normal case.
-     *  The action appends these to the routine rationale so they reach the user. */
+    /** Non-blocking generation-time notice KEYS (e.g. 'limited_variety',
+     *  'no_compound'). Empty in the normal case. The action persists these to the
+     *  routine's `warnings` column; the Plan page renders WARNING_COPY for each as
+     *  a dismissible notice. */
     warnings: string[];
 }
 
@@ -1511,8 +1511,8 @@ export interface RoutineBlueprint {
 // restrictions / equipment / hidden exercises) AND no safe compound exists anywhere
 // in the pool, so the session can only be accessory work. Generation never blocks;
 // it warns instead.
-const NO_COMPOUND_WARNING =
-    'Your movement restrictions removed all compound options for one or more sessions. These sessions use accessory work only. Consider adjusting your restrictions or equipment.';
+// Stable warning KEY (display copy in WARNING_COPY, constants.ts).
+const NO_COMPOUND_WARNING = 'no_compound';
 
 let groupCounter = 0;
 function defaultGroupId(): string {

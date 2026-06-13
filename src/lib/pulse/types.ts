@@ -173,6 +173,18 @@ export interface VolumeEntry {
     sets: number;
 }
 
+// One week of a repeating training block, assembled for the Plan block-arc view:
+// the planned working-set volume, the target RIR, its phase, and whether it is a
+// deload (the lowest-volume week(s) in the block). Derived by buildBlockArc;
+// nothing persisted.
+export interface BlockArcWeek {
+    week: number;
+    volume: number;
+    rir: number;
+    phase: Phase;
+    isDeload: boolean;
+}
+
 export interface ScheduleDay {
     day: string;
     type: WorkoutType | 'rest';
@@ -304,6 +316,11 @@ export interface WorkoutRoutine {
     // Calendar anchor for program "week 1, day 1". Drives completion-paced
     // progression + calendar adherence. Null only for legacy rows pre-backfill.
     program_anchor?: string | null;
+    // Generation duress-warning KEYS (e.g. 'limited_variety', 'no_compound');
+    // empty in the normal case. Rendered on the Plan page as a dismissible notice
+    // via WARNING_COPY. Optional so existing routine constructors stay valid;
+    // readers default to [].
+    warnings?: string[];
 }
 
 export interface RoutineExercise {

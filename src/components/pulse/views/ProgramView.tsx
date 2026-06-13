@@ -1,34 +1,48 @@
-﻿'use client';
+'use client';
 import { useMemo, useState } from 'react';
-import { WEEK_NOTES, buildProgram, PROGRAM_LENGTHS } from '@/lib/pulse/data';
+import { PROGRAM_LENGTHS } from '@/lib/pulse/data';
 import {
     getPhase,
-    sessionTypeFor,
+    getRIR,
     weekInBlock,
+    formatProgramStatus,
+    estimateSessionMinutes,
+    parseMaxSets,
+    sessionTypeFor,
     swapCandidates,
-    exerciseReason,
     computeSessionTargets,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
-import { WORKOUT_TYPE_LABELS, EQUIPMENT_LABELS } from '@/lib/pulse/constants';
+import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import type { WorkoutType, WorkoutVariant, RoutineExercise, SwapReason } from '@/lib/pulse/types';
 import SectionLabel from '../SectionLabel';
-import NextSessionCard from '../NextSessionCard';
-import GenerateRoutineButton from '../GenerateRoutineButton';
 import PageTitle from '@/components/pulse/PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
+import NextSessionCard from '../NextSessionCard';
+import GenerateRoutineButton from '../GenerateRoutineButton';
 import ExerciseInstructionModal from '../ExerciseInstructionModal';
 import ExerciseSwapPicker from '../ExerciseSwapPicker';
+import BlockArc from '../BlockArc';
+import PlanSessionList, { type PlanSession } from '../PlanSessionList';
+import GenerationWarningNotice from '../GenerationWarningNotice';
 
 type Section = { type: WorkoutType; variant: WorkoutVariant | null; exercises: RoutineExercise[] };
 
-const BAR_MAX_HEIGHT_PX = 64;
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const GEN_BTN =
+    'font-pulse text-xs font-semibold text-pulse-accent bg-pulse-accent/10 rounded-lg px-3 py-1.5 cursor-pointer border-none';
+const PILL_TONE: Record<'success' | 'warn' | 'muted', string> = {
+    success: 'text-pulse-success bg-pulse-success/10',
+    warn: 'text-pulse-warn bg-pulse-warn/10',
+    muted: 'text-pulse-muted bg-pulse-surface-2',
+};
+
+const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 export default function ProgramView() {
     const {
         activeWeek,
-        setActiveWeek,
         activeSchedule,
         activeRoutine,
         profile,
@@ -46,30 +60,33 @@ export default function ProgramView() {
         errors,
         retry,
     } = usePulse();
-    // Which exercise's how-to-perform modal is open (parity with the Train card +
-    // guided mode). Built-in exercises only, the ones that carry instructions.
+
     const [instructionFor, setInstructionFor] = useState<{ id: string; name: string } | null>(null);
     const [swapTarget, setSwapTarget] = useState<RoutineExercise | null>(null);
+    const [showWhy, setShowWhy] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
 
-    // Permanent (plan-level) swaps do not capture a reason; the picker's
-    // captureReason is off here, so the second arg is always null. It exists to
-    // match the picker's onSelect signature.
+    // Permanent (plan-level) swaps do not capture a reason; the second arg exists
+    // only to match the picker's onSelect signature.
     async function handlePermanentSwap(newExerciseId: string, _reason?: SwapReason | null) {
         if (!swapTarget) return;
         await swapRoutineExercisePermanently(swapTarget.id, newExerciseId);
         setSwapTarget(null);
     }
-    const programWeeks = activeRoutine?.program_weeks ?? 12;
-    const phase = getPhase(activeWeek, programWeeks);
-    const volume = useMemo(() => buildProgram(programWeeks).volume, [programWeeks]);
-    const maxSets = Math.max(...volume.map((v) => v.sets));
-    const inBlockWeek = weekInBlock(activeWeek, programWeeks);
 
-    // Program start date (the calendar anchor) as a YYYY-MM-DD value for the date
-    // input. Resolved in the user's timezone so the displayed day matches how the
-    // adherence engine reads the anchor (dayIndex uses the same tz). We store noon
-    // UTC of the chosen day, which lands on that day for all but the ±12h-fringe
-    // timezones (a re-pick corrects those). en-CA formats as YYYY-MM-DD.
+    const programWeeks = activeRoutine?.program_weeks ?? 12;
+    // progressionIndex feeds phase / RIR / volume (ramp-back-adjusted); fall back
+    // to the stepper week when there is no completion-paced position yet.
+    const progIdx = programPosition?.progressionIndex ?? activeWeek;
+    const phase = getPhase(progIdx, programWeeks);
+    const rirThisWeek = getRIR(progIdx, programWeeks);
+    const arcCurrentWeek = weekInBlock(progIdx, programWeeks);
+    const status = programPosition ? formatProgramStatus(programPosition, programWeeks) : null;
+    const weekOfBlock = programPosition ? weekInBlock(programPosition.weekInteger, programWeeks) : activeWeek;
+    const deloadAway = status ? Math.max(0, status.nextDeloadWeek - weekOfBlock) : null;
+
+    // Program start date (calendar anchor) as YYYY-MM-DD in the user's timezone,
+    // matching how the adherence engine reads the anchor (dayIndex uses the same tz).
     const tz = profile?.timezone || 'UTC';
     const ymdInTz = (d: Date) =>
         new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
@@ -79,14 +96,9 @@ export default function ProgramView() {
     };
     const todayYmd = () => ymdInTz(new Date());
 
-    function handleSelectWeek(w: number) {
-        setActiveWeek(w);
-    }
-
-    // De-blob the persisted rationale: buildRationale emits a " · "-joined lead of
-    // facts then a ". " then prose. Split the lead into scannable chips and keep the
-    // prose below. Degrades to plain prose for any string not in that shape (older
-    // routines), so no data migration is needed.
+    // De-blob the persisted rationale: a " · "-joined lead of facts, then ". ",
+    // then prose. Facts become chips (always shown); the prose collapses behind a
+    // "Why this plan" affordance. Degrades to plain prose for older routines.
     const rationale = useMemo(() => {
         const r = activeRoutine?.rationale?.trim();
         if (!r) return null;
@@ -100,12 +112,8 @@ export default function ProgramView() {
         return facts.length > 1 ? { facts, prose } : { facts: [] as string[], prose: r };
     }, [activeRoutine?.rationale]);
 
-    // Group into the sessions the user actually trains: one section per distinct
-    // (session type, variant). This mirrors the /train tabs and the routine editor,
-    // so a split with two same-type days (e.g. Upper A + Upper B) shows as two
-    // sections rather than one merged list. A full-body routine tags its exercises
-    // push/pull/legs but schedules a single full_body session, so those roll up via
-    // sessionTypeFor; with no schedule the exercise's own type is used.
+    // Group into the sessions the user trains: one section per distinct (session
+    // type, variant), mirroring the /train tabs and the routine editor.
     const sections = useMemo((): Section[] => {
         if (!activeRoutine) return [];
         const sorted = [...activeRoutine.exercises].sort((a, b) => a.order - b.order);
@@ -126,10 +134,27 @@ export default function ProgramView() {
         return groups;
     }, [activeRoutine]);
 
-    // The next scheduled session and the weights Train will prefill for it: the
-    // adherence engine's nextEntry, resolved to its session tab, with per-exercise
-    // targets off the current program week. Null when there is no next session yet
-    // (no schedule / unresolved tab), so the card simply does not render.
+    // Per-session view-models for the responsive session list: derived duration
+    // (is_compound rests longer), total sets, and a focus line from the distinct
+    // muscle categories.
+    const planSessions = useMemo<PlanSession[]>(
+        () =>
+            sections.map(({ type, variant, exercises: exs }) => ({
+                key: `${type}:${variant ?? ''}`,
+                label: `${WORKOUT_TYPE_LABELS[type] ?? type}${variant ? ` ${variant}` : ''}`,
+                durationMin: estimateSessionMinutes(
+                    exs.map((re) => ({ sets: parseMaxSets(re.sets), is_compound: re.exercise?.is_compound })),
+                ),
+                setCount: exs.reduce((sum, re) => sum + parseMaxSets(re.sets), 0),
+                focus: [...new Set(exs.map((re) => re.exercise?.category).filter(Boolean))]
+                    .map((c) => cap(c as string))
+                    .join(' · '),
+                exercises: exs,
+            })),
+        [sections],
+    );
+
+    // Next scheduled session + the weights Train will prefill for it.
     const nextSession = useMemo(() => {
         const entry = programPosition?.nextEntry;
         if (!entry) return null;
@@ -148,30 +173,96 @@ export default function ProgramView() {
     if (errors?.routines || errors?.logs) return <ErrorState onRetry={retry} />;
     if (loading?.routines || loading?.logs) return <PageSkeleton />;
 
+    const PAGE = 'px-4 pt-5 pb-12 mx-auto w-full max-w-[600px] lg:max-w-[1000px] lg:px-6 lg:pt-6 lg:pb-12';
+
+    // Empty state: no active routine yet.
+    if (!activeRoutine) {
+        return (
+            <div className={PAGE}>
+                <div className="mb-6 flex items-center justify-between">
+                    <PageTitle>Plan</PageTitle>
+                </div>
+                <div className="rounded-2xl bg-pulse-surface p-8 text-center">
+                    <p className="font-pulse text-sm text-pulse-dim">No active plan yet.</p>
+                    <p className="mb-4 mt-1 font-pulse text-xs text-pulse-muted">
+                        Generate a routine to start a program.
+                    </p>
+                    <GenerateRoutineButton label="Generate routine" className={GEN_BTN} />
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="px-4 pt-5 pb-12 mx-auto w-full max-w-[600px] lg:max-w-[1000px] lg:px-6 lg:pt-6 lg:pb-12">
-            <div className="flex items-center justify-between mb-6">
+        <div className={PAGE}>
+            <div className="mb-4 flex items-center justify-between">
                 <PageTitle>Plan</PageTitle>
-                <GenerateRoutineButton
-                    label="Generate routine"
-                    className="font-pulse text-xs font-semibold text-pulse-accent bg-pulse-accent/10 rounded-lg px-3 py-1.5 cursor-pointer border-none"
-                />
+                <GenerateRoutineButton label="New routine" className={GEN_BTN} />
             </div>
 
-            {/* program header, phase + rationale, with an inline week stepper */}
-            <div className="mb-6 rounded-xl border-l-2 border-pulse-accent bg-pulse-surface p-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <div className="font-pulse font-semibold text-sm tracking-[0.06em] uppercase text-pulse-accent">
-                            {phase.label}, {phase.subtitle}
+            {(activeRoutine.warnings?.length ?? 0) > 0 && (
+                <GenerationWarningNotice routineId={activeRoutine.id} warnings={activeRoutine.warnings ?? []} />
+            )}
+
+            {/* L4: single column on mobile, sticky summary rail + scrolling content on desktop */}
+            <div className="flex flex-col lg:grid lg:grid-cols-[340px_1fr] lg:items-start lg:gap-6">
+                {/* ── summary rail ───────────────────────────────────────────── */}
+                {/* Sticky on desktop; scrolls internally when taller than the
+                    viewport so the block arc at its foot stays reachable on
+                    laptop-height screens (no-op when the rail fits). */}
+                <div className="flex flex-col lg:sticky lg:top-0 lg:max-h-screen lg:overflow-y-auto lg:pb-4 lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
+                    {/* program identity */}
+                    <div className="rounded-xl border-l-2 border-pulse-accent bg-pulse-surface p-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="font-pulse text-[1.12rem] font-semibold tracking-[-0.01em] text-pulse-text">
+                                    {activeRoutine.name}
+                                </div>
+                                <div className="mt-0.5 font-pulse text-[0.82rem] text-pulse-dim">
+                                    {status ? status.weekLabel : `Week ${activeWeek}`} · {phase.label}, {phase.subtitle}
+                                </div>
+                            </div>
+                            {status && (
+                                <span
+                                    className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 font-pulse text-[0.7rem] font-semibold ${PILL_TONE[status.statusTone]}`}>
+                                    {status.statusLabel}
+                                </span>
+                            )}
                         </div>
-                        {WEEK_NOTES[activeWeek] && (
-                            <div className="text-pulse-dim text-[0.9375rem] mt-[0.375rem] leading-[1.6]">
-                                {WEEK_NOTES[activeWeek]}
+                        {status && (
+                            <div className="mt-3 h-[7px] overflow-hidden rounded-full bg-pulse-bg">
+                                <span
+                                    className="block h-full rounded-full bg-pulse-accent"
+                                    style={{ width: `${Math.round(status.progress * 100)}%` }}
+                                />
                             </div>
                         )}
+                        <div className="mt-3 flex gap-5">
+                            <div className="font-pulse text-[0.78rem] text-pulse-muted">
+                                <b className="mb-px block text-[0.92rem] font-semibold text-pulse-text">
+                                    RIR {rirThisWeek}
+                                </b>
+                                target this week
+                            </div>
+                            {deloadAway !== null && (
+                                <div className="font-pulse text-[0.78rem] text-pulse-muted">
+                                    <b className="mb-px block text-[0.92rem] font-semibold text-pulse-text">
+                                        Week {status!.nextDeloadWeek}
+                                    </b>
+                                    {deloadAway === 0 ? 'deload this week' : `next deload, ${deloadAway} wks`}
+                                </div>
+                            )}
+                            {activeSchedule.length > 0 && (
+                                <div className="font-pulse text-[0.78rem] text-pulse-muted">
+                                    <b className="mb-px block text-[0.92rem] font-semibold text-pulse-text">
+                                        {activeSchedule.length}×
+                                    </b>
+                                    per week
+                                </div>
+                            )}
+                        </div>
                         {rationale && (
-                            <div className="mt-[0.5rem] flex flex-col gap-2">
+                            <div className="mt-3 border-t border-pulse-border pt-3">
                                 {rationale.facts.length > 0 && (
                                     <div className="flex flex-wrap gap-1.5">
                                         {rationale.facts.map((f, i) => (
@@ -184,242 +275,170 @@ export default function ProgramView() {
                                     </div>
                                 )}
                                 {rationale.prose && (
-                                    <p className="font-pulse text-[0.9375rem] text-pulse-dim leading-[1.6]">
-                                        {rationale.prose}
-                                    </p>
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowWhy((v) => !v)}
+                                            aria-expanded={showWhy}
+                                            className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 font-pulse text-[0.76rem] font-medium text-pulse-accent">
+                                            Why this plan
+                                            <svg
+                                                className={`h-3 w-3 transition-transform duration-150 ${showWhy ? 'rotate-180' : ''}`}
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth={2.4}
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                aria-hidden>
+                                                <polyline points="6 9 12 15 18 9" />
+                                            </svg>
+                                        </button>
+                                        {showWhy && (
+                                            <p className="mt-2 font-pulse text-[0.82rem] leading-[1.55] text-pulse-dim">
+                                                {rationale.prose}
+                                            </p>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}
                     </div>
-                    <div className="flex shrink-0 items-center gap-1 self-start rounded-lg bg-pulse-surface-2 p-[3px]">
-                        <button
-                            type="button"
-                            aria-label="Previous week"
-                            disabled={activeWeek <= 1}
-                            onClick={() => handleSelectWeek(Math.max(1, activeWeek - 1))}
-                            className="rounded-md px-2 py-1 font-pulse text-sm font-semibold text-pulse-dim cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed">
-                            ‹
-                        </button>
-                        <span className="rounded-md bg-pulse-accent px-2.5 py-1 font-pulse text-xs font-semibold text-pulse-bg">
-                            Wk {activeWeek}
-                        </span>
-                        <button
-                            type="button"
-                            aria-label="Next week"
-                            onClick={() => handleSelectWeek(activeWeek + 1)}
-                            className="rounded-md px-2 py-1 font-pulse text-sm font-semibold text-pulse-dim cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed">
-                            ›
-                        </button>
-                    </div>
-                </div>
 
-                {activeRoutine && (
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-pulse-border pt-3">
-                        <span className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-muted font-medium">
-                            Program length
-                        </span>
-                        <div className="flex shrink-0 items-center gap-1 rounded-lg bg-pulse-surface-2 p-[3px]">
-                            {PROGRAM_LENGTHS.map((n) => (
-                                <button
-                                    key={n}
-                                    type="button"
-                                    aria-pressed={programWeeks === n}
-                                    onClick={() => updateRoutineProgramWeeks(activeRoutine.id, n)}
-                                    className={`rounded-md px-2.5 py-1 font-pulse text-xs font-semibold cursor-pointer border-none transition-colors duration-150 ${programWeeks === n ? 'bg-pulse-accent text-pulse-bg' : 'text-pulse-dim'}`}>
-                                    {n}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {activeRoutine && (
-                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-pulse-border pt-3">
-                        <div className="min-w-0">
-                            <span className="font-pulse text-[0.75rem] tracking-[0.06em] uppercase text-pulse-muted font-medium">
-                                Program start
-                            </span>
-                            <p className="font-pulse text-[0.6875rem] text-pulse-muted mt-0.5 leading-[1.5]">
-                                When week 1 begins. Only re-aligns your schedule, not logged progress.
-                            </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                            <input
-                                type="date"
-                                aria-label="Program start date"
-                                value={anchorDate}
-                                onChange={(e) => setStart(e.target.value)}
-                                className="font-pulse text-xs font-semibold text-pulse-text bg-pulse-surface-2 rounded-md px-2 py-1 border-none cursor-pointer [color-scheme:dark]"
+                    {/* next session */}
+                    {nextSession && (
+                        <>
+                            <SectionLabel className="mb-2 mt-5">Next session</SectionLabel>
+                            <NextSessionCard
+                                sessionLabel={nextSession.sessionLabel}
+                                dayLabel={nextSession.dayLabel}
+                                rows={nextSession.rows}
+                                unit={profile?.unit ?? 'kg'}
+                                onStart={() => {
+                                    setActiveTab(nextSession.tabKey);
+                                    navigate('train');
+                                }}
                             />
-                            <button
-                                type="button"
-                                onClick={() => setStart(todayYmd())}
-                                className="rounded-md bg-pulse-surface-2 px-2.5 py-1 font-pulse text-xs font-semibold text-pulse-dim cursor-pointer border-none hover:text-pulse-text">
-                                Today
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div className="flex flex-col gap-4">
-                {/* next scheduled session + the weights Train will prefill for it */}
-                {nextSession && (
-                    <NextSessionCard
-                        sessionLabel={nextSession.sessionLabel}
-                        dayLabel={nextSession.dayLabel}
-                        rows={nextSession.rows}
-                        unit={profile?.unit ?? 'kg'}
-                        onStart={() => {
-                            setActiveTab(nextSession.tabKey);
-                            navigate('train');
-                        }}
-                    />
-                )}
-
-                {/* weekly schedule + weekly volume */}
-                <div className="bg-pulse-surface rounded-2xl p-4">
-                    <SectionLabel className="mb-3">Weekly Schedule</SectionLabel>
-                    {activeSchedule.length > 0 ? (
-                        <div className="flex gap-[0.375rem]">
-                            {[1, 2, 3, 4, 5, 6, 0].map((dow) => {
-                                const entry = activeSchedule.find((e) => e.day_of_week === dow);
-                                const isRest = !entry;
-                                const DAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-                                const label = isRest ? '—' : entry!.workout_type.charAt(0).toUpperCase();
-                                return (
-                                    <div key={dow} className="flex-1 text-center">
-                                        <div className="font-pulse text-pulse-muted text-[0.625rem] mb-1 uppercase">
-                                            {DAY_SHORT[dow]}
-                                        </div>
-                                        <div
-                                            className={`py-[0.375rem] rounded-lg font-pulse text-[0.75rem] font-semibold ${isRest ? 'bg-pulse-surface-2 text-pulse-muted opacity-55' : 'bg-pulse-accent text-pulse-bg'}`}>
-                                            {label}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <p className="font-pulse text-xs text-pulse-muted">
-                            No schedule set, add a routine with a weekly schedule.
-                        </p>
+                        </>
                     )}
 
-                    <SectionLabel className="mt-5 mb-2">Weekly Volume · {programWeeks} weeks</SectionLabel>
-                    <div className="flex items-end gap-[3px] h-20">
-                        {volume.map(({ week, sets }) => (
-                            <button
-                                key={week}
-                                type="button"
-                                onClick={() => handleSelectWeek(activeWeek - inBlockWeek + week)}
-                                aria-label={`Jump to week ${week} (${sets} sets)`}
-                                aria-pressed={inBlockWeek === week}
-                                title={`Week ${week} · ${sets} sets`}
-                                className={`flex-1 self-end rounded-t-sm border-none cursor-pointer transition-colors duration-150 hover:opacity-80 ${inBlockWeek === week ? 'bg-pulse-accent' : 'bg-pulse-surface-2'}`}
-                                /* height is a runtime ratio, must stay inline */
-                                style={{ height: `${(sets / maxSets) * BAR_MAX_HEIGHT_PX}px` }}
-                            />
-                        ))}
-                    </div>
-                    <div className="flex justify-between mt-[5px] font-pulse text-pulse-muted text-[0.625rem]">
-                        <span>Wk 1</span>
-                        <span>Wk {programWeeks}</span>
-                    </div>
+                    {/* this week */}
+                    {activeSchedule.length > 0 && (
+                        <>
+                            <SectionLabel className="mb-2 mt-5">This week</SectionLabel>
+                            <div className="rounded-2xl bg-pulse-surface p-4">
+                                <div className="flex gap-[0.375rem]">
+                                    {[1, 2, 3, 4, 5, 6, 0].map((dow) => {
+                                        const entry = activeSchedule.find((e) => e.day_of_week === dow);
+                                        const isRest = !entry;
+                                        const label = isRest ? '—' : entry!.workout_type.charAt(0).toUpperCase();
+                                        return (
+                                            <div key={dow} className="flex-1 text-center">
+                                                <div className="mb-1 font-pulse text-[0.625rem] uppercase text-pulse-muted">
+                                                    {DAY_SHORT[dow]}
+                                                </div>
+                                                <div
+                                                    className={`rounded-lg py-[0.375rem] font-pulse text-[0.75rem] font-semibold ${isRest ? 'bg-pulse-surface-2 text-pulse-muted opacity-55' : 'bg-pulse-accent text-pulse-bg'}`}>
+                                                    {label}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* training block arc */}
+                    <SectionLabel className="mb-2 mt-5">Training block</SectionLabel>
+                    <BlockArc weeks={programWeeks} currentWeek={arcCurrentWeek} />
                 </div>
 
-                {/* right: per-session exercise breakdown */}
-                <div className="bg-pulse-surface rounded-2xl p-4">
-                    {sections.map(({ type, variant, exercises }) => (
-                        <div key={`${type}:${variant ?? ''}`} className="mb-6 last:mb-0">
-                            <div className="font-pulse text-[0.75rem] tracking-[0.16em] uppercase text-pulse-muted font-medium mb-3">
-                                {WORKOUT_TYPE_LABELS[type as WorkoutType] ?? type}
-                                {variant ? ` · ${variant}` : ''}
-                            </div>
-                            {exercises.map((re, i) => (
-                                <div
-                                    key={re.id}
-                                    className="py-3 border-b border-pulse-border last:border-b-0 flex gap-4 items-start">
-                                    <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0 w-5 pt-0.5">
-                                        {String(i + 1).padStart(2, '0')}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="font-pulse text-pulse-text text-[1.0625rem] font-medium tracking-[-0.01em]">
-                                            {re.exercise?.name ?? ''}
-                                        </div>
-                                        <div className="font-pulse-body text-pulse-dim text-[0.6875rem] tracking-[0.04em] mt-1">
-                                            {re.sets} sets · {re.reps} reps
-                                        </div>
-                                        {/* Why the coach chose this slot, derived from the exercise's
-                                            movement pattern + role + the muscles it credits (no stored
-                                            reason). Omitted for exercises without pattern metadata. */}
-                                        {(() => {
-                                            const reason = re.exercise ? exerciseReason(re.exercise) : null;
-                                            return reason ? (
-                                                <div className="font-pulse text-pulse-muted text-[0.6875rem] tracking-[0.02em] mt-1">
-                                                    {reason}
-                                                </div>
-                                            ) : null;
-                                        })()}
-                                        {/* Resolved equipment per exercise, so an equipment mis-tag
-                                            (e.g. a bench-only lift in a no-bench setup) is visible here,
-                                            not only by reading the seed. */}
-                                        <div className="mt-1.5 flex flex-wrap gap-1">
-                                            {(re.exercise?.equipment ?? []).length === 0 ? (
-                                                <span className="rounded border border-pulse-border px-1.5 py-0.5 font-pulse text-[0.625rem] tracking-[0.02em] text-pulse-muted">
-                                                    Bodyweight
-                                                </span>
-                                            ) : (
-                                                (re.exercise?.equipment ?? []).map((eq) => (
-                                                    <span
-                                                        key={eq}
-                                                        className="rounded border border-pulse-border px-1.5 py-0.5 font-pulse text-[0.625rem] tracking-[0.02em] text-pulse-muted">
-                                                        {EQUIPMENT_LABELS[eq] ?? eq}
-                                                    </span>
-                                                ))
-                                            )}
-                                        </div>
+                {/* ── content ────────────────────────────────────────────────── */}
+                <div className="flex flex-col">
+                    <SectionLabel className="mb-2 mt-5 lg:mt-0">Sessions</SectionLabel>
+                    <PlanSessionList sessions={planSessions} onSwap={setSwapTarget} onInfo={setInstructionFor} />
+
+                    <SectionLabel className="mb-2 mt-5">Program settings</SectionLabel>
+                    <button
+                        type="button"
+                        onClick={() => setShowSettings((v) => !v)}
+                        aria-expanded={showSettings}
+                        className="flex w-full cursor-pointer items-center justify-between rounded-2xl border-none bg-pulse-surface p-4 font-pulse text-sm font-medium text-pulse-text">
+                        Length, start date &amp; structure
+                        <svg
+                            className={`h-3.5 w-3.5 text-pulse-muted transition-transform duration-150 ${showSettings ? 'rotate-180' : ''}`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2.4}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden>
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </button>
+                    {showSettings && (
+                        <div className="mt-2 rounded-2xl bg-pulse-surface p-4">
+                            <div className="flex items-center justify-between gap-3 border-b border-pulse-border py-3 first:pt-0">
+                                <div>
+                                    <div className="font-pulse text-[0.82rem] font-medium text-pulse-text">
+                                        Program length
                                     </div>
-                                    <div className="flex items-center gap-1.5 shrink-0 self-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => setSwapTarget(re)}
-                                            aria-label={`Swap ${re.exercise?.name ?? 'exercise'}`}
-                                            className="inline-flex items-center gap-1.5 font-pulse text-[0.75rem] font-semibold text-pulse-dim bg-pulse-surface-2 border-none rounded-lg px-2.5 py-1.5 cursor-pointer hover:text-pulse-accent">
-                                            ⇄ Swap
-                                        </button>
-                                        {re.exercise && re.exercise.user_id === null && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setInstructionFor({ id: re.exercise!.id, name: re.exercise!.name })
-                                                }
-                                                aria-label={`How to perform ${re.exercise.name}`}
-                                                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-pulse-surface-2 text-pulse-dim border-none cursor-pointer hover:text-pulse-accent">
-                                                <svg
-                                                    className="h-3.5 w-3.5"
-                                                    viewBox="0 0 16 16"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth={1.5}
-                                                    aria-hidden>
-                                                    <circle cx="8" cy="8" r="6.5" />
-                                                    <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
-                                                    <circle
-                                                        cx="8"
-                                                        cy="4.75"
-                                                        r="0.6"
-                                                        fill="currentColor"
-                                                        stroke="none"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        )}
+                                    <div className="mt-0.5 font-pulse text-[0.7rem] leading-[1.4] text-pulse-muted">
+                                        Weeks per cycle before it repeats.
                                     </div>
                                 </div>
-                            ))}
+                                <div className="flex shrink-0 items-center gap-1 rounded-lg bg-pulse-surface-2 p-[3px]">
+                                    {PROGRAM_LENGTHS.map((n) => (
+                                        <button
+                                            key={n}
+                                            type="button"
+                                            aria-pressed={programWeeks === n}
+                                            onClick={() => updateRoutineProgramWeeks(activeRoutine.id, n)}
+                                            className={`cursor-pointer rounded-md border-none px-2.5 py-1 font-pulse text-xs font-semibold transition-colors duration-150 ${programWeeks === n ? 'bg-pulse-accent text-pulse-bg' : 'text-pulse-dim'}`}>
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 border-b border-pulse-border py-3">
+                                <div className="min-w-0">
+                                    <div className="font-pulse text-[0.82rem] font-medium text-pulse-text">
+                                        Program start
+                                    </div>
+                                    <div className="mt-0.5 max-w-[210px] font-pulse text-[0.7rem] leading-[1.4] text-pulse-muted">
+                                        When week 1 begins. Only re-aligns your schedule, not logged progress.
+                                    </div>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                    <input
+                                        type="date"
+                                        aria-label="Program start date"
+                                        value={anchorDate}
+                                        onChange={(e) => setStart(e.target.value)}
+                                        className="cursor-pointer rounded-md border-none bg-pulse-surface-2 px-2 py-1 font-pulse text-xs font-semibold text-pulse-text [color-scheme:dark]"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setStart(todayYmd())}
+                                        className="cursor-pointer rounded-md border-none bg-pulse-surface-2 px-2.5 py-1 font-pulse text-xs font-semibold text-pulse-dim hover:text-pulse-text">
+                                        Today
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="pt-3">
+                                <GenerateRoutineButton
+                                    label="Change split or days →"
+                                    className="flex w-full cursor-pointer items-center justify-between rounded-lg border-none bg-pulse-surface-2 px-3 py-3 font-pulse text-[0.84rem] font-medium text-pulse-text"
+                                />
+                                <p className="mt-1.5 font-pulse text-[0.7rem] leading-[1.4] text-pulse-muted">
+                                    Builds a fresh routine with a different split or weekly frequency. Your current plan
+                                    is kept until you switch.
+                                </p>
+                            </div>
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
 
@@ -437,8 +456,7 @@ export default function ProgramView() {
                     week={activeWeek}
                     candidates={swapCandidates(swapTarget.exercise, exercises, {
                         excludeIds: new Set(
-                            activeRoutine?.exercises.filter((r) => r.id !== swapTarget.id).map((r) => r.exercise_id) ??
-                                [],
+                            activeRoutine.exercises.filter((r) => r.id !== swapTarget.id).map((r) => r.exercise_id),
                         ),
                     })}
                     isSwapped={false}

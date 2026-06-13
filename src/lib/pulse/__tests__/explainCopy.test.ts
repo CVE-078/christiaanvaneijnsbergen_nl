@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { explainCopy, type ExplainConcept } from '@/lib/pulse/explainCopy';
+import { explainCopy, PHASE_DESCRIPTIONS, type ExplainConcept } from '@/lib/pulse/explainCopy';
 
 const ALL_CONCEPTS: ExplainConcept[] = [
     'stalled',
@@ -12,6 +12,9 @@ const ALL_CONCEPTS: ExplainConcept[] = [
     'volume_target',
     'recovery',
     'strength_score',
+    'rir',
+    'phase',
+    'deload_week',
 ];
 
 describe('explainCopy', () => {
@@ -68,8 +71,47 @@ describe('explainCopy', () => {
     });
 
     it('keeps glossary concepts as definitions (no "next")', () => {
-        for (const concept of ['e1rm', 'warmup', 'volume_target', 'recovery', 'strength_score'] as const) {
+        for (const concept of [
+            'e1rm',
+            'warmup',
+            'volume_target',
+            'recovery',
+            'strength_score',
+            'rir',
+            'phase',
+            'deload_week',
+        ] as const) {
             expect(explainCopy(concept).next, concept).toBeUndefined();
         }
+    });
+
+    it('keeps the planned deload_week distinct from the stalled-lift deload, with no strength-jump overclaim', () => {
+        expect(explainCopy('deload_week').why).not.toBe(explainCopy('deload').why);
+        expect(explainCopy('deload_week').why).not.toMatch(/stronger/i);
+        expect(explainCopy('rir').why.toLowerCase()).toContain('reserve');
+        expect(explainCopy('phase').why.toLowerCase()).toContain('phase');
+    });
+});
+
+describe('PHASE_DESCRIPTIONS', () => {
+    // Every phase subtitle the program blocks (8/10/12/16) can produce.
+    const SUBTITLES = ['Accumulation', 'Intensification', 'Overreach', 'Peak & Deload', 'Deload'] as const;
+
+    it('has a non-empty description for every phase subtitle', () => {
+        for (const s of SUBTITLES) {
+            expect(PHASE_DESCRIPTIONS[s]?.trim().length, s).toBeGreaterThan(0);
+        }
+    });
+
+    it('uses no em dash and makes no supercompensation overclaim', () => {
+        for (const s of SUBTITLES) {
+            const copy = PHASE_DESCRIPTIONS[s];
+            expect(copy, s).not.toContain('—');
+            expect(copy, `${s}: should not promise getting stronger`).not.toMatch(/stronger/i);
+        }
+    });
+
+    it('describes Accumulation as building/climbing volume (not "higher volume at easier effort")', () => {
+        expect(PHASE_DESCRIPTIONS.Accumulation.toLowerCase()).toMatch(/climb|base/);
     });
 });

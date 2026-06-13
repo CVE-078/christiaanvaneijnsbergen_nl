@@ -546,16 +546,14 @@ export async function generateAndSaveRoutine(
         makeGroupId: () => crypto.randomUUID(),
     });
 
-    // Item 2: a minimum-compound guard can return non-blocking notices (a session
-    // whose compounds were all filtered out by restrictions/equipment). Append them
-    // to the stored rationale so they surface in the "why this plan" copy.
-    const rationaleWithNotices = blueprint.warnings.length
-        ? `${rationale} ${blueprint.warnings.join(' ')}`
-        : rationale;
-
+    // Item 2: a minimum-compound guard can return non-blocking notice KEYS (a
+    // session whose compounds were all filtered out by restrictions/equipment).
+    // Persist them to the routine's `warnings` column so the Plan page renders them
+    // as a distinct, dismissible notice (copy from WARNING_COPY), instead of gluing
+    // their sentences into the rationale prose forever.
     const { data: routine, error: routineErr } = await supabase
         .from('workout_routines')
-        .insert({ user_id: user.id, name: routineName, rationale: rationaleWithNotices })
+        .insert({ user_id: user.id, name: routineName, rationale, warnings: blueprint.warnings })
         .select('id, user_id, name, created_at')
         .single();
     if (routineErr || !routine) throw new Error('Failed to create routine');

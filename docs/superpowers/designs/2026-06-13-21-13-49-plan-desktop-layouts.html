@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plan desktop layouts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Big+Shoulders+Display:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--accent:#ff7d66;--bg:#0e1113;--surface:#161a1d;--surface-2:#1c2125;--border:#262c31;
+    --dim:#aab2b7;--muted:#6f787e;--text:#e7ebed;--success:#4ade80;
+    --p1:#4ade80;--p2:#facc15;--p3:#f97316;--p4:#f43f5e}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#07090a;color:var(--text);font-family:'Hanken Grotesk',sans-serif;-webkit-font-smoothing:antialiased;padding:20px 14px 70px}
+  .layhead{max-width:1180px;margin:34px auto 12px}
+  .layhead:first-of-type{margin-top:4px}
+  .layhead .t{font-size:1.1rem;font-weight:600}
+  .layhead .t .tag{color:var(--accent);font-weight:700;margin-right:8px}
+  .layhead .d{color:var(--muted);font-size:0.82rem;margin-top:4px;line-height:1.5}
+  .layhead .d b{color:var(--dim);font-weight:600}
+
+  .device{width:1180px;margin:0 auto;background:var(--bg);border:1px solid var(--border);border-radius:18px;overflow:hidden;display:flex;box-shadow:0 18px 50px rgba(0,0,0,.45);height:560px}
+  .sidebar{width:200px;flex:none;border-right:1px solid var(--border);background:var(--surface);padding:16px 12px;display:flex;flex-direction:column;gap:3px}
+  .sidebar .logo{font-weight:700;font-size:1rem;letter-spacing:0.05em;text-transform:uppercase;padding:6px 10px 16px}
+  .sidebar .logo span{color:var(--accent)}
+  .sidebar .nav{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:var(--dim);font-weight:500;font-size:0.86rem}
+  .sidebar .nav.on{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
+  .sidebar .nav svg{width:17px;height:17px}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .scroll{flex:1;overflow:hidden;padding:20px 26px}
+  .ttl{font-size:1.4rem;font-weight:600;letter-spacing:-0.02em;margin-bottom:14px}
+
+  /* region block */
+  .rg{background:var(--surface);border-radius:13px;padding:13px 15px;position:relative;overflow:hidden}
+  .rg.acc{border-left:2px solid var(--accent)}
+  .rg .rt{font-size:0.82rem;font-weight:600}
+  .rg .rs{font-size:0.7rem;color:var(--muted);margin-top:3px;line-height:1.45}
+  .rg .pin{position:absolute;top:11px;right:13px;font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);background:var(--surface-2);padding:2px 7px;border-radius:6px}
+  /* faux mini visuals */
+  .fbars{display:flex;align-items:flex-end;gap:3px;height:36px;margin-top:9px}
+  .fbars i{flex:1;border-radius:2px 2px 0 0;background:color-mix(in srgb,var(--c,var(--accent)) 45%,var(--surface-2))}
+  .frow{height:9px;border-radius:99px;background:var(--surface-2);margin-top:8px}
+  .frow.s{width:62%}
+  .fweek{display:flex;gap:4px;margin-top:9px}
+  .fweek i{flex:1;height:22px;border-radius:6px;background:var(--surface-2)}
+  .fweek i.on{background:color-mix(in srgb,var(--accent) 30%,var(--surface-2))}
+  .fexs{margin-top:9px;display:flex;flex-direction:column;gap:7px}
+  .fexs .e{display:flex;align-items:center;gap:9px}
+  .fexs .e .n{height:9px;border-radius:99px;background:var(--surface-2);flex:1}
+  .fexs .e .w{height:9px;width:34px;border-radius:99px;background:color-mix(in srgb,var(--accent) 22%,var(--surface-2))}
+  .fpill{display:inline-block;font-size:0.6rem;font-weight:600;color:var(--success);background:color-mix(in srgb,var(--success) 13%,transparent);border-radius:99px;padding:2px 9px}
+  .col{display:flex;flex-direction:column;gap:13px;min-height:0}
+
+  /* L1 single column */
+  .l1{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:13px}
+  /* L2 left rail + content */
+  .l2{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}
+  /* L3 full header + two columns */
+  .l3header{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;margin-bottom:14px}
+  .l3body{display:grid;grid-template-columns:1fr 1.4fr;gap:20px;align-items:start}
+  /* L4 sticky rail */
+  .l4{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+  .stickytag{display:inline-flex;align-items:center;gap:5px;font-size:0.58rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:7px}
+
+  .note{max-width:1180px;margin:50px auto 0;color:var(--muted);font-size:0.8rem;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- nav + title helper rendered per layout via JS to avoid repetition -->
+<div id="root"></div>
+
+<p class="note">Four desktop structures for the same Plan content. Sessions are an <b>accordion on desktop</b> (your call) in all four. Phase colours are fixed/semantic. Pick a structure (and it composes with whichever block-arc variation you choose). My lean: <b>L3</b> or <b>L4</b>, the arc earns the width and the page stops feeling like a tall phone column.</p>
+
+<script>
+function sidebar(){
+  return '<div class="sidebar"><div class="logo">Pulse<span>.</span></div>'+
+    '<div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h2v11h-2zM15.5 6.5h2v11h-2zM8.5 12h7M4 9.5v5M20 9.5v5"/></svg>Train</div>'+
+    '<div class="nav on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/></svg>Plan</div>'+
+    '<div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 16l5-5 4 3 7-7"/></svg>Progress</div>'+
+    '<div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Profile</div>'+
+    '<div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h11a2 2 0 012 2v12H7a2 2 0 01-2-2z"/><path d="M9 5v14"/></svg>Library</div></div>';
+}
+// region blocks
+var R={
+  identity:'<div class="rg acc"><div class="rt">Power Hypertrophy U/L <span class="fpill" style="margin-left:6px">On track</span></div><div class="rs">Week 6 of 12 &middot; Intensification &middot; "Why this plan"</div><div class="frow"></div><div class="frow s"></div></div>',
+  ident_sm:'<div class="rg acc"><div class="rt">Power Hypertrophy U/L</div><div class="rs">Week 6 of 12 &middot; Intensification</div><div class="frow"></div></div>',
+  next:'<div class="rg"><div class="rt">Next session &middot; Upper A</div><div class="rs">~52 min &middot; 18 sets &middot; prefilled weights</div><div class="fexs"><div class="e"><div class="n"></div><div class="w"></div></div><div class="e"><div class="n"></div><div class="w"></div></div><div class="e"><div class="n"></div><div class="w"></div></div></div></div>',
+  arc:'<div class="rg"><div class="rt">Training block</div><div class="rs">phase &middot; volume &middot; RIR &middot; deload, the chosen arc variation</div><div class="fbars"><i style="--c:var(--p1);height:48%"></i><i style="--c:var(--p1);height:58%"></i><i style="--c:var(--p1);height:70%"></i><i style="--c:var(--p2);height:58%"></i><i style="--c:var(--p2);height:70%"></i><i style="--c:var(--p2);height:82%"></i><i style="--c:var(--p3);height:70%"></i><i style="--c:var(--p3);height:82%"></i><i style="--c:var(--p3);height:95%"></i><i style="--c:var(--p4);height:82%"></i><i style="--c:var(--p4);height:95%"></i><i style="--c:var(--p4);height:38%"></i></div></div>',
+  arcwide:'<div class="rg"><div class="rt">Training block</div><div class="rs">full repeating block at a glance, the wide space the arc wants</div><div class="fbars" style="height:60px"><i style="--c:var(--p1);height:48%"></i><i style="--c:var(--p1);height:58%"></i><i style="--c:var(--p1);height:70%"></i><i style="--c:var(--p2);height:58%"></i><i style="--c:var(--p2);height:70%"></i><i style="--c:var(--p2);height:82%"></i><i style="--c:var(--p3);height:70%"></i><i style="--c:var(--p3);height:82%"></i><i style="--c:var(--p3);height:95%"></i><i style="--c:var(--p4);height:82%"></i><i style="--c:var(--p4);height:95%"></i><i style="--c:var(--p4);height:38%"></i></div></div>',
+  week:'<div class="rg"><div class="rt">This week</div><div class="fweek"><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>',
+  sessions:function(pin){return '<div class="rg">'+(pin?'<span class="pin">'+pin+'</span>':'')+'<div class="rt">Sessions</div><div class="rs">accordion &mdash; Upper A / Lower A / Upper B / Lower B, each expandable</div>'+
+    '<div class="fexs" style="margin-top:11px"><div class="e"><div class="n"></div><div class="w"></div></div><div class="e"><div class="n"></div><div class="w"></div></div><div class="e"><div class="n"></div><div class="w"></div></div><div class="e"><div class="n"></div><div class="w"></div></div><div class="e"><div class="n"></div><div class="w"></div></div><div class="e"><div class="n"></div><div class="w"></div></div></div></div>';},
+  settings:'<div class="rg"><div class="rt">Program settings</div><div class="rs">length &middot; start date &middot; change split or days (collapsed)</div></div>'
+};
+
+function frame(inner){return '<div class="device">'+sidebar()+'<div class="main"><div class="scroll"><div class="ttl">Plan</div>'+inner+'</div></div></div>';}
+
+var L1='<div class="l1">'+R.identity+R.next+R.arc+R.week+R.sessions('')+R.settings+'</div>';
+
+var L2='<div class="l2"><div class="col">'+R.identity+R.next+R.arc+R.week+R.settings+'</div><div class="col">'+R.sessions('')+'</div></div>';
+
+var L3='<div class="l3header">'+R.identity+R.arcwide+'</div><div class="l3body"><div class="col">'+R.next+R.week+R.settings+'</div><div class="col">'+R.sessions('')+'</div></div>';
+
+var L4='<div class="l4"><div class="col"><span class="stickytag">&#9679; sticky rail</span>'+R.ident_sm+R.next+R.arc+R.week+'</div><div class="col">'+R.sessions('scrolls')+R.settings+'</div></div>';
+
+var html='';
+function block(tag,title,desc,inner){return '<div class="layhead"><div class="t"><span class="tag">'+tag+'</span>'+title+'</div><div class="d">'+desc+'</div></div>'+frame(inner);}
+html+=block('L1','Single centred column','Everything stacked in one ~680px column, like mobile but centred. <b>Calmest and most consistent</b>, but wastes the wide screen and the sessions accordion makes a long scroll.',L1);
+html+=block('L2','Left rail + content','Summary rail (identity, next, arc, week, settings) on the left; sessions fill the right. <b>This is what v1 had.</b> Functional, but the arc is squeezed into a narrow rail and the left can run longer than the right.',L2);
+html+=block('L3','Full-width header + two columns','Identity + the block arc share a full-width header (arc gets real width), then next/week/settings on the left and sessions on the right. <b>Best use of the arc; clear "what / where am I" banner.</b>',L3);
+html+=block('L4','Sticky summary rail','Left rail (identity, next session, arc, week) <b>stays pinned</b> while the sessions accordion + settings scroll on the right. Dashboard feel, the plan context never leaves view while you read sessions.',L4);
+document.getElementById('root').innerHTML=html;
+</script>
+</body>
+</html>

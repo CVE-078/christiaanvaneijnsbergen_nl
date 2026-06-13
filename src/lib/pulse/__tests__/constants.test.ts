@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DAY_NAMES, WORKOUT_TYPE_LABELS, WORKOUT_TYPE_ORDER, EXPERIENCE_LEVEL_COLOR } from '../constants';
+import { DAY_NAMES, WORKOUT_TYPE_LABELS, WORKOUT_TYPE_ORDER, EXPERIENCE_LEVEL_COLOR, WARNING_COPY } from '../constants';
 
 describe('DAY_NAMES', () => {
     it('has 7 entries', () => expect(DAY_NAMES).toHaveLength(7));
@@ -23,6 +23,29 @@ describe('WORKOUT_TYPE_ORDER', () => {
 
 // SUGGESTED_DAYS / MAX_TRAINING_DAYS moved to weeklyFrequency.ts (Issue 0);
 // their tests live in weeklyFrequency.test.ts.
+
+describe('WARNING_COPY', () => {
+    it('has copy for the generator warning keys', () => {
+        expect(WARNING_COPY.limited_variety).toBeDefined();
+        expect(WARNING_COPY.no_compound).toBeDefined();
+    });
+    it('keeps the title and body non-empty for each key', () => {
+        for (const key of ['limited_variety', 'no_compound'] as const) {
+            expect(WARNING_COPY[key].title.trim().length, `${key} title`).toBeGreaterThan(0);
+            expect(WARNING_COPY[key].body.trim().length, `${key} body`).toBeGreaterThan(0);
+        }
+    });
+    it('preserves the meaning the old generation tests guarded', () => {
+        expect(WARNING_COPY.limited_variety.body).toMatch(/fewer compound exercises/i);
+        expect(WARNING_COPY.no_compound.title.toLowerCase()).toContain('accessory work only');
+    });
+    it('uses no em dash (house copy rule)', () => {
+        for (const key of ['limited_variety', 'no_compound'] as const) {
+            expect(WARNING_COPY[key].title).not.toContain('—');
+            expect(WARNING_COPY[key].body).not.toContain('—');
+        }
+    });
+});
 
 describe('EXPERIENCE_LEVEL_COLOR', () => {
     it('beginner has a class string', () => expect(typeof EXPERIENCE_LEVEL_COLOR.beginner).toBe('string'));

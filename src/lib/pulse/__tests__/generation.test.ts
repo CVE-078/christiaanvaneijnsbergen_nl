@@ -801,8 +801,7 @@ describe('exercise role model: role sequence (Item 4)', () => {
     const isLowerCompound = (e: ExerciseMeta) => e.is_compound && LOWER.has(e.movement_pattern ?? '');
     const isFinisher = (e: ExerciseMeta) => e.movement_pattern === 'calf' || e.movement_pattern === 'core';
     // bucket rank for the non-decreasing-sequence checks: compounds 0, isolation 1, finisher 2.
-    const bucketRank = (e: ExerciseMeta) =>
-        isUpperCompound(e) || isLowerCompound(e) ? 0 : isFinisher(e) ? 2 : 1;
+    const bucketRank = (e: ExerciseMeta) => (isUpperCompound(e) || isLowerCompound(e) ? 0 : isFinisher(e) ? 2 : 1);
 
     // A minimal named pool: exactly one compound per fb_strength pattern, fatigue set
     // so the bench/row tie resolves by push-before-pull, not id order.
@@ -866,9 +865,7 @@ describe('exercise role model: role sequence (Item 4)', () => {
             meta('ex-bi', 'biceps_iso', ['dumbbells'], false),
         ];
         const style = STYLES[2][0] as ProgramStyle; // fb-2, day B = fb_hyper (has a lunge slot)
-        const bp = generateRoutine(
-            input({ style, trainingDays: [1, 4], pool, restrictions: ['knee', 'lower_back'] }),
-        );
+        const bp = generateRoutine(input({ style, trainingDays: [1, 4], pool, restrictions: ['knee', 'lower_back'] }));
         const m = byId(pool);
         const ids = sessionIds(bp, 'full_body', 'B');
         const lungeIdx = ids.indexOf('ex-bss');
@@ -1839,9 +1836,9 @@ describe('Item 2: minimum-compound guard for restriction-emptied sessions', () =
         const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool, restrictions: ['knee'] }));
         // Never hard-rejects, still produces a routine...
         expect(bp.exercises.length).toBeGreaterThan(0);
-        // ...and surfaces a single clear warning (deduped across sessions).
+        // ...and surfaces a single clear warning key (deduped across sessions).
         expect(bp.warnings.length).toBe(1);
-        expect(bp.warnings[0]).toMatch(/accessory work only/i);
+        expect(bp.warnings[0]).toBe('no_compound');
     });
 
     it('a normal routine carries an empty warnings array (golden)', () => {
@@ -2577,7 +2574,9 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
         const bp = generateRoutine(input({ style, trainingDays: days }));
         return {
             schedule: bp.schedule.map((s) => `${s.day_of_week}:${s.workout_type}:${s.variant ?? '-'}`),
-            exercises: bp.exercises.map((e) => `${e.workout_type}:${e.variant ?? '-'}:${e.exercise_id}:${e.sets}x${e.reps}`),
+            exercises: bp.exercises.map(
+                (e) => `${e.workout_type}:${e.variant ?? '-'}:${e.exercise_id}:${e.sets}x${e.reps}`,
+            ),
         };
     }
 
@@ -2759,15 +2758,12 @@ describe('minimum-compound floor + lower-bucket backfill (live-test Issue 1)', (
             meta('crunch', 'core', [], false),
             ...ALL_PATTERNS.filter(
                 (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'].includes(p),
-            ).flatMap((p) => [
-                meta(`${p}-1`, p, ['dumbbells'], false),
-                meta(`${p}-2`, p, ['dumbbells'], false),
-            ]),
+            ).flatMap((p) => [meta(`${p}-1`, p, ['dumbbells'], false), meta(`${p}-2`, p, ['dumbbells'], false)]),
         ];
         const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
         const bp = generateRoutine(input({ style, trainingDays: fourDays, pool }));
         expect(bp.exercises.length).toBeGreaterThan(0);
-        expect(bp.warnings.some((w) => w.includes('fewer compound exercises'))).toBe(true);
+        expect(bp.warnings).toContain('limited_variety');
     });
 
     it('a lower session with NO lower compounds never receives an upper compound from the guard', () => {
@@ -2866,7 +2862,10 @@ describe('lower_post never seats a squat compound under a thin pool (2026-06-11)
             meta('sumo-squat', 'squat', ['dumbbells'], true, { name: 'Dumbbell Sumo Squat', fatigue: 4 }),
             meta('db-rdl', 'hinge', ['dumbbells'], true, { name: 'Dumbbell Romanian Deadlift', fatigue: 4 }),
             meta('leg-curl', 'hinge', ['dumbbells', 'bench'], false, { name: 'Dumbbell Leg Curl (Lying)' }),
-            meta('bulgarian', 'lunge', ['dumbbells', 'bench'], true, { name: 'Bulgarian Split Squat', unilateral: true }),
+            meta('bulgarian', 'lunge', ['dumbbells', 'bench'], true, {
+                name: 'Bulgarian Split Squat',
+                unilateral: true,
+            }),
             meta('step-up', 'lunge', ['bench'], true, { name: 'Step-Up', unilateral: true }),
             meta('walking-lunge', 'lunge', ['dumbbells'], true, { name: 'Walking Lunge', unilateral: true }),
             meta('db-calf', 'calf', ['dumbbells'], false),
@@ -2926,7 +2925,7 @@ describe('lower_post never seats a squat compound under a thin pool (2026-06-11)
         const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
         const pat = patternMap(pool);
         expect(sessionIds(bp, 'legs', null).map((id) => pat.get(id))).not.toContain('squat');
-        expect(bp.warnings.some((w) => w.includes('fewer compound exercises'))).toBe(true);
+        expect(bp.warnings).toContain('limited_variety');
     });
 });
 
