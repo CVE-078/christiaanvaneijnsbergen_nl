@@ -11,8 +11,10 @@ import {
     updateLoadingLean as serverUpdateLoadingLean,
     updateTimezone as serverUpdateTimezone,
     updateAccentColor as serverUpdateAccentColor,
+    updateGoalWeight as serverUpdateGoalWeight,
     logBodyWeight as serverLogBodyWeight,
     deleteBodyWeight as serverDeleteBodyWeight,
+    logBodyMeasurement as serverLogBodyMeasurement,
 } from '@/app/pulse/actions';
 import { fetcher, SWR_READ_OPTS } from '@/lib/pulse/fetcher';
 import type {
@@ -204,9 +206,25 @@ export function useProfile() {
         [mutateProfile, profile],
     );
 
+    const updateGoalWeight = useCallback(
+        async (goalWeightKg: number | null): Promise<void> => {
+            mutateProfile({ ...profile, goal_weight_kg: goalWeightKg }, false);
+            try {
+                await serverUpdateGoalWeight(goalWeightKg);
+            } finally {
+                mutateProfile();
+            }
+        },
+        [mutateProfile, profile],
+    );
+
     const logBodyWeight = useCallback(
-        async (weightKg: number): Promise<BodyweightEntry> => {
-            const entry = await serverLogBodyWeight(weightKg);
+        // `date` is an optional YYYY-MM-DD for backdated entries; the server upserts
+        // by (user, logged_at) and returns the canonical row, which we insert directly
+        // into the cache (deduped by logged_at, re-sorted). No revalidate needed, and
+        // it works for any date, so the UI updates live whether or not it is today.
+        async (weightKg: number, date?: string): Promise<BodyweightEntry> => {
+            const entry = await serverLogBodyWeight(weightKg, date);
             mutateBW((prev = []) => {
                 const deduped = prev.filter((e) => e.logged_at !== entry.logged_at);
                 return [entry, ...deduped].sort((a, b) => b.logged_at.localeCompare(a.logged_at));
@@ -214,6 +232,28 @@ export function useProfile() {
             return entry;
         },
         [mutateBW],
+    );
+
+    const logBodyMeasurement = useCallback(
+        // Mirror logBodyWeight: await the server, get the inserted row back, and insert
+        // it straight into the cache (newest-first). Measurements are insert-only
+        // (same-date rows are allowed), so we prepend rather than dedupe. No revalidate,
+        // so the new entry shows live regardless of date.
+        async (data: {
+            measured_at?: string;
+            waist_cm?: number;
+            hips_cm?: number;
+            chest_cm?: number;
+            arms_cm?: number;
+        }): Promise<BodyMeasurement> => {
+            const row = await serverLogBodyMeasurement(data);
+            mutateMeasurements(
+                (prev = []) => [row, ...prev].sort((a, b) => b.measured_at.localeCompare(a.measured_at)),
+                false,
+            );
+            return row;
+        },
+        [mutateMeasurements],
     );
 
     const deleteBodyWeight = useCallback(
@@ -243,7 +283,9 @@ export function useProfile() {
         updateLoadingLean,
         updateTimezone,
         updateAccentColor,
+        updateGoalWeight,
         logBodyWeight,
+        logBodyMeasurement,
         deleteBodyWeight,
         loadingProfile,
         loadingBodyweight,

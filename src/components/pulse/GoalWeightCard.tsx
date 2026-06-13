@@ -4,10 +4,9 @@ import { toDisplay, toKg } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import SectionLabel from './SectionLabel';
 import { INPUT, BTN_PRIMARY } from './ui';
-import { updateGoalWeight } from '@/app/pulse/actions';
 
 export default function GoalWeightCard() {
-    const { profile, bodyweightLogs } = usePulse();
+    const { profile, bodyweightLogs, updateGoalWeight } = usePulse();
     const { unit } = profile;
 
     const [goalWeightInput, setGoalWeightInput] = useState('');

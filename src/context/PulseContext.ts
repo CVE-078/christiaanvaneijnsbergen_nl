@@ -76,7 +76,15 @@ export interface PulseContextValue {
     updateTrainingStyle: (style: TrainingStyle | null) => Promise<void>;
     updateVarietyPreference: (pref: VarietyPreference) => Promise<void>;
     updateLoadingLean: (pref: LoadingPreference | null) => Promise<void>;
-    logBodyWeight: (weightKg: number) => Promise<BodyweightEntry>;
+    updateGoalWeight: (goalWeightKg: number | null) => Promise<void>;
+    logBodyWeight: (weightKg: number, date?: string) => Promise<BodyweightEntry>;
+    logBodyMeasurement: (data: {
+        measured_at?: string;
+        waist_cm?: number;
+        hips_cm?: number;
+        chest_cm?: number;
+        arms_cm?: number;
+    }) => Promise<BodyMeasurement>;
     deleteBodyWeight: (id: string) => Promise<void>;
     refreshMeasurements: () => void;
 

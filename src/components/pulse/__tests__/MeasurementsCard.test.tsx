@@ -6,10 +6,6 @@ vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
 }));
 
-vi.mock('@/app/pulse/actions', () => ({
-    logBodyMeasurement: vi.fn().mockResolvedValue(undefined),
-}));
-
 // MetricLineChart requires >=2 points to render; silence SVG rendering in jsdom.
 vi.mock('../MetricLineChart', () => ({
     default: ({ points, unitLabel }: { points: { date: string; value: number }[]; unitLabel: string }) => (
@@ -20,19 +16,27 @@ vi.mock('../MetricLineChart', () => ({
 import { usePulse } from '@/context/PulseContext';
 import MeasurementsCard from '../MeasurementsCard';
 
-const mockRefreshMeasurements = vi.fn();
 const mockUpdateLengthUnit = vi.fn().mockResolvedValue(undefined);
+// MeasurementsCard now logs through the optimistic context wrapper, not the raw action.
+const mockLogBodyMeasurement = vi.fn().mockResolvedValue({
+    id: 'm',
+    measured_at: '2026-06-01',
+    waist_cm: 85,
+    hips_cm: null,
+    chest_cm: null,
+    arms_cm: null,
+});
 
 const defaultContext = {
     profile: { length_unit: 'cm' as const },
     bodyMeasurements: [],
-    refreshMeasurements: mockRefreshMeasurements,
+    logBodyMeasurement: mockLogBodyMeasurement,
     updateLengthUnit: mockUpdateLengthUnit,
 };
 
 beforeEach(() => {
     vi.mocked(usePulse).mockReturnValue(defaultContext as unknown as ReturnType<typeof usePulse>);
-    mockRefreshMeasurements.mockClear();
+    mockLogBodyMeasurement.mockClear();
     mockUpdateLengthUnit.mockClear();
 });
 
@@ -134,11 +138,10 @@ describe('MeasurementsCard', () => {
     });
 
     it('logs only the selected metric for the chosen date', async () => {
-        const { logBodyMeasurement } = await import('@/app/pulse/actions');
         render(<MeasurementsCard />);
         await userEvent.type(screen.getByRole('spinbutton', { name: /waist in cm/i }), '85');
         await userEvent.click(screen.getByRole('button', { name: /^log$/i }));
-        expect(logBodyMeasurement).toHaveBeenCalledWith(
+        expect(mockLogBodyMeasurement).toHaveBeenCalledWith(
             expect.objectContaining({ waist_cm: 85, hips_cm: undefined, chest_cm: undefined, arms_cm: undefined }),
         );
     });

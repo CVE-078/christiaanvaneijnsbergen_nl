@@ -8,12 +8,22 @@ vi.mock('@/app/pulse/actions', () => ({
     deleteBodyWeight: vi.fn().mockResolvedValue(undefined),
     updateVarietyPreference: vi.fn().mockResolvedValue(undefined),
     updateLoadingLean: vi.fn().mockResolvedValue(undefined),
+    updateGoalWeight: vi.fn().mockResolvedValue(undefined),
+    logBodyMeasurement: vi.fn(),
 }));
 
 import useSWR from 'swr';
-import { updateProfile, logBodyWeight, deleteBodyWeight, updateVarietyPreference, updateLoadingLean } from '@/app/pulse/actions';
+import {
+    updateProfile,
+    logBodyWeight,
+    deleteBodyWeight,
+    updateVarietyPreference,
+    updateLoadingLean,
+    updateGoalWeight,
+    logBodyMeasurement,
+} from '@/app/pulse/actions';
 import { useProfile } from '../useProfile';
-import type { Profile, BodyweightEntry } from '@/lib/pulse/types';
+import type { Profile, BodyweightEntry, BodyMeasurement } from '@/lib/pulse/types';
 
 const defaultProfile: Profile = {
     display_name: 'Test User',
@@ -50,6 +60,8 @@ beforeEach(() => {
     vi.mocked(deleteBodyWeight).mockClear();
     vi.mocked(updateVarietyPreference).mockClear();
     vi.mocked(updateLoadingLean).mockClear();
+    vi.mocked(updateGoalWeight).mockClear();
+    vi.mocked(logBodyMeasurement).mockClear();
 });
 
 describe('useProfile', () => {
@@ -127,8 +139,65 @@ describe('useProfile', () => {
             expect(returned).toEqual(entry);
         });
 
-        expect(logBodyWeight).toHaveBeenCalledWith(75);
+        expect(logBodyWeight).toHaveBeenCalledWith(75, undefined);
         expect(bwMutate).toHaveBeenCalled();
+    });
+
+    it('logBodyWeight forwards an explicit (non-today) date to the server action', async () => {
+        const entry: BodyweightEntry = { id: 'd1', logged_at: '2026-05-01', weight_kg: 70 };
+        vi.mocked(logBodyWeight).mockResolvedValueOnce(entry);
+        const { result } = renderHook(() => useProfile());
+
+        await act(async () => {
+            await result.current.logBodyWeight(70, '2026-05-01');
+        });
+
+        expect(logBodyWeight).toHaveBeenCalledWith(70, '2026-05-01');
+        // The optimistic insert places the backdated entry by logged_at order.
+        const updater = bwMutate.mock.calls[0][0] as (prev: BodyweightEntry[]) => BodyweightEntry[];
+        expect(updater([{ id: 'x', logged_at: '2026-04-01', weight_kg: 72 }])).toEqual([
+            entry,
+            { id: 'x', logged_at: '2026-04-01', weight_kg: 72 },
+        ]);
+    });
+
+    it('updateGoalWeight optimistically mutates the profile then calls the server action', async () => {
+        const { result } = renderHook(() => useProfile());
+
+        await act(async () => {
+            await result.current.updateGoalWeight(72);
+        });
+
+        expect(profileMutate).toHaveBeenCalledWith({ ...defaultProfile, goal_weight_kg: 72 }, false);
+        expect(updateGoalWeight).toHaveBeenCalledWith(72);
+        // Revalidates after the server confirms.
+        expect(profileMutate).toHaveBeenCalledTimes(2);
+    });
+
+    it('logBodyMeasurement inserts the server-returned row into the cache (no revalidate)', async () => {
+        const row: BodyMeasurement = {
+            id: 'm1',
+            measured_at: '2026-05-01',
+            waist_cm: 80,
+            hips_cm: null,
+            chest_cm: null,
+            arms_cm: null,
+        };
+        vi.mocked(logBodyMeasurement).mockResolvedValueOnce(row);
+        const { result } = renderHook(() => useProfile());
+
+        let returned: BodyMeasurement | undefined;
+        await act(async () => {
+            returned = await result.current.logBodyMeasurement({ measured_at: '2026-05-01', waist_cm: 80 });
+        });
+
+        expect(logBodyMeasurement).toHaveBeenCalledWith({ measured_at: '2026-05-01', waist_cm: 80 });
+        expect(returned).toEqual(row);
+        const updater = measurementsMutate.mock.calls[0][0] as (prev: BodyMeasurement[]) => BodyMeasurement[];
+        expect(updater([])).toEqual([row]);
+        // No revalidate: the canonical row is already in the cache.
+        expect(measurementsMutate).toHaveBeenCalledTimes(1);
+        expect(measurementsMutate).toHaveBeenCalledWith(expect.any(Function), false);
     });
 
     it('updateVarietyPreference optimistically mutates and calls the server action', async () => {
@@ -138,10 +207,7 @@ describe('useProfile', () => {
             await result.current.updateVarietyPreference('consistent');
         });
 
-        expect(profileMutate).toHaveBeenCalledWith(
-            { ...defaultProfile, variety_preference: 'consistent' },
-            false,
-        );
+        expect(profileMutate).toHaveBeenCalledWith({ ...defaultProfile, variety_preference: 'consistent' }, false);
         expect(updateVarietyPreference).toHaveBeenCalledWith('consistent');
     });
 
