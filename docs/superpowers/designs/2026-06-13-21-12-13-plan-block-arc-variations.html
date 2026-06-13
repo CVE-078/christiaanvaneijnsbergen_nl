@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Block arc variations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Sora:wght@400;500;600&family=Big+Shoulders+Display:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--accent:#ff7d66;--bg:#0e1113;--surface:#161a1d;--surface-2:#1c2125;--border:#262c31;
+    --dim:#aab2b7;--muted:#6f787e;--text:#e7ebed;--success:#4ade80;
+    --p1:#4ade80;--p2:#facc15;--p3:#f97316;--p4:#f43f5e}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#07090a;color:var(--text);font-family:'Hanken Grotesk',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;padding:18px 14px 60px}
+  .controls{max-width:900px;margin:0 auto 16px;display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .hint{color:var(--muted);font-size:0.78rem;text-align:center;line-height:1.5}
+  .stage{display:flex;justify-content:center}
+  .device{width:390px;background:var(--bg);border:1px solid var(--border);border-radius:22px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+  .scroll{padding:16px 16px 28px;max-height:880px;overflow-y:auto}
+  .scroll::-webkit-scrollbar{width:0}
+  .ttl{font-size:1.6rem;font-weight:600;letter-spacing:-0.02em;margin-bottom:14px}
+
+  .lbl{font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:22px 0 9px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .lbl:first-of-type{margin-top:6px}
+  .lbl .vtag{color:var(--accent);font-weight:700;letter-spacing:0.04em}
+  .lbl .desc{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.72rem}
+  .card{background:var(--surface);border-radius:14px;padding:15px}
+  .mtrack{height:7px;border-radius:99px;background:var(--bg);overflow:hidden}
+  .mf{height:100%;border-radius:99px;background:var(--accent)}
+
+  /* compact identity for context */
+  .prog{border-left:2px solid var(--accent)}
+  .prog .pname{font-size:1.05rem;font-weight:600;letter-spacing:-0.01em}
+  .prog .pmeta{color:var(--dim);font-size:0.8rem;margin-top:3px}
+  .prog .pmeta b{color:var(--text);font-weight:600}
+  .spill{font-size:0.7rem;font-weight:600;border-radius:99px;padding:4px 11px;color:var(--success);background:color-mix(in srgb,var(--success) 13%,transparent)}
+  .rowsb{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+
+  .cap{font-size:0.78rem;color:var(--dim);margin-top:11px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .cap .dot{width:8px;height:8px;border-radius:99px;flex:none}
+  .cap b{color:var(--text);font-weight:600}
+  .cap .sep{color:var(--border)}
+  .ahead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:13px}
+  .ahead .h{font-weight:600;font-size:0.92rem}
+  .ahead .s{color:var(--muted);font-size:0.72rem}
+
+  /* ===== A: phase-tinted bars (minimal) ===== */
+  .barsA{display:flex;align-items:flex-end;gap:5px;height:74px}
+  .barsA .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer;position:relative}
+  .barsA .c .bar{width:100%;max-width:18px;border-radius:3px 3px 0 0;background:color-mix(in srgb,var(--c) 42%,var(--surface-2))}
+  .barsA .c.cur .bar{background:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 45%,transparent)}
+  .barsA .c .dl{position:absolute;top:-13px;font-size:0.62rem;color:var(--p4)}
+  .wknA{display:flex;gap:5px;margin-top:6px}
+  .wknA .w{flex:1;text-align:center;font-size:0.56rem;color:var(--muted)}
+  .wknA .w.cur{color:var(--text);font-weight:700}
+
+  /* ===== B: slim phase timeline (no bars) ===== */
+  .tlbar{display:flex;gap:3px;height:12px;border-radius:99px;overflow:hidden;position:relative}
+  .tlbar .seg{flex:var(--w,1);background:color-mix(in srgb,var(--c) 55%,var(--surface-2))}
+  .tlmark{position:relative;height:0}
+  .tlmark .pin{position:absolute;top:-26px;transform:translateX(-50%);width:2px;height:18px;background:var(--text)}
+  .tlmark .pin::after{content:"";position:absolute;top:-5px;left:-3px;width:8px;height:8px;border-radius:99px;background:var(--text)}
+  .tlnames{display:flex;gap:3px;margin-top:8px}
+  .tlnames .n{flex:var(--w,1);text-align:center;font-size:0.58rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tlnames .n.cur{color:var(--text);font-weight:600}
+
+  /* ===== C: bars + RIR numbers ===== */
+  .barsC{display:flex;align-items:flex-end;gap:5px;height:82px}
+  .barsC .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer}
+  .barsC .c .rir{font-size:0.56rem;color:var(--muted);margin-bottom:3px;font-variant-numeric:tabular-nums}
+  .barsC .c.cur .rir{color:var(--text);font-weight:700}
+  .barsC .c .bar{width:100%;max-width:18px;border-radius:3px 3px 0 0;background:color-mix(in srgb,var(--c) 48%,var(--surface-2))}
+  .barsC .c.cur .bar{background:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 45%,transparent)}
+  .barsC .c.dl .bar{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--c) 48%,var(--surface-2)),color-mix(in srgb,var(--c) 48%,var(--surface-2)) 3px,transparent 3px,transparent 6px)}
+  .legend{display:flex;gap:13px;margin-top:11px;flex-wrap:wrap}
+  .legend .lg{display:flex;align-items:center;gap:5px;font-size:0.64rem;color:var(--muted)}
+  .legend .lg i{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+  /* ===== D: compact step strip ===== */
+  .ririne{height:26px;margin-bottom:6px}
+  .cells{display:flex;gap:4px}
+  .cells .cell{flex:1;aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.62rem;color:var(--dim);background:color-mix(in srgb,var(--c) 18%,var(--surface-2));cursor:pointer;position:relative}
+  .cells .cell.cur{background:var(--c);color:var(--bg);font-weight:700}
+  .cells .cell.dl::after{content:"\2193";position:absolute;bottom:1px;font-size:0.5rem;color:var(--p4)}
+  .cells .cell.cur.dl::after{color:var(--bg)}
+  .steplbl{display:flex;justify-content:space-between;font-size:0.56rem;color:var(--muted);margin-top:7px}
+
+  .note{max-width:900px;margin:14px auto 0;color:var(--muted);font-size:0.78rem;text-align:center;line-height:1.55}
+</style>
+</head>
+<body>
+  <div class="controls">
+    <span class="hint">Four takes on the Training-block arc, each in-context and tappable. A is closest to today; D is the most compact. Mix and match (e.g. "C bars but D's height").</span>
+  </div>
+
+  <div class="stage">
+    <div class="device">
+      <div class="scroll">
+        <div class="ttl">Plan</div>
+
+        <!-- context: program identity -->
+        <div class="card prog">
+          <div class="rowsb">
+            <div>
+              <div class="pname">Power Hypertrophy U/L</div>
+              <div class="pmeta">Week <b>6</b> of 12 &middot; Intensification</div>
+            </div>
+            <span class="spill">On track</span>
+          </div>
+          <div class="mtrack" style="margin-top:12px"><span class="mf" style="width:50%"></span></div>
+        </div>
+
+        <!-- ============ A ============ -->
+        <div class="lbl"><span class="vtag">A</span> <span>Phase-tinted bars</span> <span class="desc">&mdash; closest to today</span></div>
+        <div class="card">
+          <div class="ahead"><span class="h">Training block</span><span class="s">12 weeks &middot; repeats</span></div>
+          <div class="barsA" id="barsA"></div>
+          <div class="wknA" id="wknA"></div>
+          <div class="cap" id="capA"></div>
+        </div>
+
+        <!-- ============ B ============ -->
+        <div class="lbl"><span class="vtag">B</span> <span>Slim phase timeline</span> <span class="desc">&mdash; calmest, drops volume</span></div>
+        <div class="card">
+          <div class="ahead"><span class="h">Training block</span><span class="s">12 weeks &middot; repeats</span></div>
+          <div class="tlmark"><span class="pin" style="left:46%"></span></div>
+          <div class="tlbar">
+            <span class="seg" style="--c:var(--p1);--w:3"></span>
+            <span class="seg" style="--c:var(--p2);--w:3"></span>
+            <span class="seg" style="--c:var(--p3);--w:3"></span>
+            <span class="seg" style="--c:var(--p4);--w:3"></span>
+          </div>
+          <div class="tlnames">
+            <span class="n" style="--w:3">Accum.</span>
+            <span class="n cur" style="--w:3">Intensify</span>
+            <span class="n" style="--w:3">Overreach</span>
+            <span class="n" style="--w:3">Peak</span>
+          </div>
+          <div class="cap"><span class="dot" style="background:var(--p2)"></span><span><b>Week 6</b> &middot; Intensification</span><span class="sep">|</span><span>RIR <b>1</b></span><span class="sep">|</span><span>deload <b>wk 12</b></span></div>
+        </div>
+
+        <!-- ============ C ============ -->
+        <div class="lbl"><span class="vtag">C</span> <span>Bars + RIR labels</span> <span class="desc">&mdash; RIR steps at a glance</span></div>
+        <div class="card">
+          <div class="ahead"><span class="h">Training block</span><span class="s">RIR shown per week</span></div>
+          <div class="barsC" id="barsC"></div>
+          <div class="legend">
+            <span class="lg"><i style="background:var(--p1)"></i>Accumulation</span>
+            <span class="lg"><i style="background:var(--p2)"></i>Intensification</span>
+            <span class="lg"><i style="background:var(--p3)"></i>Overreach</span>
+            <span class="lg"><i style="background:var(--p4)"></i>Peak &amp; deload</span>
+          </div>
+        </div>
+
+        <!-- ============ D ============ -->
+        <div class="lbl"><span class="vtag">D</span> <span>Compact step strip</span> <span class="desc">&mdash; shortest, RIR sparkline</span></div>
+        <div class="card">
+          <div class="ahead"><span class="h">Training block</span><span class="s">RIR 3 &rarr; 0</span></div>
+          <svg class="ririne" id="ririne" viewBox="0 0 350 26" preserveAspectRatio="none"></svg>
+          <div class="cells" id="cellsD"></div>
+          <div class="steplbl"><span>Wk 1</span><span>Wk 12</span></div>
+          <div class="cap" id="capD"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <p class="note">All four use the real 12-week block (volume 12&rarr;20 then 10 deload; RIR 3&rarr;0&rarr;3; 4 phases with their data.ts colours). Phase colours are fixed/semantic, independent of the themeable accent. Tell me a letter (or a blend) and I'll fold it into the full page with the mobile-selector / desktop-accordion sessions.</p>
+
+<script>
+  var VOL=[12,14,16,14,16,18,16,18,20,18,20,10];
+  var RIR=[3,3,2,2,2,1,1,1,0,1,0,3];
+  var PHASE=[1,1,1,2,2,2,3,3,3,4,4,4];
+  var PNAME={1:'Accumulation',2:'Intensification',3:'Overreach',4:'Peak & Deload'};
+  var PVAR={1:'--p1',2:'--p2',3:'--p3',4:'--p4'};
+  var CUR=6, maxV=20, minV=10;
+
+  function capHTML(wk){var i=wk-1,ph=PHASE[i],dl=(VOL[i]===minV)?' &middot; <b>deload</b>':'';
+    return '<span class="dot" style="background:var('+PVAR[ph]+')"></span><span><b>Week '+wk+'</b> &middot; '+PNAME[ph]+'</span><span class="sep">|</span><span><b>'+VOL[i]+' sets</b></span><span class="sep">|</span><span>RIR <b>'+RIR[i]+'</b></span>'+dl;}
+
+  // A
+  (function(){var h='',w='';for(var i=0;i<12;i++){var wk=i+1,cur=wk===CUR,dl=VOL[i]===minV,ht=Math.round(VOL[i]/maxV*100);
+    h+='<div class="c'+(cur?' cur':'')+'" style="--c:var('+PVAR[PHASE[i]]+')" onclick="pickA('+wk+')">'+(dl?'<span class="dl">&darr;</span>':'')+'<div class="bar" style="height:'+ht+'%"></div></div>';
+    w+='<div class="w'+(cur?' cur':'')+'">'+wk+'</div>';}
+    document.getElementById('barsA').innerHTML=h;document.getElementById('wknA').innerHTML=w;
+    document.getElementById('capA').innerHTML=capHTML(CUR);})();
+  function pickA(wk){document.querySelectorAll('#barsA .c').forEach(function(c,i){c.classList.toggle('cur',i===wk-1)});
+    document.querySelectorAll('#wknA .w').forEach(function(c,i){c.classList.toggle('cur',i===wk-1)});
+    document.getElementById('capA').innerHTML=capHTML(wk);}
+
+  // C
+  (function(){var h='';for(var i=0;i<12;i++){var wk=i+1,cur=wk===CUR,dl=VOL[i]===minV,ht=Math.round(VOL[i]/maxV*100);
+    h+='<div class="c'+(cur?' cur':'')+(dl?' dl':'')+'" style="--c:var('+PVAR[PHASE[i]]+')" onclick="pickC('+wk+')"><span class="rir">'+RIR[i]+'</span><div class="bar" style="height:'+ht+'%"></div></div>';}
+    document.getElementById('barsC').innerHTML=h;})();
+  function pickC(wk){document.querySelectorAll('#barsC .c').forEach(function(c,i){c.classList.toggle('cur',i===wk-1)});}
+
+  // D: RIR sparkline + cells
+  (function(){
+    var W=350,H=26,n=12,pad=14,step=(W-pad*2)/(n-1),maxR=3;
+    var pts=RIR.map(function(r,i){var x=pad+i*step;var y=4+(1-r/maxR)*(H-8);return [x,y];});
+    var poly=pts.map(function(p){return p[0]+','+p[1];}).join(' ');
+    var dots=pts.map(function(p,i){return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+(i===CUR-1?3:2)+'" fill="'+(i===CUR-1?'#e7ebed':'#6f787e')+'"/>';}).join('');
+    document.getElementById('ririne').innerHTML='<polyline points="'+poly+'" fill="none" stroke="#3a4248" stroke-width="1.5" stroke-linejoin="round"/>'+dots;
+    var h='';for(var i=0;i<12;i++){var wk=i+1,cur=wk===CUR,dl=VOL[i]===minV;
+      h+='<div class="cell'+(cur?' cur':'')+(dl?' dl':'')+'" style="--c:var('+PVAR[PHASE[i]]+')" onclick="pickD('+wk+')">'+wk+'</div>';}
+    document.getElementById('cellsD').innerHTML=h;
+    document.getElementById('capD').innerHTML=capHTML(CUR);})();
+  function pickD(wk){document.querySelectorAll('#cellsD .cell').forEach(function(c,i){c.classList.toggle('cur',i===wk-1)});
+    document.getElementById('capD').innerHTML=capHTML(wk);}
+</script>
+</body>
+</html>

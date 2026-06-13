@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plan redesign v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Sora:wght@400;500;600&family=Big+Shoulders+Display:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--accent:#ff7d66;--bg:#0e1113;--surface:#161a1d;--surface-2:#1c2125;--border:#262c31;
+    --dim:#aab2b7;--muted:#6f787e;--text:#e7ebed;--success:#4ade80;--warn:#fb923c;
+    --p1:#4ade80;--p2:#facc15;--p3:#f97316;--p4:#f43f5e}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#07090a;color:var(--text);font-family:'Hanken Grotesk',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;padding:18px 14px 60px}
+
+  .controls{max-width:1180px;margin:0 auto 16px;display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .cap{color:var(--muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;margin-right:4px}
+  .seg-h{display:inline-flex;gap:4px;background:var(--surface-2);border-radius:9px;padding:3px}
+  .seg-h button{padding:6px 13px;border:none;background:transparent;color:var(--dim);border-radius:7px;font-weight:500;font-size:0.78rem;font-family:inherit;cursor:pointer}
+  .seg-h button.on{background:var(--accent);color:var(--bg)}
+  .hint{color:var(--muted);font-size:0.74rem}
+  .toggle{display:inline-flex;align-items:center;gap:7px;color:var(--dim);font-size:0.74rem;cursor:pointer}
+  .toggle input{accent-color:var(--accent)}
+
+  .stage{display:flex;justify-content:center;overflow-x:auto;padding-bottom:8px}
+  .device{container-type:inline-size;background:var(--bg);border:1px solid var(--border);border-radius:22px;overflow:hidden;height:828px;display:flex;box-shadow:0 24px 70px rgba(0,0,0,.5);transition:width .2s;position:relative}
+  .device.m{width:390px}.device.t{width:768px}.device.d{width:1180px}
+
+  .sidebar{display:none;width:210px;flex:none;border-right:1px solid var(--border);background:var(--surface);padding:18px 12px;flex-direction:column;gap:3px}
+  .sidebar .logo{font-weight:700;font-size:1.05rem;letter-spacing:0.05em;text-transform:uppercase;padding:6px 10px 18px}
+  .sidebar .logo span{color:var(--accent)}
+  .sidebar .nav{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--dim);font-weight:500;font-size:0.9rem}
+  .sidebar .nav.on{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
+  .sidebar .nav svg{width:18px;height:18px;flex:none}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .scroll{flex:1;overflow-y:auto;padding:16px 16px 28px}
+  .scroll::-webkit-scrollbar{width:0}
+  .bottomnav{display:flex;border-top:1px solid var(--border);background:var(--surface);padding:8px 4px}
+  .bottomnav .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:0.62rem;font-weight:500}
+  .bottomnav .b.on{color:var(--accent)}
+  .bottomnav .b svg{width:21px;height:21px}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .ttl{font-size:1.6rem;font-weight:600;letter-spacing:-0.02em}
+  .genbtn{font-size:0.74rem;font-weight:600;color:var(--accent);background:color-mix(in srgb,var(--accent) 11%,transparent);border:none;border-radius:9px;padding:7px 12px;cursor:pointer;font-family:inherit}
+
+  .lbl{font-size:0.6875rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 9px;font-weight:600}
+  .card{background:var(--surface);border-radius:14px;padding:15px}
+  .mtrack{height:7px;border-radius:99px;background:var(--bg);overflow:hidden}
+  .mf{height:100%;border-radius:99px;background:var(--accent)}
+
+  /* layout: single column (mobile) -> L4 sticky rail (desktop) */
+  .plan{display:flex;flex-direction:column;gap:0}
+  .rail .lbl:first-child,.content .lbl:first-child{margin-top:8px}
+
+  /* generation warning */
+  .notice{display:none;align-items:flex-start;gap:10px;background:color-mix(in srgb,var(--warn) 11%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);border-radius:12px;padding:12px 13px;margin-bottom:12px}
+  .notice.on{display:flex}
+  .notice svg{width:16px;height:16px;flex:none;margin-top:1px;color:var(--warn)}
+  .notice .nt{font-size:0.8rem;font-weight:500}
+  .notice .nd{font-size:0.76rem;color:var(--dim);margin-top:2px;line-height:1.45}
+  .notice .nx{margin-left:auto;background:none;border:none;color:var(--muted);font-size:0.95rem;cursor:pointer;flex:none}
+
+  /* program identity */
+  .prog{border-left:2px solid var(--accent)}
+  .prog .l1{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .prog .pname{font-size:1.12rem;font-weight:600;letter-spacing:-0.01em}
+  .prog .pmeta{color:var(--dim);font-size:0.82rem;margin-top:3px}
+  .prog .pmeta b{color:var(--text);font-weight:600}
+  .spill{font-size:0.7rem;font-weight:600;border-radius:99px;padding:4px 11px;color:var(--success);background:color-mix(in srgb,var(--success) 13%,transparent);white-space:nowrap;flex:none}
+  .prog .stats{display:flex;gap:20px;margin-top:13px}
+  .prog .stats .s{font-size:0.78rem;color:var(--muted)}
+  .prog .stats .s b{color:var(--text);font-weight:600;display:block;font-size:0.92rem;margin-bottom:1px}
+  .why{margin-top:13px;border-top:1px solid var(--border);padding-top:12px}
+  .why .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--border);background:var(--surface-2);border-radius:7px;padding:3px 8px;font-size:0.68rem;color:var(--dim)}
+  .whybtn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--accent);font-size:0.76rem;font-weight:500;cursor:pointer;font-family:inherit;margin-top:10px;padding:0}
+  .whybtn svg{width:12px;height:12px;transition:transform .15s}
+  .whybtn.open svg{transform:rotate(180deg)}
+  .whyprose{font-size:0.82rem;color:var(--dim);line-height:1.55;margin-top:9px;display:none}
+  .whyprose.on{display:block}
+
+  /* next session */
+  .nshead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .nshead .nm{font-size:1.05rem;font-weight:600;letter-spacing:-0.01em}
+  .nshead .sess{font-size:0.82rem;font-weight:600;color:var(--accent)}
+  .nshead .sess .day{color:var(--muted);font-weight:500}
+  .nsmeta{color:var(--muted);font-size:0.72rem;margin:3px 0 8px}
+  .nsrow{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--border)}
+  .nsrow:last-of-type{border-bottom:none}
+  .nsrow .n{font-size:0.9rem;font-weight:500;letter-spacing:-0.01em}
+  .nsrow .sr{color:var(--muted);font-family:'Sora',sans-serif;font-size:0.66rem;letter-spacing:0.04em;margin-top:2px}
+  .nsrow .wt{font-size:0.84rem;font-weight:600;color:var(--dim);font-variant-numeric:tabular-nums;flex:none}
+  .startbtn{width:100%;margin-top:13px;background:var(--accent);color:var(--bg);border:none;border-radius:11px;padding:13px;font-weight:600;font-size:0.86rem;cursor:pointer;font-family:inherit}
+
+  /* block arc, variation A: phase-tinted bars */
+  .arc .ahead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:13px}
+  .arc .ahead .h{font-weight:600;font-size:0.92rem}
+  .arc .ahead .s{color:var(--muted);font-size:0.72rem}
+  .barsA{display:flex;align-items:flex-end;gap:3px;height:74px}
+  .barsA .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer;position:relative}
+  .barsA .c .bar{width:100%;border-radius:3px 3px 0 0;background:color-mix(in srgb,var(--c) 10%,var(--surface-2));transition:background .12s}
+  .barsA .c:hover .bar{background:color-mix(in srgb,var(--c) 24%,var(--surface-2))}
+  .barsA .c.cur .bar{background:var(--c)}
+  .barsA .c .dl{position:absolute;top:-13px;font-size:0.62rem;color:var(--p4)}
+  .wknA{display:flex;gap:5px;margin-top:6px}
+  .wknA .w{flex:1;text-align:center;font-size:0.56rem;color:var(--muted)}
+  .wknA .w.cur{color:var(--text);font-weight:700}
+  .arccap{font-size:0.78rem;color:var(--dim);margin-top:11px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .arccap .dot{width:8px;height:8px;border-radius:99px;flex:none}
+  .arccap b{color:var(--text);font-weight:600}
+  .arccap .sep{color:var(--border)}
+  .gterm{border-bottom:1px dotted color-mix(in srgb,var(--dim) 55%,transparent);cursor:pointer}
+  .arcdesc{font-size:0.78rem;color:var(--muted);line-height:1.5;margin-top:8px}
+  .arcgloss{display:none;margin-top:9px;background:var(--surface-2);border-radius:9px;padding:9px 11px;font-size:0.74rem;color:var(--dim);line-height:1.5}
+  .arcgloss.on{display:block}
+  .arcgloss b{color:var(--text);font-weight:600}
+
+  /* this week */
+  .week{display:flex;gap:6px}
+  .week .d{flex:1;text-align:center}
+  .week .dn{font-size:0.6rem;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .week .dn.today{color:var(--accent);font-weight:700}
+  .week .pill{border-radius:9px;padding:9px 0;font-size:0.7rem;font-weight:600;background:color-mix(in srgb,var(--accent) 16%,var(--surface-2));color:var(--accent)}
+  .week .pill.rest{background:var(--surface-2);color:var(--muted);opacity:.6;font-weight:500}
+  .week .pill.today{background:var(--accent);color:var(--bg)}
+
+  /* sessions, shared row styles */
+  .shead .sn{font-size:1rem;font-weight:600;letter-spacing:-0.01em}
+  .shead .meta{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:0.72rem;margin-top:3px}
+  .shead .meta .ico{width:12px;height:12px;vertical-align:-2px;margin-right:2px}
+  .focusline{color:var(--accent);font-size:0.74rem;margin:6px 0 2px}
+  .ex{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border)}
+  .ex:last-child{border-bottom:none}
+  .ex .ix{font-size:0.7rem;color:var(--muted);width:18px;flex:none;padding-top:2px;font-variant-numeric:tabular-nums}
+  .ex .body{flex:1;min-width:0}
+  .ex .en{font-size:0.94rem;font-weight:500;letter-spacing:-0.01em}
+  .ex .esr{color:var(--dim);font-family:'Sora',sans-serif;font-size:0.66rem;letter-spacing:0.04em;margin-top:3px}
+  .ex .ewhy{color:var(--muted);font-size:0.72rem;margin-top:4px;line-height:1.4}
+  .ex .eq{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .ex .eq span{border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:0.6rem;color:var(--muted)}
+  .ex .acts{display:flex;gap:6px;flex:none;align-items:center}
+  .ex .swap{display:inline-flex;align-items:center;gap:5px;background:var(--surface-2);border:none;border-radius:9px;padding:7px 10px;color:var(--dim);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:inherit}
+  .ex .info{width:28px;height:28px;display:grid;place-items:center;background:var(--surface-2);border:none;border-radius:9px;color:var(--dim);cursor:pointer}
+  .ex .info svg{width:14px;height:14px}
+
+  /* sessions: mobile/tablet selector */
+  .ssel{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:12px;scrollbar-width:none}
+  .ssel::-webkit-scrollbar{display:none}
+  .ssel button{flex:none;border:1px solid var(--border);background:var(--surface-2);color:var(--dim);border-radius:99px;padding:7px 14px;font-size:0.78rem;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .ssel button.on{background:var(--accent);color:var(--bg);border-color:transparent;font-weight:600}
+
+  /* sessions: desktop accordion */
+  .acc{display:none}
+  .accitem{background:var(--surface);border-radius:14px;margin-bottom:10px;overflow:hidden}
+  .acchead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;cursor:pointer}
+  .acchead-l .sn{font-size:0.96rem;font-weight:600}
+  .acchead-l .meta{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:0.72rem;margin-top:3px}
+  .acchead-l .meta .ico{width:12px;height:12px;vertical-align:-2px;margin-right:2px}
+  .accchev{width:16px;height:16px;color:var(--muted);flex:none;transition:transform .15s}
+  .accitem.open .accchev{transform:rotate(180deg)}
+  .accbody{display:none;padding:0 15px 6px}
+  .accitem.open .accbody{display:block}
+
+  /* program settings */
+  .setbtn{width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:none;border-radius:14px;padding:15px;color:var(--text);font-size:0.9rem;font-weight:500;cursor:pointer;font-family:inherit}
+  .setbtn svg{width:14px;height:14px;color:var(--muted);transition:transform .15s}
+  .setbtn.open svg{transform:rotate(180deg)}
+  .setbody{display:none;margin-top:8px}
+  .setbody.on{display:block}
+  .setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+  .setrow:last-child{border-bottom:none}
+  .setrow .sk{font-size:0.82rem;font-weight:500}
+  .setrow .sd{font-size:0.7rem;color:var(--muted);margin-top:2px;max-width:210px;line-height:1.4}
+  .seg-sm{display:inline-flex;gap:3px;background:var(--surface-2);border-radius:9px;padding:3px;flex:none}
+  .seg-sm button{border:none;background:transparent;color:var(--dim);border-radius:6px;padding:5px 9px;font-size:0.74rem;font-weight:600;cursor:pointer;font-family:inherit}
+  .seg-sm button.on{background:var(--accent);color:var(--bg)}
+  .datefld{display:flex;gap:6px;flex:none}
+  .datefld .df{background:var(--surface-2);border:none;border-radius:7px;padding:6px 9px;color:var(--text);font-size:0.74rem;font-weight:600}
+  .datefld .today{background:var(--surface-2);border:none;border-radius:7px;padding:6px 11px;color:var(--dim);font-size:0.74rem;font-weight:600;cursor:pointer;font-family:inherit}
+  .restbtn{display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--surface-2);border:none;border-radius:10px;padding:13px;color:var(--text);font-size:0.84rem;font-weight:500;cursor:pointer;font-family:inherit;margin-top:13px}
+  .restbtn .rd{font-size:0.7rem;color:var(--muted);margin-top:2px;font-weight:400}
+  .restbtn svg{width:16px;height:16px;color:var(--muted);flex:none}
+
+  @container (min-width:1024px){
+    .sidebar{display:flex}
+    .bottomnav{display:none}
+    .scroll{padding:24px 30px 30px;max-width:1080px}
+    .plan{display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start}
+    .rail{position:sticky;top:0;display:flex;flex-direction:column}
+    .content{display:flex;flex-direction:column;min-width:0}
+    .rail .lbl:first-child,.content .lbl:first-child{margin-top:0}
+    /* swap session presentation */
+    .sess-mobile{display:none}
+    .acc{display:block}
+  }
+  .note{max-width:1180px;margin:14px auto 0;color:var(--muted);font-size:0.79rem;text-align:center;line-height:1.55}
+</style>
+</head>
+<body>
+  <div class="controls">
+    <span class="cap">Breakpoint</span>
+    <div class="seg-h" role="group" aria-label="Breakpoint">
+      <button class="on" onclick="bp('m',this)">Mobile</button>
+      <button onclick="bp('t',this)">Tablet</button>
+      <button onclick="bp('d',this)">Desktop</button>
+    </div>
+    <label class="toggle"><input type="checkbox" onchange="document.getElementById('notice').classList.toggle('on',this.checked)"> Show generation warning</label>
+    <span class="hint">Arc A (tap weeks) &middot; sessions = selector on mobile, accordion on desktop &middot; sticky rail on desktop.</span>
+  </div>
+
+  <div class="stage">
+    <div class="device m" id="device">
+      <div class="sidebar">
+        <div class="logo">Pulse<span>.</span></div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h2v11h-2zM15.5 6.5h2v11h-2zM8.5 12h7M4 9.5v5M20 9.5v5"/></svg>Train</div>
+        <div class="nav on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/></svg>Plan</div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 16l5-5 4 3 7-7"/></svg>Progress</div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Profile</div>
+        <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h11a2 2 0 012 2v12H7a2 2 0 01-2-2z"/><path d="M9 5v14"/></svg>Library</div>
+      </div>
+
+      <div class="main">
+        <div class="scroll" id="scroll">
+          <div class="topbar">
+            <div class="ttl">Plan</div>
+            <button class="genbtn">+ New routine</button>
+          </div>
+
+          <div class="notice" id="notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            <div>
+              <div class="nt">Some sessions have fewer compounds than ideal</div>
+              <div class="nd">Your equipment and movement restrictions limited the pool. The plan still works, this is a heads-up, not an error.</div>
+            </div>
+            <button class="nx" onclick="document.getElementById('notice').classList.remove('on')">&#10005;</button>
+          </div>
+
+          <div class="plan">
+            <!-- ============ STICKY RAIL (desktop) / top of column (mobile) ============ -->
+            <div class="rail">
+              <div class="card prog">
+                <div class="l1">
+                  <div>
+                    <div class="pname">Power Hypertrophy U/L</div>
+                    <div class="pmeta">Week <b>6</b> of 12 &middot; Phase 2, Intensification</div>
+                  </div>
+                  <span class="spill">On track</span>
+                </div>
+                <div class="mtrack" style="margin-top:13px"><span class="mf" style="width:50%"></span></div>
+                <div class="stats">
+                  <div class="s"><b>RIR 1</b>target this week</div>
+                  <div class="s"><b>Week 12</b>next deload, 6 wks</div>
+                  <div class="s"><b>4&times;</b>per week</div>
+                </div>
+                <div class="why">
+                  <div class="chips"><span class="chip">Upper / Lower</span><span class="chip">Hypertrophy</span><span class="chip">Chest priority</span><span class="chip">Barbell + dumbbells</span></div>
+                  <button class="whybtn" onclick="this.classList.toggle('open');document.getElementById('whyp').classList.toggle('on')">Why this plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+                  <div class="whyprose" id="whyp">Built for hypertrophy on an upper/lower split, 4 days a week. Chest is biased up as your priority muscle, and the block runs accumulation to peak before a deload so you keep progressing without burning out.</div>
+                </div>
+              </div>
+
+              <div class="lbl">Next session</div>
+              <div class="card">
+                <div class="nshead"><span class="nm">Upper A</span><span class="sess">Mon<span class="day"> &middot; up next</span></span></div>
+                <div class="nsmeta">~52 min &middot; 18 sets &middot; Chest &middot; Back &middot; Shoulders</div>
+                <div class="nsrow"><div><div class="n">Barbell Bench Press</div><div class="sr">4 &times; 6</div></div><span class="wt">80 kg</span></div>
+                <div class="nsrow"><div><div class="n">Barbell Row</div><div class="sr">4 &times; 8</div></div><span class="wt">72.5 kg</span></div>
+                <div class="nsrow"><div><div class="n">Overhead Press</div><div class="sr">3 &times; 8</div></div><span class="wt">47.5 kg</span></div>
+                <button class="startbtn">Start session &rarr;</button>
+              </div>
+
+              <div class="lbl">Training block</div>
+              <div class="card arc">
+                <div class="ahead"><span class="h">12-week cycle</span><span class="s">repeats &middot; deloads at the end</span></div>
+                <div class="barsA" id="barsA"></div>
+                <div class="wknA" id="wknA"></div>
+                <div class="arccap" id="arccap"></div>
+                <div class="arcdesc" id="arcdesc"></div>
+                <div class="arcgloss" id="arcgloss"></div>
+              </div>
+
+              <div class="lbl">This week</div>
+              <div class="card">
+                <div class="week">
+                  <div class="d"><div class="dn today">Mon</div><div class="pill today">UA</div></div>
+                  <div class="d"><div class="dn">Tue</div><div class="pill">LA</div></div>
+                  <div class="d"><div class="dn">Wed</div><div class="pill rest">&mdash;</div></div>
+                  <div class="d"><div class="dn">Thu</div><div class="pill">UB</div></div>
+                  <div class="d"><div class="dn">Fri</div><div class="pill">LB</div></div>
+                  <div class="d"><div class="dn">Sat</div><div class="pill rest">&mdash;</div></div>
+                  <div class="d"><div class="dn">Sun</div><div class="pill rest">&mdash;</div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============ CONTENT (scrolls on desktop) ============ -->
+            <div class="content">
+              <div class="lbl">Sessions</div>
+
+              <!-- mobile/tablet: selector + one session -->
+              <div class="sess-mobile">
+                <div class="ssel" id="ssel"></div>
+                <div class="card" id="oneSess"></div>
+              </div>
+
+              <!-- desktop: accordion -->
+              <div class="acc" id="acc"></div>
+
+              <div class="lbl">Program settings</div>
+              <button class="setbtn" onclick="this.classList.toggle('open');document.getElementById('setbody').classList.toggle('on')">
+                <span>Length, start date &amp; structure</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="setbody" id="setbody">
+                <div class="card" style="margin-top:8px">
+                  <div class="setrow"><div><div class="sk">Program length</div><div class="sd">Weeks per cycle before it repeats.</div></div><div class="seg-sm"><button>8</button><button>10</button><button class="on">12</button><button>16</button></div></div>
+                  <div class="setrow"><div><div class="sk">Program start</div><div class="sd">When week 1 begins. Only re-aligns the schedule, not logged progress.</div></div><div class="datefld"><span class="df">28 / 04 / 2026</span><button class="today">Today</button></div></div>
+                  <button class="restbtn"><div style="text-align:left"><div>Change split or days</div><div class="rd">Rebuild this plan with a different split or weekly frequency.</div></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottomnav">
+          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h2v11h-2zM15.5 6.5h2v11h-2zM8.5 12h7M4 9.5v5M20 9.5v5"/></svg>Train</div>
+          <div class="b on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/></svg>Plan</div>
+          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 16l5-5 4 3 7-7"/></svg>Progress</div>
+          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Profile</div>
+          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h11a2 2 0 012 2v12H7a2 2 0 01-2-2z"/><path d="M9 5v14"/></svg>Library</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Plan redesign v2: block-arc <b>A</b> (phase-tinted bars, deload &darr;, tap a week), desktop <b>L4</b> sticky rail (identity / next / arc / week pinned; sessions + settings scroll). Sessions are a <b>selector on mobile &amp; tablet</b> and an <b>accordion on desktop</b>. Resize via the toggle. Why-this-plan, generation warning, and settings all collapse.</p>
+
+<script>
+  function bp(s,btn){var d=document.getElementById('device');d.classList.remove('m','t','d');d.classList.add(s);
+    btn.parentElement.querySelectorAll('button').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');}
+
+  /* ---- block arc A ---- */
+  var VOL=[12,14,16,14,16,18,16,18,20,18,20,10];
+  var RIR=[3,3,2,2,2,1,1,1,0,1,0,3];
+  var PHASE=[1,1,1,2,2,2,3,3,3,4,4,4];
+  var PNAME={1:'Accumulation',2:'Intensification',3:'Overreach',4:'Peak & Deload'};
+  var PVAR={1:'--p1',2:'--p2',3:'--p3',4:'--p4'};
+  var CUR=6,maxV=20,minV=10;
+  var PDESC={
+    1:'Building your base. Higher volume at an easier effort, so your body adapts and recovers well.',
+    2:'Turning up the intensity. Volume eases while the weights climb and you train closer to your limit.',
+    3:'The hardest weeks, by design. Training near failure to drive new muscle and strength.',
+    4:'A final overload, then a lighter deload week so fatigue clears and you come back stronger.'};
+  var GLOSS={
+    rir:'<b>RIR (reps in reserve)</b> is how many more reps you could do before failure. RIR 3 leaves a few in the tank; RIR 0 is all-out.',
+    deload:'<b>A deload</b> is a planned easy week, less volume and lighter effort, so built-up fatigue clears and you come back stronger.'};
+  function arccap(wk){var i=wk-1,ph=PHASE[i];
+    var dl=(VOL[i]===minV)?'<span class="sep">|</span><span class="gterm" onclick="gloss(\'deload\')">deload</span>':'';
+    return '<span class="dot" style="background:var('+PVAR[ph]+')"></span><span><b>Week '+wk+'</b> &middot; '+PNAME[ph]+'</span><span class="sep">|</span><span><b>'+VOL[i]+' sets</b></span><span class="sep">|</span><span><span class="gterm" onclick="gloss(\'rir\')">RIR</span> <b>'+RIR[i]+'</b></span>'+dl;}
+  function gloss(k){var el=document.getElementById('arcgloss');el.innerHTML=GLOSS[k];el.classList.add('on');}
+  function setArc(wk){var ph=PHASE[wk-1];
+    document.getElementById('arccap').innerHTML=arccap(wk);
+    document.getElementById('arcdesc').textContent=PDESC[ph];
+    document.getElementById('arcgloss').classList.remove('on');}
+  (function(){var h='',w='';for(var i=0;i<12;i++){var wk=i+1,cur=wk===CUR,dl=VOL[i]===minV,ht=Math.round(VOL[i]/maxV*100);
+    h+='<div class="c'+(cur?' cur':'')+'" style="--c:var('+PVAR[PHASE[i]]+')" onclick="pickArc('+wk+')">'+(dl?'<span class="dl">&darr;</span>':'')+'<div class="bar" style="height:'+ht+'%"></div></div>';
+    w+='<div class="w'+(cur?' cur':'')+'">'+wk+'</div>';}
+    document.getElementById('barsA').innerHTML=h;document.getElementById('wknA').innerHTML=w;setArc(CUR);})();
+  function pickArc(wk){document.querySelectorAll('#barsA .c').forEach(function(c,i){c.classList.toggle('cur',i===wk-1)});
+    document.querySelectorAll('#wknA .w').forEach(function(c,i){c.classList.toggle('cur',i===wk-1)});
+    setArc(wk);}
+
+  /* ---- sessions data ---- */
+  var INFO='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7" x2="8" y2="11" stroke-linecap="round"/><circle cx="8" cy="4.75" r="0.6" fill="currentColor" stroke="none"/></svg>';
+  var CLOCK='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  var SESS=[
+    {name:'Upper A',dur:'~52 min',sets:18,focus:'Chest · Back · Shoulders · Arms',ex:[
+      ['Barbell Bench Press','4 sets · 6 reps','Primary horizontal push, builds chest and triceps strength.',['Barbell','Bench']],
+      ['Barbell Row','4 sets · 8 reps','Primary horizontal pull for mid-back thickness.',['Barbell']],
+      ['Overhead Press','3 sets · 8 reps','Vertical push for front-delt and shoulder size.',['Barbell']],
+      ['Lat Pulldown','3 sets · 10 reps','Vertical pull for lat width.',['Cables','Machines']],
+      ['Dumbbell Lateral Raise','3 sets · 14 reps','Side-delt isolation for shoulder width.',['Dumbbells']],
+      ['Triceps Pushdown','3 sets · 12 reps','Triceps isolation to finish.',['Cables']]]},
+    {name:'Lower A',dur:'~50 min',sets:17,focus:'Quads · Hamstrings · Glutes · Calves',ex:[
+      ['Barbell Back Squat','4 sets · 6 reps','Primary squat, quad and glute strength.',['Barbell']],
+      ['Romanian Deadlift','4 sets · 8 reps','Primary hinge for hamstrings and glutes.',['Barbell']],
+      ['Walking Lunge','3 sets · 10 reps','Unilateral quad and glute work.',['Dumbbells']],
+      ['Lying Leg Curl','3 sets · 12 reps','Hamstring isolation.',['Machines']],
+      ['Standing Calf Raise','3 sets · 15 reps','Calf isolation.',['Machines']],
+      ['Hanging Leg Raise','3 sets · 12 reps','Core, to finish.',['Bodyweight']]]},
+    {name:'Upper B',dur:'~52 min',sets:18,focus:'Chest · Back · Shoulders · Arms',ex:[
+      ['Incline Dumbbell Press','4 sets · 8 reps','Upper-chest emphasis.',['Dumbbells','Bench']],
+      ['Weighted Pull-Up','4 sets · 6 reps','Vertical pull, lat strength.',['Pull-up bar']],
+      ['Seated Cable Row','3 sets · 10 reps','Horizontal pull for mid-back.',['Cables']],
+      ['Dumbbell Shoulder Press','3 sets · 10 reps','Vertical push for delts.',['Dumbbells']],
+      ['Dumbbell Bicep Curl','3 sets · 12 reps','Biceps isolation.',['Dumbbells']],
+      ['Cable Lateral Raise','3 sets · 15 reps','Side-delt isolation.',['Cables']]]},
+    {name:'Lower B',dur:'~50 min',sets:17,focus:'Quads · Hamstrings · Glutes · Calves',ex:[
+      ['Barbell Deadlift','4 sets · 5 reps','Primary hinge, posterior chain.',['Barbell']],
+      ['Front Squat','4 sets · 8 reps','Quad-led squat variation.',['Barbell']],
+      ['Bulgarian Split Squat','3 sets · 10 reps','Unilateral quad and glute work.',['Dumbbells']],
+      ['Seated Leg Curl','3 sets · 12 reps','Hamstring isolation.',['Machines']],
+      ['Seated Calf Raise','3 sets · 15 reps','Calf isolation.',['Machines']],
+      ['Cable Crunch','3 sets · 15 reps','Core, to finish.',['Cables']]]}
+  ];
+  function exRows(ex){return ex.map(function(e,i){
+    var eq=e[3].map(function(q){return '<span>'+q+'</span>';}).join('');
+    return '<div class="ex"><span class="ix">'+String(i+1).padStart(2,'0')+'</span><div class="body"><div class="en">'+e[0]+'</div><div class="esr">'+e[1]+'</div><div class="ewhy">'+e[2]+'</div><div class="eq">'+eq+'</div></div><div class="acts"><button class="swap">&#8644; Swap</button><button class="info">'+INFO+'</button></div></div>';
+  }).join('');}
+
+  /* mobile selector */
+  (function(){var h='';SESS.forEach(function(s,i){h+='<button class="'+(i===0?'on':'')+'" onclick="pickSess('+i+',this)">'+s.name+'</button>';});
+    document.getElementById('ssel').innerHTML=h;renderOne(0);})();
+  function renderOne(i){var s=SESS[i];
+    document.getElementById('oneSess').innerHTML='<div class="shead"><div class="sn">'+s.name+'</div><div class="meta"><span>'+CLOCK+s.dur+'</span><span>&middot; '+s.sets+' sets</span><span>&middot; '+s.ex.length+' exercises</span></div></div><div class="focusline">'+s.focus+'</div>'+exRows(s.ex);}
+  function pickSess(i,btn){document.querySelectorAll('#ssel button').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');renderOne(i);}
+
+  /* desktop accordion */
+  (function(){var h='';SESS.forEach(function(s,i){
+    h+='<div class="accitem'+(i===0?' open':'')+'"><div class="acchead" onclick="this.parentElement.classList.toggle(\'open\')"><div class="acchead-l"><div class="sn">'+s.name+'</div><div class="meta"><span>'+CLOCK+s.dur+'</span><span>&middot; '+s.sets+' sets</span><span>&middot; '+s.focus+'</span></div></div><svg class="accchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="accbody">'+exRows(s.ex)+'</div></div>';
+  });document.getElementById('acc').innerHTML=h;})();
+</script>
+</body>
+</html>

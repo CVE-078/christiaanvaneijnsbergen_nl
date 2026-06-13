@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-13)
 
-**In progress:** (none).
+**In progress:** Plan page redesign (`feature/plan-page-redesign`, stacked on `chore/roadmap-sync-137-138`), spec-first through the review loop. Synthesizes the page-depth Plan items into one cohesive redesign: block/phase arc (#94 page-depth), per-slot "why this exercise", estimated session duration, restructure entry, and the explain-layer "Why this plan" collapse + generation-warnings-to-notice. Approved mockup: `docs/superpowers/designs/2026-06-13-21-17-54-plan-page-redesign-v2.html` (arc A, desktop L4 sticky rail, mobile/tablet session selector + desktop accordion). No migration.
 
 **In review (on a branch, not yet merged):** (none).
 
