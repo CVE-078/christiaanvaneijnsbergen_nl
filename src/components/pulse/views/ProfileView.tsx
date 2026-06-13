@@ -1,5 +1,7 @@
 'use client';
-import { useTransition, useState } from 'react';
+import { useTransition, useState, useEffect, useCallback } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { profileTabFromPath, profileTabPath, type ProfileTab } from '@/lib/pulse/navigation';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
 import type { Gender, PriorityMuscle } from '@/lib/pulse/types';
@@ -17,8 +19,6 @@ import PageTitle from '../PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import SegmentedTabs from '../SegmentedTabs';
 import { INPUT } from '../ui';
-
-type ProfileTab = 'you' | 'training';
 
 const PROFILE_TABS = [
     { id: 'you', label: 'You' },
@@ -190,7 +190,21 @@ export default function ProfileView() {
         'arms',
     ];
 
-    const [tab, setTab] = useState<ProfileTab>('you');
+    // URL-driven, deep-linkable tab (/pulse/profile/training); local state mirrors the
+    // path for instant switching and re-syncs on back/forward.
+    const pathname = usePathname();
+    const router = useRouter();
+    const [tab, setTab] = useState<ProfileTab>(() => profileTabFromPath(pathname));
+    useEffect(() => {
+        setTab(profileTabFromPath(pathname));
+    }, [pathname]);
+    const goToTab = useCallback(
+        (next: ProfileTab) => {
+            setTab(next);
+            router.push(profileTabPath(next));
+        },
+        [router],
+    );
     const [isPending, startTransition] = useTransition();
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(displayName ?? '');
@@ -248,7 +262,7 @@ export default function ProfileView() {
                 <SegmentedTabs
                     tabs={PROFILE_TABS}
                     active={tab}
-                    onChange={(id) => setTab(id as ProfileTab)}
+                    onChange={(id) => goToTab(id as ProfileTab)}
                     ariaLabel="Profile sections"
                     variant="solid"
                 />

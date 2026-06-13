@@ -9,6 +9,7 @@ import ServiceWorkerRegister from './ServiceWorkerRegister';
 import { ToastProvider } from '@/lib/pulse/toast';
 import ToastContainer from './ToastContainer';
 import { makeSWRCacheProvider } from '@/lib/pulse/swrCache';
+import { resolveView } from '@/lib/pulse/navigation';
 import type { View } from '@/lib/pulse/types';
 
 const hanken = Hanken_Grotesk({
@@ -34,14 +35,6 @@ const bigShoulders = Big_Shoulders_Display({
     display: 'swap',
 });
 
-const PATH_TO_VIEW: Record<string, View> = {
-    '/pulse/train': 'train',
-    '/pulse/plan': 'plan',
-    '/pulse/progress': 'progress',
-    '/pulse/profile': 'profile',
-    '/pulse/library': 'library',
-};
-
 interface Props {
     userId: string;
     email: string;
@@ -51,7 +44,7 @@ interface Props {
 export default function PulseLayout({ userId, email, children }: Props) {
     const router = useRouter();
     const pathname = usePathname();
-    const view = (pathname ? PATH_TO_VIEW[pathname] : undefined) ?? 'train';
+    const view = resolveView(pathname);
 
     const navigate = useCallback(
         (v: View) => {

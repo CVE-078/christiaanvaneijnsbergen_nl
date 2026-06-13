@@ -12,6 +12,12 @@ vi.mock('@/app/pulse/actions', () => ({
     logBodyMeasurement: vi.fn().mockResolvedValue(undefined),
 }));
 
+const mockPush = vi.fn();
+vi.mock('next/navigation', () => ({
+    usePathname: () => '/pulse/progress',
+    useRouter: () => ({ push: mockPush }),
+}));
+
 import { usePulse } from '@/context/PulseContext';
 import HistoryView from '../views/HistoryView';
 
@@ -76,6 +82,8 @@ describe('HistoryView', () => {
         expect(screen.getByText('Best Lifts')).toBeInTheDocument();
         // Overview panel is no longer rendered
         expect(screen.queryByRole('tabpanel', { name: 'Overview' })).not.toBeInTheDocument();
+        // ...and the tab is deep-linked into the URL.
+        expect(mockPush).toHaveBeenCalledWith('/pulse/progress/lifts');
     });
 
     it('switches to the Body tab and shows body weight logging control', async () => {
