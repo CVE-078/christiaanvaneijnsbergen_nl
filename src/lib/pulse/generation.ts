@@ -1629,6 +1629,13 @@ const OVER_TIME_WARNING = 'over_time';
 // restrictions emptied an essential movement group for a focus (e.g. a full-body
 // session left without any pull). Display copy in WARNING_COPY (constants.ts).
 const MISSING_PATTERN_WARNING = 'missing_pattern';
+// Bounded heavy-work limit (P2.2). When more than this many sessions in the week
+// are strength-biased (heavy), the week is flagged 'demanding': hard to recover
+// from at high frequency (e.g. a 6-day split under the Strength style, which
+// remaps every session to strength). Warning-only (keep the plan; the user opted
+// into the style); a fatigue MODEL / auto-correction is out of scope.
+const HEAVY_WEEK_SESSION_LIMIT = 4;
+const DEMANDING_WEEK_WARNING = 'demanding_week';
 const SESSION_TIME_MAX_MIN: Record<SessionTime, number | null> = {
     '~30 min': 30,
     '45–60 min': 60,
@@ -1685,6 +1692,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const schedule: RoutineBlueprint['schedule'] = [];
     const exercises: RoutineBlueprint['exercises'] = [];
     const warnings: string[] = [];
+    // P2.2: count strength-biased (heavy) sessions to flag an over-demanding week.
+    let strengthSessions = 0;
 
     style.sessions.forEach((session, i) => {
         if (i >= days.length) return;
@@ -1709,6 +1718,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // remap is the identity there), so the PHUL-under-Balanced goldens hold.
         const styleForBias: TrainingStyle = session.emphasis.startsWith('phul_') ? 'balanced' : trainingStyle;
         const effectiveBias = resolveBias(emphasis.bias, styleForBias);
+        if (effectiveBias === 'strength') strengthSessions += 1;
         const { selected, floorUnmet } = selectForSession(
             emphasis,
             session.focus,
@@ -1825,6 +1835,13 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             warnings.push(OVER_TIME_WARNING);
         }
     });
+
+    // Heavy-work limit (P2.2): a week with too many strength-biased sessions is
+    // hard to recover from (e.g. a 6-day split under the Strength style). Flag it;
+    // keep the plan (warn, do not auto-correct).
+    if (strengthSessions > HEAVY_WEEK_SESSION_LIMIT && !warnings.includes(DEMANDING_WEEK_WARNING)) {
+        warnings.push(DEMANDING_WEEK_WARNING);
+    }
 
     return { schedule, exercises, warnings };
 }

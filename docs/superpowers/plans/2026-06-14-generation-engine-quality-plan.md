@@ -27,7 +27,7 @@
 | P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
 | P1.5b | Label-validity floor (quad/posterior/push/pull structure) | 2 | TODO | folds into P2.3 validator |
 | P2.1 | Coverage-aware backfill (no duplicate finisher) | 2 | DONE | feature/generation-quality |
-| P2.2 | Bounded fatigue / heavy-work limits | 2 | TODO | |
+| P2.2 | Bounded heavy-work limit (demanding-week warning) | 2 | DONE | feature/generation-quality |
 | P2.3 | Post-generation programme validator | 2 | TODO | |
 | P3.1 | Independent experience and goal | 3 | TODO | |
 | P3.2 | Measurable priority muscle | 3 | TODO | |
@@ -153,9 +153,11 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 - **User:** on thin pools (e.g. dumbbell-only posterior leg day) the routine now seats a hamstring/quad accessory instead of a 2nd calf + 2nd core, so the session does real work rather than padding.
 - **Engine:** duress-only change to backfill; deep pools (and every golden) are unchanged. The heavy-dedup cap still blocks a 2nd heavy compound; the accessory path only admits non-compound work.
 
-## P2.2 Bounded fatigue / heavy-work limits (Issue 5 partial)
-**Invariant:** A strength programme respects defined heavy-work limits (warn or correct beyond them). **Approach:** deterministic counters (max heavy compounds/session, max heavy sessions/week, consecutive strength days, repeated heavy lower-back loading on adjacent days) → bounded correction or warning. No recovery model. **Files:** validator + `constants.ts`. **Regression risk:** medium.
-**Done:** _(pending)_ · **Impact:** _(pending)_
+## P2.2 Bounded heavy-work limit (Issue 5 partial) — DONE
+**Invariant:** A week is flagged when too many sessions are strength-biased (heavy). **Done:** a weekly counter of strength-bias sessions; when it exceeds `HEAVY_WEEK_SESSION_LIMIT` (4, i.e. 5+ heavy days) the routine carries a `demanding_week` warning. Catches the 6-day-under-Strength case (Case 03) without false-positiving on PHUL/4-day or Balanced weeks. Warning-only (keep the plan; the user opted into the style), no selection/golden change, no migration. 2 new tests; suite 1583 green, typecheck clean.
+**Impact:**
+- **User:** a very heavy week (5+ strength days) shows a "Demanding week" notice suggesting a lighter style or fewer days if recovery suffers.
+- **Engine:** a counter + threshold warning at the end of generation; no selection change, all goldens hold. (Per-session heavy-compound count and consecutive-day checks were not needed; the weekly count maps directly to the finding. A fatigue MODEL / auto-correction stays out of scope.)
 
 ## P2.3 Post-generation programme validator (Issue 9, the meta-fix)
 **Responsibilities:** weekly coverage, label integrity, duration fit, filler limits, restriction degradation, heavy-work limits. **Outputs:** fail (only zero-compound, already guarded) / repair (bounded single-slot swaps) / warn / info. **Files:** new pure `src/lib/pulse/programValidation.ts`, called from `generateRoutine` tail; warnings flow through `warnings[]` + `GenerationWarningNotice`. **Determinism:** sorted inputs, bounded ordered repairs. Hosts P1.4, P1.5, P2.1, P2.2. **Regression risk:** medium; scope repairs to fire only on a violation so clean routines stay byte-identical.

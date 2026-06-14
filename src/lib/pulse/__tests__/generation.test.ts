@@ -321,6 +321,38 @@ function sessionIds(bp: ReturnType<typeof generateRoutine>, wt: string, variant:
     return bp.exercises.filter((e) => e.workout_type === wt && e.variant === variant).map((e) => e.exercise_id);
 }
 
+// ── Heavy-work limit warning (P2.2) ──────────────────────────────────────────
+
+describe('heavy-work limit warning (P2.2)', () => {
+    const sixDays = [1, 2, 3, 4, 5, 6];
+    it('warns when a high-frequency week is almost all heavy (Strength style, 6 days)', () => {
+        // Strength remaps every session to a strength bias; on a 6-day split that
+        // is six heavy days, which is hard to recover from (Case 03).
+        const bp = generateRoutine(
+            input({
+                style: STYLES[6][0], // ppl-x2-6
+                answers: { equipment: dumbbellsOnly, experience: 'advanced', goal: 'build_muscle', days: 6 },
+                trainingDays: sixDays,
+                trainingStyle: 'strength',
+                pool: deepPool(),
+            }),
+        );
+        expect(bp.warnings).toContain('demanding_week');
+    });
+
+    it('does not warn for a balanced 6-day week (only the two heavy PPL days)', () => {
+        const bp = generateRoutine(
+            input({
+                style: STYLES[6][0],
+                answers: { equipment: dumbbellsOnly, experience: 'advanced', goal: 'build_muscle', days: 6 },
+                trainingDays: sixDays,
+                pool: deepPool(),
+            }),
+        );
+        expect(bp.warnings).not.toContain('demanding_week');
+    });
+});
+
 // ── Coverage-aware backfill: accessory over duplicate finisher (P2.1) ─────────
 
 describe('coverage-aware backfill (P2.1)', () => {

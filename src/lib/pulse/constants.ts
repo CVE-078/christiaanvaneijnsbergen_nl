@@ -35,6 +35,10 @@ export const WARNING_COPY: Record<string, { title: string; body: string }> = {
         title: 'Missing a key movement',
         body: 'Your equipment or movement restrictions left a session without one of its key movements (for example pulling). The plan still works, this is a heads-up. Adding equipment or easing a restriction would round it out.',
     },
+    demanding_week: {
+        title: 'Demanding week',
+        body: 'Most of your sessions this week are heavy strength work, which is hard to recover from at this frequency. If recovery suffers, ease off with a lighter training style on some days or train fewer days.',
+    },
 };
 
 export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
