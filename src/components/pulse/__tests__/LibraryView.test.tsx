@@ -444,6 +444,40 @@ describe('LibraryView', () => {
         expect(screen.getByRole('button', { name: 'Edit Upper B' })).toBeInTheDocument();
     });
 
+    it('rolls a full-body routine up to one Full Body session (push/pull/legs exercises)', async () => {
+        const re = (id: string, type: string, order: number) => ({
+            id,
+            routine_id: 'r1',
+            exercise_id: 'g1',
+            workout_type: type,
+            variant: null,
+            order,
+            sets: '3',
+            reps: '8-12',
+            starting_weight_kg: null,
+            rest_seconds: null,
+            superset_group_id: null,
+            exercise: globalExercise,
+        });
+        const fullBody = {
+            ...activeRoutine,
+            schedule: [{ day_of_week: 1, workout_type: 'full_body' as const, variant: null }],
+            exercises: [re('a', 'push', 0), re('b', 'pull', 1), re('c', 'legs', 2)],
+        };
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            activeRoutine: fullBody,
+            routines: [fullBody, inactiveRoutine],
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
+        // The push/pull/legs exercises roll up (via sessionTypeFor) to one Full Body session.
+        expect(screen.getByRole('button', { name: 'Edit Full Body' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Edit Push' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Edit Legs' })).not.toBeInTheDocument();
+    });
+
     it('floats a favorited exercise to the top of the add-exercise picker', async () => {
         // By default the picker lists [Bench Press, Cable Fly, Barbell Row] (order
         // from the exercises array). When Cable Fly ('u1') is favorited it should

@@ -120,11 +120,7 @@ export default function RoutinesTab() {
               )
             : [];
     const sessionLabel = editorSession
-        ? sessionExercises.length > 0 || managed
-            ? editorSession.variant
-                ? `${editorSession.type[0].toUpperCase()}${editorSession.type.slice(1)} ${editorSession.variant}`
-                : `${editorSession.type[0].toUpperCase()}${editorSession.type.slice(1)}`
-            : ''
+        ? `${editorSession.type[0].toUpperCase()}${editorSession.type.slice(1)}${editorSession.variant ? ` ${editorSession.variant}` : ''}`
         : '';
 
     return (
