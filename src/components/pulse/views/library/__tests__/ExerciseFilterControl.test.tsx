@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ExerciseFilterControl from '../ExerciseFilterControl';
+import type { GroupBy } from '@/lib/pulse/library';
 
 // Force the mobile (non-desktop) path in all tests so we test the ModalSheet panel,
 // which is fully in the DOM and simpler to assert against.
@@ -22,54 +23,55 @@ const activeValue = {
     showHidden: false,
 };
 
+function renderControl(overrides: {
+    value?: typeof defaultValue;
+    activeProfileName?: string | null;
+    onChange?: ReturnType<typeof vi.fn>;
+    groupBy?: GroupBy;
+    onGroupByChange?: ReturnType<typeof vi.fn>;
+} = {}) {
+    const {
+        value = defaultValue,
+        activeProfileName = null,
+        onChange = vi.fn(),
+        groupBy = 'muscle' as GroupBy,
+        onGroupByChange = vi.fn(),
+    } = overrides;
+    return render(
+        <ExerciseFilterControl
+            value={value}
+            activeProfileName={activeProfileName}
+            onChange={onChange}
+            groupBy={groupBy}
+            onGroupByChange={onGroupByChange}
+        />,
+    );
+}
+
 describe('ExerciseFilterControl', () => {
     describe('trigger badge', () => {
         it('shows no badge when all filters are off', () => {
-            render(
-                <ExerciseFilterControl
-                    value={defaultValue}
-                    activeProfileName={null}
-                    onChange={vi.fn()}
-                />,
-            );
+            renderControl();
             // No badge element should be visible when count is 0.
             expect(screen.queryByTestId('filter-badge')).not.toBeInTheDocument();
         });
 
-        it('shows an active-count badge equal to the number of true flags', () => {
-            render(
-                <ExerciseFilterControl
-                    value={activeValue}
-                    activeProfileName={null}
-                    onChange={vi.fn()}
-                />,
-            );
+        it('shows an active-count badge equal to the number of true flags (group-by is not a filter)', () => {
+            renderControl({ value: activeValue });
             const badge = screen.getByTestId('filter-badge');
             expect(badge).toBeInTheDocument();
             expect(badge.textContent).toBe('2');
         });
 
         it('badge has aria-live="polite"', () => {
-            render(
-                <ExerciseFilterControl
-                    value={activeValue}
-                    activeProfileName={null}
-                    onChange={vi.fn()}
-                />,
-            );
+            renderControl({ value: activeValue });
             expect(screen.getByTestId('filter-badge')).toHaveAttribute('aria-live', 'polite');
         });
     });
 
     describe('panel toggles', () => {
         beforeEach(() => {
-            render(
-                <ExerciseFilterControl
-                    value={defaultValue}
-                    activeProfileName={null}
-                    onChange={vi.fn()}
-                />,
-            );
+            renderControl();
             // Open the panel.
             fireEvent.click(screen.getByTestId('filter-trigger'));
         });
@@ -105,16 +107,35 @@ describe('ExerciseFilterControl', () => {
         });
     });
 
+    describe('group-by section', () => {
+        it('renders Muscle / Equipment / Type options in the panel', () => {
+            renderControl();
+            fireEvent.click(screen.getByTestId('filter-trigger'));
+            expect(screen.getByRole('radio', { name: /muscle/i })).toBeInTheDocument();
+            expect(screen.getByRole('radio', { name: /equipment/i })).toBeInTheDocument();
+            expect(screen.getByRole('radio', { name: /type/i })).toBeInTheDocument();
+        });
+
+        it('active groupBy is reflected as aria-checked="true"', () => {
+            renderControl({ groupBy: 'equipment' });
+            fireEvent.click(screen.getByTestId('filter-trigger'));
+            expect(screen.getByRole('radio', { name: /equipment/i })).toHaveAttribute('aria-checked', 'true');
+            expect(screen.getByRole('radio', { name: /muscle/i })).toHaveAttribute('aria-checked', 'false');
+        });
+
+        it('clicking a group-by option calls onGroupByChange', () => {
+            const onGroupByChange = vi.fn();
+            renderControl({ onGroupByChange });
+            fireEvent.click(screen.getByTestId('filter-trigger'));
+            fireEvent.click(screen.getByRole('radio', { name: /type/i }));
+            expect(onGroupByChange).toHaveBeenCalledWith('type');
+        });
+    });
+
     describe('onChange', () => {
         it('toggling "Fits my gear" calls onChange with that flag flipped', () => {
             const onChange = vi.fn();
-            render(
-                <ExerciseFilterControl
-                    value={defaultValue}
-                    activeProfileName={null}
-                    onChange={onChange}
-                />,
-            );
+            renderControl({ onChange });
             fireEvent.click(screen.getByTestId('filter-trigger'));
             fireEvent.click(screen.getByRole('switch', { name: /fits my gear/i }));
             expect(onChange).toHaveBeenCalledWith({
@@ -126,25 +147,13 @@ describe('ExerciseFilterControl', () => {
 
     describe('profile name', () => {
         it('appends the profile name to "Fits my gear" when activeProfileName is set', () => {
-            render(
-                <ExerciseFilterControl
-                    value={defaultValue}
-                    activeProfileName="Home"
-                    onChange={vi.fn()}
-                />,
-            );
+            renderControl({ activeProfileName: 'Home' });
             fireEvent.click(screen.getByTestId('filter-trigger'));
             expect(screen.getByRole('switch', { name: /fits my gear: home/i })).toBeInTheDocument();
         });
 
         it('shows plain "Fits my gear" when activeProfileName is null', () => {
-            render(
-                <ExerciseFilterControl
-                    value={defaultValue}
-                    activeProfileName={null}
-                    onChange={vi.fn()}
-                />,
-            );
+            renderControl({ activeProfileName: null });
             fireEvent.click(screen.getByTestId('filter-trigger'));
             const sw = screen.getByRole('switch', { name: /fits my gear/i });
             expect(sw.getAttribute('aria-label') ?? sw.textContent).not.toMatch(/:/);

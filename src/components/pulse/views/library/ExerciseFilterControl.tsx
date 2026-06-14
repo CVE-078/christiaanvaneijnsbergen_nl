@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
 import ModalSheet from '@/components/pulse/ModalSheet';
+import type { GroupBy } from '@/lib/pulse/library';
 
 export interface FilterState {
     favorites: boolean;
@@ -15,6 +16,8 @@ interface ExerciseFilterControlProps {
     value: FilterState;
     activeProfileName: string | null;
     onChange: (next: FilterState) => void;
+    groupBy: GroupBy;
+    onGroupByChange: (g: GroupBy) => void;
 }
 
 // Filter icon (three horizontal lines, narrowing).
@@ -64,7 +67,48 @@ function ToggleRow({ label, checked, onToggle }: ToggleRowProps) {
     );
 }
 
-const PANEL_WIDTH = 260;
+const GROUP_BY_OPTIONS: [GroupBy, string][] = [
+    ['muscle', 'Muscle'],
+    ['equipment', 'Equipment'],
+    ['type', 'Type'],
+];
+
+interface GroupByRowProps {
+    value: GroupBy;
+    onChange: (g: GroupBy) => void;
+}
+
+function GroupByRow({ value, onChange }: GroupByRowProps) {
+    return (
+        <div className="py-2">
+            <p className="mb-1.5 font-pulse text-[0.75rem] uppercase tracking-[0.10em] text-pulse-muted">Group by</p>
+            <div
+                role="group"
+                aria-label="Group by"
+                className="flex rounded-[8px] border border-pulse-border bg-pulse-surface-2 overflow-hidden">
+                {GROUP_BY_OPTIONS.map(([key, label]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        role="radio"
+                        aria-checked={value === key}
+                        aria-label={label}
+                        onClick={() => onChange(key)}
+                        className={[
+                            'flex-1 py-[7px] font-pulse text-[0.78rem] transition-colors leading-none',
+                            value === key
+                                ? 'bg-pulse-accent/15 text-pulse-accent font-medium'
+                                : 'text-pulse-muted hover:text-pulse-dim',
+                        ].join(' ')}>
+                        {label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+const PANEL_WIDTH = 280;
 
 interface FilterPanelProps {
     value: FilterState;
@@ -72,9 +116,11 @@ interface FilterPanelProps {
     anchorRect: DOMRect | null;
     onChange: (next: FilterState) => void;
     onClose: () => void;
+    groupBy: GroupBy;
+    onGroupByChange: (g: GroupBy) => void;
 }
 
-function FilterPopover({ value, activeProfileName, anchorRect, onChange, onClose }: FilterPanelProps) {
+function FilterPopover({ value, activeProfileName, anchorRect, onChange, onClose, groupBy, onGroupByChange }: FilterPanelProps) {
     const dialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -127,6 +173,8 @@ function FilterPopover({ value, activeProfileName, anchorRect, onChange, onClose
                 }}
                 style={{ position: 'fixed', width: PANEL_WIDTH, ...placement }}
                 className="overflow-hidden rounded-[14px] border border-pulse-border bg-pulse-surface px-4 py-2 shadow-[0_14px_40px_-12px_rgba(0,0,0,0.6)] outline-none">
+                <GroupByRow value={groupBy} onChange={onGroupByChange} />
+                <div className="border-t border-pulse-border/40" />
                 <ToggleRow
                     label="Favorites"
                     checked={value.favorites}
@@ -155,10 +203,10 @@ function FilterPopover({ value, activeProfileName, anchorRect, onChange, onClose
     );
 }
 
-// A filter trigger (icon + count badge) that opens a panel with four toggle rows.
+// A filter trigger (icon + count badge) that opens a panel with group-by and four toggle rows.
 // Desktop: portaled popover anchored to the trigger.
 // Mobile: ModalSheet.
-export default function ExerciseFilterControl({ value, activeProfileName, onChange }: ExerciseFilterControlProps) {
+export default function ExerciseFilterControl({ value, activeProfileName, onChange, groupBy, onGroupByChange }: ExerciseFilterControlProps) {
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const [open, setOpen] = useState(false);
     const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
@@ -181,6 +229,8 @@ export default function ExerciseFilterControl({ value, activeProfileName, onChan
 
     const panelContent = (
         <>
+            <GroupByRow value={groupBy} onChange={onGroupByChange} />
+            <div className="border-t border-pulse-border/40 mx-6" />
             <ToggleRow
                 label="Favorites"
                 checked={value.favorites}
@@ -238,6 +288,8 @@ export default function ExerciseFilterControl({ value, activeProfileName, onChan
                             anchorRect={anchorRect}
                             onChange={onChange}
                             onClose={close}
+                            groupBy={groupBy}
+                            onGroupByChange={onGroupByChange}
                         />
                     ) : (
                         <ModalSheet open title="Filter exercises" onClose={close}>

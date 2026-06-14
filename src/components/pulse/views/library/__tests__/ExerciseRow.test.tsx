@@ -29,7 +29,7 @@ describe('ExerciseRow', () => {
         expect(screen.getByText('Barbell Bench Press')).toBeInTheDocument();
     });
 
-    it('renders equipment and Compound in the metadata line when is_compound is true', () => {
+    it('renders human-readable equipment labels and Compound in the metadata line when is_compound is true', () => {
         render(
             <ExerciseRow
                 exercise={ex}
@@ -41,8 +41,10 @@ describe('ExerciseRow', () => {
             />,
         );
         const meta = screen.getByTestId('exercise-row-meta');
-        expect(meta.textContent).toContain('barbell');
-        expect(meta.textContent).toContain('bench');
+        // Human-readable: 'Barbell' and 'Bench', not raw keys 'barbell'/'bench'.
+        expect(meta.textContent).toContain('Barbell');
+        expect(meta.textContent).toContain('Bench');
+        expect(meta.textContent).not.toContain('barbell/bench');
         expect(meta.textContent).toContain('Compound');
     });
 
@@ -115,7 +117,7 @@ describe('ExerciseRow', () => {
         expect(screen.getByRole('button', { name: /favorite/i })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('clicking the row body calls onOpen', () => {
+    it('clicking the card (exercise-row-body) calls onOpen', () => {
         const onOpen = vi.fn();
         render(
             <ExerciseRow
@@ -131,7 +133,41 @@ describe('ExerciseRow', () => {
         expect(onOpen).toHaveBeenCalledWith(ex);
     });
 
-    it('chevron button has aria-label="Open details"', () => {
+    it('the card root has role="button" and is keyboard-activatable via Enter', () => {
+        const onOpen = vi.fn();
+        render(
+            <ExerciseRow
+                exercise={ex}
+                favorite={false}
+                hidden={false}
+                showCategory={false}
+                onOpen={onOpen}
+                onToggleFavorite={vi.fn()}
+            />,
+        );
+        const card = screen.getByTestId('exercise-row-body');
+        expect(card).toHaveAttribute('role', 'button');
+        fireEvent.keyDown(card, { key: 'Enter' });
+        expect(onOpen).toHaveBeenCalledWith(ex);
+    });
+
+    it('the card root is keyboard-activatable via Space', () => {
+        const onOpen = vi.fn();
+        render(
+            <ExerciseRow
+                exercise={ex}
+                favorite={false}
+                hidden={false}
+                showCategory={false}
+                onOpen={onOpen}
+                onToggleFavorite={vi.fn()}
+            />,
+        );
+        fireEvent.keyDown(screen.getByTestId('exercise-row-body'), { key: ' ' });
+        expect(onOpen).toHaveBeenCalledWith(ex);
+    });
+
+    it('chevron is decorative (aria-hidden, not a button)', () => {
         render(
             <ExerciseRow
                 exercise={ex}
@@ -142,7 +178,8 @@ describe('ExerciseRow', () => {
                 onToggleFavorite={vi.fn()}
             />,
         );
-        expect(screen.getByRole('button', { name: 'Open details' })).toBeInTheDocument();
+        // No button named "Open details" since chevron is now decorative.
+        expect(screen.queryByRole('button', { name: 'Open details' })).not.toBeInTheDocument();
     });
 
     it('clicking the favorite star calls onToggleFavorite and does NOT call onOpen', () => {

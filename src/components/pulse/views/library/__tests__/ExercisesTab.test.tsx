@@ -189,7 +189,7 @@ describe('ExercisesTab', () => {
 
     it('row tap opens ExerciseDetailSheet', async () => {
         render(<ExercisesTab />);
-        // Click the row body (data-testid="exercise-row-body") for Bench Press.
+        // Click the row card (data-testid="exercise-row-body", now role="button").
         const rowBodies = screen.getAllByTestId('exercise-row-body');
         await userEvent.click(rowBodies[0]);
         // Detail sheet should open (ModalSheet has role="dialog").
@@ -267,18 +267,20 @@ describe('ExercisesTab', () => {
         expect(mocks.toggleFavorite).toHaveBeenCalledWith(bench.id, true);
     });
 
-    it('Group by control renders with Muscle selected by default', () => {
+    it('Group by defaults to Muscle (muscle group headers visible by default)', () => {
         render(<ExercisesTab />);
-        const muscleBtn = screen.getByRole('button', { name: /^muscle$/i });
-        expect(muscleBtn).toBeInTheDocument();
-        expect(muscleBtn).toHaveAttribute('aria-pressed', 'true');
-        expect(screen.getByRole('button', { name: /^equipment$/i })).toHaveAttribute('aria-pressed', 'false');
-        expect(screen.getByRole('button', { name: /^type$/i })).toHaveAttribute('aria-pressed', 'false');
+        // Default group-by is muscle, so muscle-category headings appear.
+        expect(screen.getByRole('heading', { name: /^chest$/i })).toBeInTheDocument();
     });
 
-    it('switching Group by to Type renders Compound and Isolation section headers', async () => {
+    it('switching Group by to Type (via filter panel) renders Compound and Isolation section headers', async () => {
         render(<ExercisesTab />);
-        await userEvent.click(screen.getByRole('button', { name: /^type$/i }));
+        // Open the filter panel.
+        await userEvent.click(screen.getByTestId('filter-trigger'));
+        // Pick "Type" in the group-by radio group.
+        await userEvent.click(screen.getByRole('radio', { name: /^type$/i }));
+        // Close panel.
+        await userEvent.keyboard('{Escape}');
         await waitFor(() => {
             expect(screen.getByRole('heading', { name: /^compound$/i })).toBeInTheDocument();
             expect(screen.getByRole('heading', { name: /^isolation$/i })).toBeInTheDocument();
@@ -287,9 +289,14 @@ describe('ExercisesTab', () => {
         expect(screen.queryByRole('heading', { name: /^chest$/i })).not.toBeInTheDocument();
     });
 
-    it('switching Group by to Equipment renders equipment bucket headers', async () => {
+    it('switching Group by to Equipment (via filter panel) renders equipment bucket headers', async () => {
         render(<ExercisesTab />);
-        await userEvent.click(screen.getByRole('button', { name: /^equipment$/i }));
+        // Open the filter panel.
+        await userEvent.click(screen.getByTestId('filter-trigger'));
+        // Pick "Equipment" in the group-by radio group.
+        await userEvent.click(screen.getByRole('radio', { name: /^equipment$/i }));
+        // Close panel.
+        await userEvent.keyboard('{Escape}');
         await waitFor(() => {
             // bench and squat both have barbell equipment so Barbell header should appear.
             expect(screen.getByRole('heading', { name: /^barbell$/i })).toBeInTheDocument();
@@ -300,16 +307,13 @@ describe('ExercisesTab', () => {
         expect(screen.queryByRole('heading', { name: /^chest$/i })).not.toBeInTheDocument();
     });
 
-    it('Group by control is hidden when a search query is active (flat view)', async () => {
+    it('Group by options are accessible inside the filter panel (not in the count row)', async () => {
         render(<ExercisesTab />);
-        await userEvent.type(screen.getByRole('searchbox', { name: /search exercises/i }), 'bench');
-        // Group by segmented control should not be visible during search.
-        expect(screen.queryByRole('group', { name: /group by/i })).not.toBeInTheDocument();
-    });
-
-    it('Group by control is hidden when a specific category chip is selected (flat view)', async () => {
-        render(<ExercisesTab />);
-        await userEvent.click(screen.getByRole('button', { name: /^legs$/i }));
-        expect(screen.queryByRole('group', { name: /group by/i })).not.toBeInTheDocument();
+        // The group-by radios should not be in the DOM before opening the filter.
+        expect(screen.queryByRole('radio', { name: /^muscle$/i })).not.toBeInTheDocument();
+        // Open the filter panel.
+        await userEvent.click(screen.getByTestId('filter-trigger'));
+        // Now they should be visible.
+        expect(screen.getByRole('radio', { name: /^muscle$/i })).toBeInTheDocument();
     });
 });

@@ -166,9 +166,25 @@ export default function ExerciseDetailSheet({
                     )}
                 </div>
 
-                {/* Targets section */}
+                {/* Targets + How to: skeleton while loading, content once loaded */}
                 {loading && (
-                    <p className="mb-4 font-pulse text-sm text-pulse-muted">Loading&hellip;</p>
+                    <div className="mb-4" aria-hidden>
+                        {/* Skeleton: Targets */}
+                        <div className="mb-2 h-[10px] w-14 rounded bg-pulse-surface-2" />
+                        <div className="flex flex-wrap gap-1.5">
+                            <div className="h-[26px] w-24 rounded-full bg-pulse-surface-2" />
+                            <div className="h-[26px] w-20 rounded-full bg-pulse-surface-2" />
+                            <div className="h-[26px] w-16 rounded-full bg-pulse-surface-2" />
+                        </div>
+                        {/* Skeleton: How to */}
+                        <div className="mt-4 mb-2 h-[10px] w-12 rounded bg-pulse-surface-2" />
+                        <div className="flex flex-col gap-2">
+                            <div className="h-[14px] w-full rounded bg-pulse-surface-2" />
+                            <div className="h-[14px] w-[90%] rounded bg-pulse-surface-2" />
+                            <div className="h-[14px] w-[80%] rounded bg-pulse-surface-2" />
+                            <div className="h-[14px] w-[85%] rounded bg-pulse-surface-2" />
+                        </div>
+                    </div>
                 )}
                 {hasTargets && (
                     <div className="mb-4">

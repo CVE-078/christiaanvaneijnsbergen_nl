@@ -1,5 +1,6 @@
 'use client';
 import type { DbExercise } from '@/lib/pulse/types';
+import { EQUIPMENT_LABELS } from '@/lib/pulse/constants';
 
 interface ExerciseRowProps {
     exercise: DbExercise;
@@ -72,14 +73,30 @@ export default function ExerciseRow({
     // Build the metadata segments in order: category (if shown), equipment, compound/isolation.
     const segments: string[] = [];
     if (showCategory) segments.push(cap(category));
-    if (equipment && equipment.length > 0) segments.push(equipment.join('/'));
+    if (equipment && equipment.length > 0) {
+        const labels = equipment.map((k) => EQUIPMENT_LABELS[k as keyof typeof EQUIPMENT_LABELS] ?? cap(k));
+        segments.push(labels.join('/'));
+    }
     if (is_compound !== undefined) segments.push(is_compound ? 'Compound' : 'Isolation');
 
     const metaText = segments.join(' · ');
 
     return (
+        // The whole card is the click target. <button> cannot nest <button>, so use a div
+        // with role="button". The favorite star stops propagation so it never fires onOpen.
         <div
-            className={`flex items-center gap-[11px] rounded-[12px] bg-pulse-surface px-3 py-[11px]${hidden ? ' opacity-50' : ''}`}>
+            data-testid="exercise-row-body"
+            role="button"
+            tabIndex={0}
+            aria-label={name}
+            onClick={() => onOpen(exercise)}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOpen(exercise);
+                }
+            }}
+            className={`flex cursor-pointer items-center gap-[11px] rounded-[12px] bg-pulse-surface px-3 py-[11px]${hidden ? ' opacity-50' : ''}`}>
             {/* Favorite star button -- stops propagation so it never fires onOpen */}
             <button
                 type="button"
@@ -93,12 +110,8 @@ export default function ExerciseRow({
                 <StarIcon filled={favorite} />
             </button>
 
-            {/* Main clickable area: name + metadata */}
-            <button
-                type="button"
-                data-testid="exercise-row-body"
-                onClick={() => onOpen(exercise)}
-                className="min-w-0 flex-1 cursor-pointer border-none bg-transparent p-0 text-left">
+            {/* Name + metadata (non-interactive, whole card is the click target) */}
+            <div className="min-w-0 flex-1 text-left">
                 <div className="text-[0.88rem] text-pulse-text">{name}</div>
                 {metaText && (
                     <div
@@ -107,16 +120,12 @@ export default function ExerciseRow({
                         {metaText}
                     </div>
                 )}
-            </button>
+            </div>
 
-            {/* Chevron opens detail */}
-            <button
-                type="button"
-                aria-label="Open details"
-                onClick={() => onOpen(exercise)}
-                className="shrink-0 cursor-pointer border-none bg-transparent p-0 text-pulse-muted">
+            {/* Chevron: decorative, whole card opens detail */}
+            <span aria-hidden className="shrink-0 text-pulse-muted">
                 <ChevronIcon />
-            </button>
+            </span>
         </div>
     );
 }
