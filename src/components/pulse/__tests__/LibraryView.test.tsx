@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LibraryView from '../views/LibraryView';
-import type { DbExercise, RoutineWithExercises } from '@/lib/pulse/types';
+import type { DbExercise, RoutineExercise, RoutineWithExercises, WorkoutType, WorkoutVariant } from '@/lib/pulse/types';
 
 global.fetch = vi.fn();
 
@@ -155,26 +155,41 @@ describe('LibraryView', () => {
         expect(within(screen.getByRole('button', { name: 'back' })).getByText('1')).toBeInTheDocument();
     });
 
-    it('shows the routine list on the Routines tab', async () => {
+    it('shows both routines as cards on the Routines tab', async () => {
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        // "Push Day" appears in both the list and the active-routine header
-        expect(screen.getAllByText('Push Day').length).toBeGreaterThan(0);
-        expect(screen.getByText('Pull Day')).toBeInTheDocument();
+        // Each routine renders as a "Manage {name}" card button.
+        expect(screen.getByRole('button', { name: /manage push day/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /manage pull day/i })).toBeInTheDocument();
     });
 
-    it('calls setActiveRoutine when Set active is clicked', async () => {
+    it('creates an ad-hoc routine from the New routine chooser', async () => {
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        await userEvent.click(screen.getByRole('button', { name: /set active/i }));
+        await userEvent.click(screen.getByRole('button', { name: /new routine/i }));
+        await userEvent.click(screen.getByRole('button', { name: /ad-hoc routine/i }));
+        await userEvent.type(screen.getByLabelText(/routine name/i), 'Leg Day');
+        await userEvent.click(screen.getByRole('button', { name: /^create$/i }));
+        await waitFor(() => {
+            expect(mocks.createRoutine).toHaveBeenCalledWith('Leg Day');
+        });
+    });
+
+    it('calls setActiveRoutine from the manage sheet', async () => {
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        // Pull Day is the inactive routine (active_routine_id = r1).
+        await userEvent.click(screen.getByRole('button', { name: /manage pull day/i }));
+        await userEvent.click(screen.getByRole('button', { name: /^set active$/i }));
         await waitFor(() => {
             expect(mocks.setActiveRoutine).toHaveBeenCalledWith('r2');
         });
     });
 
-    it('renames a routine inline', async () => {
+    it('renames a routine from the manage sheet', async () => {
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
         await userEvent.click(screen.getByRole('button', { name: /rename push day/i }));
         const input = screen.getByRole('textbox', { name: /rename push day/i });
         await userEvent.clear(input);
@@ -184,29 +199,36 @@ describe('LibraryView', () => {
         });
     });
 
-    it('calls createRoutine when the create form is submitted', async () => {
+    it('deletes a routine from the manage sheet when the confirm is accepted', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        await userEvent.type(screen.getByLabelText(/routine name/i), 'Leg Day');
-        await userEvent.click(screen.getByRole('button', { name: /^create$/i }));
+        await userEvent.click(screen.getByRole('button', { name: /manage pull day/i }));
+        await userEvent.click(screen.getByRole('button', { name: /delete pull day/i }));
         await waitFor(() => {
-            expect(mocks.createRoutine).toHaveBeenCalledWith('Leg Day');
+            expect(mocks.deleteRoutine).toHaveBeenCalledWith('r2');
         });
     });
 
-    it('calls addExerciseToRoutine when an exercise is added to the active routine', async () => {
+    it('adds an exercise to an ad-hoc routine via the inline form (with the type select)', async () => {
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        // Push Day is ad-hoc (schedule: []), so the manage sheet shows the inline editor.
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
+        // The ad-hoc add form carries the workout-type select.
+        expect(screen.getByLabelText(/workout type/i)).toBeInTheDocument();
         await userEvent.selectOptions(screen.getByLabelText(/^exercise$/i), 'g2');
         await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
         await waitFor(() => {
+            // Barbell Row's category 'back' auto-selects workout type 'back'.
             expect(mocks.addExerciseToRoutine).toHaveBeenCalledWith('r1', 'g2', '3', '8-12', null, 'back');
         });
     });
 
-    it('calls updateRoutineExercise with kg value when a routine exercise is edited', async () => {
+    it('edits a routine exercise (sets) inline in the ad-hoc manage sheet', async () => {
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
         await userEvent.click(screen.getByRole('button', { name: /edit bench press/i }));
         const setsInput = screen.getByLabelText(/bench press sets/i);
         await userEvent.clear(setsInput);
@@ -217,108 +239,13 @@ describe('LibraryView', () => {
         });
     });
 
-    it('calls deleteRoutine when routine delete is confirmed', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        await userEvent.click(screen.getByRole('button', { name: /delete pull day/i }));
-        await waitFor(() => {
-            expect(mocks.deleteRoutine).toHaveBeenCalledWith('r2');
-        });
-    });
-
-    it('shows Pair ↓ button when active routine has two adjacent unpaired exercises', async () => {
-        const twoExerciseRoutine: RoutineWithExercises = {
+    it('opens the session editor for a scheduled routine and reorders within the session as a block', async () => {
+        // A scheduled (chest) routine: three exercises in one rolled-up session,
+        // the last two paired. Moving the first down past the pair reorders the
+        // whole block. Reorder is reached through the manage sheet -> session editor.
+        const scheduledRoutine: RoutineWithExercises = {
             ...activeRoutine,
-            exercises: [
-                {
-                    id: 're1',
-                    routine_id: 'r1',
-                    exercise_id: 'g1',
-                    workout_type: 'chest' as const,
-                    variant: null,
-                    order: 0,
-                    sets: '3',
-                    reps: '8-12',
-                    starting_weight_kg: 60,
-                    superset_group_id: null,
-                    exercise: globalExercise,
-                },
-                {
-                    id: 're2',
-                    routine_id: 'r1',
-                    exercise_id: 'g2',
-                    workout_type: 'back' as const,
-                    variant: null,
-                    order: 1,
-                    sets: '4',
-                    reps: '6-10',
-                    starting_weight_kg: null,
-                    superset_group_id: null,
-                    exercise: pullExercise,
-                },
-            ],
-        };
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            activeRoutine: twoExerciseRoutine,
-            routines: [twoExerciseRoutine, inactiveRoutine],
-        } as unknown as ReturnType<typeof usePulse>);
-
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        // First exercise should have "Pair ↓" (it can be paired with the next one)
-        expect(screen.getByText('Pair ↓')).toBeInTheDocument();
-    });
-
-    it('shows Unpair button on the first exercise of a paired pair', async () => {
-        const pairedRoutine: RoutineWithExercises = {
-            ...activeRoutine,
-            exercises: [
-                {
-                    id: 're1',
-                    routine_id: 'r1',
-                    exercise_id: 'g1',
-                    workout_type: 'chest' as const,
-                    variant: null,
-                    order: 0,
-                    sets: '3',
-                    reps: '8-12',
-                    starting_weight_kg: 60,
-                    superset_group_id: 'sg1',
-                    exercise: globalExercise,
-                },
-                {
-                    id: 're2',
-                    routine_id: 'r1',
-                    exercise_id: 'g2',
-                    workout_type: 'back' as const,
-                    variant: null,
-                    order: 1,
-                    sets: '4',
-                    reps: '6-10',
-                    starting_weight_kg: null,
-                    superset_group_id: 'sg1',
-                    exercise: pullExercise,
-                },
-            ],
-        };
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            activeRoutine: pairedRoutine,
-            routines: [pairedRoutine, inactiveRoutine],
-        } as unknown as ReturnType<typeof usePulse>);
-
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        // Should show exactly one Unpair button (on the first of the pair)
-        const unpairButtons = screen.getAllByText('Unpair');
-        expect(unpairButtons).toHaveLength(1);
-    });
-
-    it('moves a single down past a superset pair as a block', async () => {
-        const routine: RoutineWithExercises = {
-            ...activeRoutine,
+            schedule: [{ day_of_week: 1, workout_type: 'chest' as const, variant: null }],
             exercises: [
                 {
                     id: 's',
@@ -363,20 +290,24 @@ describe('LibraryView', () => {
         };
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            activeRoutine: routine,
-            routines: [routine, inactiveRoutine],
+            activeRoutine: scheduledRoutine,
+            routines: [scheduledRoutine, inactiveRoutine],
         } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
+        // All three exercises roll up to one "Chest" session (variant null).
+        await userEvent.click(screen.getByRole('button', { name: /edit chest/i }));
         await userEvent.click(screen.getByRole('button', { name: `Move ${globalExercise.name} down` }));
-        expect(mocks.reorderRoutineExercises).toHaveBeenCalledWith(expect.any(String), ['a', 'b', 's']);
+        expect(mocks.reorderRoutineExercises).toHaveBeenCalledWith('r1', ['a', 'b', 's']);
     });
 
-    it('pairs two adjacent exercises via the supersets API', async () => {
+    it('pairs two adjacent exercises in the session editor via the supersets API', async () => {
         vi.mocked(global.fetch).mockClear();
         vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
-        const routine: RoutineWithExercises = {
+        const scheduledRoutine: RoutineWithExercises = {
             ...activeRoutine,
+            schedule: [{ day_of_week: 1, workout_type: 'chest' as const, variant: null }],
             exercises: [
                 {
                     id: 're1',
@@ -408,12 +339,15 @@ describe('LibraryView', () => {
         };
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            activeRoutine: routine,
-            routines: [routine, inactiveRoutine],
+            activeRoutine: scheduledRoutine,
+            routines: [scheduledRoutine, inactiveRoutine],
         } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        await userEvent.click(screen.getByText('Pair ↓'));
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
+        await userEvent.click(screen.getByRole('button', { name: /edit chest/i }));
+        // First exercise can pair with the next: "Pair {name} with next".
+        await userEvent.click(screen.getByRole('button', { name: `Pair ${globalExercise.name} with next` }));
         expect(global.fetch).toHaveBeenCalledWith(
             '/api/pulse/supersets',
             expect.objectContaining({
@@ -423,11 +357,12 @@ describe('LibraryView', () => {
         );
     });
 
-    it('unpairs a superset via the supersets API', async () => {
+    it('unpairs a superset in the session editor via the supersets API', async () => {
         vi.mocked(global.fetch).mockClear();
         vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
-        const routine: RoutineWithExercises = {
+        const scheduledRoutine: RoutineWithExercises = {
             ...activeRoutine,
+            schedule: [{ day_of_week: 1, workout_type: 'chest' as const, variant: null }],
             exercises: [
                 {
                     id: 're1',
@@ -459,17 +394,20 @@ describe('LibraryView', () => {
         };
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            activeRoutine: routine,
-            routines: [routine, inactiveRoutine],
+            activeRoutine: scheduledRoutine,
+            routines: [scheduledRoutine, inactiveRoutine],
         } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        await userEvent.click(screen.getByText('Unpair'));
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
+        await userEvent.click(screen.getByRole('button', { name: /edit chest/i }));
+        // Unpair sits on the first exercise of the pair: "Unpair {name}".
+        await userEvent.click(screen.getByRole('button', { name: `Unpair ${globalExercise.name}` }));
         expect(global.fetch).toHaveBeenCalledWith('/api/pulse/supersets/sg1', { method: 'DELETE' });
     });
 
-    it('groups the routine editor into sessions by workout type and variant', async () => {
-        const re = (id: string, type: string, variant: string | null, order: number) => ({
+    it('lists a scheduled routine as session rows in the manage sheet', async () => {
+        const re = (id: string, type: WorkoutType, variant: WorkoutVariant | null, order: number): RoutineExercise => ({
             id,
             routine_id: 'r1',
             exercise_id: 'g1',
@@ -479,182 +417,49 @@ describe('LibraryView', () => {
             sets: '3',
             reps: '8-12',
             starting_weight_kg: null,
+            rest_seconds: null,
             superset_group_id: null,
             exercise: globalExercise,
         });
-        const routine = {
-            ...activeRoutine,
-            exercises: [
-                re('a', 'upper', 'A', 0),
-                re('b', 'lower', 'A', 1),
-                re('c', 'upper', 'B', 2),
-                re('d', 'lower', 'B', 3),
-            ],
-        };
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            activeRoutine: routine,
-            routines: [routine, inactiveRoutine],
-        } as unknown as ReturnType<typeof usePulse>);
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        expect(screen.getByText('Upper · A')).toBeInTheDocument();
-        expect(screen.getByText('Lower · A')).toBeInTheDocument();
-        expect(screen.getByText('Upper · B')).toBeInTheDocument();
-        expect(screen.getByText('Lower · B')).toBeInTheDocument();
-    });
-
-    it('renders a flat list with no session header for a single-session routine', async () => {
-        const routine = {
-            ...activeRoutine,
-            exercises: [
-                {
-                    id: 're1',
-                    routine_id: 'r1',
-                    exercise_id: 'g1',
-                    workout_type: 'full_body' as const,
-                    variant: null,
-                    order: 0,
-                    sets: '3',
-                    reps: '8-12',
-                    starting_weight_kg: null,
-                    superset_group_id: null,
-                    exercise: globalExercise,
-                },
-            ],
-        };
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            activeRoutine: routine,
-            routines: [routine, inactiveRoutine],
-        } as unknown as ReturnType<typeof usePulse>);
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        // The exercise row renders, but there is no `Type · Variant` session header.
-        expect(screen.getAllByText('Bench Press').length).toBeGreaterThan(0);
-        expect(screen.queryByText(/·/)).not.toBeInTheDocument();
-    });
-
-    it('rolls a full-body routine up to Full Body sessions even though exercises are tagged push/pull/legs', async () => {
-        // Mirrors a cloned full-body template: schedule is full_body, but the
-        // template tags exercises push/pull/legs. Sections must read Full Body,
-        // split only by variant, never Push/Pull/Legs.
-        const re = (id: string, type: string, variant: string | null, order: number) => ({
-            id,
-            routine_id: 'r1',
-            exercise_id: 'g1',
-            workout_type: type,
-            variant,
-            order,
-            sets: '3',
-            reps: '8-12',
-            starting_weight_kg: null,
-            superset_group_id: null,
-            exercise: globalExercise,
-        });
-        const routine = {
+        const scheduledRoutine: RoutineWithExercises = {
             ...activeRoutine,
             schedule: [
-                { day_of_week: 1, workout_type: 'full_body' as const },
-                { day_of_week: 3, workout_type: 'full_body' as const },
+                { day_of_week: 1, workout_type: 'upper' as const, variant: 'A' },
+                { day_of_week: 3, workout_type: 'lower' as const, variant: 'A' },
+                { day_of_week: 5, workout_type: 'upper' as const, variant: 'B' },
             ],
-            exercises: [
-                re('a', 'push', 'A', 0),
-                re('b', 'pull', 'A', 1),
-                re('c', 'legs', 'A', 2),
-                re('d', 'push', 'B', 3),
-                re('e', 'pull', 'B', 4),
-                re('f', 'legs', 'B', 5),
-            ],
+            exercises: [re('a', 'upper', 'A', 0), re('b', 'lower', 'A', 1), re('c', 'upper', 'B', 2)],
         };
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
-            activeRoutine: routine,
-            routines: [routine, inactiveRoutine],
+            activeRoutine: scheduledRoutine,
+            routines: [scheduledRoutine, inactiveRoutine],
         } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-        expect(screen.getByText('Full Body · A')).toBeInTheDocument();
-        expect(screen.getByText('Full Body · B')).toBeInTheDocument();
-        // The granular per-exercise types must not surface as section headers.
-        expect(screen.queryByText('Push · A')).not.toBeInTheDocument();
-        expect(screen.queryByText('Pull · A')).not.toBeInTheDocument();
-        expect(screen.queryByText('Legs · A')).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
+        // The manage sheet lists each session as an "Edit {SessionLabel}" row.
+        expect(screen.getByRole('button', { name: 'Edit Upper A' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Edit Lower A' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Edit Upper B' })).toBeInTheDocument();
     });
 
     it('floats a favorited exercise to the top of the add-exercise picker', async () => {
         // By default the picker lists [Bench Press, Cable Fly, Barbell Row] (order
         // from the exercises array). When Cable Fly ('u1') is favorited it should
-        // appear first in the <select> option list.
+        // appear first in the <select> option list. The picker lives in the ad-hoc
+        // manage sheet's inline add form.
         vi.mocked(usePulse).mockReturnValue({
             ...defaultContext,
             favoriteExerciseIds: new Set(['u1']),
         } as unknown as ReturnType<typeof usePulse>);
         render(<LibraryView />);
         await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        await userEvent.click(screen.getByRole('button', { name: /manage push day/i }));
         const select = screen.getByLabelText(/^exercise$/i) as HTMLSelectElement;
         const options = Array.from(select.options)
             .filter((o) => o.value !== '')
             .map((o) => o.text);
         expect(options[0]).toBe('Cable Fly');
-    });
-
-    it('numbers exercises per session (1..n) in the routine editor while reorder still uses the global index', async () => {
-        const ex = (id: string, name: string): DbExercise => ({
-            id,
-            name,
-            category: 'chest',
-            default_sets: '3',
-            default_reps: '8-12',
-            user_id: null,
-        });
-        const re = (id: string, type: string, order: number, exercise: DbExercise) => ({
-            id,
-            routine_id: 'r1',
-            exercise_id: exercise.id,
-            workout_type: type,
-            variant: 'A' as const,
-            order,
-            sets: '3',
-            reps: '8-12',
-            starting_weight_kg: null,
-            superset_group_id: null,
-            exercise,
-        });
-        // Order interleaves the two sessions (upper@0, lower@1, upper@2, lower@3),
-        // so the global index differs from the per-session position. The old code
-        // numbered by global index (Upper 1,3 / Lower 2,4); the fix numbers per
-        // session (1,2 / 1,2), matching ProgramView on the Plan page.
-        const routine = {
-            ...activeRoutine,
-            exercises: [
-                re('a', 'upper', 0, ex('a', 'Upper One')),
-                re('b', 'lower', 1, ex('b', 'Lower One')),
-                re('c', 'upper', 2, ex('c', 'Upper Two')),
-                re('d', 'lower', 3, ex('d', 'Lower Two')),
-            ],
-        };
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            activeRoutine: routine,
-            routines: [routine, inactiveRoutine],
-        } as unknown as ReturnType<typeof usePulse>);
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
-
-        // The second exercise of each session reads "2", not its global index (3 / 4).
-        const upperTwoRow = screen.getByText('Upper Two').closest('div') as HTMLElement;
-        expect(within(upperTwoRow).getByText('2')).toBeInTheDocument();
-        expect(within(upperTwoRow).queryByText('3')).not.toBeInTheDocument();
-        const lowerTwoRow = screen.getByText('Lower Two').closest('div') as HTMLElement;
-        expect(within(lowerTwoRow).getByText('2')).toBeInTheDocument();
-        expect(within(lowerTwoRow).queryByText('4')).not.toBeInTheDocument();
-
-        // Reorder still operates on the global index: moving the first Upper
-        // exercise down swaps it past the first Lower exercise (across sections).
-        await userEvent.click(screen.getByRole('button', { name: /move upper one down/i }));
-        await waitFor(() => {
-            expect(mocks.reorderRoutineExercises).toHaveBeenCalledWith('r1', ['b', 'a', 'c', 'd']);
-        });
     });
 });
