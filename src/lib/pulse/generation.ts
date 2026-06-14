@@ -1600,6 +1600,10 @@ const NO_COMPOUND_WARNING = 'no_compound';
 // The 5-minute rounding in estimateSessionMinutes is the tolerance, so the
 // warning fires only when the rounded estimate strictly exceeds the band max.
 const OVER_TIME_WARNING = 'over_time';
+// Stable warning KEY for essential-coverage degradation (P1.2): equipment /
+// restrictions emptied an essential movement group for a focus (e.g. a full-body
+// session left without any pull). Display copy in WARNING_COPY (constants.ts).
+const MISSING_PATTERN_WARNING = 'missing_pattern';
 const SESSION_TIME_MAX_MIN: Record<SessionTime, number | null> = {
     '~30 min': 30,
     '45–60 min': 60,
@@ -1733,6 +1737,21 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             } else if (!warnings.includes(NO_COMPOUND_WARNING)) {
                 warnings.push(NO_COMPOUND_WARNING);
             }
+        }
+
+        // Essential-coverage degradation (P1.2): if equipment / restrictions left an
+        // essential movement group uncovered for this focus (e.g. a full-body session
+        // with no pull after a shoulder restriction emptied every pull), flag it rather
+        // than silently shipping a session missing a defining movement. Essential
+        // groups are full_body-only today (see ESSENTIAL_PATTERNS); other focuses gain
+        // coverage definitions with the post-generation validator (P2.3).
+        const essentialFor = ESSENTIAL_PATTERNS[session.focus];
+        if (
+            essentialFor.length > 0 &&
+            essentialFor.some((g) => !selected.some((s) => g.includes(s.pattern))) &&
+            !warnings.includes(MISSING_PATTERN_WARNING)
+        ) {
+            warnings.push(MISSING_PATTERN_WARNING);
         }
 
         // Role ordering (Item 4): assign each selected exercise a role and order the

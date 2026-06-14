@@ -369,6 +369,52 @@ describe('essential movement coverage (P1.1)', () => {
     });
 });
 
+// ── Restriction degradation warning (P1.2) ───────────────────────────────────
+
+describe('restriction degradation warning (P1.2)', () => {
+    it('warns when restrictions leave a full-body session without a pull', () => {
+        // Tag every pull as contraindicated, then restrict it: the pull pattern is
+        // emptied, so a full-body week cannot cover pulling. The routine must flag
+        // the gap rather than silently shipping push + legs only.
+        const pool = deepPool().map((e) =>
+            e.movement_pattern === 'horizontal_pull' || e.movement_pattern === 'vertical_pull'
+                ? { ...e, contraindications: ['shoulder' as RestrictionFlag] }
+                : e,
+        );
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool,
+                restrictions: ['shoulder'],
+            }),
+        );
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const PULL: MovementPattern[] = ['horizontal_pull', 'vertical_pull'];
+        // No pull was selectable (the restriction removed them all)...
+        expect(bp.exercises.every((e) => !PULL.includes(patternOf.get(e.exercise_id)!))).toBe(true);
+        // ...and the routine flags the missing pattern.
+        expect(bp.warnings).toContain('missing_pattern');
+    });
+
+    it('does not warn when restrictions still leave a usable pull', () => {
+        // Only the barbell row is contraindicated; dumbbell pulls remain, so the
+        // pattern is covered and no missing-pattern warning fires.
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                restrictions: ['shoulder'],
+            }),
+        );
+        expect(bp.warnings).not.toContain('missing_pattern');
+    });
+});
+
 // ── Session duration warning (P1.4) ──────────────────────────────────────────
 
 describe('session duration warning (P1.4)', () => {

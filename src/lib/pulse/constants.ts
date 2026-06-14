@@ -31,6 +31,10 @@ export const WARNING_COPY: Record<string, { title: string; body: string }> = {
         title: 'May run long',
         body: 'Some sessions are estimated to take longer than your selected session length. You can shorten them by dropping an accessory, or keep them as planned.',
     },
+    missing_pattern: {
+        title: 'Missing a key movement',
+        body: 'Your equipment or movement restrictions left a session without one of its key movements (for example pulling). The plan still works, this is a heads-up. Adding equipment or easing a restriction would round it out.',
+    },
 };
 
 export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {

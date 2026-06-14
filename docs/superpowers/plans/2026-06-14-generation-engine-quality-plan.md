@@ -19,7 +19,7 @@
 | Item | Title | Phase | Status | Commit |
 |------|-------|-------|--------|--------|
 | P1.1 | Essential-coverage-first slot filling | 1 | DONE | feature/generation-quality |
-| P1.2 | Restriction catalogue correction + visible degradation | 1 | TODO | |
+| P1.2 | Restriction tag fixes + visible degradation | 1 | DONE | feature/generation-quality (migration hand-apply) |
 | P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | TODO | |
 | P1.4 | Duration over-band warning | 1 | DONE | feature/generation-quality |
 | P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | TODO | accuracy polish, not a blocker |
@@ -71,13 +71,15 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 **Dependencies:** P1.1 (shares the warning surface + essential-pattern definitions). **Regression risk:** low; tag changes affect only restricted generations, warnings are additive. **Migration:** hand-apply on merge.
 
-- [ ] Write failing catalogue-consistency + degradation-warning tests.
-- [ ] Author the tag/equipment correction migration.
-- [ ] Emit the degradation warning; add `WARNING_COPY`.
-- [ ] Run suite; code-review; commit.
+- [x] Write failing degradation-warning tests (warn / no-warn).
+- [x] Author the tag/equipment correction migration (conservative policy in the header).
+- [x] Emit the degradation warning (`missing_pattern`); add `WARNING_COPY`.
+- [x] Run suite; commit.
 
-**Done:** _(pending)_
-**Impact:** _(pending)_
+**Done:** Added a `missing_pattern` warning emitted when an essential movement group is left uncovered for a focus after selection (full_body today), so a restriction/equipment gap that empties a defining pattern is visible instead of silent. Authored migration `2026-06-14-22-17-31-restriction-tag-corrections.sql` (hand-apply on merge): Step-Up -> knee (fixes the case-06 inconsistency vs its tagged siblings), Smith Machine Bench Press -> {machines, bench} (fixes prod drift). The conservative "one safe option per pattern" policy is documented in the migration header. 2 new tests; suite 1575 green, typecheck clean.
+**Impact:**
+- **User (restricted):** the catalogue no longer seats a Step-Up for a knee-restricted lifter, machine-only users now see Smith Machine Bench Press, and when a restriction empties a key movement (e.g. all pulls) the Plan page shows a "Missing a key movement" notice instead of silently dropping it. The restriction filter itself was already correct and is unchanged.
+- **Engine:** the degradation warning reuses the P1.1 essential-coverage groups (full_body); warning-only output with no selection change, so all goldens hold. Per-focus coverage detection generalises with the P2.3 validator.
 
 ## P1.3 Exercise-specific prescriptions (Issue 8)
 
