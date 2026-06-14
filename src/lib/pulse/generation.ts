@@ -275,6 +275,14 @@ export const PRIORITY_PATTERNS: Record<PriorityMuscle, MovementPattern[]> = {
     arms: ['biceps_iso', 'triceps_iso'],
 };
 
+// Measurable priority (P3.2): a priority muscle adds this many extra direct sets
+// across the WEEK, spread one-per-exercise over the priority-pattern lifts already
+// selected (priority never injects a slot, so this only deepens existing priority
+// work). Capped so total volume stays recoverable and the rest of the programme
+// keeps its balance; never reduces other muscles' volume. Null priority = 0 extra
+// sets, so the no-priority path stays byte-identical.
+const PRIORITY_EXTRA_SETS_PER_WEEK = 3;
+
 /** Default priority seeded from gender (UI only): female → glutes, else balanced. */
 export function genderDefault(gender: Gender | null): PriorityMuscle | 'balanced' {
     return gender === 'female' ? 'glutes' : 'balanced';
@@ -1694,6 +1702,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const warnings: string[] = [];
     // P2.2: count strength-biased (heavy) sessions to flag an over-demanding week.
     let strengthSessions = 0;
+    // P3.2: weekly budget of extra sets for the priority muscle, spent one-per-exercise
+    // across the routine. Null priority -> 0, so the no-priority path is byte-identical.
+    const priorityPatterns = input.priority ? new Set(PRIORITY_PATTERNS[input.priority]) : null;
+    let priorityExtraBudget = priorityPatterns ? PRIORITY_EXTRA_SETS_PER_WEEK : 0;
 
     style.sessions.forEach((session, i) => {
         if (i >= days.length) return;
@@ -1810,6 +1822,12 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             if (effectiveBias === 'strength' && ex.is_compound && !firstCompoundBumped) {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
+            }
+            // P3.2: deepen the priority muscle by one set per priority-pattern lift,
+            // up to the weekly cap. Bounded and additive (never reduces other work).
+            if (priorityPatterns && priorityExtraBudget > 0 && priorityPatterns.has(pattern)) {
+                exSets += 1;
+                priorityExtraBudget -= 1;
             }
             sessionRows.push({ sets: exSets, is_compound: ex.is_compound });
             exercises.push({

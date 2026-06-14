@@ -30,7 +30,7 @@
 | P2.2 | Bounded heavy-work limit (demanding-week warning) | 2 | DONE | feature/generation-quality |
 | P2.3 | Post-generation programme validator | 2 | TODO | |
 | P3.1 | Independent experience and goal | 3 | TODO | |
-| P3.2 | Measurable priority muscle | 3 | TODO | |
+| P3.2 | Measurable priority muscle | 3 | DONE | feature/generation-quality |
 | P3.3 | Style modulates without erasing identity | 3 | TODO | |
 | P3.4 | Variety, split differentiation, equipment visibility | 3 | TODO | |
 
@@ -170,8 +170,11 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 ## P3.1 Independent experience and goal (Issue 5)
 Experience modulates exercise complexity (use `difficulty`), demanding-compound count, volume tolerance; goal modulates rep distribution and density; decouple from "experience sizes volume, goal flips lose_fat only". **Regression risk:** high (rep ranges + selection). **Done:** _(pending)_ · **Impact:** _(pending)_
 
-## P3.2 Measurable priority muscle (Issue 6)
-Add bounded weekly direct volume for the priority muscle (e.g. +1 set on priority-pattern exercises, or an extra priority slot when budget allows), capped for safety/balance; define the measure (priority muscle gets >= N more direct weekly sets than balanced). **Regression risk:** medium. **Done:** _(pending)_ · **Impact:** _(pending)_
+## P3.2 Measurable priority muscle (Issue 6) — DONE
+**Done:** a weekly budget of `PRIORITY_EXTRA_SETS_PER_WEEK` (3) extra sets is spent one-per-exercise across the priority muscle's patterns (`PRIORITY_PATTERNS`) already selected, deepening existing priority work without injecting slots or touching other muscles. Null priority -> 0 budget, so the no-priority path (and every golden) is byte-identical. 3 new tests (bounded delta, lands on the priority patterns, null identity); suite 1586 green, typecheck clean. No migration. Decision applied: +3 capped, additive only.
+**Impact:**
+- **User:** choosing a priority muscle now visibly adds ~3 sets/week of that muscle's work on top of the reordering, so priority is measurably different from balanced (Issue 6 fixed) without blowing up total volume.
+- **Engine:** a capped weekly counter + a +1 in the set-assignment loop; null priority unchanged, so goldens hold. Combines with the strength set-bump (a priority lift that is also the strength lead gets both).
 
 ## P3.3 Style modulates without erasing identity (Issue 5)
 Enforce split-identity-over-style; bodybuilding adds isolation/volume character; strength caps total weekly heavy volume on high-frequency splits. **Regression risk:** high. **Done:** _(pending)_ · **Impact:** _(pending)_

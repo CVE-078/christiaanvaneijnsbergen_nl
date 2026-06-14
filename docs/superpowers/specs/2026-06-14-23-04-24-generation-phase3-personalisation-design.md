@@ -72,11 +72,11 @@ Recommend (a) as the v1 measurable difference: a `priority`-aware set bump in th
 - **Muscle volume measurement** reuses the `muscleMap` bridge (`PATTERN_MUSCLE_MAP`, `muscleContributions`) already in the repo, so "direct weekly sets for muscle X" is computable for the P3.2 acceptance test.
 - **Sequencing:** P3.2 (lowest risk, clear value) first; then P3.1 (experience/goal); then P3.3 (highest risk). Each its own reviewed diff with goldens re-baselined deliberately.
 
-## Open product decisions (resolve before TDD)
+## Product decisions (RESOLVED 2026-06-14)
 
-1. P3.1: beginner strength-compound rep floor (5-8 vs 6-10?); general_fitness rep distribution.
-2. P3.2: priority extra-set budget N per week; may priority reduce other muscles' volume to stay capped?
-3. P3.3: what defines "bodybuilding character"; Strength high-frequency = warn-only (shipped) or auto-correct?
+1. P3.1: beginner strength-compound rep floor = **6-10** (general_fitness biases to moderate reps). Intermediate/advanced build_muscle unchanged.
+2. P3.2: priority extra-set budget = **+3 direct sets/week, capped** (a small safe bump on priority-pattern exercises; does NOT reduce other muscles' volume, just adds within a recoverable cap).
+3. P3.3: Strength high-frequency = **warn-only** (already shipped as P2.2; no auto-correction). The remaining P3.3 "bodybuilding character" piece (more isolation/volume under Bodybuilding) still needs its own definition and is deferred until specified.
 
 ## Deferred (still out of scope)
 

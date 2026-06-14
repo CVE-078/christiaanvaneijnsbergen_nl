@@ -321,6 +321,44 @@ function sessionIds(bp: ReturnType<typeof generateRoutine>, wt: string, variant:
     return bp.exercises.filter((e) => e.workout_type === wt && e.variant === variant).map((e) => e.exercise_id);
 }
 
+// ── Measurable priority muscle (P3.2) ────────────────────────────────────────
+
+describe('measurable priority muscle (P3.2)', () => {
+    const totalSets = (bp: ReturnType<typeof generateRoutine>) =>
+        bp.exercises.reduce((n, e) => n + Number(e.sets), 0);
+    const chestSets = (bp: ReturnType<typeof generateRoutine>, patternOf: Map<string, MovementPattern | null>) =>
+        bp.exercises
+            .filter((e) => {
+                const p = patternOf.get(e.exercise_id);
+                return p === 'horizontal_push' || p === 'chest_iso';
+            })
+            .reduce((n, e) => n + Number(e.sets), 0);
+
+    it('adds bounded extra weekly volume vs an otherwise identical balanced baseline', () => {
+        // Issue 6: priority was ordering-only. It must now add measurable weekly
+        // volume to the priority muscle, capped so the rest of the plan stays balanced.
+        const base = generateRoutine(input({ pool: deepPool() }));
+        const prioritized = generateRoutine(input({ pool: deepPool(), priority: 'chest' }));
+        const delta = totalSets(prioritized) - totalSets(base);
+        expect(delta).toBeGreaterThan(0);
+        expect(delta).toBeLessThanOrEqual(3); // capped at +3 sets/week
+    });
+
+    it('lands the extra sets on the priority muscle patterns', () => {
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const base = generateRoutine(input({ pool }));
+        const prioritized = generateRoutine(input({ pool, priority: 'chest' }));
+        expect(chestSets(prioritized, patternOf)).toBeGreaterThan(chestSets(base, patternOf));
+    });
+
+    it('null priority is byte-identical to the balanced baseline (no extra volume)', () => {
+        const a = generateRoutine(input({ pool: deepPool() }));
+        const b = generateRoutine(input({ pool: deepPool(), priority: null }));
+        expect(totalSets(a)).toBe(totalSets(b));
+    });
+});
+
 // ── Heavy-work limit warning (P2.2) ──────────────────────────────────────────
 
 describe('heavy-work limit warning (P2.2)', () => {
