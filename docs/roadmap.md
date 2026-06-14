@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-14)
 
-**In progress:** (none).
+**In progress:** UX clarity + a11y (password toggle keyboard focus + recovery-tile clarity) (`feature/ux-clarity-a11y`).
 
 **Shipped, Library tab deep-links (`feature/library-routines`, 2026-06-14, stacked on `feature/modals-modalsheet`):** `/pulse/library` and `/pulse/library/routines` are now deep-linkable and back/forward-aware, matching Progress / Profile. Pure `libraryTabFromPath` / `libraryTabPath` in `navigation.ts`, a `[tab]` route segment, and a URL-driven `LibraryView` (local tab mirrors `usePathname`, `router.push` on change). No migration. **Deferred (its own focused build): the Plan B RoutinesTab visual redesign** (restyled routine cards with split chips + active block-progress, a "New routine" chooser ModalSheet folding in Templates, a manage sheet, and the session editor in a sheet). It is a large component restructure plus a ~20-test rewrite of the superset/reorder editor, best verified live; the approved mockup is ready at `.superpowers/brainstorm/.../content/library-routines.html`.
 
