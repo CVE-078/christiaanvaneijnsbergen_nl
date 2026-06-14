@@ -7,6 +7,7 @@ import type { View } from './types';
 
 export type ProgressTab = 'overview' | 'lifts' | 'body';
 export type ProfileTab = 'you' | 'training';
+export type LibraryTab = 'exercises' | 'routines';
 
 const SEGMENT_TO_VIEW: Record<string, View> = {
     train: 'train',
@@ -40,4 +41,13 @@ export function progressTabPath(tab: ProgressTab): string {
 
 export function profileTabPath(tab: ProfileTab): string {
     return tab === 'you' ? '/pulse/profile' : `/pulse/profile/${tab}`;
+}
+
+// /pulse/library/<tab> -> tab (default exercises for the bare path / unknown tab).
+export function libraryTabFromPath(pathname: string | null | undefined): LibraryTab {
+    return (pathname ?? '').split('/')[3] === 'routines' ? 'routines' : 'exercises';
+}
+
+export function libraryTabPath(tab: LibraryTab): string {
+    return tab === 'exercises' ? '/pulse/library' : '/pulse/library/routines';
 }
