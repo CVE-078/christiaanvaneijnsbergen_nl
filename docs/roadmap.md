@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-14)
 
-**In progress:** (none).
+**In progress:** Library redesign, Plan A (Exercises tab) implementation (`feature/library-redesign`). Spec + plan committed; subagent-driven build underway. Plan B (Routines + Templates fold-in) deferred.
 
 **In review (on a branch, not yet merged):** **Bug 6 relabel, per-session focus labels** (`feature/ulppl-session-labels`). A nullable `routine_schedule.label`, populated at generation from the session emphasis (`focusLabelForEmphasis`): quad emphases (`lower_quad` / `lower_lean`) → "Lower (Quads)", posterior (`lower_post`) → "Lower (Hamstrings & Glutes)", null for everything else (PHUL lowers and general days keep compact labels). Threaded through `ROUTINES_SELECT`, resolved at render by pure `sessionFocusLabel(schedule, type, variant)`, shown on the spacious surfaces (Plan accordion + next-session preview in `ProgramView`, desktop guided subtitle in `WorkoutModeScreen`); tabs and the mobile guided VARIANT chip keep their compact labels (user-confirmed). Covers all five styles that pair the emphases (ul-classic-4, ul-aesthetic-4, ulppl-5, fb-ul-hybrid-5, ppl-x2-6). Forward-only: existing routines render unchanged until regenerated (no backfill; the emphasis isn't persisted on old rows). Wording/placement/scope confirmed via AskUserQuestion; code-reviewed (no runtime bugs; added fb-ul-hybrid-5 + guided-subtitle tests from it). +18 tests, suite **1447**, typecheck + lint clean. **Migration pending (apply by hand):** `docs/migrations/2026-06-14-10-30-00-routine-schedule-label.sql` (additive nullable column).
 
