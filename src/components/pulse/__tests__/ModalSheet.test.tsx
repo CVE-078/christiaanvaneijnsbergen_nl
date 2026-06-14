@@ -97,4 +97,33 @@ describe('ModalSheet', () => {
         fireEvent.touchEnd(grip, {});
         expect(onClose).not.toHaveBeenCalled();
     });
+
+    it('dismisses on a downward mouse drag of the grip past the threshold', () => {
+        const onClose = vi.fn();
+        render(
+            <ModalSheet open title="x" onClose={onClose}>
+                <p>body</p>
+            </ModalSheet>,
+        );
+        const grip = screen.getByRole('button', { name: /drag down to dismiss/i });
+        // Move/up dispatch on window (the handlers attach there during the drag).
+        fireEvent.mouseDown(grip, { clientY: 0 });
+        fireEvent.mouseMove(window, { clientY: 160 });
+        fireEvent.mouseUp(window);
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not dismiss on a small mouse drag of the grip', () => {
+        const onClose = vi.fn();
+        render(
+            <ModalSheet open title="x" onClose={onClose}>
+                <p>body</p>
+            </ModalSheet>,
+        );
+        const grip = screen.getByRole('button', { name: /drag down to dismiss/i });
+        fireEvent.mouseDown(grip, { clientY: 0 });
+        fireEvent.mouseMove(window, { clientY: 25 });
+        fireEvent.mouseUp(window);
+        expect(onClose).not.toHaveBeenCalled();
+    });
 });

@@ -65,6 +65,7 @@ export default function LogView() {
         setSwap,
         clearSwap,
         hiddenExerciseIds,
+        favoriteExerciseIds,
         workoutModeOpen,
         setWorkoutModeOpen,
         loading,
@@ -344,6 +345,7 @@ export default function LogView() {
                             candidates={candidates}
                             isSwapped={swapped}
                             captureReason
+                            favoriteIds={favoriteExerciseIds}
                             onSelect={(exId, reason) => {
                                 setSwap(activeWeek, swapTarget.id, exId, reason ?? undefined);
                                 setSwapTarget(null);

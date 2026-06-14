@@ -96,6 +96,8 @@ const mockContext = {
     endTravel: vi.fn().mockResolvedValue(undefined),
     hiddenExerciseIds: new Set<string>(),
     toggleHideExercise: vi.fn().mockResolvedValue(undefined),
+    favoriteExerciseIds: new Set<string>(),
+    toggleFavorite: vi.fn().mockResolvedValue(undefined),
     updateTimezone: vi.fn().mockResolvedValue(undefined),
     updateAccentColor: vi.fn().mockResolvedValue(undefined),
     updateMovementRestrictions: vi.fn().mockResolvedValue(undefined),

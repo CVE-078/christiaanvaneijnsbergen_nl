@@ -1,5 +1,12 @@
 'use client';
-import { useEffect, useRef, useState, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
+import {
+    useEffect,
+    useRef,
+    useState,
+    type ReactNode,
+    type TouchEvent as ReactTouchEvent,
+    type MouseEvent as ReactMouseEvent,
+} from 'react';
 
 // Drag the grip down past this many pixels to dismiss the sheet.
 const SWIPE_DISMISS_PX = 90;
@@ -26,8 +33,9 @@ interface Props {
     children: ReactNode;
 }
 
-// Shared modal shell: bottom-sheet on mobile, centered dialog on desktop. Owns
-// the overlay, panel sizing, mobile grip, Escape-to-close, and a standardized
+// Shared modal shell: bottom-sheet on phones (< md), centered dialog on tablet
+// and desktop (>= md, no grip/swipe). Owns the overlay, panel sizing, the
+// phone-only grip, Escape-to-close, and a standardized
 // header (optional back chevron · title + subtitle · close). It is the single
 // source of truth for modal spacing (p-6 edges), so every Pulse modal reads the
 // same. The body below the header is the caller's; keep its sections on px-6.
@@ -52,19 +60,31 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
         };
     }, [open]);
 
-    // Swipe-down-to-dismiss from the grip (mobile). Tracks a downward drag,
-    // follows the finger, and closes past the threshold, snapping back otherwise.
+    // Drag-down-to-dismiss from the grip. Works with touch (mobile bottom sheet)
+    // AND mouse (a narrow desktop window where the bottom sheet shows). Follows
+    // the pointer and closes past the threshold, snapping back otherwise.
     const [dragY, setDragY] = useState(0);
     const [dragging, setDragging] = useState(false);
     const startY = useRef<number | null>(null);
+    const dragYRef = useRef(0);
+    const mouseCleanup = useRef<(() => void) | null>(null);
+
+    // Keep a ref in sync with dragY so imperative window listeners (mouse drag)
+    // read the latest value rather than a stale closure.
+    const setDrag = (y: number) => {
+        dragYRef.current = y;
+        setDragY(y);
+    };
 
     // Reset any in-flight drag when the sheet is dismissed externally, so it never
-    // reopens mid-translated.
+    // reopens mid-translated, and detach any live mouse listeners.
     useEffect(() => {
         if (!open) {
-            setDragY(0);
+            setDrag(0);
             setDragging(false);
             startY.current = null;
+            mouseCleanup.current?.();
+            mouseCleanup.current = null;
         }
     }, [open]);
 
@@ -75,13 +95,40 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
     const onGripTouchMove = (e: ReactTouchEvent) => {
         if (startY.current === null) return;
         const dy = (e.touches[0]?.clientY ?? startY.current) - startY.current;
-        setDragY(dy > 0 ? dy : 0);
+        setDrag(dy > 0 ? dy : 0);
     };
     const onGripTouchEnd = () => {
-        if (dragY > SWIPE_DISMISS_PX) onClose();
-        setDragY(0);
+        if (dragYRef.current > SWIPE_DISMISS_PX) onClose();
+        setDrag(0);
         setDragging(false);
         startY.current = null;
+    };
+
+    // Mouse drag: attach move/up to the window so the drag keeps tracking even if
+    // the cursor leaves the grip; self-detaching on release.
+    const onGripMouseDown = (e: ReactMouseEvent) => {
+        e.preventDefault(); // no text selection while dragging
+        startY.current = e.clientY;
+        setDragging(true);
+        const move = (ev: globalThis.MouseEvent) => {
+            if (startY.current === null) return;
+            const dy = ev.clientY - startY.current;
+            setDrag(dy > 0 ? dy : 0);
+        };
+        const up = () => {
+            if (dragYRef.current > SWIPE_DISMISS_PX) onClose();
+            setDrag(0);
+            setDragging(false);
+            startY.current = null;
+            mouseCleanup.current?.();
+            mouseCleanup.current = null;
+        };
+        mouseCleanup.current = () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+        };
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', up);
     };
 
     if (!open) return null;
@@ -91,10 +138,10 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
             role="dialog"
             aria-modal="true"
             aria-label={ariaLabel ?? title}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 lg:items-center"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center"
             onClick={onClose}>
             <div
-                className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-6 lg:max-h-[78vh] lg:rounded-[18px] lg:mx-6"
+                className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-6 md:max-h-[78vh] md:rounded-[18px] md:mx-6"
                 style={{
                     transform: dragY ? `translateY(${dragY}px)` : undefined,
                     transition: dragging ? 'none' : 'transform 0.2s ease',
@@ -103,19 +150,20 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
                 {/* Grip handle, mobile only. The whole strip is the drag target so a
                     downward swipe dismisses the sheet (see onGripTouch* above). */}
                 <div
-                    className="flex touch-none justify-center pb-1 pt-2 lg:hidden"
+                    className="flex cursor-grab touch-none justify-center pb-1 pt-2 active:cursor-grabbing md:hidden"
                     role="button"
                     aria-label="Drag down to dismiss"
                     tabIndex={-1}
                     onTouchStart={onGripTouchStart}
                     onTouchMove={onGripTouchMove}
-                    onTouchEnd={onGripTouchEnd}>
+                    onTouchEnd={onGripTouchEnd}
+                    onMouseDown={onGripMouseDown}>
                     <span className="h-1 w-10 rounded-full bg-pulse-border" aria-hidden />
                 </div>
 
                 {/* Standardized header. Desktop gets the full p-6 top; mobile keeps a
                     tighter top because the grip handle already sits above it. */}
-                <div className="flex items-start gap-3 px-6 pb-3 pt-4 lg:pt-6">
+                <div className="flex items-start gap-3 px-6 pb-3 pt-4 md:pt-6">
                     {onBack && (
                         <button
                             type="button"

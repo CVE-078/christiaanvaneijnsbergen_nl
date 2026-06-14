@@ -204,9 +204,9 @@ export interface HistorySession {
 export const VIEWS = ['train', 'plan', 'progress', 'profile', 'library'] as const;
 export type View = (typeof VIEWS)[number];
 
-// User exercise preferences. v1 only uses 'hidden' (never-show); extensible to
-// 'favorite' later. Surfaced to the client as a Set<string> of hidden ids.
-export type ExercisePreference = 'hidden';
+// User exercise preferences. 'hidden' = never-show; 'favorite' = pin to top.
+// Surfaced to the client as a Set<string> of hidden ids.
+export type ExercisePreference = 'hidden' | 'favorite';
 
 export type PRMap = Record<string, number>;
 

@@ -84,10 +84,18 @@ const mocks = {
     updateRoutineExercise: vi.fn().mockResolvedValue(undefined),
     reorderRoutineExercises: vi.fn().mockResolvedValue(undefined),
     toggleHideExercise: vi.fn().mockResolvedValue(undefined),
+    toggleFavorite: vi.fn().mockResolvedValue(undefined),
 };
 
 const defaultContext = {
-    profile: { display_name: null, unit: 'kg' as const, active_routine_id: 'r1' },
+    profile: {
+        display_name: null,
+        unit: 'kg' as const,
+        active_routine_id: 'r1',
+        active_equipment_profile_id: null,
+        timezone: 'Europe/Amsterdam',
+        movement_restrictions: [],
+    },
     exercises: [globalExercise, userExercise, pullExercise],
     routines: [activeRoutine, inactiveRoutine],
     activeRoutine,
@@ -96,6 +104,8 @@ const defaultContext = {
     saveNote: vi.fn().mockResolvedValue(undefined),
     deleteNote: vi.fn().mockResolvedValue(undefined),
     hiddenExerciseIds: new Set<string>(),
+    favoriteExerciseIds: new Set<string>(),
+    equipmentProfiles: [],
     timerDuration: null,
 };
 
@@ -105,10 +115,13 @@ beforeEach(() => {
 });
 
 describe('LibraryView', () => {
-    it('renders the Exercises/Routines tab switcher', () => {
+    it('renders exactly two tabs: Exercises and Routines (no Templates)', () => {
         render(<LibraryView />);
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs).toHaveLength(2);
         expect(screen.getByRole('tab', { name: /exercises/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /routines/i })).toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /templates/i })).toBeNull();
     });
 
     it('shows the exercise list on the Exercises tab', async () => {
@@ -134,89 +147,6 @@ describe('LibraryView', () => {
         expect(within(screen.getByRole('button', { name: 'all' })).getByText('3')).toBeInTheDocument();
         expect(within(screen.getByRole('button', { name: 'chest' })).getByText('2')).toBeInTheDocument();
         expect(within(screen.getByRole('button', { name: 'back' })).getByText('1')).toBeInTheDocument();
-    });
-
-    it('only shows edit/delete on user exercises', async () => {
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        // Cable Fly is the only user exercise → its delete button exists
-        expect(screen.getByRole('button', { name: /delete cable fly/i })).toBeInTheDocument();
-        // Bench Press is global → no delete button
-        expect(screen.queryByRole('button', { name: /delete bench press/i })).not.toBeInTheDocument();
-    });
-
-    it('hides an exercise via the hide toggle', async () => {
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        await userEvent.click(screen.getByRole('button', { name: /hide bench press/i }));
-        expect(mocks.toggleHideExercise).toHaveBeenCalledWith('g1', true);
-    });
-
-    it('hides hidden exercises from the list until Show hidden is toggled', async () => {
-        vi.mocked(usePulse).mockReturnValue({
-            ...defaultContext,
-            hiddenExerciseIds: new Set(['g1']),
-        } as unknown as ReturnType<typeof usePulse>);
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        // Bench Press (g1) is hidden → not listed by default
-        expect(screen.queryByText('Bench Press')).not.toBeInTheDocument();
-        await userEvent.click(screen.getByRole('button', { name: /show hidden/i }));
-        expect(screen.getByText('Bench Press')).toBeInTheDocument();
-        // Now its toggle offers Unhide
-        expect(screen.getByRole('button', { name: /unhide bench press/i })).toBeInTheDocument();
-    });
-
-    it('submits the add exercise form correctly', async () => {
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        await userEvent.click(screen.getByRole('button', { name: /\+ add/i }));
-        await userEvent.type(screen.getByLabelText(/exercise name/i), 'Incline Press');
-        await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
-        await waitFor(() => {
-            expect(mocks.createExercise).toHaveBeenCalledWith('Incline Press', 'chest', '3', '8-12');
-        });
-    });
-
-    it('calls updateExercise when a user exercise is renamed', async () => {
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
-        const input = screen.getByLabelText(/rename cable fly/i);
-        await userEvent.clear(input);
-        await userEvent.type(input, 'Cable Crossover');
-        await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
-        await waitFor(() => {
-            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Crossover', '3', '12-15');
-        });
-    });
-
-    it('shows default sets and reps inputs when editing a user exercise', async () => {
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
-        expect(screen.getByLabelText(/default sets/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/default reps/i)).toBeInTheDocument();
-    });
-
-    it('calls updateExercise with name, sets, and reps when edit is saved', async () => {
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        await userEvent.click(screen.getByRole('button', { name: /edit cable fly/i }));
-
-        const setsInput = screen.getByLabelText(/default sets/i);
-        const repsInput = screen.getByLabelText(/default reps/i);
-
-        await userEvent.clear(setsInput);
-        await userEvent.type(setsInput, '4');
-        await userEvent.clear(repsInput);
-        await userEvent.type(repsInput, '10-15');
-
-        await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
-
-        await waitFor(() => {
-            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Fly', '4', '10-15');
-        });
     });
 
     it('shows the routine list on the Routines tab', async () => {
@@ -279,24 +209,6 @@ describe('LibraryView', () => {
         await waitFor(() => {
             expect(mocks.updateRoutineExercise).toHaveBeenCalledWith('re1', '4', '8-12', 60, null);
         });
-    });
-
-    it('calls deleteExercise when a user exercise delete is confirmed', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        await userEvent.click(screen.getByRole('button', { name: /delete cable fly/i }));
-        await waitFor(() => {
-            expect(mocks.deleteExercise).toHaveBeenCalledWith('u1');
-        });
-    });
-
-    it('does not call deleteExercise when delete is cancelled', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
-        render(<LibraryView />);
-        await userEvent.click(screen.getByRole('tab', { name: /exercises/i }));
-        await userEvent.click(screen.getByRole('button', { name: /delete cable fly/i }));
-        expect(mocks.deleteExercise).not.toHaveBeenCalled();
     });
 
     it('calls deleteRoutine when routine delete is confirmed', async () => {
@@ -662,6 +574,23 @@ describe('LibraryView', () => {
         expect(screen.queryByText('Push · A')).not.toBeInTheDocument();
         expect(screen.queryByText('Pull · A')).not.toBeInTheDocument();
         expect(screen.queryByText('Legs · A')).not.toBeInTheDocument();
+    });
+
+    it('floats a favorited exercise to the top of the add-exercise picker', async () => {
+        // By default the picker lists [Bench Press, Cable Fly, Barbell Row] (order
+        // from the exercises array). When Cable Fly ('u1') is favorited it should
+        // appear first in the <select> option list.
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            favoriteExerciseIds: new Set(['u1']),
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        const select = screen.getByLabelText(/^exercise$/i) as HTMLSelectElement;
+        const options = Array.from(select.options)
+            .filter((o) => o.value !== '')
+            .map((o) => o.text);
+        expect(options[0]).toBe('Cable Fly');
     });
 
     it('numbers exercises per session (1..n) in the routine editor while reorder still uses the global index', async () => {

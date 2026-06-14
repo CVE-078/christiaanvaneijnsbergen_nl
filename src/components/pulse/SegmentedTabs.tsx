@@ -22,7 +22,7 @@ export default function SegmentedTabs({ tabs, active, onChange, ariaLabel, varia
                     active={tab.id === active}
                     onClick={() => onChange(tab.id)}
                     variant={variant}
-                    className="flex-1 justify-center rounded-[9px] py-2 text-sm font-medium">
+                    className="flex-1 justify-center rounded-[9px] py-2 text-xs font-medium lg:text-sm">
                     {tab.label}
                 </TabButton>
             ))}

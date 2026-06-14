@@ -144,7 +144,7 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         startTravel,
         endTravel,
     } = useEquipmentProfiles();
-    const { hiddenExerciseIds, toggleHideExercise } = usePreferences();
+    const { hiddenExerciseIds, favoriteExerciseIds, toggleHideExercise, toggleFavorite } = usePreferences();
     const { sessions, refreshSessions, loading: loadingSessions, error: sessionsError } = useSessions();
     const {
         adjustments,
@@ -637,8 +637,8 @@ export function PulseProvider({ userId, email, navigate, children }: Props) {
         ],
     );
     const preferencesValue = useMemo(
-        () => ({ hiddenExerciseIds, toggleHideExercise }),
-        [hiddenExerciseIds, toggleHideExercise],
+        () => ({ hiddenExerciseIds, favoriteExerciseIds, toggleHideExercise, toggleFavorite }),
+        [hiddenExerciseIds, favoriteExerciseIds, toggleHideExercise, toggleFavorite],
     );
     const regenValue = useMemo(
         () => ({

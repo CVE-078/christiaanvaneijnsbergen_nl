@@ -257,7 +257,7 @@ describe('useRoutines', () => {
             expect(returned).toEqual(newExercise);
         });
 
-        expect(serverCreateExercise).toHaveBeenCalledWith('Squat', 'legs', '4', '5');
+        expect(serverCreateExercise).toHaveBeenCalledWith('Squat', 'legs', '4', '5', undefined);
         expect(exercisesMutate).toHaveBeenCalled();
     });
 
@@ -265,10 +265,10 @@ describe('useRoutines', () => {
         const { result } = renderHook(() => useRoutines(null));
 
         await act(async () => {
-            await result.current.updateExercise('ex-1', 'Incline Bench Press', '4', '6-8');
+            await result.current.updateExercise('ex-1', 'Incline Bench Press', 'chest', '4', '6-8');
         });
 
-        expect(serverUpdateExercise).toHaveBeenCalledWith('ex-1', 'Incline Bench Press', '4', '6-8');
+        expect(serverUpdateExercise).toHaveBeenCalledWith('ex-1', 'Incline Bench Press', 'chest', '4', '6-8', undefined);
         expect(exercisesMutate).toHaveBeenCalled();
     });
 

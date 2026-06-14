@@ -1,41 +1,103 @@
 'use client';
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 import { usePulse } from '@/context/PulseContext';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
 import type { DbExercise, ExerciseCategory } from '@/lib/pulse/types';
-import { INPUT, BTN_PRIMARY, BTN_GHOST, CARD } from '@/components/pulse/ui';
-import CategoryBadge from './CategoryBadge';
+import { resolveEquipmentPrefill, swapCandidates, rankSubstitutes } from '@/lib/pulse/utils';
+import { filterExercises, groupExercises } from '@/lib/pulse/library';
+import type { GroupBy } from '@/lib/pulse/library';
+import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
+import { useLocalStorage } from '@/hooks/pulse/useLocalStorage';
 import FilterChips, { type FilterChipItem } from './FilterChips';
-import ExerciseInstructionModal from '@/components/pulse/ExerciseInstructionModal';
-
-const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
+import ExerciseRow from './ExerciseRow';
+import ExerciseFilterControl, { type FilterState } from './ExerciseFilterControl';
+import ExerciseDetailSheet from './ExerciseDetailSheet';
+import ExerciseFormSheet from './ExerciseFormSheet';
 
 export default function ExercisesTab() {
-    const { exercises, createExercise, updateExercise, deleteExercise, hiddenExerciseIds, toggleHideExercise } =
-        usePulse();
-    const [, startTransition] = useTransition();
+    const {
+        exercises,
+        hiddenExerciseIds,
+        favoriteExerciseIds,
+        toggleHideExercise,
+        toggleFavorite,
+        createExercise,
+        updateExercise,
+        deleteExercise,
+        equipmentProfiles,
+        profile,
+    } = usePulse();
 
-    const [filter, setFilter] = useState<'all' | ExerciseCategory>('all');
-    const [showHidden, setShowHidden] = useState(false);
-    const [adding, setAdding] = useState(false);
-    const [newName, setNewName] = useState('');
-    const [newCategory, setNewCategory] = useState<ExerciseCategory>('chest');
-    const [newDefaultSets, setNewDefaultSets] = useState('3');
-    const [newDefaultReps, setNewDefaultReps] = useState('8-12');
+    const isDesktop = useMediaQuery('(min-width: 1024px)');
 
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [instructionsFor, setInstructionsFor] = useState<DbExercise | null>(null);
-    const [editName, setEditName] = useState('');
-    const [editDefaultSets, setEditDefaultSets] = useState('');
-    const [editDefaultReps, setEditDefaultReps] = useState('');
+    // Category chip state.
+    const [category, setCategory] = useState<'all' | ExerciseCategory>('all');
 
-    const hiddenCount = exercises.filter((ex) => hiddenExerciseIds.has(ex.id)).length;
-    const filtered = exercises.filter(
-        (ex) =>
-            (filter === 'all' || ex.category === filter) && (showHidden || !hiddenExerciseIds.has(ex.id)),
+    // Free-text search.
+    const [query, setQuery] = useState('');
+
+    // Group-by mode for the non-search grouped view. Persisted so a refresh
+    // keeps the user's chosen grouping.
+    const [groupBy, setGroupBy] = useLocalStorage<GroupBy>('pulse:library-group-by', 'muscle');
+
+    // Advanced filter state.
+    const [filters, setFilters] = useState<FilterState>({
+        favorites: false,
+        fitsGear: false,
+        respectsRestrictions: false,
+        showHidden: false,
+    });
+
+    // Sheet state: detail and form are mutually exclusive (never stacked).
+    const [detailExercise, setDetailExercise] = useState<DbExercise | null>(null);
+    const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
+    const [formInitial, setFormInitial] = useState<DbExercise | undefined>(undefined);
+    const [formOpen, setFormOpen] = useState(false);
+
+    // Derive the effective equipment set from travel-aware profile resolution.
+    const nowIso = useMemo(() => new Date().toISOString(), []);
+    const timezone = profile.timezone ?? undefined;
+    const activeId = profile.active_equipment_profile_id ?? null;
+    const effectiveEquipment = useMemo(
+        () => resolveEquipmentPrefill(equipmentProfiles, activeId, nowIso, timezone),
+        [equipmentProfiles, activeId, nowIso, timezone],
     );
 
-    // Per-category counts so each filter chip can show how many exercises it holds.
+    // Derive active profile name for the filter control label.
+    const activeProfileName = useMemo(() => {
+        if (!activeId) return equipmentProfiles[0]?.name ?? null;
+        return equipmentProfiles.find((p) => p.id === activeId)?.name ?? null;
+    }, [equipmentProfiles, activeId]);
+
+    // Run the filter seam.
+    const filtered = useMemo(
+        () =>
+            filterExercises(exercises, {
+                query,
+                category,
+                favorites: filters.favorites,
+                fitsGear: filters.fitsGear,
+                respectsRestrictions: filters.respectsRestrictions,
+                showHidden: filters.showHidden,
+                equipmentSet: effectiveEquipment,
+                restrictions:
+                    (profile.movement_restrictions as import('@/lib/pulse/types').RestrictionFlag[] | null) ?? [],
+                hiddenIds: hiddenExerciseIds,
+                favoriteIds: favoriteExerciseIds,
+            }),
+        [
+            exercises,
+            query,
+            category,
+            filters,
+            effectiveEquipment,
+            profile.movement_restrictions,
+            hiddenExerciseIds,
+            favoriteExerciseIds,
+        ],
+    );
+
+    // Per-category counts for the chip rail.
     const categoryCounts = useMemo(() => {
         const m = new Map<ExerciseCategory, number>();
         for (const ex of exercises) m.set(ex.category, (m.get(ex.category) ?? 0) + 1);
@@ -50,266 +112,246 @@ export default function ExercisesTab() {
         [exercises.length, categoryCounts],
     );
 
-    function handleAdd() {
-        const name = newName.trim();
-        const sets = newDefaultSets.trim();
-        const reps = newDefaultReps.trim();
-        if (!name || !sets || !reps) return;
-        startTransition(async () => {
-            await createExercise(name, newCategory, sets, reps);
-            setNewName('');
-            setNewCategory('chest');
-            setNewDefaultSets('3');
-            setNewDefaultReps('8-12');
-            setAdding(false);
-        });
+    // Compute active filter names for the empty-results message.
+    const activeFilterNames: string[] = [];
+    if (query) activeFilterNames.push(`"${query}"`);
+    if (category !== 'all') activeFilterNames.push(category);
+    if (filters.favorites) activeFilterNames.push('Favorites');
+    if (filters.fitsGear) activeFilterNames.push('Fits my gear');
+    if (filters.respectsRestrictions) activeFilterNames.push('Respects my restrictions');
+    if (filters.showHidden) activeFilterNames.push('Show hidden');
+
+    function clearFilters() {
+        setQuery('');
+        setCategory('all');
+        setFilters({ favorites: false, fitsGear: false, respectsRestrictions: false, showHidden: false });
     }
 
-    function startEdit(ex: DbExercise) {
-        setEditingId(ex.id);
-        setEditName(ex.name);
-        setEditDefaultSets(ex.default_sets);
-        setEditDefaultReps(ex.default_reps);
+    // Compute similar exercises for the detail sheet.
+    function computeSimilar(ex: DbExercise): DbExercise[] {
+        const candidates = swapCandidates(ex, exercises, { excludeIds: new Set([ex.id]) });
+        return rankSubstitutes(ex, candidates);
     }
 
-    function handleEditSave(id: string) {
-        const name = editName.trim();
-        if (!name) return;
-        startTransition(async () => {
-            await updateExercise(id, name, editDefaultSets.trim() || '3', editDefaultReps.trim() || '8-12');
-            setEditingId(null);
-        });
+    // Sheet openers: detail and form never stack.
+    function openDetail(ex: DbExercise) {
+        setFormOpen(false);
+        setDetailExercise(ex);
     }
 
-    function handleDelete(id: string, name: string) {
-        if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
-        startTransition(async () => {
-            await deleteExercise(id);
-        });
+    function openAdd() {
+        setDetailExercise(null);
+        setFormMode('add');
+        setFormInitial(undefined);
+        setFormOpen(true);
     }
+
+    function openEdit(ex: DbExercise) {
+        setDetailExercise(null);
+        setFormMode('edit');
+        setFormInitial(ex);
+        setFormOpen(true);
+    }
+
+    // Grouped list: used when category='all' AND no query.
+    const useGrouped = category === 'all' && !query;
+    const groups = useMemo(
+        () => (useGrouped ? groupExercises(filtered, groupBy, favoriteExerciseIds) : []),
+        [useGrouped, filtered, groupBy, favoriteExerciseIds],
+    );
+
+    function renderRow(ex: DbExercise) {
+        return (
+            <ExerciseRow
+                key={ex.id}
+                exercise={ex}
+                favorite={favoriteExerciseIds.has(ex.id)}
+                hidden={hiddenExerciseIds.has(ex.id)}
+                showCategory={!!query}
+                onOpen={openDetail}
+                onToggleFavorite={(e) => toggleFavorite(e.id, !favoriteExerciseIds.has(e.id))}
+            />
+        );
+    }
+
+    // Removable active-filter chips for quick removal.
+    const filterChipKeys: { key: string; label: string; onRemove: () => void }[] = [];
+    if (filters.favorites)
+        filterChipKeys.push({
+            key: 'fav',
+            label: 'Favorites',
+            onRemove: () => setFilters((f) => ({ ...f, favorites: false })),
+        });
+    if (filters.fitsGear)
+        filterChipKeys.push({
+            key: 'gear',
+            label: 'Fits my gear',
+            onRemove: () => setFilters((f) => ({ ...f, fitsGear: false })),
+        });
+    if (filters.respectsRestrictions)
+        filterChipKeys.push({
+            key: 'restrict',
+            label: 'Respects my restrictions',
+            onRemove: () => setFilters((f) => ({ ...f, respectsRestrictions: false })),
+        });
+    if (filters.showHidden)
+        filterChipKeys.push({
+            key: 'hidden',
+            label: 'Show hidden',
+            onRemove: () => setFilters((f) => ({ ...f, showHidden: false })),
+        });
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Unified toolbar, a single-row scrollable filter rail (shared FilterChips),
-                with Hidden + Add pinned to the right. */}
+            {/* Toolbar: search + filter control */}
             <div className="flex items-center gap-2">
-                <FilterChips
-                    className="flex-1"
-                    items={categoryItems}
-                    activeKey={filter}
-                    onSelect={(k) => setFilter(k as 'all' | ExerciseCategory)}
+                <input
+                    type="search"
+                    aria-label="Search exercises"
+                    placeholder="Search exercises..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="flex-1 min-w-0 rounded-[10px] border border-pulse-border bg-pulse-surface px-3 py-2 font-pulse text-[0.86rem] text-pulse-text placeholder:text-pulse-muted focus:outline-none focus:border-pulse-accent/60 transition-colors"
                 />
-
-                {/* Show-hidden toggle, only when the user has hidden something. */}
-                {hiddenCount > 0 && (
-                    <button
-                        onClick={() => setShowHidden((v) => !v)}
-                        aria-pressed={showHidden}
-                        className={`${BTN_GHOST} shrink-0`}>
-                        {showHidden ? `Hide hidden (${hiddenCount})` : `Show hidden (${hiddenCount})`}
-                    </button>
-                )}
-
-                {!adding && (
-                    <button onClick={() => setAdding(true)} className={`${BTN_GHOST} shrink-0`}>
-                        + Add
-                    </button>
-                )}
+                <ExerciseFilterControl
+                    value={filters}
+                    activeProfileName={activeProfileName}
+                    onChange={setFilters}
+                    groupBy={groupBy}
+                    onGroupByChange={setGroupBy}
+                />
             </div>
 
-            {/* Add form */}
-            {adding && (
-                <div className={`${CARD} flex flex-col gap-3`}>
-                    <div className={SECTION_LABEL}>New exercise</div>
-                    <input
-                        autoFocus
-                        aria-label="Exercise name"
-                        placeholder="Exercise name"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleAdd();
-                            if (e.key === 'Escape') setAdding(false);
-                        }}
-                        className={INPUT}
-                    />
-                    <select
-                        aria-label="Category"
-                        value={newCategory}
-                        onChange={(e) => setNewCategory(e.target.value as ExerciseCategory)}
-                        className={INPUT}>
-                        {EXERCISE_CATEGORIES.map((c) => (
-                            <option key={c} value={c}>
-                                {c[0].toUpperCase() + c.slice(1)}
-                            </option>
-                        ))}
-                    </select>
-                    <div className="flex gap-2">
-                        <label className="flex flex-col gap-1 flex-1">
-                            <span className={SECTION_LABEL}>Default sets</span>
-                            <input
-                                aria-label="Default sets"
-                                value={newDefaultSets}
-                                onChange={(e) => setNewDefaultSets(e.target.value)}
-                                className={INPUT}
-                            />
-                        </label>
-                        <label className="flex flex-col gap-1 flex-1">
-                            <span className={SECTION_LABEL}>Default reps</span>
-                            <input
-                                aria-label="Default reps"
-                                value={newDefaultReps}
-                                onChange={(e) => setNewDefaultReps(e.target.value)}
-                                className={INPUT}
-                            />
-                        </label>
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={handleAdd} className={BTN_PRIMARY}>
-                            Add
+            {/* Removable active-filter chips */}
+            {filterChipKeys.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                    {filterChipKeys.map((chip) => (
+                        <button
+                            key={chip.key}
+                            type="button"
+                            aria-label={`Remove filter: ${chip.label}`}
+                            onClick={chip.onRemove}
+                            className="inline-flex items-center gap-1 rounded-full border border-pulse-accent/40 bg-pulse-accent/10 px-2.5 py-1 font-pulse text-xs text-pulse-accent">
+                            {chip.label}
+                            <span aria-hidden className="ml-0.5 text-[0.7rem] leading-none">
+                                ×
+                            </span>
                         </button>
-                        <button onClick={() => setAdding(false)} className={BTN_GHOST}>
-                            Cancel
-                        </button>
-                    </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Category chip rail */}
+            <FilterChips
+                items={categoryItems}
+                activeKey={category}
+                onSelect={(k) => setCategory(k as 'all' | ExerciseCategory)}
+            />
+
+            {/* Count row + New button */}
+            <div className="flex items-center justify-between gap-2">
+                <span className="font-pulse text-[0.82rem] text-pulse-muted shrink-0">{filtered.length} exercises</span>
+                <button
+                    type="button"
+                    onClick={openAdd}
+                    className="shrink-0 cursor-pointer rounded-[9px] bg-pulse-accent px-3.5 py-1.5 font-pulse text-[0.82rem] font-medium text-pulse-bg transition-colors hover:bg-pulse-accent/90">
+                    + New
+                </button>
+            </div>
+
+            {/* Empty-results state (filters active but no results) */}
+            {filtered.length === 0 && exercises.length > 0 && (
+                <div className="flex flex-col items-center gap-3 rounded-[14px] bg-pulse-surface px-5 py-8 text-center">
+                    <p className="font-pulse text-[0.86rem] text-pulse-dim">
+                        No exercises match{' '}
+                        {activeFilterNames.length > 0 ? activeFilterNames.join(', ') : 'the active filters'}.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="rounded-[9px] border border-pulse-border bg-transparent px-3.5 py-1.5 font-pulse text-[0.82rem] text-pulse-text transition-colors hover:border-pulse-accent hover:text-pulse-accent">
+                        Clear filters
+                    </button>
+                </div>
+            )}
+
+            {/* Empty catalog state */}
+            {exercises.length === 0 && (
+                <div className="font-pulse text-[0.8125rem] text-pulse-muted tracking-[0.04em]">
+                    No exercises in the catalog yet.
                 </div>
             )}
 
             {/* Exercise list */}
-            <div className="flex flex-col gap-2">
-                {filtered.length === 0 ? (
-                    <div className="font-pulse text-[0.8125rem] text-pulse-muted tracking-[0.04em]">
-                        No exercises here yet.
-                    </div>
-                ) : (
-                    filtered.map((ex) => {
-                        const isUser = ex.user_id !== null;
-                        const isEditing = editingId === ex.id;
-                        const isHidden = hiddenExerciseIds.has(ex.id);
-                        return (
-                            <div
-                                key={ex.id}
-                                className={`flex items-center gap-3 bg-pulse-surface rounded-xl px-3 py-2.5 ${
-                                    isHidden ? 'opacity-50' : ''
-                                }`}>
-                                {isEditing ? (
-                                    <div className="flex-1 flex flex-col gap-2">
-                                        <input
-                                            autoFocus
-                                            aria-label={`Rename ${ex.name}`}
-                                            value={editName}
-                                            onChange={(e) => setEditName(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') handleEditSave(ex.id);
-                                                if (e.key === 'Escape') setEditingId(null);
-                                            }}
-                                            className={`${INPUT} w-full`}
-                                        />
-                                        <div className="flex gap-2">
-                                            <label className="flex flex-col gap-0.5 flex-1">
-                                                <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-muted">
-                                                    Default sets
-                                                </span>
-                                                <input
-                                                    aria-label="Default sets"
-                                                    value={editDefaultSets}
-                                                    onChange={(e) => setEditDefaultSets(e.target.value)}
-                                                    className={INPUT}
-                                                />
-                                            </label>
-                                            <label className="flex flex-col gap-0.5 flex-1">
-                                                <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-muted">
-                                                    Default reps
-                                                </span>
-                                                <input
-                                                    aria-label="Default reps"
-                                                    value={editDefaultReps}
-                                                    onChange={(e) => setEditDefaultReps(e.target.value)}
-                                                    className={INPUT}
-                                                />
-                                            </label>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleEditSave(ex.id)}
-                                                className={`${BTN_PRIMARY} shrink-0`}>
-                                                Save
-                                            </button>
-                                            <button
-                                                onClick={() => setEditingId(null)}
-                                                className={`${BTN_GHOST} shrink-0`}>
-                                                Cancel
-                                            </button>
-                                        </div>
+            {filtered.length > 0 && (
+                <>
+                    {useGrouped ? (
+                        // Grouped view: Favorites first, then category sections.
+                        <div className="flex flex-col gap-5">
+                            {groups.map((group) => (
+                                <div key={group.key}>
+                                    <h3 className="mb-2 font-pulse text-[0.625rem] uppercase tracking-[0.12em] text-pulse-muted">
+                                        {group.label}
+                                    </h3>
+                                    <div
+                                        data-testid={`group-grid-${group.key}`}
+                                        className={isDesktop ? 'grid grid-cols-2 gap-2' : 'flex flex-col gap-2'}>
+                                        {group.exercises.map(renderRow)}
                                     </div>
-                                ) : (
-                                    <>
-                                        <span className="font-pulse text-sm text-pulse-text flex-1 min-w-0 truncate">
-                                            {ex.name}
-                                        </span>
-                                        <CategoryBadge category={ex.category} />
-                                        <button
-                                            onClick={() => toggleHideExercise(ex.id, !isHidden)}
-                                            aria-label={isHidden ? `Unhide ${ex.name}` : `Hide ${ex.name}`}
-                                            aria-pressed={isHidden}
-                                            className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                                            {isHidden ? 'Unhide' : 'Hide'}
-                                        </button>
-                                        {!isUser && (
-                                            <button
-                                                onClick={() => setInstructionsFor(ex)}
-                                                aria-label={`Instructions for ${ex.name}`}
-                                                className="shrink-0 cursor-pointer border-none bg-transparent text-pulse-dim hover:text-pulse-accent">
-                                                <svg
-                                                    className="h-4 w-4"
-                                                    viewBox="0 0 16 16"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth={1.5}
-                                                    aria-hidden>
-                                                    <circle cx="8" cy="8" r="6.5" />
-                                                    <line x1="8" y1="7" x2="8" y2="11" strokeLinecap="round" />
-                                                    <circle
-                                                        cx="8"
-                                                        cy="4.75"
-                                                        r="0.6"
-                                                        fill="currentColor"
-                                                        stroke="none"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        )}
-                                        {isUser && (
-                                            <>
-                                                <button
-                                                    onClick={() => startEdit(ex)}
-                                                    aria-label={`Edit ${ex.name}`}
-                                                    className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(ex.id, ex.name)}
-                                                    aria-label={`Delete ${ex.name}`}
-                                                    className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                                                    Delete
-                                                </button>
-                                            </>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })
-                )}
-            </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        // Flat view: specific category selected or query active.
+                        // Same responsive 2-col grid on desktop as the grouped view.
+                        <div
+                            data-testid="flat-grid"
+                            className={isDesktop ? 'grid grid-cols-2 gap-2' : 'flex flex-col gap-2'}>
+                            {filtered.map(renderRow)}
+                        </div>
+                    )}
+                </>
+            )}
 
-            {instructionsFor && (
-                <ExerciseInstructionModal
-                    exerciseId={instructionsFor.id}
-                    exerciseName={instructionsFor.name}
-                    onClose={() => setInstructionsFor(null)}
+            {/* Detail sheet */}
+            {detailExercise && (
+                <ExerciseDetailSheet
+                    exercise={detailExercise}
+                    favorite={favoriteExerciseIds.has(detailExercise.id)}
+                    hidden={hiddenExerciseIds.has(detailExercise.id)}
+                    similar={computeSimilar(detailExercise)}
+                    open={!!detailExercise}
+                    onClose={() => setDetailExercise(null)}
+                    onToggleFavorite={(ex) => toggleFavorite(ex.id, !favoriteExerciseIds.has(ex.id))}
+                    onToggleHide={(ex) => toggleHideExercise(ex.id, !hiddenExerciseIds.has(ex.id))}
+                    onEdit={detailExercise.user_id != null ? openEdit : undefined}
                 />
             )}
+
+            {/* Form sheet */}
+            <ExerciseFormSheet
+                mode={formMode}
+                initial={formInitial}
+                open={formOpen}
+                onClose={() => setFormOpen(false)}
+                onSubmit={async ({ name, category: cat, defaultSets, defaultReps, meta }) => {
+                    if (formMode === 'add') {
+                        await createExercise(name, cat, defaultSets, defaultReps, meta ?? undefined);
+                    } else if (formInitial) {
+                        await updateExercise(formInitial.id, name, cat, defaultSets, defaultReps, meta ?? undefined);
+                    }
+                    setFormOpen(false);
+                }}
+                onDelete={
+                    formMode === 'edit' && formInitial
+                        ? (ex) => {
+                              if (!window.confirm(`Delete "${ex.name}"? This cannot be undone.`)) return;
+                              deleteExercise(ex.id);
+                              setFormOpen(false);
+                          }
+                        : undefined
+                }
+            />
         </div>
     );
 }

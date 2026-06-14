@@ -192,21 +192,38 @@ describe('RoutineSetupFlow', () => {
     }
 
     it('shows the actual resolved dates next to Today and Tomorrow', () => {
-        reachStartStep();
-        const today = new Date();
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        expect(screen.getByText(startFmt.format(today))).toBeInTheDocument();
-        expect(screen.getByText(startFmt.format(tomorrow))).toBeInTheDocument();
+        // Pin to a Wednesday so Today / Tomorrow / "Next Monday" are all distinct
+        // dates. On a Sunday, Tomorrow and Next Monday collide on the same day, so
+        // the date string is not unique and getByText would throw (the old flake).
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-06-17T12:00:00'));
+        try {
+            reachStartStep();
+            const today = new Date();
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            expect(screen.getByText(startFmt.format(today))).toBeInTheDocument();
+            expect(screen.getByText(startFmt.format(tomorrow))).toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('shows a "Next Monday" date that is never today', () => {
-        reachStartStep();
-        const today = new Date();
-        const monday = new Date();
-        monday.setDate(monday.getDate() + (((1 - monday.getDay() + 7) % 7) || 7));
-        expect(startFmt.format(monday)).not.toBe(startFmt.format(today));
-        expect(screen.getByText(startFmt.format(monday))).toBeInTheDocument();
+        // Pinned to a Wednesday (see above) so Next Monday never coincides with
+        // Today/Tomorrow regardless of the real day the suite runs.
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-06-17T12:00:00'));
+        try {
+            reachStartStep();
+            const today = new Date();
+            const monday = new Date();
+            monday.setDate(monday.getDate() + (((1 - monday.getDay() + 7) % 7) || 7));
+            expect(startFmt.format(monday)).not.toBe(startFmt.format(today));
+            expect(screen.getByText(startFmt.format(monday))).toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('opens the native date picker immediately when "Pick a date" is clicked', () => {

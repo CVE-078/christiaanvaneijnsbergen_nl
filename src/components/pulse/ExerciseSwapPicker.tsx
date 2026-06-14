@@ -2,7 +2,10 @@
 import { useState } from 'react';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { rankSubstitutes, exerciseReason } from '@/lib/pulse/utils';
+import { floatFavorites } from '@/lib/pulse/library';
 import { SWAP_REASONS, type DbExercise, type SwapReason } from '@/lib/pulse/types';
+
+const EMPTY_SET = new Set<string>();
 
 interface Props {
     original: DbExercise;
@@ -15,6 +18,7 @@ interface Props {
     // Smart substitution v2 (#8): show the reason chips and capture the chosen
     // reason. Off for permanent (ProgramView) swaps, which do not persist a reason.
     captureReason?: boolean;
+    favoriteIds?: Set<string>;
 }
 
 const REASON_LABELS: Record<SwapReason, string> = {
@@ -42,12 +46,13 @@ export default function ExerciseSwapPicker({
     onRevert,
     onClose,
     captureReason = false,
+    favoriteIds,
 }: Props) {
     const [query, setQuery] = useState('');
     const [reason, setReason] = useState<SwapReason | null>(null);
     const originalName = original.name;
 
-    const ranked = rankSubstitutes(original, candidates, reason ?? undefined);
+    const ranked = floatFavorites(rankSubstitutes(original, candidates, reason ?? undefined), favoriteIds ?? EMPTY_SET);
     const hasJointSignal = candidates.some((e) => (e.contraindications?.length ?? 0) > 0);
     const q = query.trim().toLowerCase();
     const filtered = q ? ranked.filter((e) => e.name.toLowerCase().includes(q)) : ranked;
@@ -130,7 +135,9 @@ export default function ExerciseSwapPicker({
 
                 <div className="flex-1 overflow-y-auto flex flex-col gap-1.5">
                     {filtered.length === 0 ? (
-                        <p className="font-pulse text-sm text-pulse-muted py-6 text-center">No alternatives available.</p>
+                        <p className="font-pulse text-sm text-pulse-muted py-6 text-center">
+                            No alternatives available.
+                        </p>
                     ) : (
                         <>
                             {suggested.length > 0 && (
