@@ -1656,7 +1656,16 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
 
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';
-        const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
+        // Split identity outranks training style (P1.5). PHUL's identity IS its
+        // power-vs-hypertrophy day contrast, encoded in the per-day emphasis biases
+        // (phul_*_power = strength, phul_*_hyp = hypertrophy). The style remap would
+        // otherwise collapse both days to one bias (Powerbuilding -> all strength,
+        // Bodybuilding -> all hypertrophy), erasing the split. So PHUL sessions
+        // resolve their bias (and thus rep range + set bump) from their OWN
+        // emphasis, ignoring the style remap. Byte-identical under Balanced (the
+        // remap is the identity there), so the PHUL-under-Balanced goldens hold.
+        const styleForBias: TrainingStyle = session.emphasis.startsWith('phul_') ? 'balanced' : trainingStyle;
+        const effectiveBias = resolveBias(emphasis.bias, styleForBias);
         const { selected, floorUnmet } = selectForSession(
             emphasis,
             session.focus,
@@ -1739,7 +1748,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 variant,
                 order,
                 sets: String(exSets),
-                reps: resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, trainingStyle),
+                reps: resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, styleForBias),
                 superset_group_id: groupId,
             });
         });

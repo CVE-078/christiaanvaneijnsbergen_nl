@@ -22,7 +22,8 @@
 | P1.2 | Restriction catalogue correction + visible degradation | 1 | TODO | |
 | P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | TODO | |
 | P1.4 | Duration as a real constraint | 1 | TODO | |
-| P1.5 | Label-validity floor (incl. PHUL identity) | 1 | TODO | |
+| P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
+| P1.5b | Label-validity floor (quad/posterior/push/pull structure) | 2 | TODO | folds into P2.3 validator |
 | P2.1 | Coverage-aware backfill | 2 | TODO | |
 | P2.2 | Bounded fatigue / heavy-work limits | 2 | TODO | |
 | P2.3 | Post-generation programme validator | 2 | TODO | |
@@ -123,12 +124,15 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 **Dependencies:** P1.1, P2.3. **Regression risk:** medium for the PHUL rep change (re-baseline PHUL goldens); low for label checks.
 
-- [ ] Resolve the PHUL product fork.
-- [ ] Implement label-validity checks + (if approved) the PHUL rep exemption.
-- [ ] Run suite; re-baseline PHUL goldens if changed; code-review; commit.
+- [x] Resolve the PHUL product fork (preserve contrast, decided).
+- [x] PHUL identity: phul_* emphases bypass the training-style bias remap.
+- [x] Run suite (PHUL goldens hold; new Powerbuilding test green); commit.
+- [ ] Label-validity structural checks (quad/posterior/push/pull/full-body) -> folded into P2.3 validator (tracked as P1.5b).
 
-**Done:** _(pending)_
-**Impact:** _(pending)_
+**Done:** PHUL emphases (`phul_*`) now resolve their bias, rep range, and set bump from their own per-day emphasis (via a session-level `styleForBias`), bypassing the training-style remap. Byte-identical under Balanced, so all PHUL goldens hold; 1 new test for PHUL under Powerbuilding. Suite 1571 green, typecheck clean. The broader label-validity floor (drop/qualify a label whose structure is missing, quad/posterior/push/pull minimums) moves to the P2.3 validator (P1.5b) since it is a whole-routine check.
+**Impact:**
+- **User:** a PHUL routine now keeps heavy Power days and moderate Hypertrophy days under every training style. Picking Powerbuilding (or Strength/Bodybuilding) no longer flattens the two days to look identical. PHUL under Balanced is unchanged.
+- **Engine:** split identity now outranks training style for PHUL, scoped to `phul_*` emphases via a session check, so no other split and no Balanced-path output changes.
 
 ---
 
@@ -166,10 +170,11 @@ Enforce split-identity-over-style; bodybuilding adds isolation/volume character;
 
 ---
 
-# Decision log (product forks to resolve)
+# Decision log (product forks, resolved 2026-06-14)
 
-1. **P1.4 duration over-budget behaviour:** auto-trim the lowest-value slot to fit the band, OR keep the requested volume and warn only. _(unresolved)_
-2. **P1.5 PHUL under Powerbuilding:** preserve the power/hypertrophy rep contrast even under Powerbuilding (split identity wins), OR keep current behaviour and warn. _(unresolved)_
+1. **P1.2 restriction tagging:** RESOLVED — conservative + warn. Fix only clear inconsistencies (Step-Up -> knee), keep one genuinely-safe option per pattern, and emit a visible warning when a restriction still empties an essential pattern.
+2. **P1.4 duration over-budget behaviour:** RESOLVED — warn, keep volume. Improve the estimate (warmups, supersets, intensity) and warn when a session runs long; never silently drop requested work. No auto-trim.
+3. **P1.5 PHUL under Powerbuilding:** RESOLVED — preserve the contrast. Split identity outranks training style: PHUL always uses its own power/hypertrophy day biases for rep ranges and the set bump, so it looks like PHUL under any training style.
 
 ---
 

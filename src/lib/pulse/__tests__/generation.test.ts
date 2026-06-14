@@ -3056,6 +3056,31 @@ describe('PHUL (#18): phul-4 powerbuilding style', () => {
         ]);
     });
 
+    it('preserves the power/hypertrophy contrast under the Powerbuilding training style (P1.5)', () => {
+        // Split identity outranks training style: PHUL keeps its own per-day biases,
+        // so Powerbuilding does NOT flatten the volume day to heavy. Before the fix,
+        // the powerbuilding pattern-override made Upper B compounds 3-6 + a set bump,
+        // identical to Upper A.
+        const pool = deepPool(2);
+        const bp = generateRoutine(
+            input({ style: phul(), trainingDays: fourDays, pool, trainingStyle: 'powerbuilding' }),
+        );
+        const pat = patternMap(pool);
+        const rows = (wt: string, v: string) =>
+            bp.exercises.filter((e) => e.workout_type === wt && e.variant === v);
+        const compounds = (wt: string, v: string) =>
+            rows(wt, v).filter((e) => {
+                const p = pat.get(e.exercise_id);
+                return p && !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            });
+        // Power upper day stays heavy with the single set bump.
+        expect(compounds('upper', 'A').every((e) => e.reps === '3-6')).toBe(true);
+        expect(rows('upper', 'A').filter((e) => e.sets === '4')).toHaveLength(1);
+        // Hypertrophy upper day stays moderate with no bump (not flattened to heavy).
+        expect(compounds('upper', 'B').every((e) => e.reps === '8-12')).toBe(true);
+        expect(rows('upper', 'B').every((e) => e.sets === '3')).toBe(true);
+    });
+
     // Shared blueprint for the composition goldens: deep pool, 45-60 min, balanced.
     function phulBlueprint() {
         const pool = deepPool(2);
