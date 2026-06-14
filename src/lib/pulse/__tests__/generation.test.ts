@@ -321,6 +321,29 @@ function sessionIds(bp: ReturnType<typeof generateRoutine>, wt: string, variant:
     return bp.exercises.filter((e) => e.workout_type === wt && e.variant === variant).map((e) => e.exercise_id);
 }
 
+// ── Coverage-aware backfill: accessory over duplicate finisher (P2.1) ─────────
+
+describe('coverage-aware backfill (P2.1)', () => {
+    it('seats a hinge accessory instead of a 2nd calf/core when glute_iso is empty', () => {
+        // Reproduces the dumbbell lower_post filler bug (Case 01 Lower B: two calf
+        // raises + two core moves). With glute_iso unavailable and the heavy-dedup
+        // cap blocking a 2nd hinge, backfill used to stack a duplicate finisher. It
+        // should instead deflect to a non-compound hinge accessory (a leg-curl proxy).
+        const pool = deepPool().filter((e) => e.movement_pattern !== 'glute_iso');
+        pool.push(meta('hinge-accessory', 'hinge', ['dumbbells'], false));
+        const bp = generateRoutine(input({ pool })); // ul-classic-4, Lower B = lower_post
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const lowerB = sessionIds(bp, 'lower', 'B');
+        // The accessory is chosen over a second finisher...
+        expect(lowerB).toContain('hinge-accessory');
+        // ...and the session no longer doubles up a finisher pattern.
+        const calfCount = lowerB.filter((id) => patternOf.get(id) === 'calf').length;
+        const coreCount = lowerB.filter((id) => patternOf.get(id) === 'core').length;
+        expect(calfCount).toBeLessThanOrEqual(1);
+        expect(coreCount).toBeLessThanOrEqual(1);
+    });
+});
+
 // ── Essential movement coverage (P1.1) ───────────────────────────────────────
 
 describe('essential movement coverage (P1.1)', () => {

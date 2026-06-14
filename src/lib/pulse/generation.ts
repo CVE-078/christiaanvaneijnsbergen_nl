@@ -1112,7 +1112,12 @@ function selectForSession(
     // `relaxHeavyCap` / `relaxUnilateralCap`: thin-pool fallbacks -- allow a
     // second heavy compound, or a second unilateral pick, only after a full
     // backfill round produces nothing else.
-    const pick = (slot: MovementPattern, relaxHeavyCap = false, relaxUnilateralCap = false): boolean => {
+    const pick = (
+        slot: MovementPattern,
+        relaxHeavyCap = false,
+        relaxUnilateralCap = false,
+        accessoryInHeavy = false,
+    ): boolean => {
         let candidates = byPattern(slot).filter((ex) => !chosenIds.has(ex.id));
         if (candidates.length === 0) return false;
 
@@ -1126,7 +1131,15 @@ function selectForSession(
         // Heavy-compound cap: skip if this Tier-1 pattern is already filled,
         // unless the cap has been relaxed because no other option is available.
         if (!relaxHeavyCap && HEAVY_DEDUP_PATTERNS.has(slot) && heavyPatternFilled.has(slot)) {
-            return false;
+            // accessoryInHeavy (P2.1): when the heavy compound is already seated,
+            // still allow a NON-COMPOUND accessory in this pattern (e.g. a leg curl
+            // on the hinge) so a thin session can add real work instead of a
+            // duplicate finisher. Never seats a 2nd heavy COMPOUND. Without the flag
+            // the slot stays fully blocked (the original behaviour).
+            if (!accessoryInHeavy) return false;
+            const accessory = candidates.filter((ex) => !ex.is_compound);
+            if (accessory.length === 0) return false;
+            candidates = accessory;
         }
 
         // Unilateral cap: once a unilateral COMPOUND has filled this session, skip a
@@ -1276,16 +1289,28 @@ function selectForSession(
         );
         for (const slot of slotsByPriority) {
             if (chosen.length >= count) break;
-            // Finisher deflection: before seating a REPEAT calf/core, prefer a
-            // fresh lower-bucket pattern outside the emphasis (a Dumbbell RDL
-            // on the dumbbell-only quad day beats a 2nd calf + 2nd core). Deep
-            // pools never reach a finisher repeat, so this is duress-only.
-            if (FINISHER_PATTERNS.has(slot) && patternCount(slot) >= 1 && lowerBucketExtras.length > 0) {
+            // Finisher deflection (P2.1): before seating a REPEAT calf/core, prefer
+            // adding a non-finisher exercise: (1) a fresh lower-bucket pattern
+            // outside the emphasis (a Dumbbell RDL on the dumbbell-only quad day
+            // beats a 2nd calf + 2nd core), or (2) a non-compound accessory in an
+            // emphasis non-finisher pattern that the heavy cap would otherwise block
+            // (a leg curl on the hinge). Deep pools fill the slot with a non-finisher
+            // before reaching here, so this is duress-only and leaves goldens unchanged.
+            if (FINISHER_PATTERNS.has(slot) && patternCount(slot) >= 1) {
                 let deflected = false;
                 for (const p of lowerBucketExtras) {
                     if (pick(p, relaxedHeavyCap, relaxedUnilateralCap)) {
                         deflected = true;
                         break;
+                    }
+                }
+                if (!deflected) {
+                    for (const p of emphasis.slots) {
+                        if (FINISHER_PATTERNS.has(p) || patternCount(p) >= PATTERN_CAP) continue;
+                        if (pick(p, relaxedHeavyCap, relaxedUnilateralCap, true)) {
+                            deflected = true;
+                            break;
+                        }
                     }
                 }
                 if (deflected) {

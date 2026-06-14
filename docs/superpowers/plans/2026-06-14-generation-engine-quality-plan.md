@@ -26,7 +26,7 @@
 | P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | TODO | accuracy polish, not a blocker |
 | P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
 | P1.5b | Label-validity floor (quad/posterior/push/pull structure) | 2 | TODO | folds into P2.3 validator |
-| P2.1 | Coverage-aware backfill | 2 | TODO | |
+| P2.1 | Coverage-aware backfill (no duplicate finisher) | 2 | DONE | feature/generation-quality |
 | P2.2 | Bounded fatigue / heavy-work limits | 2 | TODO | |
 | P2.3 | Post-generation programme validator | 2 | TODO | |
 | P3.1 | Independent experience and goal | 3 | TODO | |
@@ -147,9 +147,11 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 (Each becomes its own reviewed diff; P2.1 and P3.x carry high golden-regression risk and may warrant their own sub-plan before coding.)
 
-## P2.1 Coverage-aware backfill (Issue 3)
-**Invariant:** A standard lower session does not contain two calf or two core exercises unless explicitly configured. **Approach:** replace least-represented-slot backfill with a marginal-coverage scorer (reward missing pattern/muscle, penalise redundant substitution_class or repeat finisher, prefer unfilled higher role). **Files:** `generation.ts` backfill ~1204-1256 + `muscleMap.ts`. **Regression risk:** high (re-baseline several goldens); scope the scorer to differ only when the current pick would be a duplicate finisher or redundant class.
-**Done:** _(pending)_ · **Impact:** _(pending)_
+## P2.1 Coverage-aware backfill (Issue 3) — DONE
+**Invariant:** A standard lower session does not stack a duplicate finisher (2 calf / 2 core) when a more valuable accessory can fill the slot. **Done:** extended the finisher-deflection so that, before seating a REPEAT calf/core, backfill also tries a non-compound accessory in an emphasis non-finisher pattern that the heavy-dedup cap would otherwise block (a leg curl on the hinge), via a new `accessoryInHeavy` flag on `pick` that allows a non-compound (never a 2nd heavy compound). Scoped to the duress path: deep pools fill the slot with a non-finisher before reaching the deflection, so all 6 frozen goldens are byte-identical. 1 new test; suite 1581 green, typecheck clean. Second-opinion review: clean. No migration. (The broader marginal-coverage scorer / muscle-aware backfill remains a larger future option, but this fixes the observed duplicate-finisher cases.)
+**Impact:**
+- **User:** on thin pools (e.g. dumbbell-only posterior leg day) the routine now seats a hamstring/quad accessory instead of a 2nd calf + 2nd core, so the session does real work rather than padding.
+- **Engine:** duress-only change to backfill; deep pools (and every golden) are unchanged. The heavy-dedup cap still blocks a 2nd heavy compound; the accessory path only admits non-compound work.
 
 ## P2.2 Bounded fatigue / heavy-work limits (Issue 5 partial)
 **Invariant:** A strength programme respects defined heavy-work limits (warn or correct beyond them). **Approach:** deterministic counters (max heavy compounds/session, max heavy sessions/week, consecutive strength days, repeated heavy lower-back loading on adjacent days) → bounded correction or warning. No recovery model. **Files:** validator + `constants.ts`. **Regression risk:** medium.
