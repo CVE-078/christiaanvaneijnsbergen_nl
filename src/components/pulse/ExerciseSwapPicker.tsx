@@ -135,7 +135,9 @@ export default function ExerciseSwapPicker({
 
                 <div className="flex-1 overflow-y-auto flex flex-col gap-1.5">
                     {filtered.length === 0 ? (
-                        <p className="font-pulse text-sm text-pulse-muted py-6 text-center">No alternatives available.</p>
+                        <p className="font-pulse text-sm text-pulse-muted py-6 text-center">
+                            No alternatives available.
+                        </p>
                     ) : (
                         <>
                             {suggested.length > 0 && (

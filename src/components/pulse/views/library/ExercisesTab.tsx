@@ -80,11 +80,21 @@ export default function ExercisesTab() {
                 respectsRestrictions: filters.respectsRestrictions,
                 showHidden: filters.showHidden,
                 equipmentSet: effectiveEquipment,
-                restrictions: (profile.movement_restrictions as import('@/lib/pulse/types').RestrictionFlag[] | null) ?? [],
+                restrictions:
+                    (profile.movement_restrictions as import('@/lib/pulse/types').RestrictionFlag[] | null) ?? [],
                 hiddenIds: hiddenExerciseIds,
                 favoriteIds: favoriteExerciseIds,
             }),
-        [exercises, query, category, filters, effectiveEquipment, profile.movement_restrictions, hiddenExerciseIds, favoriteExerciseIds],
+        [
+            exercises,
+            query,
+            category,
+            filters,
+            effectiveEquipment,
+            profile.movement_restrictions,
+            hiddenExerciseIds,
+            favoriteExerciseIds,
+        ],
     );
 
     // Per-category counts for the chip rail.
@@ -167,9 +177,17 @@ export default function ExercisesTab() {
     // Removable active-filter chips for quick removal.
     const filterChipKeys: { key: string; label: string; onRemove: () => void }[] = [];
     if (filters.favorites)
-        filterChipKeys.push({ key: 'fav', label: 'Favorites', onRemove: () => setFilters((f) => ({ ...f, favorites: false })) });
+        filterChipKeys.push({
+            key: 'fav',
+            label: 'Favorites',
+            onRemove: () => setFilters((f) => ({ ...f, favorites: false })),
+        });
     if (filters.fitsGear)
-        filterChipKeys.push({ key: 'gear', label: 'Fits my gear', onRemove: () => setFilters((f) => ({ ...f, fitsGear: false })) });
+        filterChipKeys.push({
+            key: 'gear',
+            label: 'Fits my gear',
+            onRemove: () => setFilters((f) => ({ ...f, fitsGear: false })),
+        });
     if (filters.respectsRestrictions)
         filterChipKeys.push({
             key: 'restrict',

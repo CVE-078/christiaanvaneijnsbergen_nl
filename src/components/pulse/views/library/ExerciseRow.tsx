@@ -18,23 +18,11 @@ function cap(s: string): string {
 // Star icon: filled when favorite, outlined when not.
 function StarIcon({ filled }: { filled: boolean }) {
     return filled ? (
-        <svg
-            width="17"
-            height="17"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden>
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
             <path d="M10 1l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9 4.7 17.6l1-5.8L1.5 7.7l5.9-.9z" />
         </svg>
     ) : (
-        <svg
-            width="17"
-            height="17"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            aria-hidden>
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
             <path d="M10 1l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9 4.7 17.6l1-5.8L1.5 7.7l5.9-.9z" />
         </svg>
     );

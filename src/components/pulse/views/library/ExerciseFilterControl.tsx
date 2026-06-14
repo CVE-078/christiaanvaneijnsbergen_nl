@@ -120,7 +120,15 @@ interface FilterPanelProps {
     onGroupByChange: (g: GroupBy) => void;
 }
 
-function FilterPopover({ value, activeProfileName, anchorRect, onChange, onClose, groupBy, onGroupByChange }: FilterPanelProps) {
+function FilterPopover({
+    value,
+    activeProfileName,
+    anchorRect,
+    onChange,
+    onClose,
+    groupBy,
+    onGroupByChange,
+}: FilterPanelProps) {
     const dialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -164,12 +172,21 @@ function FilterPopover({ value, activeProfileName, anchorRect, onChange, onClose
                             'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
                         ),
                     );
-                    if (focusables.length === 0) { e.preventDefault(); root.focus(); return; }
+                    if (focusables.length === 0) {
+                        e.preventDefault();
+                        root.focus();
+                        return;
+                    }
                     const first = focusables[0];
                     const last = focusables[focusables.length - 1];
                     const active = document.activeElement;
-                    if (e.shiftKey && (active === first || active === root)) { e.preventDefault(); last.focus(); }
-                    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+                    if (e.shiftKey && (active === first || active === root)) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && active === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
                 }}
                 style={{ position: 'fixed', width: PANEL_WIDTH, ...placement }}
                 className="overflow-hidden rounded-[14px] border border-pulse-border bg-pulse-surface px-4 py-2 shadow-[0_14px_40px_-12px_rgba(0,0,0,0.6)] outline-none">
@@ -206,17 +223,27 @@ function FilterPopover({ value, activeProfileName, anchorRect, onChange, onClose
 // A filter trigger (icon + count badge) that opens a panel with group-by and four toggle rows.
 // Desktop: portaled popover anchored to the trigger.
 // Mobile: ModalSheet.
-export default function ExerciseFilterControl({ value, activeProfileName, onChange, groupBy, onGroupByChange }: ExerciseFilterControlProps) {
+export default function ExerciseFilterControl({
+    value,
+    activeProfileName,
+    onChange,
+    groupBy,
+    onGroupByChange,
+}: ExerciseFilterControlProps) {
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const [open, setOpen] = useState(false);
     const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
 
-    const activeCount = [value.favorites, value.fitsGear, value.respectsRestrictions, value.showHidden].filter(Boolean)
-        .length;
+    const activeCount = [value.favorites, value.fitsGear, value.respectsRestrictions, value.showHidden].filter(
+        Boolean,
+    ).length;
 
     const toggle = () => {
-        if (open) { setOpen(false); return; }
+        if (open) {
+            setOpen(false);
+            return;
+        }
         if (triggerRef.current) setAnchorRect(triggerRef.current.getBoundingClientRect());
         setOpen(true);
     };
@@ -293,9 +320,7 @@ export default function ExerciseFilterControl({ value, activeProfileName, onChan
                         />
                     ) : (
                         <ModalSheet open title="Filter exercises" onClose={close}>
-                            <div className="px-6 pb-4">
-                                {panelContent}
-                            </div>
+                            <div className="px-6 pb-4">{panelContent}</div>
                         </ModalSheet>
                     ),
                     document.body,

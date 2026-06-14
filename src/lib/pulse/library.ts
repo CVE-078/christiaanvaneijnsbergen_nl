@@ -105,8 +105,10 @@ export function groupExercises(list: DbExercise[], by: GroupBy, favoriteIds: Set
         // by === 'type'
         const compounds = list.filter((e) => e.is_compound === true);
         const isolations = list.filter((e) => e.is_compound !== true);
-        if (compounds.length > 0) groups.push({ key: 'Compound', label: 'Compound', count: compounds.length, exercises: compounds });
-        if (isolations.length > 0) groups.push({ key: 'Isolation', label: 'Isolation', count: isolations.length, exercises: isolations });
+        if (compounds.length > 0)
+            groups.push({ key: 'Compound', label: 'Compound', count: compounds.length, exercises: compounds });
+        if (isolations.length > 0)
+            groups.push({ key: 'Isolation', label: 'Isolation', count: isolations.length, exercises: isolations });
     }
 
     return groups;
