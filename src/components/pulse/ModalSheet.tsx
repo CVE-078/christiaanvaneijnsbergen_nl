@@ -1,5 +1,12 @@
 'use client';
-import { useEffect, useRef, useState, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
+import {
+    useEffect,
+    useRef,
+    useState,
+    type ReactNode,
+    type TouchEvent as ReactTouchEvent,
+    type MouseEvent as ReactMouseEvent,
+} from 'react';
 
 // Drag the grip down past this many pixels to dismiss the sheet.
 const SWIPE_DISMISS_PX = 90;
@@ -53,19 +60,31 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
         };
     }, [open]);
 
-    // Swipe-down-to-dismiss from the grip (mobile). Tracks a downward drag,
-    // follows the finger, and closes past the threshold, snapping back otherwise.
+    // Drag-down-to-dismiss from the grip. Works with touch (mobile bottom sheet)
+    // AND mouse (a narrow desktop window where the bottom sheet shows). Follows
+    // the pointer and closes past the threshold, snapping back otherwise.
     const [dragY, setDragY] = useState(0);
     const [dragging, setDragging] = useState(false);
     const startY = useRef<number | null>(null);
+    const dragYRef = useRef(0);
+    const mouseCleanup = useRef<(() => void) | null>(null);
+
+    // Keep a ref in sync with dragY so imperative window listeners (mouse drag)
+    // read the latest value rather than a stale closure.
+    const setDrag = (y: number) => {
+        dragYRef.current = y;
+        setDragY(y);
+    };
 
     // Reset any in-flight drag when the sheet is dismissed externally, so it never
-    // reopens mid-translated.
+    // reopens mid-translated, and detach any live mouse listeners.
     useEffect(() => {
         if (!open) {
-            setDragY(0);
+            setDrag(0);
             setDragging(false);
             startY.current = null;
+            mouseCleanup.current?.();
+            mouseCleanup.current = null;
         }
     }, [open]);
 
@@ -76,13 +95,40 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
     const onGripTouchMove = (e: ReactTouchEvent) => {
         if (startY.current === null) return;
         const dy = (e.touches[0]?.clientY ?? startY.current) - startY.current;
-        setDragY(dy > 0 ? dy : 0);
+        setDrag(dy > 0 ? dy : 0);
     };
     const onGripTouchEnd = () => {
-        if (dragY > SWIPE_DISMISS_PX) onClose();
-        setDragY(0);
+        if (dragYRef.current > SWIPE_DISMISS_PX) onClose();
+        setDrag(0);
         setDragging(false);
         startY.current = null;
+    };
+
+    // Mouse drag: attach move/up to the window so the drag keeps tracking even if
+    // the cursor leaves the grip; self-detaching on release.
+    const onGripMouseDown = (e: ReactMouseEvent) => {
+        e.preventDefault(); // no text selection while dragging
+        startY.current = e.clientY;
+        setDragging(true);
+        const move = (ev: globalThis.MouseEvent) => {
+            if (startY.current === null) return;
+            const dy = ev.clientY - startY.current;
+            setDrag(dy > 0 ? dy : 0);
+        };
+        const up = () => {
+            if (dragYRef.current > SWIPE_DISMISS_PX) onClose();
+            setDrag(0);
+            setDragging(false);
+            startY.current = null;
+            mouseCleanup.current?.();
+            mouseCleanup.current = null;
+        };
+        mouseCleanup.current = () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+        };
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', up);
     };
 
     if (!open) return null;
@@ -104,13 +150,14 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
                 {/* Grip handle, mobile only. The whole strip is the drag target so a
                     downward swipe dismisses the sheet (see onGripTouch* above). */}
                 <div
-                    className="flex touch-none justify-center pb-1 pt-2 md:hidden"
+                    className="flex cursor-grab touch-none justify-center pb-1 pt-2 active:cursor-grabbing md:hidden"
                     role="button"
                     aria-label="Drag down to dismiss"
                     tabIndex={-1}
                     onTouchStart={onGripTouchStart}
                     onTouchMove={onGripTouchMove}
-                    onTouchEnd={onGripTouchEnd}>
+                    onTouchEnd={onGripTouchEnd}
+                    onMouseDown={onGripMouseDown}>
                     <span className="h-1 w-10 rounded-full bg-pulse-border" aria-hidden />
                 </div>
 
