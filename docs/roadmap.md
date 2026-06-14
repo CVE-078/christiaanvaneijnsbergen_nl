@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-14)
 
-**In progress:** (none).
+**In progress:** Modal consistency pass, ModalSheet hardening + swap/how-to migration + TuneYourPlan redesign (`feature/modals-modalsheet`).
 
 **Shipped, Modal consistency pass (`feature/modals-modalsheet`, 2026-06-14):** every Pulse modal now sits on a hardened shared `ModalSheet`. The shell gained focus management (trap + restore to the trigger), a `maxWidth` prop (default 560), a scrollable body region (header/footer pinned), an optional pinned `footer` slot, and a11y polish (`aria-labelledby` to the title, grip `aria-hidden`). All consumers adopted it: the action sheets (ExerciseFormSheet, ExerciseDetailSheet, MeasurementsCard, the mobile Why sheet) moved their primary buttons into the `footer`; the list/info sheets dropped their now-redundant inner scroll wrappers; ExerciseFormSheet widened to 640. The last two bespoke modals, `ExerciseSwapPicker` and `ExerciseInstructionModal`, were migrated onto `ModalSheet` (the how-to migration was a deferred Library follow-on). `TuneYourPlanPanel` was redesigned onto `ModalSheet` with a pinned footer and single-open progressive-disclosure rows, and gained two new tunables: **Priority muscle** (persisted via `updatePriorityMuscle` before the in-place regenerate, since the generate action reads it from the profile) and **Experience** (threaded through the regenerate `answers`). No migration. Suite **1557**, typecheck clean. Reviewed via code-review subagents per piece. Full detail in CLAUDE.md "Shared modal shell".
 
