@@ -59,7 +59,7 @@ export interface ExplainCopy {
 
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
-// "Chest", "Chest and Back", "Chest, Back and 2 more" — for the recovery "which" line.
+// "Chest", "Chest and Back", "Chest, Back and 2 more": the recovery "which" line.
 function musclePhrase(muscles: string[]): string {
     if (muscles.length === 0) return 'Your muscles';
     if (muscles.length === 1) return muscles[0];
