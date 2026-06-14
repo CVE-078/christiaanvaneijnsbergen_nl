@@ -26,8 +26,9 @@ interface Props {
     children: ReactNode;
 }
 
-// Shared modal shell: bottom-sheet on mobile, centered dialog on desktop. Owns
-// the overlay, panel sizing, mobile grip, Escape-to-close, and a standardized
+// Shared modal shell: bottom-sheet on phones (< md), centered dialog on tablet
+// and desktop (>= md, no grip/swipe). Owns the overlay, panel sizing, the
+// phone-only grip, Escape-to-close, and a standardized
 // header (optional back chevron · title + subtitle · close). It is the single
 // source of truth for modal spacing (p-6 edges), so every Pulse modal reads the
 // same. The body below the header is the caller's; keep its sections on px-6.
@@ -91,10 +92,10 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
             role="dialog"
             aria-modal="true"
             aria-label={ariaLabel ?? title}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 lg:items-center"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center"
             onClick={onClose}>
             <div
-                className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-6 lg:max-h-[78vh] lg:rounded-[18px] lg:mx-6"
+                className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-6 md:max-h-[78vh] md:rounded-[18px] md:mx-6"
                 style={{
                     transform: dragY ? `translateY(${dragY}px)` : undefined,
                     transition: dragging ? 'none' : 'transform 0.2s ease',
@@ -103,7 +104,7 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
                 {/* Grip handle, mobile only. The whole strip is the drag target so a
                     downward swipe dismisses the sheet (see onGripTouch* above). */}
                 <div
-                    className="flex touch-none justify-center pb-1 pt-2 lg:hidden"
+                    className="flex touch-none justify-center pb-1 pt-2 md:hidden"
                     role="button"
                     aria-label="Drag down to dismiss"
                     tabIndex={-1}
@@ -115,7 +116,7 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
 
                 {/* Standardized header. Desktop gets the full p-6 top; mobile keeps a
                     tighter top because the grip handle already sits above it. */}
-                <div className="flex items-start gap-3 px-6 pb-3 pt-4 lg:pt-6">
+                <div className="flex items-start gap-3 px-6 pb-3 pt-4 md:pt-6">
                     {onBack && (
                         <button
                             type="button"
