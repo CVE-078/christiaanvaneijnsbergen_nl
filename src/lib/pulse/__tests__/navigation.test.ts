@@ -5,6 +5,8 @@ import {
     profileTabFromPath,
     progressTabPath,
     profileTabPath,
+    libraryTabFromPath,
+    libraryTabPath,
 } from '@/lib/pulse/navigation';
 
 describe('resolveView', () => {
@@ -55,5 +57,23 @@ describe('profile tab path mapping', () => {
     it('builds the path from the tab (you = bare path)', () => {
         expect(profileTabPath('you')).toBe('/pulse/profile');
         expect(profileTabPath('training')).toBe('/pulse/profile/training');
+    });
+});
+
+describe('library tab path mapping', () => {
+    it('reads the tab from the path (bare path = exercises)', () => {
+        expect(libraryTabFromPath('/pulse/library')).toBe('exercises');
+        expect(libraryTabFromPath('/pulse/library/routines')).toBe('routines');
+        expect(libraryTabFromPath('/pulse/library/nonsense')).toBe('exercises');
+        expect(libraryTabFromPath(null)).toBe('exercises');
+    });
+
+    it('builds the path from the tab (exercises = bare path)', () => {
+        expect(libraryTabPath('exercises')).toBe('/pulse/library');
+        expect(libraryTabPath('routines')).toBe('/pulse/library/routines');
+    });
+
+    it('resolves a deep-linked library tab to the library view', () => {
+        expect(resolveView('/pulse/library/routines')).toBe('library');
     });
 });

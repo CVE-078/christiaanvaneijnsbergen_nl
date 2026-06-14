@@ -1,13 +1,13 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { usePulse } from '@/context/PulseContext';
+import { libraryTabFromPath, libraryTabPath, type LibraryTab } from '@/lib/pulse/navigation';
 import PageTitle from '@/components/pulse/PageTitle';
 import PageSkeleton, { ErrorState } from '../PageSkeleton';
 import SegmentedTabs from '@/components/pulse/SegmentedTabs';
 import ExercisesTab from './library/ExercisesTab';
 import RoutinesTab from './library/RoutinesTab';
-
-type LibraryTab = 'exercises' | 'routines';
 
 const LIBRARY_TABS = [
     { id: 'exercises', label: 'Exercises' },
@@ -16,8 +16,22 @@ const LIBRARY_TABS = [
 
 // ── LibraryView ──────────────────────────────────────────────────────────────
 export default function LibraryView() {
-    const [tab, setTab] = useState<LibraryTab>('exercises');
     const { loading, errors, retry } = usePulse();
+    // URL-driven, deep-linkable tab (/pulse/library/routines); local state mirrors
+    // the path for instant switching and re-syncs on back/forward.
+    const pathname = usePathname();
+    const router = useRouter();
+    const [tab, setTab] = useState<LibraryTab>(() => libraryTabFromPath(pathname));
+    useEffect(() => {
+        setTab(libraryTabFromPath(pathname));
+    }, [pathname]);
+    const goToTab = useCallback(
+        (next: LibraryTab) => {
+            setTab(next);
+            router.push(libraryTabPath(next));
+        },
+        [router],
+    );
 
     if (errors?.exercises || errors?.routines) return <ErrorState onRetry={retry} />;
     if (loading?.exercises || loading?.routines) return <PageSkeleton />;
@@ -30,7 +44,7 @@ export default function LibraryView() {
             <SegmentedTabs
                 tabs={LIBRARY_TABS}
                 active={tab}
-                onChange={(id) => setTab(id as LibraryTab)}
+                onChange={(id) => goToTab(id as LibraryTab)}
                 ariaLabel="Library sections"
                 variant="solid"
             />

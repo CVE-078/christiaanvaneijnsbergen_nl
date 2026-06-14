@@ -10,6 +10,12 @@ vi.mock('@/context/PulseContext', () => ({
     usePulse: vi.fn(),
 }));
 
+// LibraryView reads the active tab from the path and pushes on tab change.
+vi.mock('next/navigation', () => ({
+    usePathname: () => '/pulse/library',
+    useRouter: () => ({ push: vi.fn() }),
+}));
+
 import { usePulse } from '@/context/PulseContext';
 
 const globalExercise: DbExercise = {
