@@ -7,6 +7,7 @@ import { resolveEquipmentPrefill, swapCandidates, rankSubstitutes } from '@/lib/
 import { filterExercises, groupExercises } from '@/lib/pulse/library';
 import type { GroupBy } from '@/lib/pulse/library';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
+import { useLocalStorage } from '@/hooks/pulse/useLocalStorage';
 import FilterChips, { type FilterChipItem } from './FilterChips';
 import ExerciseRow from './ExerciseRow';
 import ExerciseFilterControl, { type FilterState } from './ExerciseFilterControl';
@@ -35,8 +36,9 @@ export default function ExercisesTab() {
     // Free-text search.
     const [query, setQuery] = useState('');
 
-    // Group-by mode for the non-search grouped view.
-    const [groupBy, setGroupBy] = useState<GroupBy>('muscle');
+    // Group-by mode for the non-search grouped view. Persisted so a refresh
+    // keeps the user's chosen grouping.
+    const [groupBy, setGroupBy] = useLocalStorage<GroupBy>('pulse:library-group-by', 'muscle');
 
     // Advanced filter state.
     const [filters, setFilters] = useState<FilterState>({
@@ -234,7 +236,7 @@ export default function ExercisesTab() {
                 <button
                     type="button"
                     onClick={openAdd}
-                    className="rounded-[9px] border border-pulse-border bg-transparent px-3 py-1.5 font-pulse text-[0.82rem] text-pulse-accent cursor-pointer transition-colors hover:border-pulse-accent shrink-0">
+                    className="shrink-0 cursor-pointer rounded-[9px] bg-pulse-accent px-3.5 py-1.5 font-pulse text-[0.82rem] font-medium text-pulse-bg transition-colors hover:bg-pulse-accent/90">
                     + New
                 </button>
             </div>
@@ -283,7 +285,10 @@ export default function ExercisesTab() {
                         </div>
                     ) : (
                         // Flat view: specific category selected or query active.
-                        <div className="flex flex-col gap-2">
+                        // Same responsive 2-col grid on desktop as the grouped view.
+                        <div
+                            data-testid="flat-grid"
+                            className={isDesktop ? 'grid grid-cols-2 gap-2' : 'flex flex-col gap-2'}>
                             {filtered.map(renderRow)}
                         </div>
                     )}

@@ -259,6 +259,14 @@ describe('ExercisesTab', () => {
         expect(firstGrid.className).not.toContain('grid-cols-2');
     });
 
+    it('keeps the 2-column desktop grid in the flat (category-filtered) view', async () => {
+        vi.mocked(useMediaQuery).mockReturnValue(true);
+        render(<ExercisesTab />);
+        await userEvent.click(screen.getByRole('button', { name: 'chest' }));
+        const flatGrid = screen.getByTestId('flat-grid');
+        expect(flatGrid.className).toContain('grid-cols-2');
+    });
+
     it('favorite toggle calls toggleFavorite', async () => {
         render(<ExercisesTab />);
         // Each row has a favorite button. Click the first one (Bench Press).
