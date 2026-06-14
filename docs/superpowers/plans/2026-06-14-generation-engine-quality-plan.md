@@ -29,7 +29,8 @@
 | P2.1 | Coverage-aware backfill (no duplicate finisher) | 2 | DONE | feature/generation-quality |
 | P2.2 | Bounded heavy-work limit (demanding-week warning) | 2 | DONE | feature/generation-quality |
 | P2.3 | Post-generation programme validator | 2 | TODO | |
-| P3.1 | Independent experience and goal | 3 | TODO | |
+| P3.1 | Experience/goal rep floor (beginner + general-fitness) | 3 | DONE | feature/generation-quality |
+| P3.1b | Difficulty-based exercise-complexity filter | 3 | TODO | needs `difficulty` on ExerciseMeta |
 | P3.2 | Measurable priority muscle | 3 | DONE | feature/generation-quality |
 | P3.3 | Style modulates without erasing identity | 3 | TODO | |
 | P3.4 | Variety, split differentiation, equipment visibility | 3 | TODO | |
@@ -167,8 +168,12 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 # Phase 3 - Deeper personalisation
 
-## P3.1 Independent experience and goal (Issue 5)
-Experience modulates exercise complexity (use `difficulty`), demanding-compound count, volume tolerance; goal modulates rep distribution and density; decouple from "experience sizes volume, goal flips lose_fat only". **Regression risk:** high (rep ranges + selection). **Done:** _(pending)_ · **Impact:** _(pending)_
+## P3.1 Independent experience and goal (Issue 5) — rep floor DONE
+**Done (rep floor):** `resolveRepRange` gained an `experience` arg and a clamp: a beginner OR a general_fitness compound never gets the 3-6 range, it is floored to 6-10. Threaded `answers.experience` to the call site. Intermediate/advanced build_muscle (the golden baseline) is byte-identical (the clamp only fires for beginner/general_fitness). 3 new tests; suite 1589 green, typecheck clean. Decision applied: 6-10 floor; general_fitness reuses the same floor (moderate-heavy on the heavy day).
+**Impact:**
+- **User:** beginners and general-fitness users no longer see powerlifting-style 3-6 prescriptions on the heavy day; they get a moderate 6-10. Intermediate/advanced muscle-building is unchanged.
+- **Engine:** a scoped clamp keyed on experience/goal; golden baseline byte-identical.
+**Remaining (P3.1b):** the difficulty-based exercise-complexity soft-sort (a beginner deprioritises `advanced`-difficulty lifts) needs `difficulty` threaded onto `ExerciseMeta` + the generation pool (additive projection), then a no-op-when-absent sort layer in `byPattern` (like the behavior-demote layer). Tracked separately.
 
 ## P3.2 Measurable priority muscle (Issue 6) — DONE
 **Done:** a weekly budget of `PRIORITY_EXTRA_SETS_PER_WEEK` (3) extra sets is spent one-per-exercise across the priority muscle's patterns (`PRIORITY_PATTERNS`) already selected, deepening existing priority work without injecting slots or touching other muscles. Null priority -> 0 budget, so the no-priority path (and every golden) is byte-identical. 3 new tests (bounded delta, lands on the priority patterns, null identity); suite 1586 green, typecheck clean. No migration. Decision applied: +3 capped, additive only.

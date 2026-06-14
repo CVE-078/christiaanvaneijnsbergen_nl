@@ -321,6 +321,37 @@ function sessionIds(bp: ReturnType<typeof generateRoutine>, wt: string, variant:
     return bp.exercises.filter((e) => e.workout_type === wt && e.variant === variant).map((e) => e.exercise_id);
 }
 
+// ── Beginner / general-fitness rep floor (P3.1) ──────────────────────────────
+
+describe('beginner / general-fitness rep floor (P3.1)', () => {
+    const fbStrengthA = (overrides: Partial<GenerationInput['answers']>) =>
+        generateRoutine(
+            input({
+                style: STYLES[3][0], // fb-3: Full Body A = fb_strength (strength bias)
+                answers: { equipment: dumbbellsOnly, experience: 'intermediate', goal: 'build_muscle', days: 3, ...overrides },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool: deepPool(),
+            }),
+        ).exercises.filter((e) => e.workout_type === 'full_body' && e.variant === 'A');
+
+    it('a beginner never gets a 3-6 compound on the strength day (floored to 6-10)', () => {
+        const rows = fbStrengthA({ experience: 'beginner' });
+        expect(rows.some((e) => e.reps === '3-6')).toBe(false);
+        expect(rows.some((e) => e.reps === '6-10')).toBe(true);
+    });
+
+    it('a general-fitness lifter never gets a 3-6 compound', () => {
+        const rows = fbStrengthA({ goal: 'general_fitness' });
+        expect(rows.some((e) => e.reps === '3-6')).toBe(false);
+    });
+
+    it('intermediate build_muscle is unchanged (still 3-6 on the strength day)', () => {
+        const rows = fbStrengthA({});
+        expect(rows.some((e) => e.reps === '3-6')).toBe(true);
+    });
+});
+
 // ── Measurable priority muscle (P3.2) ────────────────────────────────────────
 
 describe('measurable priority muscle (P3.2)', () => {

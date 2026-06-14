@@ -675,12 +675,20 @@ export function resolveRepRange(
     isCompound: boolean,
     goal: Goal | undefined,
     style: TrainingStyle,
+    experience?: ExperienceLevel,
 ): string {
-    if (style === 'powerbuilding') {
-        const heavy = POWERBUILDING_HEAVY_PATTERNS.has(pattern);
-        return repRange(heavy ? 'strength' : 'hypertrophy', isCompound, goal);
+    const base =
+        style === 'powerbuilding'
+            ? repRange(POWERBUILDING_HEAVY_PATTERNS.has(pattern) ? 'strength' : 'hypertrophy', isCompound, goal)
+            : repRange(effectiveBias, isCompound, goal);
+    // P3.1: a beginner or a general-fitness lifter never receives the heaviest 3-6
+    // compound range; floor it to a moderate 6-10. Experience and goal modulate the
+    // prescription independently of the split's bias. Intermediate/advanced
+    // build_muscle (the golden baseline) is untouched: base is returned as-is.
+    if (isCompound && base === '3-6' && (experience === 'beginner' || goal === 'general_fitness')) {
+        return '6-10';
     }
-    return repRange(effectiveBias, isCompound, goal);
+    return base;
 }
 
 const FOCUS_TYPE: Record<Focus, WorkoutType> = {
@@ -1836,7 +1844,14 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 variant,
                 order,
                 sets: String(exSets),
-                reps: resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, styleForBias),
+                reps: resolveRepRange(
+                    effectiveBias,
+                    pattern,
+                    ex.is_compound,
+                    answers.goal,
+                    styleForBias,
+                    answers.experience,
+                ),
                 superset_group_id: groupId,
             });
         });
