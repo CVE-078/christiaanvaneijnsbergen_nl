@@ -15,11 +15,25 @@ describe('RecoveryTile', () => {
         expect(screen.getByText('Recovery')).toBeInTheDocument();
     });
 
-    it('makes the recovery word a tappable why', async () => {
-        render(<RecoveryTile readout={{ tone: 'ready', word: 'Ready', detail: 'all fresh', muscles: [] }} />);
-        const why = screen.getByRole('button', { name: /^recovery$/i });
+    it('opens a state-aware why with the full recovery scale legend', async () => {
+        render(<RecoveryTile readout={{ tone: 'ready', word: 'Ready', detail: 'room to build', muscles: [] }} />);
+        const why = screen.getByRole('button', { name: /recovery: ready/i });
         expect(why).toHaveTextContent('Ready');
         await userEvent.click(why);
-        expect(screen.getByText(/based on how hard and how recently you trained each muscle/i)).toBeInTheDocument();
+        // State-specific explanation, not the old generic blurb.
+        expect(screen.getByText(/room to do more/i)).toBeInTheDocument();
+        // The legend makes every state legible, including the inactive ones.
+        expect(screen.getByText('Watch')).toBeInTheDocument();
+        expect(screen.getByText('Ease off')).toBeInTheDocument();
+    });
+
+    it('names the muscles driving a Watch state in the why', async () => {
+        render(
+            <RecoveryTile
+                readout={{ tone: 'watch', word: 'Watch', detail: 'chest · back', muscles: ['chest', 'back'] }}
+            />,
+        );
+        await userEvent.click(screen.getByRole('button', { name: /recovery: watch/i }));
+        expect(screen.getByText(/Chest and Back are getting heavy/i)).toBeInTheDocument();
     });
 });

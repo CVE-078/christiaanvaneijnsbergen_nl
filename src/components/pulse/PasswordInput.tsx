@@ -4,7 +4,8 @@ import { useState, type InputHTMLAttributes } from 'react';
 // A password input with a built-in show/hide eye toggle. Forwards all standard
 // input props; `className` styles the field, `wrapperClassName` carries the
 // layout margin (kept off the input so the eye stays vertically centered).
-// The toggle is tabIndex={-1} so keyboard tabbing flows label -> field -> submit.
+// The toggle is keyboard-focusable (tab order: field -> toggle -> submit) so it
+// can be reached and operated without a mouse.
 export default function PasswordInput({
     className = '',
     wrapperClassName = '',
@@ -19,7 +20,6 @@ export default function PasswordInput({
                 onClick={() => setShow((s) => !s)}
                 aria-label={show ? 'Hide password' : 'Show password'}
                 aria-pressed={show}
-                tabIndex={-1}
                 className="absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer items-center border-none bg-transparent p-1 text-pulse-muted hover:text-pulse-text">
                 {show ? (
                     <svg

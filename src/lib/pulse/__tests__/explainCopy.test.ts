@@ -93,6 +93,41 @@ describe('explainCopy', () => {
     });
 });
 
+describe('explainCopy recovery (state-aware)', () => {
+    it('explains each active state with a what-to-do next and the full scale legend', () => {
+        for (const tone of ['fresh', 'ready', 'watch', 'easeoff'] as const) {
+            const c = explainCopy('recovery', { recoveryTone: tone, recoveryMuscles: ['chest', 'back'] });
+            expect(c.title.toLowerCase(), tone).toContain('recovery');
+            expect(c.next, tone).toBeTruthy();
+            expect(
+                c.legend?.map((r) => r.label),
+                tone,
+            ).toEqual(['Fresh', 'Ready', 'Watch', 'Ease off']);
+        }
+    });
+
+    it('names the driving muscles for watch / ease off', () => {
+        const watch = explainCopy('recovery', { recoveryTone: 'watch', recoveryMuscles: ['chest', 'back'] });
+        expect(watch.why).toContain('Chest and Back');
+        const ease = explainCopy('recovery', { recoveryTone: 'easeoff', recoveryMuscles: ['legs'] });
+        expect(ease.why).toContain('Legs');
+    });
+
+    it('falls back to a neutral prompt with no next / legend when there is no data', () => {
+        const c = explainCopy('recovery', { recoveryTone: 'none' });
+        expect(c.next).toBeUndefined();
+        expect(c.legend).toBeUndefined();
+    });
+
+    it('uses no em dash in any recovery string, including the legend', () => {
+        for (const tone of ['fresh', 'ready', 'watch', 'easeoff', 'none'] as const) {
+            const c = explainCopy('recovery', { recoveryTone: tone, recoveryMuscles: ['chest'] });
+            const strings = [c.title, c.why, c.next ?? '', ...(c.legend ?? []).flatMap((r) => [r.label, r.desc])];
+            for (const s of strings) expect(s, `${tone}: "${s}"`).not.toContain('—');
+        }
+    });
+});
+
 describe('PHASE_DESCRIPTIONS', () => {
     // Every phase subtitle the program blocks (8/10/12/16) can produce.
     const SUBTITLES = ['Accumulation', 'Intensification', 'Overreach', 'Peak & Deload', 'Deload'] as const;

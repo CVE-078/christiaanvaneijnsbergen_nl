@@ -16,7 +16,10 @@ export default function RecoveryTile({ readout }: { readout: RecoveryReadout }) 
             <span className="inline-flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT[readout.tone]}`} aria-hidden />
                 <span className="font-pulse-display text-[1.5rem] font-bold leading-none text-pulse-text">
-                    <Why concept="recovery" variant="why">
+                    <Why
+                        concept="recovery"
+                        variant="why"
+                        params={{ recoveryTone: readout.tone, recoveryMuscles: readout.muscles }}>
                         {readout.word}
                     </Why>
                 </span>

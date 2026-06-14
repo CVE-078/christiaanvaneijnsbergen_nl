@@ -1,7 +1,13 @@
 'use client';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { explainCopy, type ExplainConcept, type ExplainCopy, type ExplainParams } from '@/lib/pulse/explainCopy';
+import {
+    explainCopy,
+    type ExplainConcept,
+    type ExplainCopy,
+    type ExplainLegendRow,
+    type ExplainParams,
+} from '@/lib/pulse/explainCopy';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
 import ModalSheet from './ModalSheet';
 
@@ -45,12 +51,36 @@ function InfoGlyph() {
     );
 }
 
+// Tone -> dot colour for an optional scale legend (recovery states today).
+// `satisfies` keys it to the legend tone union, so extending that union without
+// adding a colour here is a compile error.
+const LEGEND_DOT = {
+    success: 'bg-pulse-success',
+    warn: 'bg-pulse-warn',
+    error: 'bg-pulse-error',
+} satisfies Record<ExplainLegendRow['tone'], string>;
+
 function WhyBody({ copy, className }: { copy: ExplainCopy; className?: string }) {
     return (
         <div className={className}>
             <p className="font-pulse-body text-[0.85rem] leading-relaxed text-pulse-dim">{copy.why}</p>
             {copy.next && (
                 <p className="mt-2 font-pulse-body text-[0.8rem] leading-relaxed text-pulse-muted">{copy.next}</p>
+            )}
+            {copy.legend && copy.legend.length > 0 && (
+                <div className="mt-3 flex flex-col gap-1.5 border-t border-pulse-border pt-3">
+                    {copy.legend.map((row) => (
+                        <div key={row.label} className="flex items-start gap-2">
+                            <span
+                                className={`mt-[5px] h-2 w-2 shrink-0 rounded-full ${LEGEND_DOT[row.tone]}`}
+                                aria-hidden
+                            />
+                            <span className="font-pulse-body text-[0.78rem] leading-snug text-pulse-dim">
+                                <span className="font-medium text-pulse-text">{row.label}</span> {row.desc}
+                            </span>
+                        </div>
+                    ))}
+                </div>
             )}
         </div>
     );
