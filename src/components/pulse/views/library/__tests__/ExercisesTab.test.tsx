@@ -266,4 +266,50 @@ describe('ExercisesTab', () => {
         await userEvent.click(starButtons[0]);
         expect(mocks.toggleFavorite).toHaveBeenCalledWith(bench.id, true);
     });
+
+    it('Group by control renders with Muscle selected by default', () => {
+        render(<ExercisesTab />);
+        const muscleBtn = screen.getByRole('button', { name: /^muscle$/i });
+        expect(muscleBtn).toBeInTheDocument();
+        expect(muscleBtn).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: /^equipment$/i })).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByRole('button', { name: /^type$/i })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('switching Group by to Type renders Compound and Isolation section headers', async () => {
+        render(<ExercisesTab />);
+        await userEvent.click(screen.getByRole('button', { name: /^type$/i }));
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: /^compound$/i })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /^isolation$/i })).toBeInTheDocument();
+        });
+        // Muscle category headers should not appear.
+        expect(screen.queryByRole('heading', { name: /^chest$/i })).not.toBeInTheDocument();
+    });
+
+    it('switching Group by to Equipment renders equipment bucket headers', async () => {
+        render(<ExercisesTab />);
+        await userEvent.click(screen.getByRole('button', { name: /^equipment$/i }));
+        await waitFor(() => {
+            // bench and squat both have barbell equipment so Barbell header should appear.
+            expect(screen.getByRole('heading', { name: /^barbell$/i })).toBeInTheDocument();
+            // Lateral Raise has dumbbells.
+            expect(screen.getByRole('heading', { name: /^dumbbells$/i })).toBeInTheDocument();
+        });
+        // Muscle category headers should not appear.
+        expect(screen.queryByRole('heading', { name: /^chest$/i })).not.toBeInTheDocument();
+    });
+
+    it('Group by control is hidden when a search query is active (flat view)', async () => {
+        render(<ExercisesTab />);
+        await userEvent.type(screen.getByRole('searchbox', { name: /search exercises/i }), 'bench');
+        // Group by segmented control should not be visible during search.
+        expect(screen.queryByRole('group', { name: /group by/i })).not.toBeInTheDocument();
+    });
+
+    it('Group by control is hidden when a specific category chip is selected (flat view)', async () => {
+        render(<ExercisesTab />);
+        await userEvent.click(screen.getByRole('button', { name: /^legs$/i }));
+        expect(screen.queryByRole('group', { name: /group by/i })).not.toBeInTheDocument();
+    });
 });

@@ -1,5 +1,6 @@
 import { EXERCISE_CATEGORIES } from './types';
 import type { DbExercise, ExerciseCategory, EquipmentKey, RestrictionFlag } from './types';
+import { EQUIPMENT_LABELS } from './constants';
 
 // NOTE: hasEquipment and isContraindicated in generation.ts are private (not exported)
 // and take ExerciseMeta + Set parameters. Equivalent logic is inlined here for
@@ -50,26 +51,72 @@ export function filterExercises(list: DbExercise[], f: ExerciseFilter): DbExerci
 }
 
 export interface ExerciseGroup {
-    key: 'favorites' | ExerciseCategory;
+    key: string;
     label: string;
     count: number;
     exercises: DbExercise[];
 }
 
+export type GroupBy = 'muscle' | 'equipment' | 'type';
+
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+
+// Equipment bucketing priority: barbell > dumbbells > machines > cables > pull_up_bar > Bodyweight.
+// bench is never a primary bucket.
+const EQUIPMENT_BUCKET_ORDER: EquipmentKey[] = ['barbell', 'dumbbells', 'machines', 'cables', 'pull_up_bar'];
+const BODYWEIGHT_LABEL = 'Bodyweight';
+
+function primaryEquipmentBucket(ex: DbExercise): string {
+    const eq = new Set(ex.equipment ?? []);
+    for (const key of EQUIPMENT_BUCKET_ORDER) {
+        if (eq.has(key)) return EQUIPMENT_LABELS[key];
+    }
+    return BODYWEIGHT_LABEL;
+}
+
+// Groups a list by the specified dimension. Favorites are always pinned first
+// (when any). Input order (alphabetical by name) is preserved within each group.
+export function groupExercises(list: DbExercise[], by: GroupBy, favoriteIds: Set<string>): ExerciseGroup[] {
+    const groups: ExerciseGroup[] = [];
+
+    // Favorites pinned first in every mode.
+    const favs = list.filter((e) => favoriteIds.has(e.id));
+    if (favs.length > 0) groups.push({ key: 'favorites', label: 'Favorites', count: favs.length, exercises: favs });
+
+    if (by === 'muscle') {
+        for (const cat of EXERCISE_CATEGORIES) {
+            const inCat = list.filter((e) => e.category === cat);
+            if (inCat.length > 0) groups.push({ key: cat, label: cap(cat), count: inCat.length, exercises: inCat });
+        }
+    } else if (by === 'equipment') {
+        // Build buckets in priority order.
+        const bucketKeys = [...EQUIPMENT_BUCKET_ORDER.map((k) => EQUIPMENT_LABELS[k]), BODYWEIGHT_LABEL];
+        const buckets = new Map<string, DbExercise[]>();
+        for (const label of bucketKeys) buckets.set(label, []);
+        for (const ex of list) {
+            const label = primaryEquipmentBucket(ex);
+            buckets.get(label)!.push(ex);
+        }
+        for (const label of bucketKeys) {
+            const exercises = buckets.get(label)!;
+            if (exercises.length > 0) groups.push({ key: label, label, count: exercises.length, exercises });
+        }
+    } else {
+        // by === 'type'
+        const compounds = list.filter((e) => e.is_compound === true);
+        const isolations = list.filter((e) => e.is_compound !== true);
+        if (compounds.length > 0) groups.push({ key: 'Compound', label: 'Compound', count: compounds.length, exercises: compounds });
+        if (isolations.length > 0) groups.push({ key: 'Isolation', label: 'Isolation', count: isolations.length, exercises: isolations });
+    }
+
+    return groups;
+}
 
 // Favorites pinned first (when any), then categories in catalog order. Empty
 // categories are omitted. The caller decides whether to render grouped (category
 // = 'all') or flat (a specific category chip selected).
 export function groupByCategory(list: DbExercise[], favoriteIds: Set<string>): ExerciseGroup[] {
-    const groups: ExerciseGroup[] = [];
-    const favs = list.filter((e) => favoriteIds.has(e.id));
-    if (favs.length > 0) groups.push({ key: 'favorites', label: 'Favorites', count: favs.length, exercises: favs });
-    for (const cat of EXERCISE_CATEGORIES) {
-        const inCat = list.filter((e) => e.category === cat);
-        if (inCat.length > 0) groups.push({ key: cat, label: cap(cat), count: inCat.length, exercises: inCat });
-    }
-    return groups;
+    return groupExercises(list, 'muscle', favoriteIds);
 }
 
 export interface RepRange {

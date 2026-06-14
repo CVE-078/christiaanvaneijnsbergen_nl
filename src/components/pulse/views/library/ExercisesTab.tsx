@@ -4,7 +4,8 @@ import { usePulse } from '@/context/PulseContext';
 import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
 import type { DbExercise, ExerciseCategory } from '@/lib/pulse/types';
 import { resolveEquipmentPrefill, swapCandidates, rankSubstitutes } from '@/lib/pulse/utils';
-import { filterExercises, groupByCategory } from '@/lib/pulse/library';
+import { filterExercises, groupExercises } from '@/lib/pulse/library';
+import type { GroupBy } from '@/lib/pulse/library';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
 import FilterChips, { type FilterChipItem } from './FilterChips';
 import ExerciseRow from './ExerciseRow';
@@ -33,6 +34,9 @@ export default function ExercisesTab() {
 
     // Free-text search.
     const [query, setQuery] = useState('');
+
+    // Group-by mode for the non-search grouped view.
+    const [groupBy, setGroupBy] = useState<GroupBy>('muscle');
 
     // Advanced filter state.
     const [filters, setFilters] = useState<FilterState>({
@@ -140,8 +144,8 @@ export default function ExercisesTab() {
     // Grouped list: used when category='all' AND no query.
     const useGrouped = category === 'all' && !query;
     const groups = useMemo(
-        () => (useGrouped ? groupByCategory(filtered, favoriteExerciseIds) : []),
-        [useGrouped, filtered, favoriteExerciseIds],
+        () => (useGrouped ? groupExercises(filtered, groupBy, favoriteExerciseIds) : []),
+        [useGrouped, filtered, groupBy, favoriteExerciseIds],
     );
 
     function renderRow(ex: DbExercise) {
@@ -222,13 +226,38 @@ export default function ExercisesTab() {
                 onSelect={(k) => setCategory(k as 'all' | ExerciseCategory)}
             />
 
-            {/* Count row + New button */}
-            <div className="flex items-center justify-between">
-                <span className="font-pulse text-[0.82rem] text-pulse-muted">{filtered.length} exercises</span>
+            {/* Count row + Group by + New button */}
+            <div className="flex items-center justify-between gap-2">
+                <span className="font-pulse text-[0.82rem] text-pulse-muted shrink-0">{filtered.length} exercises</span>
+                {useGrouped && (
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-pulse text-[0.75rem] text-pulse-muted shrink-0">Group</span>
+                        <div
+                            role="group"
+                            aria-label="Group by"
+                            className="flex rounded-[8px] border border-pulse-border bg-pulse-surface overflow-hidden">
+                            {([['muscle', 'Muscle'], ['equipment', 'Equipment'], ['type', 'Type']] as [GroupBy, string][]).map(([value, label]) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    aria-pressed={groupBy === value}
+                                    onClick={() => setGroupBy(value)}
+                                    className={[
+                                        'px-2.5 py-1 font-pulse text-[0.72rem] transition-colors leading-none',
+                                        groupBy === value
+                                            ? 'bg-pulse-accent/15 text-pulse-accent'
+                                            : 'text-pulse-muted hover:text-pulse-dim',
+                                    ].join(' ')}>
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 <button
                     type="button"
                     onClick={openAdd}
-                    className="rounded-[9px] border border-pulse-border bg-transparent px-3 py-1.5 font-pulse text-[0.82rem] text-pulse-dim transition-colors hover:border-pulse-accent hover:text-pulse-accent">
+                    className="rounded-[9px] border border-pulse-border bg-transparent px-3 py-1.5 font-pulse text-[0.82rem] text-pulse-dim transition-colors hover:border-pulse-accent hover:text-pulse-accent shrink-0">
                     + New
                 </button>
             </div>
