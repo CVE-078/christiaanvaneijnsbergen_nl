@@ -21,7 +21,8 @@
 | P1.1 | Essential-coverage-first slot filling | 1 | DONE | feature/generation-quality |
 | P1.2 | Restriction catalogue correction + visible degradation | 1 | TODO | |
 | P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | TODO | |
-| P1.4 | Duration as a real constraint | 1 | TODO | |
+| P1.4 | Duration over-band warning | 1 | DONE | feature/generation-quality |
+| P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | TODO | accuracy polish, not a blocker |
 | P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
 | P1.5b | Label-validity floor (quad/posterior/push/pull structure) | 2 | TODO | folds into P2.3 validator |
 | P2.1 | Coverage-aware backfill | 2 | TODO | |
@@ -106,13 +107,14 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 **Dependencies:** best inside P2.3; can ship standalone. **Regression risk:** medium; trimming changes membership, scope it to fire only when over-budget so in-band sessions stay byte-identical.
 
-- [ ] Resolve the product fork.
-- [ ] Improve `estimateSessionMinutes` (warmups, supersets, bias rest) + tests.
-- [ ] Add the over-budget guard per the chosen behaviour + tests.
-- [ ] Run suite; re-baseline if trimming chosen; code-review; commit.
+- [x] Resolve the product fork (warn, keep volume).
+- [x] Add the over-band warning (`over_time`) emitted per session at generation + tests.
+- [ ] Improve `estimateSessionMinutes` (warmups, supersets, bias rest) -> deferred to Phase 2 (P1.4b); the current estimator already fires correctly on the 45-60 overshoot and stays quiet on fitting 30-min sessions.
 
-**Done:** _(pending)_
-**Impact:** _(pending)_
+**Done:** Imported `estimateSessionMinutes` into the generator, added `SESSION_TIME_MAX_MIN` band bounds and an `over_time` warning (with `WARNING_COPY`). After building each session the generator estimates its minutes and pushes `over_time` when the rounded estimate exceeds the band max (45-60 -> >60, ~30 -> >30; 90+ uncapped), keeping all requested volume. 2 new tests; suite 1573 green, typecheck clean. No selection change, so all goldens hold.
+**Impact:**
+- **User:** a routine that will run long now shows a "May run long" notice on the Plan page instead of silently mislabelling the time. No exercises are dropped, so you keep your volume.
+- **Engine:** per-session duration is now checked against the selected band as warning-only output. No selection or rep/set change, so existing routines and all goldens are unaffected. The estimator's accuracy refinement (warmups, superset halving, intensity-scaled rest) is tracked separately as P1.4b.
 
 ## P1.5 Label-validity floor incl. PHUL identity (Issue 4) — has a product fork (see decision log)
 

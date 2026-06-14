@@ -369,6 +369,35 @@ describe('essential movement coverage (P1.1)', () => {
     });
 });
 
+// ── Session duration warning (P1.4) ──────────────────────────────────────────
+
+describe('session duration warning (P1.4)', () => {
+    it('warns when a session is estimated to exceed the selected time band', () => {
+        // Advanced 45-60 min = 6 exercises x 4 sets; a compound-heavy upper day
+        // estimates ~65 min, over the 60-min band. The engine keeps the volume
+        // (decision: warn, do not trim) and flags it.
+        const bp = generateRoutine(
+            input({
+                answers: { equipment: dumbbellsOnly, experience: 'advanced', goal: 'build_muscle', days: 4 },
+                sessionTime: '45–60 min',
+            }),
+        );
+        expect(bp.warnings).toContain('over_time');
+    });
+
+    it('does not warn for a 30-min routine that fits its band', () => {
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+            }),
+        );
+        expect(bp.warnings).not.toContain('over_time');
+    });
+});
+
 // ── 1. Equipment filter ──────────────────────────────────────────────────────
 
 describe('equipment filter', () => {

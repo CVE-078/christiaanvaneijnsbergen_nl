@@ -27,6 +27,10 @@ export const WARNING_COPY: Record<string, { title: string; body: string }> = {
         title: 'Accessory work only',
         body: 'Your movement restrictions removed all compound options for one or more sessions, so they use accessory work only. Consider adjusting your restrictions or equipment.',
     },
+    over_time: {
+        title: 'May run long',
+        body: 'Some sessions are estimated to take longer than your selected session length. You can shorten them by dropping an accessory, or keep them as planned.',
+    },
 };
 
 export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {

@@ -19,6 +19,7 @@ import type {
 } from './types';
 import type { ExperienceLevel, Goal, OnboardingAnswers } from './recommendation';
 import { EMPTY_BEHAVIOR, type BehaviorSignal } from './behavior';
+import { estimateSessionMinutes } from './utils';
 
 export type { Focus };
 
@@ -1592,6 +1593,19 @@ export interface RoutineBlueprint {
 // Stable warning KEY (display copy in WARNING_COPY, constants.ts).
 const NO_COMPOUND_WARNING = 'no_compound';
 
+// Duration guard (P1.4). Upper bound (minutes) per session-time band; null = no
+// cap ('90+ min' is open-ended). A generated session whose estimate exceeds its
+// band is flagged with OVER_TIME_WARNING: the engine keeps the requested volume
+// (decision: warn, do not trim) and surfaces a heads-up so the label is honest.
+// The 5-minute rounding in estimateSessionMinutes is the tolerance, so the
+// warning fires only when the rounded estimate strictly exceeds the band max.
+const OVER_TIME_WARNING = 'over_time';
+const SESSION_TIME_MAX_MIN: Record<SessionTime, number | null> = {
+    '~30 min': 30,
+    '45–60 min': 60,
+    '90+ min': null,
+};
+
 let groupCounter = 0;
 function defaultGroupId(): string {
     groupCounter += 1;
@@ -1730,6 +1744,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
         let firstCompoundBumped = false;
         const baseSets = Math.max(3, sets);
+        const sessionRows: Array<{ sets: number; is_compound: boolean }> = [];
 
         const ordered = isSuperset
             ? buildSupersets(orderedSelection, makeGroupId)
@@ -1742,6 +1757,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
+            sessionRows.push({ sets: exSets, is_compound: ex.is_compound });
             exercises.push({
                 exercise_id: ex.id,
                 workout_type,
@@ -1752,6 +1768,18 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 superset_group_id: groupId,
             });
         });
+
+        // Duration guard (P1.4): flag (never trim) a session whose estimate
+        // exceeds its time band, so a "45-60 min" routine that lands at ~65 min
+        // is honest about it rather than silently mislabelled.
+        const bandMax = SESSION_TIME_MAX_MIN[sessionTime];
+        if (
+            bandMax !== null &&
+            estimateSessionMinutes(sessionRows) > bandMax &&
+            !warnings.includes(OVER_TIME_WARNING)
+        ) {
+            warnings.push(OVER_TIME_WARNING);
+        }
     });
 
     return { schedule, exercises, warnings };
