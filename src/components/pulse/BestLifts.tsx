@@ -46,11 +46,10 @@ function LiftRow({
                     {toDisplay(best.kg, unit)} {unit} × {best.reps}
                 </span>
             </div>
-            <span className={`font-pulse text-base font-medium shrink-0 ${accent ? 'text-pulse-accent' : 'text-pulse-dim'}`}>
+            <span
+                className={`font-pulse text-base font-medium shrink-0 ${accent ? 'text-pulse-accent' : 'text-pulse-dim'}`}>
                 {toDisplay(best.e1rm, unit).toFixed(0)}
-                <span className="font-pulse-body text-[0.6875rem] ml-[3px] opacity-60">
-                    {unit} e1RM
-                </span>
+                <span className="font-pulse-body text-[0.6875rem] ml-[3px] opacity-60">{unit} e1RM</span>
             </span>
         </>
     );
@@ -97,7 +96,7 @@ function AllLiftsModal({
             ariaLabel="All best lifts"
             subtitle={`${total} ${total === 1 ? 'lift' : 'lifts'}`}>
             {/* Grouped lift list */}
-            <div className="flex-1 overflow-y-auto px-6 pb-1">
+            <div className="px-6">
                 {grouped.map(({ type, items }) => (
                     <div key={type} className="mb-4">
                         <div className="sticky top-0 z-10 bg-pulse-surface pt-3 pb-2 font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">

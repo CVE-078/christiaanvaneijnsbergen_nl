@@ -64,7 +64,7 @@ export default function StrengthBreakdownModal({ open, strength, series, onClose
                 })()}
 
             {/* Per-lift sub-score rows, mirroring StrengthScoreCard markup */}
-            <div className="flex-1 overflow-y-auto px-6 pb-2">
+            <div className="px-6">
                 {strength.lifts.length === 0 && strength.reason && (
                     <p className="py-4 font-pulse text-[0.875rem] text-pulse-dim leading-[1.5]">{strength.reason}</p>
                 )}

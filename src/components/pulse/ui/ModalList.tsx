@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 // fills the row, and an optional right-aligned count ("47 milestones").
 export function ModalGroupHeader({ label, count }: { label: string; count?: ReactNode }) {
     return (
-        <div className="sticky -top-px z-10 flex items-center gap-3 bg-pulse-surface pb-2 pt-3">
+        <div className="sticky -top-0.5 z-10 flex items-center gap-3 bg-pulse-surface pb-2 pt-3">
             <span className="font-pulse text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-pulse-muted">
                 {label}
             </span>

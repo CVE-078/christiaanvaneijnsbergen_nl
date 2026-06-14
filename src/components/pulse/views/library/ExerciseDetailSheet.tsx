@@ -94,28 +94,19 @@ export default function ExerciseDetailSheet({
     if (patternText) badges.push(patternText);
 
     const hasCues = !loading && instructions && instructions.cues.length > 0;
-    const hasTargets = !loading && instructions && (instructions.primary_muscles.length > 0 || instructions.secondary_muscles.length > 0);
+    const hasTargets =
+        !loading &&
+        instructions &&
+        (instructions.primary_muscles.length > 0 || instructions.secondary_muscles.length > 0);
 
     return (
-        <ModalSheet open={open} onClose={onClose} title={exercise.name} subtitle={subtitle}>
-            <div className="overflow-y-auto px-6 pb-2">
-                {/* Metadata badges */}
-                <div className="mb-4 flex flex-wrap gap-1.5" data-testid="exercise-detail-badges">
-                    {badges.map((badge) => (
-                        <span
-                            key={badge}
-                            className={`rounded-lg px-2.5 py-1 font-pulse text-xs font-medium ${
-                                badge === 'Compound' || badge === 'Isolation'
-                                    ? 'bg-pulse-accent/10 text-pulse-accent'
-                                    : 'bg-pulse-surface-2 text-pulse-dim'
-                            }`}>
-                            {badge}
-                        </span>
-                    ))}
-                </div>
-
-                {/* Actions row: Favorite + Hide (+ Edit for custom) */}
-                <div className="mb-5 flex gap-2">
+        <ModalSheet
+            open={open}
+            onClose={onClose}
+            title={exercise.name}
+            subtitle={subtitle}
+            footer={
+                <div className="flex gap-2">
                     <button
                         type="button"
                         aria-pressed={favorite}
@@ -126,8 +117,18 @@ export default function ExerciseDetailSheet({
                                 ? 'border-pulse-accent/40 bg-pulse-accent/8 text-pulse-accent'
                                 : 'border-pulse-border bg-transparent text-pulse-text'
                         }`}>
-                        <svg width="15" height="15" viewBox="0 0 20 20" fill={favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" aria-hidden>
-                            <path d="M10 1l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9 4.7 17.6l1-5.8L1.5 7.7l5.9-.9z" strokeLinejoin="round" />
+                        <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 20 20"
+                            fill={favorite ? 'currentColor' : 'none'}
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            aria-hidden>
+                            <path
+                                d="M10 1l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9 4.7 17.6l1-5.8L1.5 7.7l5.9-.9z"
+                                strokeLinejoin="round"
+                            />
                         </svg>
                         {favorite ? 'Favorited' : 'Favorite'}
                     </button>
@@ -136,7 +137,14 @@ export default function ExerciseDetailSheet({
                         aria-label={hidden ? 'Unhide' : 'Hide'}
                         onClick={() => onToggleHide(exercise)}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-pulse-border bg-transparent py-2.5 font-pulse text-sm font-medium text-pulse-text transition-colors hover:border-pulse-dim">
-                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                        <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            aria-hidden>
                             {hidden ? (
                                 <>
                                     <path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
@@ -158,12 +166,35 @@ export default function ExerciseDetailSheet({
                             aria-label="Edit"
                             onClick={() => onEdit(exercise)}
                             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-pulse-border bg-transparent py-2.5 font-pulse text-sm font-medium text-pulse-text transition-colors hover:border-pulse-dim">
-                            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                            <svg
+                                width="15"
+                                height="15"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                aria-hidden>
                                 <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" strokeLinejoin="round" />
                             </svg>
                             Edit
                         </button>
                     )}
+                </div>
+            }>
+            <div className="px-6">
+                {/* Metadata badges */}
+                <div className="mb-4 flex flex-wrap gap-1.5" data-testid="exercise-detail-badges">
+                    {badges.map((badge) => (
+                        <span
+                            key={badge}
+                            className={`rounded-lg px-2.5 py-1 font-pulse text-xs font-medium ${
+                                badge === 'Compound' || badge === 'Isolation'
+                                    ? 'bg-pulse-accent/10 text-pulse-accent'
+                                    : 'bg-pulse-surface-2 text-pulse-dim'
+                            }`}>
+                            {badge}
+                        </span>
+                    ))}
                 </div>
 
                 {/* Targets + How to: skeleton while loading, content once loaded */}

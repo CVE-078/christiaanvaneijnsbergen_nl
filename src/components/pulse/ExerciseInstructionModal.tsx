@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import ModalSheet from '@/components/pulse/ModalSheet';
 import type { ExerciseInstruction } from '@/lib/pulse/types';
 
 interface Props {
@@ -40,22 +41,8 @@ export default function ExerciseInstructionModal({ exerciseId, exerciseName, onC
     }, [exerciseId]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
-            {/* Panel */}
-            <div className="relative z-10 max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-pulse-surface px-5 pb-8 pt-5 lg:rounded-2xl">
-                {/* Header */}
-                <div className="mb-5 flex items-start justify-between gap-4">
-                    <h2 className="font-pulse text-lg font-bold text-pulse-text">{exerciseName}</h2>
-                    <button
-                        onClick={onClose}
-                        aria-label="Close instructions"
-                        className="shrink-0 cursor-pointer border-none bg-transparent text-xl leading-none text-pulse-dim">
-                        ✕
-                    </button>
-                </div>
-
+        <ModalSheet open onClose={onClose} title={exerciseName}>
+            <div className="px-6">
                 {loading && <p className="font-pulse text-sm text-pulse-muted">Loading…</p>}
 
                 {!loading && error && <p className="font-pulse text-sm text-pulse-muted">No instructions available.</p>}
@@ -118,6 +105,6 @@ export default function ExerciseInstructionModal({ exerciseId, exerciseName, onC
                     </>
                 )}
             </div>
-        </div>
+        </ModalSheet>
     );
 }

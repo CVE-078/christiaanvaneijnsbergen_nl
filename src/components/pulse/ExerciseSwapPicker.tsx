@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import ModalSheet from '@/components/pulse/ModalSheet';
 import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
 import { rankSubstitutes, exerciseReason } from '@/lib/pulse/utils';
 import { floatFavorites } from '@/lib/pulse/library';
@@ -66,9 +67,9 @@ export default function ExerciseSwapPicker({
             <button
                 key={e.id}
                 onClick={() => onSelect(e.id, reason)}
-                className="text-left bg-pulse-bg rounded-lg px-3.5 py-3 border-none cursor-pointer hover:bg-pulse-surface-2">
+                className="cursor-pointer rounded-lg border-none bg-pulse-bg px-3.5 py-3 text-left hover:bg-pulse-surface-2">
                 <div className="font-pulse text-[0.9375rem] font-medium text-pulse-text">{e.name}</div>
-                <div className="font-pulse text-[0.6875rem] tracking-[0.04em] uppercase text-pulse-muted mt-0.5">
+                <div className="mt-0.5 font-pulse text-[0.6875rem] uppercase tracking-[0.04em] text-pulse-muted">
                     {why ?? WORKOUT_TYPE_LABELS[e.category as keyof typeof WORKOUT_TYPE_LABELS] ?? e.category}
                 </div>
             </button>
@@ -76,37 +77,21 @@ export default function ExerciseSwapPicker({
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Swap ${originalName}`}
-            onClick={onClose}>
-            <div
-                className="w-full sm:max-w-[440px] max-h-[80vh] flex flex-col bg-pulse-surface rounded-t-2xl sm:rounded-2xl p-5"
-                onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-1">
-                    <h2 className="font-pulse text-base font-semibold text-pulse-text">Swap {originalName}</h2>
-                    <button
-                        onClick={onClose}
-                        aria-label="Close"
-                        className="font-pulse text-pulse-muted bg-transparent border-none cursor-pointer text-lg leading-none">
-                        ✕
-                    </button>
-                </div>
-                <p className="font-pulse text-[0.75rem] text-pulse-dim mb-3">
-                    Your week-{week} weight carries over as a starting point.
-                </p>
-
+        <ModalSheet
+            open
+            onClose={onClose}
+            title={`Swap ${originalName}`}
+            subtitle={`Your week-${week} weight carries over as a starting point.`}>
+            <div className="flex flex-col gap-3 px-6">
                 {captureReason && (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
+                    <div className="flex flex-wrap gap-1.5">
                         {SWAP_REASONS.map((r) => {
                             const active = reason === r;
                             return (
                                 <button
                                     key={r}
                                     onClick={() => setReason(active ? null : r)}
-                                    className={`font-pulse text-[0.75rem] rounded-full px-3 py-1 border-none cursor-pointer ${
+                                    className={`cursor-pointer rounded-full border-none px-3 py-1 font-pulse text-[0.75rem] ${
                                         active
                                             ? 'bg-pulse-accent/15 text-pulse-accent'
                                             : 'bg-pulse-bg text-pulse-dim ring-1 ring-pulse-border'
@@ -121,7 +106,7 @@ export default function ExerciseSwapPicker({
                 {isSwapped && (
                     <button
                         onClick={onRevert}
-                        className="font-pulse text-sm font-semibold text-pulse-accent bg-pulse-accent/10 rounded-lg px-3 py-2.5 mb-3 border-none cursor-pointer text-left">
+                        className="cursor-pointer rounded-lg border-none bg-pulse-accent/10 px-3 py-2.5 text-left font-pulse text-sm font-semibold text-pulse-accent">
                         Revert to {originalName}
                     </button>
                 )}
@@ -130,19 +115,19 @@ export default function ExerciseSwapPicker({
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search alternatives…"
-                    className="w-full bg-pulse-bg border border-pulse-border rounded-lg text-pulse-text font-pulse text-sm px-3 py-2 mb-3 outline-none focus:border-pulse-accent/50"
+                    className="w-full rounded-lg border border-pulse-border bg-pulse-bg px-3 py-2 font-pulse text-sm text-pulse-text outline-none focus:border-pulse-accent/50"
                 />
 
-                <div className="flex-1 overflow-y-auto flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5">
                     {filtered.length === 0 ? (
-                        <p className="font-pulse text-sm text-pulse-muted py-6 text-center">
+                        <p className="py-6 text-center font-pulse text-sm text-pulse-muted">
                             No alternatives available.
                         </p>
                     ) : (
                         <>
                             {suggested.length > 0 && (
                                 <>
-                                    <div className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim">
+                                    <div className="font-pulse text-[0.6875rem] uppercase tracking-[0.06em] text-pulse-dim">
                                         Suggested · {reasonContext(reason, hasJointSignal)}
                                     </div>
                                     {suggested.map((e) => candidateButton(e, true))}
@@ -151,7 +136,7 @@ export default function ExerciseSwapPicker({
                             {rest.length > 0 && (
                                 <>
                                     {!searching && (
-                                        <div className="font-pulse text-[0.6875rem] tracking-[0.06em] uppercase text-pulse-dim mt-1.5">
+                                        <div className="mt-1.5 font-pulse text-[0.6875rem] uppercase tracking-[0.06em] text-pulse-dim">
                                             All alternatives
                                         </div>
                                     )}
@@ -162,6 +147,6 @@ export default function ExerciseSwapPicker({
                     )}
                 </div>
             </div>
-        </div>
+        </ModalSheet>
     );
 }

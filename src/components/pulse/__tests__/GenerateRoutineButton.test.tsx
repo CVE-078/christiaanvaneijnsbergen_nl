@@ -63,7 +63,7 @@ describe('GenerateRoutineButton', () => {
         await completeQuickFlow();
 
         expect(navigate).not.toHaveBeenCalled();
-        expect(await screen.findByText('Push Pull Legs')).toBeInTheDocument();
+        expect(await screen.findByText(/Push Pull Legs/)).toBeInTheDocument();
         expect(screen.getByText(/Looks good/)).toBeInTheDocument();
     });
 
@@ -73,7 +73,7 @@ describe('GenerateRoutineButton', () => {
 
         fireEvent.click(await screen.findByText(/Looks good/));
         expect(navigate).toHaveBeenCalledWith('train');
-        expect(screen.queryByText('Push Pull Legs')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Push Pull Legs/)).not.toBeInTheDocument();
     });
 
     it('seeds the equipment step from the saved profiles when present', () => {

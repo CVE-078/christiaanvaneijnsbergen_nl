@@ -1,15 +1,22 @@
 'use client';
 import {
     useEffect,
+    useId,
     useRef,
     useState,
     type ReactNode,
     type TouchEvent as ReactTouchEvent,
     type MouseEvent as ReactMouseEvent,
+    type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 
 // Drag the grip down past this many pixels to dismiss the sheet.
 const SWIPE_DISMISS_PX = 90;
+
+// Selector for the elements the focus trap cycles through. Excludes anything
+// explicitly removed from the tab order (tabindex="-1", e.g. the grip).
+const FOCUSABLE =
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface Props {
     open: boolean;
@@ -27,19 +34,42 @@ interface Props {
      * detail sheets pass context (a PR line, a strength level).
      */
     subtitle?: ReactNode;
-    /** Accessible dialog label; defaults to the title. */
+    /** Accessible dialog label; defaults to labelling the dialog by its title. */
     ariaLabel?: string;
-    /** Sheet body, rendered below the standardized header. Use px-6 for edge alignment. */
+    /**
+     * Max panel width on tablet/desktop (a number is read as px). Defaults to
+     * 560px. Widen it for content-dense sheets (e.g. a settings panel).
+     */
+    maxWidth?: number | string;
+    /**
+     * A pinned action region below the scrollable body. It stays visible while
+     * the body scrolls, so primary actions (Apply / Save) are always reachable.
+     */
+    footer?: ReactNode;
+    /** Sheet body, rendered in the scrollable region below the header. Use px-6 for edge alignment. */
     children: ReactNode;
 }
 
 // Shared modal shell: bottom-sheet on phones (< md), centered dialog on tablet
 // and desktop (>= md, no grip/swipe). Owns the overlay, panel sizing, the
-// phone-only grip, Escape-to-close, and a standardized
-// header (optional back chevron · title + subtitle · close). It is the single
-// source of truth for modal spacing (p-6 edges), so every Pulse modal reads the
-// same. The body below the header is the caller's; keep its sections on px-6.
-export default function ModalSheet({ open, onClose, onBack, title, subtitle, ariaLabel, children }: Props) {
+// phone-only grip, Escape-to-close, focus management (trap + restore), and a
+// standardized header (optional back chevron · title + subtitle · close). It is
+// the single source of truth for modal spacing (p-6 edges), so every Pulse modal
+// reads the same. The body below the header scrolls; pass pinned actions as `footer`.
+export default function ModalSheet({
+    open,
+    onClose,
+    onBack,
+    title,
+    subtitle,
+    ariaLabel,
+    maxWidth = 560,
+    footer,
+    children,
+}: Props) {
+    const titleId = useId();
+    const panelRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         if (!open) return;
         const onKey = (e: KeyboardEvent) => {
@@ -59,6 +89,45 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
             document.body.style.overflow = prev;
         };
     }, [open]);
+
+    // Move focus into the dialog on open and return it to whatever was focused
+    // before (the trigger) on close, so keyboard users are not dropped at the top
+    // of the page. Focusing the panel itself (tabIndex -1) lets the dialog be
+    // announced by its aria label before Tab walks into the controls.
+    useEffect(() => {
+        if (!open) return;
+        const previouslyFocused = document.activeElement as HTMLElement | null;
+        panelRef.current?.focus();
+        return () => previouslyFocused?.focus?.();
+    }, [open]);
+
+    // Trap Tab within the dialog: wrap from last to first and back, so focus
+    // never escapes to the inert page behind the overlay.
+    const onPanelKeyDown = (e: ReactKeyboardEvent) => {
+        if (e.key !== 'Tab') return;
+        const panel = panelRef.current;
+        if (!panel) return;
+        const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+            (el) => el.offsetParent !== null,
+        );
+        if (items.length === 0) {
+            e.preventDefault();
+            panel.focus();
+            return;
+        }
+        const first = items[0];
+        const last = items[items.length - 1];
+        const active = document.activeElement;
+        // active === panel covers the just-opened state: the panel holds focus
+        // (tabIndex -1) so a backward Tab would otherwise escape to the page.
+        if (e.shiftKey && (active === first || active === panel)) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && active === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    };
 
     // Drag-down-to-dismiss from the grip. Works with touch (mobile bottom sheet)
     // AND mouse (a narrow desktop window where the bottom sheet shows). Follows
@@ -137,28 +206,34 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
         <div
             role="dialog"
             aria-modal="true"
-            aria-label={ariaLabel ?? title}
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabel ? undefined : titleId}
             className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center"
             onClick={onClose}>
             <div
-                className="flex w-full max-w-[560px] max-h-[86vh] flex-col rounded-t-[20px] bg-pulse-surface pb-6 md:max-h-[78vh] md:rounded-[18px] md:mx-6"
+                ref={panelRef}
+                tabIndex={-1}
+                onKeyDown={onPanelKeyDown}
+                className="flex max-h-[86vh] w-full flex-col rounded-t-[20px] bg-pulse-surface outline-none md:mx-6 md:max-h-[78vh] md:rounded-[18px]"
                 style={{
+                    maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth,
                     transform: dragY ? `translateY(${dragY}px)` : undefined,
                     transition: dragging ? 'none' : 'transform 0.2s ease',
                 }}
                 onClick={(e) => e.stopPropagation()}>
                 {/* Grip handle, mobile only. The whole strip is the drag target so a
-                    downward swipe dismisses the sheet (see onGripTouch* above). */}
+                    downward swipe dismisses the sheet (see onGripTouch* above). It is
+                    decorative for assistive tech (drag is pointer-only), so aria-hidden. */}
                 <div
+                    data-testid="modal-grip"
                     className="flex cursor-grab touch-none justify-center pb-1 pt-2 active:cursor-grabbing md:hidden"
-                    role="button"
-                    aria-label="Drag down to dismiss"
+                    aria-hidden
                     tabIndex={-1}
                     onTouchStart={onGripTouchStart}
                     onTouchMove={onGripTouchMove}
                     onTouchEnd={onGripTouchEnd}
                     onMouseDown={onGripMouseDown}>
-                    <span className="h-1 w-10 rounded-full bg-pulse-border" aria-hidden />
+                    <span className="h-1 w-10 rounded-full bg-pulse-border" />
                 </div>
 
                 {/* Standardized header. Desktop gets the full p-6 top; mobile keeps a
@@ -185,7 +260,9 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
                         </button>
                     )}
                     <div className="min-w-0 flex-1">
-                        <span className="block truncate font-pulse-display text-[1.3rem] font-bold leading-tight text-pulse-text">
+                        <span
+                            id={titleId}
+                            className="block truncate font-pulse-display text-[1.3rem] font-bold leading-tight text-pulse-text">
                             {title}
                         </span>
                         {subtitle != null && subtitle !== '' && (
@@ -203,7 +280,12 @@ export default function ModalSheet({ open, onClose, onBack, title, subtitle, ari
                     </button>
                 </div>
 
-                {children}
+                {/* Scrollable body: the header above and the footer below stay pinned
+                    while this region scrolls. min-h-0 lets it shrink inside the flex
+                    column so overflow actually triggers rather than blowing past max-h. */}
+                <div className="min-h-0 flex-1 overflow-y-auto pb-6">{children}</div>
+
+                {footer && <div className="border-t border-pulse-border px-6 pb-6 pt-4">{footer}</div>}
             </div>
         </div>
     );

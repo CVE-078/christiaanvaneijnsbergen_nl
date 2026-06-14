@@ -130,7 +130,7 @@ export default function MilestonesCard({ milestones }: { milestones: Milestone[]
                 onClose={() => setAllOpen(false)}
                 title="Milestones"
                 subtitle={`${milestones.length} ${milestones.length === 1 ? 'milestone' : 'milestones'}`}>
-                <div className="flex-1 overflow-y-auto px-6 pb-1">
+                <div className="px-6">
                     {groupByMonth(milestones).map((group) => (
                         <div key={group.key}>
                             <ModalGroupHeader

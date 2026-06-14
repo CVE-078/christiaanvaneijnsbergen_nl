@@ -47,7 +47,7 @@ export default function MetricHistoryModal({ open, onClose, title, unit, entries
             )}
 
             {/* Month-grouped entry list */}
-            <div className="flex-1 overflow-y-auto px-6 pb-1">
+            <div className="px-6">
                 {groups.map((group) => (
                     <div key={group.key}>
                         <ModalGroupHeader

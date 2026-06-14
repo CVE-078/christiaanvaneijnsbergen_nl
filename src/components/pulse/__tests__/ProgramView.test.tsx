@@ -251,6 +251,6 @@ describe('ProgramView', () => {
         mockContext(makeRoutine([makeRE('Bench Press', 'push')], []));
         render(<ProgramView />);
         fireEvent.click(screen.getByRole('button', { name: /how to perform bench press/i }));
-        expect(screen.getByRole('button', { name: /close instructions/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^close$/i })).toBeInTheDocument();
     });
 });
