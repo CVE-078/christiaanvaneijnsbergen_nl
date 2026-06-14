@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-14)
 
-**In progress:** (none).
+**In progress:** Bug 6 relabel, per-session focus labels for paired quad/posterior lower days (`feature/ulppl-session-labels`). Confirmed wording "Lower (Quads)" / "Lower (Hamstrings & Glutes)", on spacious surfaces only (tabs keep compact labels), across ul-classic-4 / ulppl-5 / ppl-x2-6.
 
 **In review (on a branch, not yet merged):** (none).
 
