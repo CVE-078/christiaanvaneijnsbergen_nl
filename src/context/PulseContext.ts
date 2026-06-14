@@ -224,9 +224,11 @@ export interface PulseContextValue {
     updateExercise: (id: string, name: string, defaultSets: string, defaultReps: string) => Promise<void>;
     deleteExercise: (id: string) => Promise<void>;
 
-    // Exercise preferences (hide / never-show)
+    // Exercise preferences (hide / never-show + favorite)
     hiddenExerciseIds: Set<string>;
     toggleHideExercise: (exerciseId: string, hidden: boolean) => Promise<void>;
+    favoriteExerciseIds: Set<string>;
+    toggleFavorite: (exerciseId: string, favorite: boolean) => Promise<void>;
 
     // Adaptive missed-workout regeneration
     adjustments: ProgramAdjustment[];

@@ -265,6 +265,24 @@ export async function loadHiddenExerciseIds(supabase: SupabaseServerClient, user
     return (data ?? []).map((r: { exercise_id: string }) => r.exercise_id);
 }
 
+export async function loadExercisePreferences(
+    supabase: SupabaseServerClient,
+    userId: string,
+): Promise<{ hidden: string[]; favorite: string[] }> {
+    const { data, error } = await supabase
+        .from('user_exercise_preferences')
+        .select('exercise_id, preference')
+        .eq('user_id', userId);
+    if (error) throw error;
+    const hidden: string[] = [];
+    const favorite: string[] = [];
+    for (const r of (data ?? []) as { exercise_id: string; preference: string }[]) {
+        if (r.preference === 'hidden') hidden.push(r.exercise_id);
+        else if (r.preference === 'favorite') favorite.push(r.exercise_id);
+    }
+    return { hidden, favorite };
+}
+
 // All of the user's workout sessions (both routines, completed and in-progress),
 // oldest first. The adherence engine is the spine consumer: it filters to
 // completed sessions for the active routine and attributes them to program

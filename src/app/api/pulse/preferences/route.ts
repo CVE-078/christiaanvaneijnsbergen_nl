@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getUserOrUnauthorized } from '@/lib/pulse/auth';
-import { loadHiddenExerciseIds } from '@/lib/pulse/queries';
+import { loadExercisePreferences } from '@/lib/pulse/queries';
 
 export async function GET() {
     const { supabase, user, response } = await getUserOrUnauthorized();
     if (!user) return response;
 
-    let hidden: string[] = [];
+    let prefs: { hidden: string[]; favorite: string[] } = { hidden: [], favorite: [] };
     try {
-        hidden = await loadHiddenExerciseIds(supabase, user.id);
+        prefs = await loadExercisePreferences(supabase, user.id);
     } catch {
-        hidden = [];
+        prefs = { hidden: [], favorite: [] };
     }
-    return NextResponse.json(hidden);
+    return NextResponse.json(prefs);
 }
