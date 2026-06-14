@@ -218,9 +218,11 @@ export default function ExerciseDetailSheet({
                         <div className="mb-2 font-pulse text-[0.625rem] uppercase tracking-[0.12em] text-pulse-muted">
                             How to
                         </div>
-                        <ol className="m-0 flex flex-col gap-1 pl-4 font-pulse-body text-sm leading-relaxed text-pulse-dim">
+                        <ol className="m-0 list-decimal space-y-1 pl-5 font-pulse-body text-sm leading-relaxed text-pulse-dim marker:text-pulse-muted">
                             {instructions!.cues.map((cue, i) => (
-                                <li key={i}>{cue}</li>
+                                <li key={i} className="pl-1">
+                                    {cue}
+                                </li>
                             ))}
                         </ol>
                     </div>
