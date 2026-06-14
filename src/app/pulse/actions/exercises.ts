@@ -4,15 +4,17 @@ import { EXERCISE_CATEGORIES } from '@/lib/pulse/types';
 import { assertUuid } from './_shared';
 import type { DbExercise, ExerciseCategory, ExercisePreference } from '@/lib/pulse/types';
 
-// Set or clear a user's preference for an exercise. v1: preference is 'hidden'
-// (never-show) or null to clear. The row is keyed to auth.uid() and RLS-scoped,
-// so a user can only ever affect their own preferences.
+// Set or clear a user's preference for an exercise. preference is 'hidden'
+// (never-show), 'favorite' (pin to top), or null to clear. The row is keyed
+// to auth.uid() and RLS-scoped, so a user can only ever affect their own
+// preferences.
 export async function setExercisePreference(
     exerciseId: string,
     preference: ExercisePreference | null,
 ): Promise<void> {
     assertUuid(exerciseId);
-    if (preference !== null && preference !== 'hidden') throw new Error('Invalid preference');
+    if (preference !== null && preference !== 'hidden' && preference !== 'favorite')
+        throw new Error('Invalid preference');
 
     const { supabase, user } = await getUserOrThrow();
 
