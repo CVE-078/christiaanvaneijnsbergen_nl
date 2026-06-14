@@ -23,6 +23,8 @@ import type {
     PriorityMuscle,
     RoutineExercise,
     WorkoutType,
+    WorkoutVariant,
+    ScheduleEntry,
     TabKey,
     BestSet,
     WorkoutSession,
@@ -249,6 +251,20 @@ export function sessionTypeFor(type: WorkoutType, sessionTypes: WorkoutType[]): 
         cur = WORKOUT_TYPE_PARENT[cur];
     }
     return sessionTypes[0];
+}
+
+// Descriptive focus label for a session, resolved from the routine schedule's
+// per-session `label` (set at generation for the quad/posterior lower-day
+// split). Matches by (workout_type, variant); a missing variant matches a null
+// variant. Returns null when no schedule row carries a label, so callers fall
+// back to the compact type+variant label. See focusLabelForEmphasis.
+export function sessionFocusLabel(
+    schedule: ScheduleEntry[],
+    type: WorkoutType,
+    variant: WorkoutVariant | null,
+): string | null {
+    const entry = schedule.find((s) => s.workout_type === type && (s.variant ?? null) === (variant ?? null));
+    return entry?.label ?? null;
 }
 
 export const MIN_KG = 0.5;

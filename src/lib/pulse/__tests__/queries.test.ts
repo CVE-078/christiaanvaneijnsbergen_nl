@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { loadLogs, loadProfile, loadBodyweight, loadExercises, loadRoutines, loadNotes, loadSwaps, loadSwapHistory, loadEquipmentProfiles } from '../queries';
+import {
+    loadLogs,
+    loadProfile,
+    loadBodyweight,
+    loadExercises,
+    loadRoutines,
+    loadNotes,
+    loadSwaps,
+    loadSwapHistory,
+    loadEquipmentProfiles,
+} from '../queries';
 
 // A minimal fake of the chainable Supabase query builder. Every chain method
 // returns the same object, and the builder is awaitable so it resolves to
@@ -193,7 +203,7 @@ describe('loadRoutines', () => {
         const select = calls.select ?? '';
         const exercisesSelect = select.slice(0, select.indexOf('schedule:routine_schedule'));
         expect(exercisesSelect).toContain('variant');
-        expect(select).toContain('schedule:routine_schedule ( day_of_week, workout_type, variant )');
+        expect(select).toContain('schedule:routine_schedule ( day_of_week, workout_type, variant, label )');
     });
 
     it('sorts exercises by order and schedule by day_of_week', async () => {

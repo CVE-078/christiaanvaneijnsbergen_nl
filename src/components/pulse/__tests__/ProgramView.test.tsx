@@ -148,6 +148,36 @@ describe('ProgramView', () => {
         expect(screen.queryByText('Dumbbell Bench Press')).not.toBeInTheDocument();
     });
 
+    it('shows the focus labels on the quad/posterior lower days, replacing the A/B letters (Bug 6)', () => {
+        mockContext(
+            makeRoutine(
+                [
+                    makeRE('Back Squat', 'lower', 'A'),
+                    makeRE('Romanian Deadlift', 'lower', 'B'),
+                    makeRE('Bench Press', 'upper', 'A'),
+                ],
+                [
+                    { day_of_week: 2, workout_type: 'lower', variant: 'A', label: 'Lower (Quads)' },
+                    {
+                        day_of_week: 5,
+                        workout_type: 'lower',
+                        variant: 'B',
+                        label: 'Lower (Hamstrings & Glutes)',
+                    },
+                    { day_of_week: 1, workout_type: 'upper', variant: 'A' },
+                ] as ScheduleEntry[],
+            ),
+        );
+        render(<ProgramView />);
+        expect(screen.getByRole('button', { name: 'Lower (Quads)' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Lower (Hamstrings & Glutes)' })).toBeInTheDocument();
+        // the focus label replaces the compact "Lower A/B" rather than appending
+        expect(screen.queryByRole('button', { name: 'Lower A' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Lower B' })).not.toBeInTheDocument();
+        // an unlabelled session keeps its compact type+variant label
+        expect(screen.getByRole('button', { name: 'Upper A' })).toBeInTheDocument();
+    });
+
     it('shows the rationale fact chips inline and the prose behind "Why this plan"', () => {
         const routine = {
             ...makeRoutine([makeRE('Bench Press', 'push')], []),

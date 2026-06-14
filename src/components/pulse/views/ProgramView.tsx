@@ -9,6 +9,7 @@ import {
     estimateSessionMinutes,
     parseMaxSets,
     sessionTypeFor,
+    sessionFocusLabel,
     swapCandidates,
     computeSessionTargets,
 } from '@/lib/pulse/utils';
@@ -141,7 +142,9 @@ export default function ProgramView() {
         () =>
             sections.map(({ type, variant, exercises: exs }) => ({
                 key: `${type}:${variant ?? ''}`,
-                label: `${WORKOUT_TYPE_LABELS[type] ?? type}${variant ? ` ${variant}` : ''}`,
+                label:
+                    sessionFocusLabel(activeRoutine?.schedule ?? [], type, variant) ??
+                    `${WORKOUT_TYPE_LABELS[type] ?? type}${variant ? ` ${variant}` : ''}`,
                 durationMin: estimateSessionMinutes(
                     exs.map((re) => ({ sets: parseMaxSets(re.sets), is_compound: re.exercise?.is_compound })),
                 ),
@@ -151,7 +154,7 @@ export default function ProgramView() {
                     .join(' · '),
                 exercises: exs,
             })),
-        [sections],
+        [sections, activeRoutine],
     );
 
     // Next scheduled session + the weights Train will prefill for it.
@@ -165,7 +168,9 @@ export default function ProgramView() {
         return {
             tabKey,
             rows: computeSessionTargets(exs, logs, week),
-            sessionLabel: `${WORKOUT_TYPE_LABELS[entry.workout_type] ?? entry.workout_type}${entry.variant ? ` ${entry.variant}` : ''}`,
+            sessionLabel:
+                entry.label ??
+                `${WORKOUT_TYPE_LABELS[entry.workout_type] ?? entry.workout_type}${entry.variant ? ` ${entry.variant}` : ''}`,
             dayLabel: DAY_LABELS[entry.day_of_week] ?? '',
         };
     }, [programPosition, routineExercisesByTabKey, resolveTabForEntry, logs, activeWeek]);

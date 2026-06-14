@@ -582,6 +582,7 @@ export async function generateAndSaveRoutine(
         day_of_week: s.day_of_week,
         workout_type: s.workout_type,
         variant: s.variant,
+        label: s.label ?? null,
     }));
     if (scheduleRows.length > 0) {
         const { error: schedErr } = await supabase.from('routine_schedule').insert(scheduleRows);

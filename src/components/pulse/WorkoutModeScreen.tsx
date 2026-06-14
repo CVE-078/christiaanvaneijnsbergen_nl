@@ -36,6 +36,10 @@ interface Props {
     exercises: RoutineExercise[];
     sessionId: string | null;
     variant: WorkoutVariant | null;
+    // Descriptive focus label for the quad/posterior lower-day split (e.g.
+    // "Lower (Hamstrings & Glutes)"); replaces the compact type+variant title in
+    // the guided subtitle when set, matching the Plan view. Null = no label.
+    focusLabel?: string | null;
     week: number;
     logs: Logs;
     unit: Unit;
@@ -471,6 +475,7 @@ export default function WorkoutModeScreen({
     exercises,
     sessionId,
     variant,
+    focusLabel,
     week,
     logs,
     unit,
@@ -562,7 +567,9 @@ export default function WorkoutModeScreen({
     // stays the step counter the tests and navigation rely on.
     const stepLabel = isPair ? `Step ${safeIdx + 1} of ${steps.length}` : `Exercise ${safeIdx + 1} of ${steps.length}`;
     const sessionType = (Array.isArray(steps[0]) ? steps[0][0] : steps[0])?.workout_type;
-    const sessionSubtitle = `${sessionType ? WORKOUT_TYPE_LABELS[sessionType] : 'Workout'}${variant ? ` ${variant}` : ''} · ${exercises.length} ${exercises.length === 1 ? 'exercise' : 'exercises'}`;
+    const sessionName =
+        focusLabel ?? `${sessionType ? WORKOUT_TYPE_LABELS[sessionType] : 'Workout'}${variant ? ` ${variant}` : ''}`;
+    const sessionSubtitle = `${sessionName} · ${exercises.length} ${exercises.length === 1 ? 'exercise' : 'exercises'}`;
     // Desktop track spine fill: accent up to the current step, then border.
     const spineFill = steps.length > 1 ? (safeIdx / (steps.length - 1)) * 100 : 0;
 

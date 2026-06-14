@@ -22,6 +22,7 @@ import {
     COMPOUND_ANCHOR_PATTERNS,
     CANONICAL_ANCHORS,
     assignRole,
+    focusLabelForEmphasis,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
@@ -3262,5 +3263,89 @@ describe('PHUL (#18): byte-identity guards for the other 4-day styles', () => {
                 'full_body:D:triceps_iso-2:3x15-20',
             ],
         });
+    });
+});
+
+// Bug 6: per-session focus labels for the quad/posterior lower-day split.
+describe('focusLabelForEmphasis (Bug 6)', () => {
+    it('labels quad emphases "Lower (Quads)"', () => {
+        expect(focusLabelForEmphasis('lower_quad')).toBe('Lower (Quads)');
+        expect(focusLabelForEmphasis('lower_lean')).toBe('Lower (Quads)');
+    });
+
+    it('labels the posterior emphasis "Lower (Hamstrings & Glutes)"', () => {
+        expect(focusLabelForEmphasis('lower_post')).toBe('Lower (Hamstrings & Glutes)');
+    });
+
+    it('returns null for general lower, PHUL lowers, and upper emphases', () => {
+        // PHUL lowers train squat AND hinge together: a power/volume split, not
+        // a quad/posterior one, so they must not get a quad/posterior label.
+        expect(focusLabelForEmphasis('phul_lower_power')).toBeNull();
+        expect(focusLabelForEmphasis('phul_lower_hyp')).toBeNull();
+        expect(focusLabelForEmphasis('lower_general')).toBeNull();
+        expect(focusLabelForEmphasis('legs')).toBeNull();
+        expect(focusLabelForEmphasis('fb_legs')).toBeNull();
+        expect(focusLabelForEmphasis('upper_general')).toBeNull();
+        expect(focusLabelForEmphasis('push')).toBeNull();
+    });
+
+    // Every emphasis returns a string or null (no throw on the full union).
+    it('is total over the EMPHASES table', () => {
+        for (const key of Object.keys(EMPHASES) as Array<keyof typeof EMPHASES>) {
+            const label = focusLabelForEmphasis(key);
+            expect(label === null || typeof label === 'string').toBe(true);
+        }
+    });
+});
+
+describe('generated schedule carries focus labels for paired styles (Bug 6)', () => {
+    // Map each generated schedule row to `${type}:${variant}` -> label.
+    function labelsByKey(count: number, key: string, days: number[]): Record<string, string | null> {
+        const style = STYLES[count].find((s) => s.key === key) as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: days }));
+        const out: Record<string, string | null> = {};
+        for (const s of bp.schedule) out[`${s.workout_type}:${s.variant ?? '-'}`] = s.label;
+        return out;
+    }
+
+    it('ul-classic-4: Lower A = Quads, Lower B = posterior, uppers unlabelled', () => {
+        const labels = labelsByKey(4, 'ul-classic-4', [1, 2, 4, 5]);
+        expect(labels['lower:A']).toBe('Lower (Quads)');
+        expect(labels['lower:B']).toBe('Lower (Hamstrings & Glutes)');
+        expect(labels['upper:A']).toBeNull();
+        expect(labels['upper:B']).toBeNull();
+    });
+
+    it('ul-aesthetic-4: the lean (quad) day reads "Lower (Quads)"', () => {
+        const labels = labelsByKey(4, 'ul-aesthetic-4', [1, 2, 4, 5]);
+        expect(labels['lower:A']).toBe('Lower (Quads)');
+        expect(labels['lower:B']).toBe('Lower (Hamstrings & Glutes)');
+    });
+
+    it('ulppl-5: the "Legs" (posterior) day reads "Lower (Hamstrings & Glutes)"', () => {
+        const labels = labelsByKey(5, 'ulppl-5', [1, 2, 3, 4, 5]);
+        expect(labels['lower:-']).toBe('Lower (Quads)');
+        expect(labels['legs:-']).toBe('Lower (Hamstrings & Glutes)');
+        expect(labels['upper:-']).toBeNull();
+        expect(labels['push:-']).toBeNull();
+        expect(labels['pull:-']).toBeNull();
+    });
+
+    it('ppl-x2-6: Legs A = Quads, Legs B = posterior', () => {
+        const labels = labelsByKey(6, 'ppl-x2-6', [1, 2, 3, 4, 5, 6]);
+        expect(labels['legs:A']).toBe('Lower (Quads)');
+        expect(labels['legs:B']).toBe('Lower (Hamstrings & Glutes)');
+    });
+
+    it('fb-ul-hybrid-5: Lower A = Quads, Lower B = posterior', () => {
+        const labels = labelsByKey(5, 'fb-ul-hybrid-5', [1, 2, 3, 4, 5]);
+        expect(labels['lower:A']).toBe('Lower (Quads)');
+        expect(labels['lower:B']).toBe('Lower (Hamstrings & Glutes)');
+    });
+
+    it('phul-4: lower days stay unlabelled (power/volume split, not quad/posterior)', () => {
+        const labels = labelsByKey(4, 'phul-4', [1, 2, 4, 5]);
+        expect(labels['lower:A']).toBeNull();
+        expect(labels['lower:B']).toBeNull();
     });
 });
