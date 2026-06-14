@@ -57,6 +57,7 @@ export default function ProgramView() {
         updateRoutineProgramWeeks,
         setProgramAnchor,
         swapRoutineExercisePermanently,
+        favoriteExerciseIds,
         loading,
         errors,
         retry,
@@ -465,6 +466,7 @@ export default function ProgramView() {
                         ),
                     })}
                     isSwapped={false}
+                    favoriteIds={favoriteExerciseIds}
                     onSelect={handlePermanentSwap}
                     onRevert={() => setSwapTarget(null)}
                     onClose={() => setSwapTarget(null)}

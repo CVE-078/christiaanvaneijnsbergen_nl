@@ -576,6 +576,23 @@ describe('LibraryView', () => {
         expect(screen.queryByText('Legs · A')).not.toBeInTheDocument();
     });
 
+    it('floats a favorited exercise to the top of the add-exercise picker', async () => {
+        // By default the picker lists [Bench Press, Cable Fly, Barbell Row] (order
+        // from the exercises array). When Cable Fly ('u1') is favorited it should
+        // appear first in the <select> option list.
+        vi.mocked(usePulse).mockReturnValue({
+            ...defaultContext,
+            favoriteExerciseIds: new Set(['u1']),
+        } as unknown as ReturnType<typeof usePulse>);
+        render(<LibraryView />);
+        await userEvent.click(screen.getByRole('tab', { name: /routines/i }));
+        const select = screen.getByLabelText(/^exercise$/i) as HTMLSelectElement;
+        const options = Array.from(select.options)
+            .filter((o) => o.value !== '')
+            .map((o) => o.text);
+        expect(options[0]).toBe('Cable Fly');
+    });
+
     it('numbers exercises per session (1..n) in the routine editor while reorder still uses the global index', async () => {
         const ex = (id: string, name: string): DbExercise => ({
             id,

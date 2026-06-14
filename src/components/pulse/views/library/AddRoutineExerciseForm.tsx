@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { toKg } from '@/lib/pulse/utils';
+import { floatFavorites } from '@/lib/pulse/library';
 import { defaultWorkoutType } from '@/lib/pulse/types';
 import type { DbExercise, ExerciseCategory, Unit, WorkoutType } from '@/lib/pulse/types';
 import { WORKOUT_TYPE_OPTIONS } from '@/lib/pulse/constants';
 import { INPUT, BTN_PRIMARY } from '@/components/pulse/ui';
+import { usePulse } from '@/context/PulseContext';
 
 const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
 
@@ -23,6 +25,8 @@ export default function AddRoutineExerciseForm({
         workoutType: WorkoutType,
     ) => void;
 }) {
+    const { favoriteExerciseIds } = usePulse();
+
     const [pickExerciseId, setPickExerciseId] = useState('');
     const [addSets, setAddSets] = useState('3');
     const [addReps, setAddReps] = useState('8-12');
@@ -30,6 +34,7 @@ export default function AddRoutineExerciseForm({
     const [addWorkoutType, setAddWorkoutType] = useState<WorkoutType>('push');
 
     const selectedEx = exercises.find((e) => e.id === pickExerciseId);
+    const sortedExercises = floatFavorites(exercises, favoriteExerciseIds);
     useEffect(() => {
         if (selectedEx) {
             const suggested = defaultWorkoutType(selectedEx.category as ExerciseCategory);
@@ -58,7 +63,7 @@ export default function AddRoutineExerciseForm({
                 onChange={(e) => setPickExerciseId(e.target.value)}
                 className={INPUT}>
                 <option value="">Select an exercise…</option>
-                {exercises.map((ex) => (
+                {sortedExercises.map((ex) => (
                     <option key={ex.id} value={ex.id}>
                         {ex.name}
                     </option>

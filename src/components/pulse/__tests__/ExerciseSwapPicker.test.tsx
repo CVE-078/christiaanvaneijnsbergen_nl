@@ -86,4 +86,12 @@ describe('ExerciseSwapPicker', () => {
         await userEvent.click(screen.getByText('Dumbbell Bench'));
         expect(props.onSelect).toHaveBeenCalledWith('a', 'crowded');
     });
+
+    it('floats a favorited candidate to the top of the list', () => {
+        // Machine Press ('b') is the second candidate by default ranking order.
+        // When it is favorited it should appear first in the rendered list.
+        setup({ favoriteIds: new Set(['b']) });
+        const items = screen.getAllByText(/^(Dumbbell Bench|Machine Press)$/);
+        expect(items[0].textContent).toBe('Machine Press');
+    });
 });
