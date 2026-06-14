@@ -1,7 +1,13 @@
 'use client';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { explainCopy, type ExplainConcept, type ExplainCopy, type ExplainParams } from '@/lib/pulse/explainCopy';
+import {
+    explainCopy,
+    type ExplainConcept,
+    type ExplainCopy,
+    type ExplainLegendRow,
+    type ExplainParams,
+} from '@/lib/pulse/explainCopy';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
 import ModalSheet from './ModalSheet';
 
@@ -46,11 +52,13 @@ function InfoGlyph() {
 }
 
 // Tone -> dot colour for an optional scale legend (recovery states today).
-const LEGEND_DOT: Record<'success' | 'warn' | 'error', string> = {
+// `satisfies` keys it to the legend tone union, so extending that union without
+// adding a colour here is a compile error.
+const LEGEND_DOT = {
     success: 'bg-pulse-success',
     warn: 'bg-pulse-warn',
     error: 'bg-pulse-error',
-};
+} satisfies Record<ExplainLegendRow['tone'], string>;
 
 function WhyBody({ copy, className }: { copy: ExplainCopy; className?: string }) {
     return (
