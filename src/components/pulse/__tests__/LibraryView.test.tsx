@@ -105,10 +105,13 @@ beforeEach(() => {
 });
 
 describe('LibraryView', () => {
-    it('renders the Exercises/Routines tab switcher', () => {
+    it('renders exactly two tabs: Exercises and Routines (no Templates)', () => {
         render(<LibraryView />);
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs).toHaveLength(2);
         expect(screen.getByRole('tab', { name: /exercises/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /routines/i })).toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /templates/i })).toBeNull();
     });
 
     it('shows the exercise list on the Exercises tab', async () => {
