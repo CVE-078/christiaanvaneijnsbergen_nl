@@ -725,6 +725,10 @@ export interface ExerciseMeta {
      *  has the exercise filtered out of generation. Empty for the vast majority
      *  of exercises (DB default '{}'). */
     contraindications: RestrictionFlag[];
+    /** Skill/complexity tier (P3.1b). A beginner soft-deprioritises 'advanced'
+     *  lifts in selection. Optional: absent => never deprioritised, so synthetic
+     *  pools and the goldens are byte-identical. */
+    difficulty?: ExperienceLevel;
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
@@ -984,6 +988,7 @@ function selectForSession(
     usedSubstitutionClasses: Set<string>,
     loadingLean?: LoadingPreference | null,
     behavior: BehaviorSignal = EMPTY_BEHAVIOR,
+    experience?: ExperienceLevel,
 ): { selected: Selected[]; floorUnmet: boolean } {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
     // Behavior demote (#7): O(1) membership for the sort layer below.
@@ -1043,6 +1048,15 @@ function selectForSession(
                     const aDemote = demoteSet.has(a.id) ? 1 : 0;
                     const bDemote = demoteSet.has(b.id) ? 1 : 0;
                     if (aDemote !== bDemote) return aDemote - bDemote;
+                }
+                // P3.1b: a beginner soft-deprioritises 'advanced'-difficulty lifts
+                // (never excludes, so thin pools still fill). No-op for other
+                // experience levels and for exercises without a difficulty tag, so
+                // synthetic pools and the goldens are byte-identical.
+                if (experience === 'beginner') {
+                    const aHard = a.difficulty === 'advanced' ? 1 : 0;
+                    const bHard = b.difficulty === 'advanced' ? 1 : 0;
+                    if (aHard !== bHard) return aHard - bHard;
                 }
                 if (preferredKey) {
                     const aMatch = a.equipment.includes(preferredKey) ? 0 : 1;
@@ -1750,6 +1764,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             usedSubstitutionClasses,
             input.loadingLean,
             input.behavior ?? EMPTY_BEHAVIOR,
+            answers.experience,
         );
 
         // Live-test Issue 1: an unmet compound floor (some compounds, fewer

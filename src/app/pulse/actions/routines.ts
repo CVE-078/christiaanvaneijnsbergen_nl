@@ -401,6 +401,7 @@ interface ExercisePoolRow {
     substitution_class: string | null;
     unilateral: boolean | null;
     contraindications: RestrictionFlag[] | null;
+    difficulty: ExerciseMeta['difficulty'] | null;
 }
 
 export async function generateAndSaveRoutine(
@@ -459,7 +460,7 @@ export async function generateAndSaveRoutine(
     const { data: poolData } = await supabase
         .from('exercises')
         .select(
-            'id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications',
+            'id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications, difficulty',
         )
         .is('user_id', null);
 
@@ -506,6 +507,7 @@ export async function generateAndSaveRoutine(
             unilateral: row.unilateral ?? false,
             contraindications: row.contraindications ?? [],
             ...(row.fatigue !== null ? { fatigue: row.fatigue } : {}),
+            ...(row.difficulty !== null ? { difficulty: row.difficulty } : {}),
         }));
 
     // Behavior-driven adaptation (#7): learn from recent repeated swaps and

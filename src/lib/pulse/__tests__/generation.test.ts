@@ -352,6 +352,39 @@ describe('beginner / general-fitness rep floor (P3.1)', () => {
     });
 });
 
+// ── Beginner exercise-complexity filter (P3.1b) ──────────────────────────────
+
+describe('beginner exercise-complexity filter (P3.1b)', () => {
+    it('a beginner soft-deprioritises an advanced-difficulty lift; intermediate is unaffected', () => {
+        const pool = deepPool().map((e) =>
+            e.id === 'horizontal_push-1'
+                ? { ...e, difficulty: 'advanced' as const }
+                : e.id === 'horizontal_push-2'
+                  ? { ...e, difficulty: 'beginner' as const }
+                  : e,
+        );
+        const beginner = generateRoutine(
+            input({
+                pool,
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 4 },
+            }),
+        );
+        const intermediate = generateRoutine(
+            input({
+                pool,
+                answers: { equipment: dumbbellsOnly, experience: 'intermediate', goal: 'build_muscle', days: 4 },
+            }),
+        );
+        const has = (bp: ReturnType<typeof generateRoutine>, id: string) =>
+            bp.exercises.some((e) => e.exercise_id === id);
+        // Beginner avoids the advanced option and takes the beginner-friendly one.
+        expect(has(beginner, 'horizontal_push-1')).toBe(false);
+        expect(has(beginner, 'horizontal_push-2')).toBe(true);
+        // Intermediate is unaffected (normal id tiebreak picks -1).
+        expect(has(intermediate, 'horizontal_push-1')).toBe(true);
+    });
+});
+
 // ── Measurable priority muscle (P3.2) ────────────────────────────────────────
 
 describe('measurable priority muscle (P3.2)', () => {
