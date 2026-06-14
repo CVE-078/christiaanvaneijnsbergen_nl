@@ -24,7 +24,7 @@
 
 ## Status & next session (2026-06-14)
 
-**In progress:** (none).
+**In progress:** Library Routines tab redesign, Plan B core (`feature/routines-tab-redesign`): routine cards + New-routine chooser (Generate / Ad-hoc) + manage sheet + per-session editor. Templates fold-in is the follow-up.
 
 **Shipped, UX clarity + a11y (`feature/ux-clarity-a11y`, 2026-06-14):** two small fixes. (1) The password show/hide toggle is now keyboard-focusable (its `tabIndex={-1}` removed), so it sits in the tab order (field → toggle → submit) and can be operated without a mouse. (2) The Progress recovery tile's "Why" is now **state-aware**: the explain-layer `recovery` concept takes the readout's tone + driving muscles and returns a per-state title + cause + what-to-do (so "Watch" finally says which muscles and why), plus a **4-state colour-coded legend** (Fresh / Ready / Watch / Ease off) rendered by `WhyBody`, making the whole scale legible. No migration.
 
