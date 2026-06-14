@@ -33,6 +33,17 @@ export interface ExplainParams {
     daysAway?: number;
     /** behind: sessions still waiting this cycle (never rendered as "overdue"). */
     behindBy?: number;
+    /** recovery: the readout's tone, so the copy explains the current state, not a generic blurb. */
+    recoveryTone?: 'fresh' | 'ready' | 'watch' | 'easeoff' | 'none';
+    /** recovery: the muscle categories driving the state (watch / ease off), for the "which" line. */
+    recoveryMuscles?: string[];
+}
+
+/** A scale legend row (e.g. the recovery states), rendered with a tone-coloured dot. */
+export interface ExplainLegendRow {
+    tone: 'success' | 'warn' | 'error';
+    label: string;
+    desc: string;
 }
 
 export interface ExplainCopy {
@@ -42,7 +53,28 @@ export interface ExplainCopy {
     why: string;
     /** What to do about it (unit-agnostic). Absent for glossary definitions. */
     next?: string;
+    /** Optional scale legend (only recovery uses it today), shown under the why. */
+    legend?: ExplainLegendRow[];
 }
+
+const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+// "Chest", "Chest and Back", "Chest, Back and 2 more" — for the recovery "which" line.
+function musclePhrase(muscles: string[]): string {
+    if (muscles.length === 0) return 'Your muscles';
+    if (muscles.length === 1) return muscles[0];
+    if (muscles.length === 2) return `${muscles[0]} and ${muscles[1]}`;
+    return `${muscles.slice(0, 2).join(', ')} and ${muscles.length - 2} more`;
+}
+
+// The recovery scale, explained once. Shown in the recovery "why" so every state
+// is legible, not just the active one (the original tile only labelled the word).
+const RECOVERY_LEGEND: ExplainLegendRow[] = [
+    { tone: 'success', label: 'Fresh', desc: 'every trained muscle recovered and on target.' },
+    { tone: 'success', label: 'Ready', desc: 'nothing overworked, with room for more volume.' },
+    { tone: 'warn', label: 'Watch', desc: 'at full volume and trained close to failure.' },
+    { tone: 'error', label: 'Ease off', desc: 'past the weekly volume target, dial it back.' },
+];
 
 /**
  * Canonical explanation for a coaching concept or glossary term.
@@ -134,11 +166,52 @@ export function explainCopy(concept: ExplainConcept, params: ExplainParams = {})
                 why: 'A weekly set target that keeps this muscle growing without overdoing it.',
             };
 
-        case 'recovery':
-            return {
-                title: 'Recovery',
-                why: 'Based on how hard and how recently you trained each muscle.',
-            };
+        case 'recovery': {
+            // State-aware: the popover explains the CURRENT state (which muscles +
+            // the cause + what to do) and shows the full scale, so "Watch" is no
+            // longer an unexplained word. Recovery is read from how hard and how
+            // recently each muscle was trained relative to its weekly volume target.
+            const tone = params.recoveryTone ?? 'none';
+            const muscles = (params.recoveryMuscles ?? []).map(cap);
+            const phrase = musclePhrase(muscles);
+            const verb = muscles.length === 1 ? 'is' : 'are';
+            const them = muscles.length === 1 ? 'it' : 'them';
+            switch (tone) {
+                case 'easeoff':
+                    return {
+                        title: 'Recovery: Ease off',
+                        why: `${phrase} ${verb} past the weekly volume target and carrying high fatigue.`,
+                        next: `Back off the volume or rest ${them} a day before training hard again.`,
+                        legend: RECOVERY_LEGEND,
+                    };
+                case 'watch':
+                    return {
+                        title: 'Recovery: Watch',
+                        why: `${phrase} ${verb} getting heavy: you have hit the weekly volume and trained close to failure (low reps in reserve).`,
+                        next: `Not a problem yet, just worth watching. Train ${them} lighter or give ${them} an extra day.`,
+                        legend: RECOVERY_LEGEND,
+                    };
+                case 'fresh':
+                    return {
+                        title: 'Recovery: Fresh',
+                        why: 'Every muscle you have trained is recovered and on target, with no lingering fatigue.',
+                        next: 'Good to train as planned.',
+                        legend: RECOVERY_LEGEND,
+                    };
+                case 'ready':
+                    return {
+                        title: 'Recovery: Ready',
+                        why: 'Nothing is overworked, and some muscles are under their weekly volume, so there is room to do more.',
+                        next: 'Add a set or bring up a muscle that is behind.',
+                        legend: RECOVERY_LEGEND,
+                    };
+                default:
+                    return {
+                        title: 'Recovery',
+                        why: 'Log a session and this shows which muscles are fresh and which are carrying fatigue, from how hard and how recently you trained each one.',
+                    };
+            }
+        }
 
         case 'strength_score':
             // Outcome-framed; the scoring methodology stays invisible.
