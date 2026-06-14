@@ -1,13 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { filterExercises, groupByCategory, groupExercises, parseRepRange, composeRepRange, floatFavorites } from '../library';
-import type { DbExercise } from '../types';
+import {
+    filterExercises,
+    groupByCategory,
+    groupExercises,
+    parseRepRange,
+    composeRepRange,
+    floatFavorites,
+    routineSessionChips,
+    reorderWithinSession,
+} from '../library';
+import type { DbExercise, RoutineWithExercises } from '../types';
 
 const ex = (over: Partial<DbExercise>): DbExercise =>
     ({
-        id: over.id ?? 'x', name: over.name ?? 'Bench Press', category: over.category ?? 'chest',
-        default_sets: '3', default_reps: '8-12', user_id: over.user_id ?? null,
-        equipment: over.equipment, movement_pattern: over.movement_pattern, is_compound: over.is_compound,
-        substitution_class: null, contraindications: over.contraindications,
+        id: over.id ?? 'x',
+        name: over.name ?? 'Bench Press',
+        category: over.category ?? 'chest',
+        default_sets: '3',
+        default_reps: '8-12',
+        user_id: over.user_id ?? null,
+        equipment: over.equipment,
+        movement_pattern: over.movement_pattern,
+        is_compound: over.is_compound,
+        substitution_class: null,
+        contraindications: over.contraindications,
     }) as DbExercise;
 
 describe('filterExercises', () => {
@@ -54,7 +70,11 @@ describe('filterExercises', () => {
 
 describe('groupByCategory', () => {
     it('returns a Favorites group first (when any), then categories in catalog order, each with a count', () => {
-        const list = [ex({ id: 'a', category: 'chest' }), ex({ id: 'b', category: 'legs' }), ex({ id: 'c', category: 'chest' })];
+        const list = [
+            ex({ id: 'a', category: 'chest' }),
+            ex({ id: 'b', category: 'legs' }),
+            ex({ id: 'c', category: 'chest' }),
+        ];
         const groups = groupByCategory(list, new Set(['b']));
         expect(groups[0]).toMatchObject({ key: 'favorites', label: 'Favorites', count: 1 });
         expect(groups.find((g) => g.key === 'chest')).toMatchObject({ count: 2 });
@@ -68,22 +88,40 @@ describe('groupByCategory', () => {
 });
 
 describe('groupExercises', () => {
-    const chest = ex({ id: 'a', name: 'Bench Press', category: 'chest', equipment: ['barbell', 'bench'], is_compound: true });
+    const chest = ex({
+        id: 'a',
+        name: 'Bench Press',
+        category: 'chest',
+        equipment: ['barbell', 'bench'],
+        is_compound: true,
+    });
     const legs = ex({ id: 'b', name: 'Back Squat', category: 'legs', equipment: ['barbell'], is_compound: true });
-    const shoulders = ex({ id: 'c', name: 'Lateral Raise', category: 'shoulders', equipment: ['dumbbells'], is_compound: false });
+    const shoulders = ex({
+        id: 'c',
+        name: 'Lateral Raise',
+        category: 'shoulders',
+        equipment: ['dumbbells'],
+        is_compound: false,
+    });
     const cables = ex({ id: 'd', name: 'Cable Fly', category: 'chest', equipment: ['cables'], is_compound: false });
     const bodyweight = ex({ id: 'e', name: 'Push-Up', category: 'chest', equipment: [], is_compound: true });
-    const machine = ex({ id: 'f', name: 'Chest Press Machine', category: 'chest', equipment: ['machines', 'bench'], is_compound: true });
+    const machine = ex({
+        id: 'f',
+        name: 'Chest Press Machine',
+        category: 'chest',
+        equipment: ['machines', 'bench'],
+        is_compound: true,
+    });
     const pullup = ex({ id: 'g', name: 'Pull-Up', category: 'back', equipment: ['pull_up_bar'], is_compound: true });
     const list = [chest, legs, shoulders, cables, bodyweight, machine, pullup];
 
     describe("'muscle' mode", () => {
-        it("matches groupByCategory output exactly", () => {
+        it('matches groupByCategory output exactly', () => {
             const fav = new Set(['b']);
             expect(groupExercises(list, 'muscle', fav)).toEqual(groupByCategory(list, fav));
         });
 
-        it("pins Favorites first, then categories in catalog order", () => {
+        it('pins Favorites first, then categories in catalog order', () => {
             const groups = groupExercises(list, 'muscle', new Set(['c']));
             expect(groups[0]).toMatchObject({ key: 'favorites', label: 'Favorites', count: 1 });
             // chest comes before legs/shoulders in EXERCISE_CATEGORIES order
@@ -96,7 +134,7 @@ describe('groupExercises', () => {
     });
 
     describe("'equipment' mode", () => {
-        it("buckets by primary equipment using barbell > dumbbells > machines > cables > pull_up_bar priority", () => {
+        it('buckets by primary equipment using barbell > dumbbells > machines > cables > pull_up_bar priority', () => {
             // chest (barbell+bench) -> Barbell; legs (barbell) -> Barbell; shoulders (dumbbells) -> Dumbbells
             // cables (cables) -> Cables; bodyweight (empty) -> Bodyweight; machine (machines+bench) -> Machine; pullup -> Pull-up bar
             const groups = groupExercises(list, 'equipment', new Set());
@@ -109,44 +147,44 @@ describe('groupExercises', () => {
             expect(byLabel['Bodyweight']).toEqual(['e']);
         });
 
-        it("orders groups: Barbell, Dumbbells, Machine, Cables, Pull-up bar, Bodyweight (priority order)", () => {
+        it('orders groups: Barbell, Dumbbells, Machine, Cables, Pull-up bar, Bodyweight (priority order)', () => {
             const groups = groupExercises(list, 'equipment', new Set());
             const labels = groups.map((g) => g.label);
             expect(labels).toEqual(['Barbell', 'Dumbbells', 'Machine', 'Cables', 'Pull-up bar', 'Bodyweight']);
         });
 
-        it("omits empty buckets", () => {
+        it('omits empty buckets', () => {
             // Only dumbbells exercise in list
             const groups = groupExercises([shoulders], 'equipment', new Set());
             expect(groups.map((g) => g.label)).toEqual(['Dumbbells']);
         });
 
-        it("uses human-readable labels from EQUIPMENT_LABELS", () => {
+        it('uses human-readable labels from EQUIPMENT_LABELS', () => {
             const groups = groupExercises([chest, shoulders], 'equipment', new Set());
             const labels = groups.map((g) => g.label);
             expect(labels).toContain('Barbell');
             expect(labels).toContain('Dumbbells');
         });
 
-        it("pins Favorites first in equipment mode", () => {
+        it('pins Favorites first in equipment mode', () => {
             const groups = groupExercises([chest, shoulders], 'equipment', new Set(['c']));
             expect(groups[0]).toMatchObject({ key: 'favorites', label: 'Favorites', count: 1 });
         });
 
-        it("exercise with no primary equipment (empty array) goes into Bodyweight bucket", () => {
+        it('exercise with no primary equipment (empty array) goes into Bodyweight bucket', () => {
             const groups = groupExercises([bodyweight], 'equipment', new Set());
             expect(groups[0]).toMatchObject({ key: 'Bodyweight', label: 'Bodyweight', count: 1 });
         });
     });
 
     describe("'type' mode", () => {
-        it("puts is_compound=true exercises in Compound group first, then Isolation", () => {
+        it('puts is_compound=true exercises in Compound group first, then Isolation', () => {
             const groups = groupExercises(list, 'type', new Set());
             expect(groups[0]).toMatchObject({ key: 'Compound', label: 'Compound' });
             expect(groups[1]).toMatchObject({ key: 'Isolation', label: 'Isolation' });
         });
 
-        it("correctly classifies each exercise", () => {
+        it('correctly classifies each exercise', () => {
             const groups = groupExercises(list, 'type', new Set());
             const compoundIds = groups.find((g) => g.key === 'Compound')!.exercises.map((e) => e.id);
             const isolationIds = groups.find((g) => g.key === 'Isolation')!.exercises.map((e) => e.id);
@@ -161,24 +199,24 @@ describe('groupExercises', () => {
             expect(isolationIds).toContain('d');
         });
 
-        it("omits Isolation group when all exercises are compounds", () => {
+        it('omits Isolation group when all exercises are compounds', () => {
             const groups = groupExercises([chest, legs], 'type', new Set());
             expect(groups.map((g) => g.key)).toEqual(['Compound']);
         });
 
-        it("omits Compound group when all exercises are isolations", () => {
+        it('omits Compound group when all exercises are isolations', () => {
             const groups = groupExercises([shoulders, cables], 'type', new Set());
             expect(groups.map((g) => g.key)).toEqual(['Isolation']);
         });
 
-        it("pins Favorites first in type mode", () => {
+        it('pins Favorites first in type mode', () => {
             const groups = groupExercises([chest, shoulders], 'type', new Set(['c']));
             expect(groups[0]).toMatchObject({ key: 'favorites', label: 'Favorites', count: 1 });
         });
     });
 
-    describe("Favorites pinned in all modes", () => {
-        it("no Favorites group when favoriteIds is empty", () => {
+    describe('Favorites pinned in all modes', () => {
+        it('no Favorites group when favoriteIds is empty', () => {
             for (const by of ['muscle', 'equipment', 'type'] as const) {
                 const groups = groupExercises(list, by, new Set());
                 expect(groups.some((g) => g.key === 'favorites')).toBe(false);
@@ -209,5 +247,67 @@ describe('floatFavorites', () => {
     it('moves favorited exercises to the front, preserving relative order otherwise', () => {
         const list = [ex({ id: 'a' }), ex({ id: 'b' }), ex({ id: 'c' })];
         expect(floatFavorites(list, new Set(['c'])).map((e) => e.id)).toEqual(['c', 'a', 'b']);
+    });
+});
+
+const reModel = (id: string, type: string, variant: string | null, order: number, group: string | null = null) => ({
+    id,
+    routine_id: 'r1',
+    exercise_id: `e-${id}`,
+    workout_type: type,
+    variant,
+    order,
+    sets: '3',
+    reps: '8-12',
+    starting_weight_kg: null,
+    superset_group_id: group,
+    exercise: { id: `e-${id}`, name: id, category: 'chest', default_sets: '3', default_reps: '8-12', user_id: null },
+});
+const routine = (over: Partial<RoutineWithExercises>): RoutineWithExercises =>
+    ({
+        id: 'r1',
+        user_id: 'u1',
+        name: 'R',
+        created_at: '2026-06-01',
+        exercises: [],
+        schedule: [],
+        ...over,
+    }) as RoutineWithExercises;
+
+void reModel;
+
+describe('routineSessionChips', () => {
+    it('one compact chip per unique (type, variant) session, deduped across days', () => {
+        const r = routine({
+            schedule: [
+                { day_of_week: 1, workout_type: 'upper', variant: 'A' },
+                { day_of_week: 2, workout_type: 'lower', variant: 'A' },
+                { day_of_week: 4, workout_type: 'upper', variant: 'A' },
+                { day_of_week: 5, workout_type: 'lower', variant: 'B' },
+            ],
+        });
+        expect(routineSessionChips(r)).toEqual(['Upper A', 'Lower A', 'Lower B']);
+    });
+    it('returns ["Ad-hoc"] for a routine with no schedule', () => {
+        expect(routineSessionChips(routine({ schedule: [] }))).toEqual(['Ad-hoc']);
+    });
+});
+
+describe('reorderWithinSession', () => {
+    const groupOf = (map: Record<string, string | null>) => (id: string) => map[id] ?? null;
+    it('moves a single exercise down within its session, leaving other sessions in place', () => {
+        expect(reorderWithinSession(['a', 'b', 'c'], ['a', 'b'], 0, 1, groupOf({}))).toEqual(['b', 'a', 'c']);
+    });
+    it('is a no-op at the session boundary', () => {
+        expect(reorderWithinSession(['a', 'b', 'c'], ['a', 'b'], 1, 1, groupOf({}))).toEqual(['a', 'b', 'c']);
+        expect(reorderWithinSession(['a', 'b', 'c'], ['a', 'b'], 0, -1, groupOf({}))).toEqual(['a', 'b', 'c']);
+    });
+    it('moves a superset pair as one block', () => {
+        expect(reorderWithinSession(['s', 'p1', 'p2'], ['s', 'p1', 'p2'], 0, 1, groupOf({ p1: 'g', p2: 'g' }))).toEqual(
+            ['p1', 'p2', 's'],
+        );
+    });
+    it('reorders only the session members within the positions they occupy in the full list', () => {
+        expect(reorderWithinSession(['x', 'a', 'y', 'b'], ['a', 'b'], 0, 1, groupOf({}))).toEqual(['x', 'b', 'y', 'a']);
     });
 });

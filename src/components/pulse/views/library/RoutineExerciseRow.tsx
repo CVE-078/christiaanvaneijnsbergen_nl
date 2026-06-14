@@ -6,6 +6,8 @@ import type { RoutineExercise, Unit } from '@/lib/pulse/types';
 import { INPUT, BTN_PRIMARY } from '@/components/pulse/ui';
 
 const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
+const ICONBTN =
+    'flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] border-none bg-transparent text-pulse-dim cursor-pointer hover:bg-white/[0.06] hover:text-pulse-text disabled:opacity-30 disabled:cursor-not-allowed';
 
 export default function RoutineExerciseRow({
     re,
@@ -73,8 +75,8 @@ export default function RoutineExerciseRow({
 
     return (
         <div className="flex flex-col gap-1.5 bg-pulse-surface rounded-xl px-3 py-2.5">
-            {/* Line 1: index + full exercise name */}
-            <div className="flex items-center gap-3">
+            {/* Line 1: index + name + right-anchored icon cluster (variant A) */}
+            <div className="flex items-center gap-2">
                 <span className="font-pulse text-xs text-pulse-muted w-5 shrink-0">{displayNumber ?? index + 1}</span>
                 <span className="font-pulse text-sm text-pulse-text flex-1 min-w-0 truncate">
                     {re.exercise.name}
@@ -84,61 +86,134 @@ export default function RoutineExerciseRow({
                         </span>
                     )}
                 </span>
-            </div>
-            {/* Line 2: sets × reps then all actions, indented past the index column */}
-            {!editing && (
-                <div className="flex items-center gap-2.5 pl-8 flex-wrap">
-                    <span className="font-pulse text-[0.6875rem] text-pulse-dim shrink-0">
-                        {re.sets} × {re.reps}
-                        {re.starting_weight_kg !== null && (
-                            <>
-                                {' '}
-                                · {toDisplay(re.starting_weight_kg, unit)} {unit}
-                            </>
+                {!editing && (
+                    <span className="flex shrink-0 items-center gap-0.5">
+                        {/* Pair (conditional) sits LEFT so the persistent icons never shift */}
+                        {onPair && (
+                            <button
+                                type="button"
+                                onClick={onPair}
+                                aria-label={`Pair ${re.exercise.name} with next`}
+                                className={`${ICONBTN} text-pulse-accent`}>
+                                {/* link icon */}
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.6"
+                                    aria-hidden>
+                                    <path
+                                        d="M6.5 9.5l3-3M5 8l-1.5 1.5a2.1 2.1 0 0 0 3 3L8 11M11 8l1.5-1.5a2.1 2.1 0 0 0-3-3L8 5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                </svg>
+                            </button>
                         )}
+                        {onUnpair && (
+                            <button
+                                type="button"
+                                onClick={onUnpair}
+                                aria-label={`Unpair ${re.exercise.name}`}
+                                className={`${ICONBTN} text-pulse-accent`}>
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.6"
+                                    aria-hidden>
+                                    <path d="M3 8h7M7 5l3 3-3 3M13 4v8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => onMove(index, -1)}
+                            disabled={!canMoveUp}
+                            aria-label={`Move ${re.exercise.name} up`}
+                            className={ICONBTN}>
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                aria-hidden>
+                                <polyline points="4 10 8 6 12 10" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onMove(index, 1)}
+                            disabled={!canMoveDown}
+                            aria-label={`Move ${re.exercise.name} down`}
+                            className={ICONBTN}>
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                aria-hidden>
+                                <polyline points="4 6 8 10 12 6" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setEditing(true)}
+                            aria-label={`Edit ${re.exercise.name}`}
+                            className={ICONBTN}>
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                aria-hidden>
+                                <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onRemove(re.id)}
+                            aria-label={`Remove ${re.exercise.name}`}
+                            className={`${ICONBTN} text-pulse-error hover:bg-pulse-error/10 hover:text-pulse-error`}>
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                aria-hidden>
+                                <path
+                                    d="M3 4.5h10M6 4.5V3.2c0-.4.3-.7.7-.7h2.6c.4 0 .7.3.7.7v1.3M5 4.5l.5 8c0 .5.4.9.9.9h3.2c.5 0 .9-.4.9-.9l.5-8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </button>
                     </span>
-                    <span className="w-px h-3 bg-pulse-border shrink-0 self-center" aria-hidden />
-                    <button
-                        onClick={() => onMove(index, -1)}
-                        disabled={!canMoveUp}
-                        aria-label={`Move ${re.exercise.name} up`}
-                        className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                        ↑
-                    </button>
-                    <button
-                        onClick={() => onMove(index, 1)}
-                        disabled={!canMoveDown}
-                        aria-label={`Move ${re.exercise.name} down`}
-                        className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                        ↓
-                    </button>
-                    <button
-                        onClick={() => setEditing((v) => !v)}
-                        aria-label={`Edit ${re.exercise.name}`}
-                        className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                        Edit
-                    </button>
-                    {onPair && (
-                        <button
-                            onClick={onPair}
-                            className="font-pulse text-[0.6875rem] text-pulse-accent bg-transparent border-none cursor-pointer shrink-0">
-                            Pair ↓
-                        </button>
+                )}
+            </div>
+            {/* Line 2: sets x reps meta (only when not editing) */}
+            {!editing && (
+                <span className="font-pulse text-[0.6875rem] text-pulse-dim pl-7">
+                    {re.sets} × {re.reps}
+                    {re.starting_weight_kg !== null && (
+                        <>
+                            {' '}
+                            · {toDisplay(re.starting_weight_kg, unit)} {unit}
+                        </>
                     )}
-                    {onUnpair && (
-                        <button
-                            onClick={onUnpair}
-                            className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                            Unpair
-                        </button>
-                    )}
-                    <button
-                        onClick={() => onRemove(re.id)}
-                        aria-label={`Remove ${re.exercise.name}`}
-                        className="font-pulse text-[0.6875rem] text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                        Remove
-                    </button>
-                </div>
+                </span>
             )}
             {editing && (
                 <div className="flex flex-wrap items-end gap-2 pl-8">

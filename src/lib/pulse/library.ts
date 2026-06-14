@@ -1,6 +1,6 @@
 import { EXERCISE_CATEGORIES } from './types';
-import type { DbExercise, ExerciseCategory, EquipmentKey, RestrictionFlag } from './types';
-import { EQUIPMENT_LABELS } from './constants';
+import type { DbExercise, ExerciseCategory, EquipmentKey, RestrictionFlag, RoutineWithExercises } from './types';
+import { EQUIPMENT_LABELS, WORKOUT_TYPE_LABELS } from './constants';
 
 // NOTE: hasEquipment and isContraindicated in generation.ts are private (not exported)
 // and take ExerciseMeta + Set parameters. Equivalent logic is inlined here for
@@ -154,4 +154,64 @@ export function floatFavorites(list: DbExercise[], favoriteIds: Set<string>): Db
     const fav = list.filter((e) => favoriteIds.has(e.id));
     const rest = list.filter((e) => !favoriteIds.has(e.id));
     return [...fav, ...rest];
+}
+
+// Compact card chips, one per unique (type, variant) session, deduped across
+// scheduled days. Ad-hoc routines (no schedule) show a single "Ad-hoc" chip.
+export function routineSessionChips(routine: RoutineWithExercises): string[] {
+    if (routine.schedule.length === 0) return ['Ad-hoc'];
+    const seen = new Set<string>();
+    const chips: string[] = [];
+    for (const s of routine.schedule) {
+        const variant = s.variant ?? null;
+        const key = `${s.workout_type}:${variant ?? ''}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const base = WORKOUT_TYPE_LABELS[s.workout_type];
+        chips.push(variant ? `${base} ${variant}` : base);
+    }
+    return chips;
+}
+
+// Reorder one exercise within its session and return the new FULL ordered id
+// list (so the caller passes it to reorderRoutineExercises unchanged). A superset
+// pair (adjacent ids sharing a group) moves as one block. Cross-session moves are
+// not expressible: only session members are reordered, each kept within the
+// positions it occupies in `allIds`.
+export function reorderWithinSession(
+    allIds: string[],
+    sessionIds: string[],
+    fromIndex: number,
+    dir: -1 | 1,
+    supersetGroupOf: (id: string) => string | null,
+): string[] {
+    type Unit = string[];
+    const units: Unit[] = [];
+    for (let i = 0; i < sessionIds.length; i++) {
+        const id = sessionIds[i];
+        const g = supersetGroupOf(id);
+        const next = sessionIds[i + 1];
+        if (g && next && supersetGroupOf(next) === g) {
+            units.push([id, next]);
+            i++;
+        } else {
+            units.push([id]);
+        }
+    }
+    let acc = 0;
+    let unitIdx = -1;
+    for (let u = 0; u < units.length; u++) {
+        if (fromIndex >= acc && fromIndex < acc + units[u].length) {
+            unitIdx = u;
+            break;
+        }
+        acc += units[u].length;
+    }
+    const target = unitIdx + dir;
+    if (unitIdx === -1 || target < 0 || target >= units.length) return allIds;
+    [units[unitIdx], units[target]] = [units[target], units[unitIdx]];
+    const reorderedSession = units.flat();
+    const sessionSet = new Set(sessionIds);
+    let s = 0;
+    return allIds.map((id) => (sessionSet.has(id) ? reorderedSession[s++] : id));
 }
