@@ -187,7 +187,7 @@ describe('LibraryView', () => {
         await userEvent.type(input, 'Cable Crossover');
         await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
         await waitFor(() => {
-            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Crossover', '3', '12-15');
+            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Crossover', expect.any(String), '3', '12-15');
         });
     });
 
@@ -215,7 +215,7 @@ describe('LibraryView', () => {
         await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
         await waitFor(() => {
-            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Fly', '4', '10-15');
+            expect(mocks.updateExercise).toHaveBeenCalledWith('u1', 'Cable Fly', expect.any(String), '4', '10-15');
         });
     });
 

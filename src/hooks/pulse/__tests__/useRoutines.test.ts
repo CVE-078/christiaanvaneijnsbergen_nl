@@ -257,7 +257,7 @@ describe('useRoutines', () => {
             expect(returned).toEqual(newExercise);
         });
 
-        expect(serverCreateExercise).toHaveBeenCalledWith('Squat', 'legs', '4', '5');
+        expect(serverCreateExercise).toHaveBeenCalledWith('Squat', 'legs', '4', '5', undefined);
         expect(exercisesMutate).toHaveBeenCalled();
     });
 
