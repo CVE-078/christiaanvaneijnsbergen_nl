@@ -29,55 +29,55 @@ Structural consequence: today the slot budget (`count`) is spent in slot order w
 
 ## Confirmed root causes
 
-### Issue 1 — Short full-body loses pulling (launch blocker)
+### Issue 1 - Short full-body loses pulling (launch blocker)
 - **What:** A 30-minute full-body week trains zero pulls (Cases 02, 10: lower + lower + push, no pull anywhere).
 - **Why:** All three full-body emphases (`fb_strength`, `fb_hyper`, `fb_balanced`, `generation.ts:108-119`) place `horizontal_pull` at slot index 3. The first pass fills slots in order and breaks the instant `chosen.length >= count` (`generation.ts:1158-1161`). A 30-min beginner budget is 3 (`VOLUME`, `generation.ts:542-558`), so index 3+ is never visited. The compound floor cannot rescue it: it only fires below 2 compounds (a full-body first pass already has 2+), and `FLOOR_REGION['full_body'] = 'lower'` (`generation.ts:767-774`) so it searches squat/hinge/lunge only, never pull.
 - **Layer:** Session emphasis definitions (slot order) + truncation logic + absent weekly coverage check.
 - **Original review correct?** Yes.
 
-### Issue 2 — Restrictions: logic correct, catalogue tags incomplete (launch blocker)
+### Issue 2 - Restrictions: logic correct, catalogue tags incomplete (launch blocker)
 - **What:** Filtering is a correct hard filter (`isContraindicated` beside `hasEquipment`, never relaxed). The risk is tag coverage and silent degradation.
 - **Why:** **Step-Up carries no knee flag** while its movement siblings Bulgarian Split Squat and Walking Lunge are knee-tagged (Case 06 used Step-Up under a knee restriction). Dumbbell OHP and Machine Shoulder Press carry no shoulder flag; most presses and curls carry no wrist flag; Hip Thrust carries no lower_back flag. Several are deliberate "keep one safe option per pattern" choices but the policy is undocumented and Step-Up is a genuine inconsistency. Separately, when a restriction empties a pattern, nothing tells the user: `LIMITED_VARIETY_WARNING` fires only for zero-compound sessions.
 - **Layer:** Catalogue data (tags) + generator (degradation visibility) + coarse restriction taxonomy.
 - **Original review correct?** Yes.
 
-### Issue 3 — Low-value filler padding
+### Issue 3 - Low-value filler padding
 - **What:** Two calves + two core in one session (Cases 01, 08 Lower B); repeated glute isolation (Abduction Machine + Cable Kickback); Dumbbell Pullover as primary back work.
 - **Why:** `PATTERN_CAP = 2` is per-pattern (`generation.ts:1052`); `calf` and `core` are distinct patterns (`types.ts:483-499`), so two of each is allowed. Backfill re-sorts the emphasis's own slots by least-represented (`generation.ts:1221-1225`); the finisher-deflection escape only works when a fresh lower-bucket pattern exists, and on `lower_post` the only candidate (squat) is blocked as off-contract, so backfill seats a repeat finisher. Dumbbell Pullover is `back_iso` with `substitution_class=null` and secondary muscles chest/triceps, so it adds "back volume" with no dedup.
 - **Layer:** Backfill (coverage-blind) + cap semantics + catalogue classification.
 - **Original review correct?** Partially; it is backfill blindness + per-pattern cap + catalogue metadata together.
 
-### Issue 4 — Labels do not match structure
+### Issue 4 - Labels do not match structure
 - **What:** Full-body weeks with no pull (Issue 1); PHUL power and hypertrophy days nearly identical (Case 04); posterior days padded with calves/core.
 - **Why (PHUL):** Under Powerbuilding, `resolveRepRange` ignores the day's bias and keys rep ranges off movement pattern (`generation.ts:670-672`). Both PHUL upper days are built from the same heavy upper patterns + isolations, so both read 3-6 compounds / 12-15 iso. Powerbuilding also collapses both days' effective bias to `strength` (`BIAS_REMAP`, `generation.ts:603-608`), so both get the set bump. Under Balanced (PHUL's documented intended style) the days differ correctly. The loss is real but only under the Powerbuilding+PHUL combination chosen in Case 04.
 - **Layer:** Rep-range resolution (style/pattern interaction) + missing label-validity check.
 - **Original review correct?** Yes.
 
-### Issue 5 — Training style too weak or too strong
+### Issue 5 - Training style too weak or too strong
 - **What:** Strength turns a 6-day routine into ~25 sets at 3-6 reps across nearly every session (Case 03). Powerbuilding erases PHUL contrast. Bodybuilding looks generic. Beginners get 3-6 rep prescriptions. General-fitness inherits strength reps.
 - **Why:** `BIAS_REMAP` (`generation.ts:603-608`): Strength maps strength/balanced/hypertrophy all to strength; Powerbuilding maps everything to strength; Bodybuilding maps strength/balanced to hypertrophy (so it only flattens to 8-12, adding no isolation/volume character). Crucially, **experience never touches bias or rep range** (it only sizes volume via `volumeFor`), and **goal only branches on `lose_fat`** (`repRange`, `generation.ts:569-591`); `general_fitness` is identical to `build_muscle`. A beginner general-fitness user gets the `fb_strength` day's 3-6 reps because `fb_strength` leads the `fb-3` style (Case 02 Full Body A).
 - **Layer:** `resolveBias` table + `repRange` + experience/goal not modulating bias.
 - **Original review correct?** Yes.
 
-### Issue 6 — Priority muscle is ordering-only
+### Issue 6 - Priority muscle is ordering-only
 - **What:** Priority changes which exercise comes first, not weekly volume.
 - **Why:** `tiltEmphasis` (`generation.ts:296-303`) only reorders patterns already present in the emphasis's slot list. It never adds a slot, never adds a set, never changes the exercise count (fixed by `volumeFor(sessionTime, experience)`). The one real effect: front-loading guarantees the priority pattern survives truncation on a slot-rich session. Total weekly direct sets for the priority muscle are unchanged versus balanced.
 - **Layer:** Emphasis tilt + absence of any volume/frequency adjustment.
 - **Original review correct?** Yes.
 
-### Issue 7 — Duration is a label, not a constraint
+### Issue 7 - Duration is a label, not a constraint
 - **What:** "45 to 60 minutes" produced "~65 min" sessions (Case 03).
 - **Why:** `estimateSessionMinutes` (`utils.ts:369-380`) is computed in `ProgramView`, never referenced in `generation.ts`. Generation picks exercise/set counts from `VOLUME[sessionTime][experience]`, a count table with no time awareness. No guard checks the estimate against the band. `45-60 min` + advanced = 6 exercises x 4 sets ~= 25 sets; at 190s/set for compounds that is 64.2 min, rounded to 65. The estimate also ignores warmups (biases low), supersets (billed serial, biases high), intensity, unilateral, setup, transitions.
 - **Layer:** Duration estimation + count-based VOLUME table + missing reconciliation.
 - **Original review correct?** Yes.
 
-### Issue 8 — Prescriptions do not match exercise type (launch blocker)
+### Issue 8 - Prescriptions do not match exercise type (launch blocker)
 - **What:** Plank prescribed as "4 sets · 12-15 reps".
 - **Why:** The catalogue's `default_reps` is free text and can hold "30-60s", "10-12 per leg", "to failure" (Plank is "30-60s"), but the generator discards it and overwrites with a numeric range via `repRange` (`generation.ts:569-591`, `1692`), which has only numeric branches. No time/per-side/distance field exists in the output model. Catalogue is also inconsistent (Walking Lunge "10-12" vs Bulgarian Split Squat "10-12 per leg" for the same movement class).
 - **Layer:** Generator (rep assignment ignores exercise type) + schema (no prescription-type) + catalogue inconsistency.
 - **Original review correct?** Yes.
 
-### Issue 9 — No week-level judgement (the meta-finding)
+### Issue 9 - No week-level judgement (the meta-finding)
 - **What:** Nothing inspects the completed routine as a whole.
 - **Why:** `selectForSession` is per-session; `generateRoutine` loops sessions independently (`generation.ts:1596-1597`) sharing only the avoid-set, substitution-class set, and anchor map (all of which influence which exercise, never whether a pattern is covered). Confirmed by grep: no weekly coverage, balance, duration, label, or filler check exists.
 - **Layer:** Missing post-generation validation stage. This is the structural home for fixing Issues 1, 3, 4, 7 generally.

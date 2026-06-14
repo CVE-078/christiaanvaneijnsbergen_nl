@@ -38,7 +38,7 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 ---
 
-# Phase 1 — Launch blockers
+# Phase 1 - Launch blockers
 
 ## P1.1 Essential-coverage-first slot filling (Issue 1)
 
@@ -102,7 +102,7 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 - **User:** a Plank now reads "30-60s hold" instead of "12-15 reps", and unilateral lifts read per side ("10-12 reps/side" / "10-12/side"), consistently across the Plan, next-session, and routine-editor surfaces.
 - **Engine:** display-layer fix only. The generator, stored reps, and the rep-based logger are unchanged, so all goldens hold. Logging a timed hold in Train/guided (the logger accepting seconds, not reps) is a deeper deferred feature, tracked as P1.3b.
 
-## P1.4 Duration as a real constraint (Issue 7) — has a product fork (see decision log)
+## P1.4 Duration as a real constraint (Issue 7) - has a product fork (see decision log)
 
 **Invariant:** A session does not exceed its selected duration beyond the documented tolerance without a visible warning or a correction.
 
@@ -121,7 +121,7 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 - **User:** a routine that will run long now shows a "May run long" notice on the Plan page instead of silently mislabelling the time. No exercises are dropped, so you keep your volume.
 - **Engine:** per-session duration is now checked against the selected band as warning-only output. No selection or rep/set change, so existing routines and all goldens are unaffected. The estimator's accuracy refinement (warmups, superset halving, intensity-scaled rest) is tracked separately as P1.4b.
 
-## P1.5 Label-validity floor incl. PHUL identity (Issue 4) — has a product fork (see decision log)
+## P1.5 Label-validity floor incl. PHUL identity (Issue 4) - has a product fork (see decision log)
 
 **Invariant:** A session label is not applied when its minimum structural criteria are not met. PHUL power and hypertrophy days remain measurably distinct in rep range under every training style, or the combination warns.
 
@@ -143,17 +143,17 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 ---
 
-# Phase 2 — Programme-quality validation
+# Phase 2 - Programme-quality validation
 
 (Each becomes its own reviewed diff; P2.1 and P3.x carry high golden-regression risk and may warrant their own sub-plan before coding.)
 
-## P2.1 Coverage-aware backfill (Issue 3) — DONE
+## P2.1 Coverage-aware backfill (Issue 3) - DONE
 **Invariant:** A standard lower session does not stack a duplicate finisher (2 calf / 2 core) when a more valuable accessory can fill the slot. **Done:** extended the finisher-deflection so that, before seating a REPEAT calf/core, backfill also tries a non-compound accessory in an emphasis non-finisher pattern that the heavy-dedup cap would otherwise block (a leg curl on the hinge), via a new `accessoryInHeavy` flag on `pick` that allows a non-compound (never a 2nd heavy compound). Scoped to the duress path: deep pools fill the slot with a non-finisher before reaching the deflection, so all 6 frozen goldens are byte-identical. 1 new test; suite 1581 green, typecheck clean. Second-opinion review: clean. No migration. (The broader marginal-coverage scorer / muscle-aware backfill remains a larger future option, but this fixes the observed duplicate-finisher cases.)
 **Impact:**
 - **User:** on thin pools (e.g. dumbbell-only posterior leg day) the routine now seats a hamstring/quad accessory instead of a 2nd calf + 2nd core, so the session does real work rather than padding.
 - **Engine:** duress-only change to backfill; deep pools (and every golden) are unchanged. The heavy-dedup cap still blocks a 2nd heavy compound; the accessory path only admits non-compound work.
 
-## P2.2 Bounded heavy-work limit (Issue 5 partial) — DONE
+## P2.2 Bounded heavy-work limit (Issue 5 partial) - DONE
 **Invariant:** A week is flagged when too many sessions are strength-biased (heavy). **Done:** a weekly counter of strength-bias sessions; when it exceeds `HEAVY_WEEK_SESSION_LIMIT` (4, i.e. 5+ heavy days) the routine carries a `demanding_week` warning. Catches the 6-day-under-Strength case (Case 03) without false-positiving on PHUL/4-day or Balanced weeks. Warning-only (keep the plan; the user opted into the style), no selection/golden change, no migration. 2 new tests; suite 1583 green, typecheck clean.
 **Impact:**
 - **User:** a very heavy week (5+ strength days) shows a "Demanding week" notice suggesting a lighter style or fewer days if recovery suffers.
@@ -165,7 +165,7 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 ---
 
-# Phase 3 — Deeper personalisation
+# Phase 3 - Deeper personalisation
 
 ## P3.1 Independent experience and goal (Issue 5)
 Experience modulates exercise complexity (use `difficulty`), demanding-compound count, volume tolerance; goal modulates rep distribution and density; decouple from "experience sizes volume, goal flips lose_fat only". **Regression risk:** high (rep ranges + selection). **Done:** _(pending)_ · **Impact:** _(pending)_
@@ -183,9 +183,9 @@ Enforce split-identity-over-style; bodybuilding adds isolation/volume character;
 
 # Decision log (product forks, resolved 2026-06-14)
 
-1. **P1.2 restriction tagging:** RESOLVED — conservative + warn. Fix only clear inconsistencies (Step-Up -> knee), keep one genuinely-safe option per pattern, and emit a visible warning when a restriction still empties an essential pattern.
-2. **P1.4 duration over-budget behaviour:** RESOLVED — warn, keep volume. Improve the estimate (warmups, supersets, intensity) and warn when a session runs long; never silently drop requested work. No auto-trim.
-3. **P1.5 PHUL under Powerbuilding:** RESOLVED — preserve the contrast. Split identity outranks training style: PHUL always uses its own power/hypertrophy day biases for rep ranges and the set bump, so it looks like PHUL under any training style.
+1. **P1.2 restriction tagging:** RESOLVED - conservative + warn. Fix only clear inconsistencies (Step-Up -> knee), keep one genuinely-safe option per pattern, and emit a visible warning when a restriction still empties an essential pattern.
+2. **P1.4 duration over-budget behaviour:** RESOLVED - warn, keep volume. Improve the estimate (warmups, supersets, intensity) and warn when a session runs long; never silently drop requested work. No auto-trim.
+3. **P1.5 PHUL under Powerbuilding:** RESOLVED - preserve the contrast. Split identity outranks training style: PHUL always uses its own power/hypertrophy day biases for rep ranges and the set bump, so it looks like PHUL under any training style.
 
 ---
 
