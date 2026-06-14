@@ -9,6 +9,7 @@ import {
     groupExercises,
     computeLastSessionMap,
     baseWorkoutType,
+    sessionFocusLabel,
     resolveExercise,
     swapCandidates,
     swapKey,
@@ -163,6 +164,15 @@ export default function LogView() {
         return routineExercisesByTabKey[variantKey as typeof activeTab] ?? routineExercises;
     })();
 
+    // Descriptive focus label for the guided subtitle (quad/posterior lower-day
+    // split), so it reads the same as the Plan view. Null on routines without
+    // labelled sessions falls back to the compact type+variant title.
+    const workoutFocusLabel = sessionFocusLabel(
+        activeRoutine?.schedule ?? [],
+        baseWorkoutType(activeTab),
+        session?.variant ?? null,
+    );
+
     function handleSave(key: string, entry: LogEntry) {
         // Link the set to the active guided session (null when logging from the
         // Train list outside guided mode). The provider stamps the workout date
@@ -289,6 +299,7 @@ export default function LogView() {
                     exercises={workoutExercises}
                     sessionId={session?.id ?? null}
                     variant={session?.variant ?? null}
+                    focusLabel={workoutFocusLabel}
                     week={activeWeek}
                     logs={logs}
                     unit={unit}

@@ -35,6 +35,12 @@ export interface ScheduleEntry {
     day_of_week: number; // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
     workout_type: WorkoutType;
     variant?: WorkoutVariant | null;
+    // Optional descriptive focus label for the quad/posterior lower-day split
+    // (e.g. "Lower (Quads)" / "Lower (Hamstrings & Glutes)"), populated at
+    // generation from the session emphasis. Null for sessions that don't need
+    // disambiguation. Shown on spacious surfaces (Plan, guided); tabs keep the
+    // compact type+variant label. See focusLabelForEmphasis in generation.ts.
+    label?: string | null;
 }
 
 export type Unit = 'kg' | 'lbs';

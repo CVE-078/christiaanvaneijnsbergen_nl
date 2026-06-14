@@ -28,6 +28,7 @@ import {
     computeRecoveryFlags,
     computePlates,
     sessionTypeFor,
+    sessionFocusLabel,
     computeWeeksWithData,
     swapKey,
     resolveExercise,
@@ -2246,5 +2247,52 @@ describe('formatProgramStatus', () => {
         expect(s.progress).toBeCloseTo(0.25);
         // Next deload is still the block's recovery week, not a stale past week.
         expect(s.nextDeloadWeek).toBe(12);
+    });
+});
+
+describe('sessionFocusLabel (Bug 6)', () => {
+    const ulClassic = [
+        { day_of_week: 1, workout_type: 'upper' as const, variant: 'A' as const, label: null },
+        { day_of_week: 2, workout_type: 'lower' as const, variant: 'A' as const, label: 'Lower (Quads)' },
+        { day_of_week: 4, workout_type: 'upper' as const, variant: 'B' as const, label: null },
+        {
+            day_of_week: 5,
+            workout_type: 'lower' as const,
+            variant: 'B' as const,
+            label: 'Lower (Hamstrings & Glutes)',
+        },
+    ];
+
+    it('resolves the label for a matching (type, variant)', () => {
+        expect(sessionFocusLabel(ulClassic, 'lower', 'A')).toBe('Lower (Quads)');
+        expect(sessionFocusLabel(ulClassic, 'lower', 'B')).toBe('Lower (Hamstrings & Glutes)');
+    });
+
+    it('returns null when the matched row has no label', () => {
+        expect(sessionFocusLabel(ulClassic, 'upper', 'A')).toBeNull();
+    });
+
+    it('returns null when no row matches', () => {
+        expect(sessionFocusLabel(ulClassic, 'push', null)).toBeNull();
+        expect(sessionFocusLabel([], 'lower', 'A')).toBeNull();
+    });
+
+    it('matches a null variant (e.g. ulppl-5, where leg days have no A/B)', () => {
+        const ulppl = [
+            { day_of_week: 2, workout_type: 'lower' as const, variant: null, label: 'Lower (Quads)' },
+            {
+                day_of_week: 5,
+                workout_type: 'legs' as const,
+                variant: null,
+                label: 'Lower (Hamstrings & Glutes)',
+            },
+        ];
+        expect(sessionFocusLabel(ulppl, 'lower', null)).toBe('Lower (Quads)');
+        expect(sessionFocusLabel(ulppl, 'legs', null)).toBe('Lower (Hamstrings & Glutes)');
+    });
+
+    it('treats an absent variant field as a null variant', () => {
+        const rows = [{ day_of_week: 1, workout_type: 'lower' as const, label: 'Lower (Quads)' }];
+        expect(sessionFocusLabel(rows, 'lower', null)).toBe('Lower (Quads)');
     });
 });

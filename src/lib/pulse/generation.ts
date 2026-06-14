@@ -1489,8 +1489,36 @@ export interface GenerationInput {
     makeGroupId?: () => string;
 }
 
+/**
+ * Per-session focus label for the quad/posterior lower-day split (Bug 6).
+ * Returns a descriptive label for the spacious Plan/guided surfaces so a
+ * posterior-focused lower day no longer reads as a generic "Legs" / "Lower"
+ * day, and the two paired leg days of a routine are told apart by their actual
+ * focus rather than only an A/B letter. Null for every other emphasis,
+ * including the PHUL lower days (which train squat AND hinge together and are a
+ * power/volume split, not a quad/posterior one). Tabs keep their compact
+ * type+variant labels. Applies to every style that pairs these emphases
+ * (ul-classic-4, ul-aesthetic-4, ulppl-5, fb-ul-hybrid-5, ppl-x2-6).
+ */
+export function focusLabelForEmphasis(emphasis: EmphasisKey): string | null {
+    switch (emphasis) {
+        case 'lower_quad':
+        case 'lower_lean':
+            return 'Lower (Quads)';
+        case 'lower_post':
+            return 'Lower (Hamstrings & Glutes)';
+        default:
+            return null;
+    }
+}
+
 export interface RoutineBlueprint {
-    schedule: Array<{ day_of_week: number; workout_type: WorkoutType; variant: WorkoutVariant | null }>;
+    schedule: Array<{
+        day_of_week: number;
+        workout_type: WorkoutType;
+        variant: WorkoutVariant | null;
+        label: string | null;
+    }>;
     exercises: Array<{
         exercise_id: string;
         workout_type: WorkoutType;
@@ -1569,7 +1597,12 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         if (i >= days.length) return;
         const workout_type = FOCUS_TYPE[session.focus];
         const variant = session.variant;
-        schedule.push({ day_of_week: days[i], workout_type, variant });
+        schedule.push({
+            day_of_week: days[i],
+            workout_type,
+            variant,
+            label: focusLabelForEmphasis(session.emphasis),
+        });
 
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';

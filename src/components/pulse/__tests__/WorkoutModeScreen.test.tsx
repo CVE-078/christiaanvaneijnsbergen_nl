@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cloneElement, type ReactElement } from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -62,6 +62,42 @@ describe('WorkoutModeScreen', () => {
         render(<WorkoutModeScreen {...defaultProps} />);
         expect(screen.getByText('Bench Press')).toBeInTheDocument();
         expect(screen.getByText(/exercise 1 of 2/i)).toBeInTheDocument();
+    });
+
+    // The session subtitle lives in the desktop two-pane layout; mobile guided
+    // uses a compact VARIANT chip (compact surfaces keep compact labels). Force
+    // the desktop branch so the focus-label subtitle is asserted on the surface
+    // that actually renders it.
+    describe('focus-label subtitle (desktop two-pane)', () => {
+        let origMatchMedia: typeof window.matchMedia;
+        beforeEach(() => {
+            origMatchMedia = window.matchMedia;
+            window.matchMedia = ((query: string) => ({
+                matches: true,
+                media: query,
+                onchange: null,
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+                addListener: vi.fn(),
+                removeListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            })) as unknown as typeof window.matchMedia;
+        });
+        afterEach(() => {
+            window.matchMedia = origMatchMedia;
+        });
+
+        it('shows the focus label in the subtitle when provided (Bug 6)', () => {
+            render(<WorkoutModeScreen {...defaultProps} focusLabel="Lower (Hamstrings & Glutes)" />);
+            expect(screen.getByText(/Lower \(Hamstrings & Glutes\) · 2 exercises/)).toBeInTheDocument();
+        });
+
+        it('falls back to the compact type+variant subtitle without a focus label', () => {
+            render(<WorkoutModeScreen {...defaultProps} />);
+            // defaultProps: workout_type 'push', variant 'A'
+            expect(screen.getByText(/Push A · 2 exercises/)).toBeInTheDocument();
+            expect(screen.queryByText(/Lower \(Hamstrings & Glutes\)/)).not.toBeInTheDocument();
+        });
     });
 
     it('shows only the next unsaved set as active, the rest as idle previews', () => {
