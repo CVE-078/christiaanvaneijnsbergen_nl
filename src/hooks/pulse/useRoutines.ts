@@ -261,8 +261,9 @@ export function useRoutines(activeRoutineId: string | null = null) {
             category: ExerciseCategory,
             defaultSets: string,
             defaultReps: string,
+            meta?: { movement_pattern?: string | null; equipment?: string[] | null; is_compound?: boolean | null },
         ): Promise<DbExercise> => {
-            const exercise = await serverCreateExercise(name, category, defaultSets, defaultReps);
+            const exercise = await serverCreateExercise(name, category, defaultSets, defaultReps, meta);
             await mutateExercises();
             return exercise;
         },
@@ -270,8 +271,15 @@ export function useRoutines(activeRoutineId: string | null = null) {
     );
 
     const updateExercise = useCallback(
-        async (id: string, name: string, defaultSets: string, defaultReps: string): Promise<void> => {
-            await serverUpdateExercise(id, name, defaultSets, defaultReps);
+        async (
+            id: string,
+            name: string,
+            category: ExerciseCategory,
+            defaultSets: string,
+            defaultReps: string,
+            meta?: { movement_pattern?: string | null; equipment?: string[] | null; is_compound?: boolean | null },
+        ): Promise<void> => {
+            await serverUpdateExercise(id, name, category, defaultSets, defaultReps, meta);
             await mutateExercises();
         },
         [mutateExercises],

@@ -220,8 +220,16 @@ export interface PulseContextValue {
         category: ExerciseCategory,
         defaultSets: string,
         defaultReps: string,
+        meta?: { movement_pattern?: string | null; equipment?: string[] | null; is_compound?: boolean | null },
     ) => Promise<DbExercise>;
-    updateExercise: (id: string, name: string, defaultSets: string, defaultReps: string) => Promise<void>;
+    updateExercise: (
+        id: string,
+        name: string,
+        category: ExerciseCategory,
+        defaultSets: string,
+        defaultReps: string,
+        meta?: { movement_pattern?: string | null; equipment?: string[] | null; is_compound?: boolean | null },
+    ) => Promise<void>;
     deleteExercise: (id: string) => Promise<void>;
 
     // Exercise preferences (hide / never-show + favorite)

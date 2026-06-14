@@ -75,8 +75,10 @@ export default function ExercisesTab() {
     function handleEditSave(id: string) {
         const name = editName.trim();
         if (!name) return;
+        const ex = exercises.find((e) => e.id === id);
+        if (!ex) return;
         startTransition(async () => {
-            await updateExercise(id, name, editDefaultSets.trim() || '3', editDefaultReps.trim() || '8-12');
+            await updateExercise(id, name, ex.category, editDefaultSets.trim() || '3', editDefaultReps.trim() || '8-12');
             setEditingId(null);
         });
     }
