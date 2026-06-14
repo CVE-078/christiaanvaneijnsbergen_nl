@@ -786,6 +786,34 @@ const FINISHER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['calf', 'core']
 // stored in the routine's `warnings` column.
 const LIMITED_VARIETY_WARNING = 'limited_variety';
 
+// ── Essential movement coverage (P1.1) ──────────────────────────────────────
+// Per-focus OR-groups of movement patterns a session must cover before its
+// budget is spent on optional slots. The first pass reserves budget for any
+// still-uncovered essential group, so a tight budget cannot starve a defining
+// pattern. Without this, the full-body emphases list horizontal_pull at slot
+// index 3; a 30-min beginner budget of 3 truncated before it, so a short
+// full-body WEEK trained zero pulls (Issue 1). When essentials fit naturally
+// (the common case, including every golden at its budget) no slot is skipped
+// and the first pass is byte-identical to the original. Only full_body is gated
+// today: the other focuses already cover their defining patterns within budget
+// via emphasis ordering + the compound floor, so their groups are empty (a
+// no-op path). The groups are OR-sets (any one pattern covers the group); the
+// walk fills whichever group pattern the emphasis lists first, and a final
+// inject step covers a group whose patterns are absent from the slot list or
+// had no candidates (degrading safely if the whole group is unavailable).
+const ESSENTIAL_PATTERNS: Record<Focus, MovementPattern[][]> = {
+    full_body: [
+        ['squat', 'hinge', 'lunge'],
+        ['horizontal_push', 'vertical_push'],
+        ['horizontal_pull', 'vertical_pull'],
+    ],
+    lower: [],
+    legs: [],
+    upper: [],
+    push: [],
+    pull: [],
+};
+
 // ── Lower-compound pattern priority + duress-fallback contract ───────────────
 // Lower-body compound priority (squat anchors over hinge over lunge). Used by
 // BOTH the exercise role model (ranking the Lower bucket, compareLowerRole) AND
@@ -1154,10 +1182,32 @@ function selectForSession(
         return true;
     };
 
-    // First pass: one exercise per slot in emphasis order.
+    // First pass: one exercise per slot in emphasis order, reserving budget for
+    // any still-uncovered ESSENTIAL group (P1.1) so a tight budget cannot starve
+    // a defining pattern. An "optional" slot (one that does not serve a currently
+    // uncovered essential group) is skipped when picking it would leave no room
+    // for the remaining uncovered essentials. When essentials fit naturally the
+    // reservation never bites and this is the exact original first pass.
+    const essentialGroups = ESSENTIAL_PATTERNS[focus];
+    const groupCovered = (group: MovementPattern[]) => chosen.some((c) => group.includes(c.pattern));
+    const uncoveredEssentials = () => essentialGroups.reduce((n, g) => (groupCovered(g) ? n : n + 1), 0);
     for (const slot of emphasis.slots) {
         if (chosen.length >= count) break;
+        const servesUncovered = essentialGroups.some((g) => !groupCovered(g) && g.includes(slot));
+        if (!servesUncovered && chosen.length + uncoveredEssentials() >= count) continue;
         pick(slot);
+    }
+    // Inject any essential group still uncovered: its emphasis pattern had no
+    // candidates, or no group pattern appears in the slot list. Try each pattern
+    // in the group in preference order; degrade safely if all are unavailable
+    // (the group stays uncovered, backfill fills the slot, and a later validation
+    // pass surfaces the gap).
+    for (const group of essentialGroups) {
+        if (chosen.length >= count) break;
+        if (groupCovered(group)) continue;
+        for (const p of group) {
+            if (pick(p)) break;
+        }
     }
 
     // Minimum-compound floor guard (live-test Issue 1): runs BEFORE backfill,

@@ -321,6 +321,54 @@ function sessionIds(bp: ReturnType<typeof generateRoutine>, wt: string, variant:
     return bp.exercises.filter((e) => e.workout_type === wt && e.variant === variant).map((e) => e.exercise_id);
 }
 
+// ── Essential movement coverage (P1.1) ───────────────────────────────────────
+
+describe('essential movement coverage (P1.1)', () => {
+    const LOWER: MovementPattern[] = ['squat', 'hinge', 'lunge'];
+    const PUSH: MovementPattern[] = ['horizontal_push', 'vertical_push'];
+    const PULL: MovementPattern[] = ['horizontal_pull', 'vertical_pull'];
+
+    it('a 30-min full-body week covers lower + push + pull in every session', () => {
+        // Regression for Issue 1: the full-body emphases list a pull at slot index 3,
+        // past a beginner 30-min budget of 3, so a short full-body WEEK trained zero
+        // pulls. Essential coverage must reserve budget for lower/push/pull.
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0], // fb-3
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool,
+            }),
+        );
+        for (const s of bp.schedule) {
+            const patterns = sessionIds(bp, s.workout_type, s.variant).map((id) => patternOf.get(id)!);
+            expect(patterns).toHaveLength(3);
+            expect(patterns.some((p) => LOWER.includes(p))).toBe(true);
+            expect(patterns.some((p) => PUSH.includes(p))).toBe(true);
+            expect(patterns.some((p) => PULL.includes(p))).toBe(true);
+        }
+    });
+
+    it('a full-body week never trains zero pulls across the whole week', () => {
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool,
+            }),
+        );
+        const weekPatterns = bp.exercises.map((e) => patternOf.get(e.exercise_id)!);
+        expect(weekPatterns.some((p) => PULL.includes(p))).toBe(true);
+    });
+});
+
 // ── 1. Equipment filter ──────────────────────────────────────────────────────
 
 describe('equipment filter', () => {

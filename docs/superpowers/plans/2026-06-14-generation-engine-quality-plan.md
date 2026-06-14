@@ -18,7 +18,7 @@
 
 | Item | Title | Phase | Status | Commit |
 |------|-------|-------|--------|--------|
-| P1.1 | Essential-coverage-first slot filling | 1 | TODO | |
+| P1.1 | Essential-coverage-first slot filling | 1 | DONE | feature/generation-quality |
 | P1.2 | Restriction catalogue correction + visible degradation | 1 | TODO | |
 | P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | TODO | |
 | P1.4 | Duration as a real constraint | 1 | TODO | |
@@ -49,13 +49,15 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 **Acceptance test:** generate every full-body style at 30 min for beginner/intermediate/advanced on a deep pool; assert at least one pull exists across the week, and that a 3-exercise full-body session covers lower + push + pull.
 
-- [ ] Write failing test: 30-min full-body week has weekly pull coverage.
-- [ ] Add `ESSENTIAL_PATTERNS` + essential-first logic in the first pass.
-- [ ] Run targeted + full suite; re-baseline affected short-session goldens.
-- [ ] Code-review the diff; commit.
+- [x] Write failing test: 30-min full-body week has weekly pull coverage.
+- [x] Add `ESSENTIAL_PATTERNS` + essential-first logic in the first pass.
+- [x] Run targeted + full suite (no goldens broke; reservation is byte-identical when essentials fit).
+- [x] Code-review the diff (clean); commit.
 
-**Done:** _(pending)_
-**Impact:** _(pending)_
+**Done:** Added `ESSENTIAL_PATTERNS` (full_body only today) in `generation.ts` and rebuilt the `selectForSession` first pass to reserve budget for each still-uncovered essential OR-group (one lower, one push, one pull), plus an inject step that covers a group whose patterns are absent from the slot list or had no candidates (degrades safely). 2 new tests; full suite 1570 green, typecheck clean. No frozen golden changed.
+**Impact:**
+- **User:** a short (30-min) full-body routine now always trains a pull, and a 3-exercise full-body day is lower + push + pull instead of two legs + a press. Longer full-body sessions and every non-full-body split regenerate byte-identically, so existing users see no churn.
+- **Engine:** truncation is now "essentials first" for full_body; other focuses use empty groups (a no-op path), so determinism and all six frozen goldens are preserved. The reservation only bites when the budget would otherwise drop a defining pattern.
 
 ## P1.2 Restriction catalogue correction + visible degradation (Issue 2)
 
