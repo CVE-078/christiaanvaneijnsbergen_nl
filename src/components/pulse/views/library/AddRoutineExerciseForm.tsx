@@ -14,6 +14,7 @@ export default function AddRoutineExerciseForm({
     exercises,
     unit,
     onAdd,
+    fixedType,
 }: {
     exercises: DbExercise[];
     unit: Unit;
@@ -24,6 +25,7 @@ export default function AddRoutineExerciseForm({
         startingWeightKg: number | null,
         workoutType: WorkoutType,
     ) => void;
+    fixedType?: WorkoutType;
 }) {
     const { favoriteExerciseIds } = usePulse();
 
@@ -31,11 +33,12 @@ export default function AddRoutineExerciseForm({
     const [addSets, setAddSets] = useState('3');
     const [addReps, setAddReps] = useState('8-12');
     const [addWeight, setAddWeight] = useState('');
-    const [addWorkoutType, setAddWorkoutType] = useState<WorkoutType>('push');
+    const [addWorkoutType, setAddWorkoutType] = useState<WorkoutType>(fixedType ?? 'push');
 
     const selectedEx = exercises.find((e) => e.id === pickExerciseId);
     const sortedExercises = floatFavorites(exercises, favoriteExerciseIds);
     useEffect(() => {
+        if (fixedType) return; // session editor: type is the session's type
         if (selectedEx) {
             const suggested = defaultWorkoutType(selectedEx.category as ExerciseCategory);
             if (suggested) setAddWorkoutType(suggested);
@@ -48,10 +51,10 @@ export default function AddRoutineExerciseForm({
         const trimmed = addWeight.trim();
         const raw = trimmed === '' ? NaN : parseFloat(trimmed);
         const kgValue = Number.isNaN(raw) ? null : toKg(raw, unit);
-        onAdd(pickExerciseId, addSets, addReps, kgValue, addWorkoutType);
+        onAdd(pickExerciseId, addSets, addReps, kgValue, fixedType ?? addWorkoutType);
         setPickExerciseId('');
         setAddWeight('');
-        setAddWorkoutType('push');
+        // No type reset: keep the last-used type (ad-hoc), or the fixed type.
     }
 
     return (
@@ -69,17 +72,19 @@ export default function AddRoutineExerciseForm({
                     </option>
                 ))}
             </select>
-            <select
-                aria-label="Workout type"
-                value={addWorkoutType}
-                onChange={(e) => setAddWorkoutType(e.target.value as WorkoutType)}
-                className={INPUT}>
-                {WORKOUT_TYPE_OPTIONS.map(({ value, label }) => (
-                    <option key={value} value={value}>
-                        {label}
-                    </option>
-                ))}
-            </select>
+            {!fixedType && (
+                <select
+                    aria-label="Workout type"
+                    value={addWorkoutType}
+                    onChange={(e) => setAddWorkoutType(e.target.value as WorkoutType)}
+                    className={INPUT}>
+                    {WORKOUT_TYPE_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>
+                            {label}
+                        </option>
+                    ))}
+                </select>
+            )}
             <div className="flex flex-wrap items-end gap-2">
                 <label className="flex flex-col gap-1">
                     <span className={SECTION_LABEL}>Sets</span>
