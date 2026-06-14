@@ -16,15 +16,7 @@ interface Props {
     onBack?: () => void;
 }
 
-export default function ExerciseDetailModal({
-    open,
-    routineExerciseId,
-    name,
-    logs,
-    unit,
-    onClose,
-    onBack,
-}: Props) {
+export default function ExerciseDetailModal({ open, routineExerciseId, name, logs, unit, onClose, onBack }: Props) {
     if (!open) return null;
 
     const history = computeE1RMHistory(logs, routineExerciseId);
@@ -44,7 +36,7 @@ export default function ExerciseDetailModal({
             </div>
 
             {/* Per-week history */}
-            <div className="flex-1 overflow-y-auto px-6 pb-1">
+            <div className="px-6">
                 {weeklyHistory.length === 0 ? (
                     <p className="py-6 text-center font-pulse text-sm text-pulse-muted">No sets logged yet.</p>
                 ) : (

@@ -209,8 +209,19 @@ export default function Why({ concept, params, variant = 'why', position = 'auto
                     isDesktop ? (
                         <WhyPopover copy={copy} anchorRect={anchorRect} position={position} onClose={close} />
                     ) : (
-                        <ModalSheet open title={copy.title} onClose={close}>
-                            <WhyBody copy={copy} className="px-6 pb-2" />
+                        <ModalSheet
+                            open
+                            title={copy.title}
+                            onClose={close}
+                            footer={
+                                <button
+                                    type="button"
+                                    onClick={close}
+                                    className="w-full rounded-[10px] bg-pulse-surface-2 py-2.5 text-center font-pulse text-[0.85rem] font-medium text-pulse-text">
+                                    Got it
+                                </button>
+                            }>
+                            <WhyBody copy={copy} className="px-6" />
                         </ModalSheet>
                     ),
                     document.body,

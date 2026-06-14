@@ -82,7 +82,7 @@ export default function CoachTimelineModal({
             title="Coach decisions"
             ariaLabel="Coach decision timeline"
             subtitle={`${count} ${count === 1 ? 'decision' : 'decisions'}`}>
-            <div className="flex-1 overflow-y-auto px-6 pb-1">
+            <div className="px-6">
                 {groups.map((g) => {
                     const phase = getPhase(g.week, programWeeks);
                     return (

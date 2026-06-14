@@ -247,7 +247,7 @@ function AllWorkoutsModal({
                 workouts.length > 0 ? `${workouts.length} ${workouts.length === 1 ? 'workout' : 'workouts'}` : undefined
             }>
             {/* Month-grouped workout list */}
-            <div className="flex-1 overflow-y-auto px-6 pb-1">
+            <div className="px-6">
                 {groups.map((group) => (
                     <div key={group.key}>
                         <ModalGroupHeader

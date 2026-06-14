@@ -241,8 +241,20 @@ export default function MeasurementsCard() {
             )}
 
             {/* All-four entry sheet (keeps the card compact + equal-height to BodyWeightCard) */}
-            <ModalSheet open={showLogModal} onClose={() => setShowLogModal(false)} title="Log measurements">
-                <div className="flex flex-col gap-3 px-6 pb-2">
+            <ModalSheet
+                open={showLogModal}
+                onClose={() => setShowLogModal(false)}
+                title="Log measurements"
+                footer={
+                    <button
+                        onClick={handleLog}
+                        disabled={isPending}
+                        style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
+                        className="w-full font-pulse text-[0.8125rem] font-semibold tracking-[0.04em] uppercase py-2.5 px-4 bg-pulse-accent border-none rounded-lg text-pulse-bg">
+                        Save
+                    </button>
+                }>
+                <div className="flex flex-col gap-3 px-6">
                     <div className="flex justify-end">
                         <UnitToggle value={lengthUnit} onChange={handleLengthUnitChange} />
                     </div>
@@ -277,13 +289,6 @@ export default function MeasurementsCard() {
                         </label>
                     ))}
                     {measureError && <div className="font-pulse text-[0.75rem] text-pulse-error">{measureError}</div>}
-                    <button
-                        onClick={handleLog}
-                        disabled={isPending}
-                        style={{ opacity: isPending ? 0.5 : 1, cursor: isPending ? 'not-allowed' : 'pointer' }}
-                        className="mt-1 w-full font-pulse text-[0.8125rem] font-semibold tracking-[0.04em] uppercase py-2.5 px-4 bg-pulse-accent border-none rounded-lg text-pulse-bg">
-                        Save
-                    </button>
                 </div>
             </ModalSheet>
 

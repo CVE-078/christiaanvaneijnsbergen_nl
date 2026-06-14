@@ -51,7 +51,14 @@ interface ExerciseFormSheetProps {
     onDelete?: (ex: DbExercise) => void;
 }
 
-export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubmit, onDelete }: ExerciseFormSheetProps) {
+export default function ExerciseFormSheet({
+    mode,
+    initial,
+    open,
+    onClose,
+    onSubmit,
+    onDelete,
+}: ExerciseFormSheetProps) {
     // Determine initial toggle state: ON if initial has a movement_pattern set.
     const initialToggleOn = mode === 'edit' && initial != null && (initial.movement_pattern ?? null) !== null;
 
@@ -104,7 +111,7 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
         // Category-change confirmation in edit mode.
         if (mode === 'edit' && initial && category !== initial.category) {
             const ok = window.confirm(
-                'Changing the category rewrites this exercise\'s past volume in Progress. Continue?',
+                "Changing the category rewrites this exercise's past volume in Progress. Continue?",
             );
             if (!ok) return;
         }
@@ -135,11 +142,36 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
     const saveLabel = mode === 'add' ? 'Add exercise' : 'Save';
 
     return (
-        <ModalSheet open={open} onClose={onClose} title={title}>
-            <div className="flex-1 overflow-y-auto px-6">
+        <ModalSheet
+            open={open}
+            onClose={onClose}
+            title={title}
+            maxWidth={640}
+            footer={
+                <div className="flex gap-2.5">
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={submitting}
+                        aria-label={saveLabel}
+                        className="flex-1 rounded-[10px] bg-pulse-accent py-[10px] text-center font-pulse text-[0.88rem] font-semibold text-white disabled:opacity-60">
+                        {saveLabel}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Cancel"
+                        className="rounded-[10px] border border-pulse-border px-[18px] py-[10px] text-center font-pulse text-[0.88rem] text-pulse-dim hover:text-pulse-text">
+                        Cancel
+                    </button>
+                </div>
+            }>
+            <div className="px-6">
                 {/* Name */}
                 <div className="mt-1 mb-3">
-                    <label htmlFor="exf-name" className="mb-1 block font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
+                    <label
+                        htmlFor="exf-name"
+                        className="mb-1 block font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
                         Name
                     </label>
                     <input
@@ -155,7 +187,9 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
 
                 {/* Category */}
                 <div className="mb-3">
-                    <label htmlFor="exf-category" className="mb-1 block font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
+                    <label
+                        htmlFor="exf-category"
+                        className="mb-1 block font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
                         Category
                     </label>
                     <select
@@ -175,7 +209,9 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
                 {/* Default sets + reps */}
                 <div className="mb-3 flex gap-3">
                     <div className="flex-1">
-                        <label htmlFor="exf-sets" className="mb-1 block font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
+                        <label
+                            htmlFor="exf-sets"
+                            className="mb-1 block font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
                             Default sets
                         </label>
                         <input
@@ -240,9 +276,12 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
                     onClick={handleToggleGen}
                     className="mb-1.5 flex w-full cursor-pointer items-start justify-between gap-3 rounded-[11px] border border-pulse-border bg-pulse-surface-2 px-3 py-2.5 text-left">
                     <div>
-                        <p className="font-pulse text-[0.86rem] font-medium text-pulse-text">Use in auto-generated routines</p>
+                        <p className="font-pulse text-[0.86rem] font-medium text-pulse-text">
+                            Use in auto-generated routines
+                        </p>
                         <p className="mt-0.5 font-pulse-body text-[0.73rem] leading-[1.4] text-pulse-dim">
-                            Tell the generator how this lift moves so it can program it for you. Off = logging only, add it to routines yourself.
+                            Tell the generator how this lift moves so it can program it for you. Off = logging only, add
+                            it to routines yourself.
                         </p>
                     </div>
                     {/* Toggle track */}
@@ -260,7 +299,9 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
                     <div className="mb-3 rounded-[11px] border border-pulse-accent/25 bg-pulse-accent/[0.04] px-3 py-2.5">
                         {/* Movement pattern */}
                         <div className="mb-2.5">
-                            <label htmlFor="exf-pattern" className="mb-1 block font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
+                            <label
+                                htmlFor="exf-pattern"
+                                className="mb-1 block font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
                                 Movement pattern
                             </label>
                             <select
@@ -281,7 +322,10 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
                         {/* Equipment multi-select chips */}
                         <div className="mb-2.5">
                             <p className="mb-1 font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
-                                Equipment <span className="normal-case tracking-normal text-pulse-dim">· pick all that apply</span>
+                                Equipment{' '}
+                                <span className="normal-case tracking-normal text-pulse-dim">
+                                    · pick all that apply
+                                </span>
                             </p>
                             <div className="flex flex-wrap gap-1.5">
                                 {EQUIPMENT_KEYS.map((key) => {
@@ -306,7 +350,9 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
 
                         {/* Compound / Isolation */}
                         <div>
-                            <p className="mb-1 font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">Type</p>
+                            <p className="mb-1 font-pulse-body text-[0.62rem] uppercase tracking-widest text-pulse-muted">
+                                Type
+                            </p>
                             <div className="flex gap-1 rounded-[9px] border border-pulse-border bg-pulse-surface-2 p-[3px]">
                                 {(['Compound', 'Isolation'] as const).map((label) => {
                                     const val = label === 'Compound';
@@ -320,9 +366,7 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
                                             aria-label={label}
                                             onClick={() => setIsCompound(val)}
                                             className={`flex-1 rounded-[7px] py-[6px] text-center font-pulse text-[0.8rem] transition-colors ${
-                                                active
-                                                    ? 'bg-pulse-accent font-medium text-white'
-                                                    : 'text-pulse-dim'
+                                                active ? 'bg-pulse-accent font-medium text-white' : 'text-pulse-dim'
                                             }`}>
                                             {label}
                                         </button>
@@ -345,25 +389,6 @@ export default function ExerciseFormSheet({ mode, initial, open, onClose, onSubm
                         </button>
                     </div>
                 )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex gap-2.5 px-6 pt-2.5 pb-2">
-                <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    aria-label={saveLabel}
-                    className="flex-1 rounded-[10px] bg-pulse-accent py-[10px] text-center font-pulse text-[0.88rem] font-semibold text-white disabled:opacity-60">
-                    {saveLabel}
-                </button>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    aria-label="Cancel"
-                    className="rounded-[10px] border border-pulse-border px-[18px] py-[10px] text-center font-pulse text-[0.88rem] text-pulse-dim hover:text-pulse-text">
-                    Cancel
-                </button>
             </div>
         </ModalSheet>
     );

@@ -98,7 +98,7 @@ export default function SessionDetailModal({ open, workout, unit, onClose, onBac
             </div>
 
             {/* Exercise breakdown: collapsible rows */}
-            <div className="flex-1 overflow-y-auto px-6 pb-1">
+            <div className="px-6">
                 {workout.exercises.length === 0 && (
                     <p className="py-6 text-center font-pulse text-sm text-pulse-muted">No set data available.</p>
                 )}
