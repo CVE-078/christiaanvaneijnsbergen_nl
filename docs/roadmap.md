@@ -24,7 +24,9 @@
 
 ## Status & next session (2026-06-14)
 
-**In progress:** UX clarity + a11y (password toggle keyboard focus + recovery-tile clarity) (`feature/ux-clarity-a11y`).
+**In progress:** (none).
+
+**Shipped, UX clarity + a11y (`feature/ux-clarity-a11y`, 2026-06-14):** two small fixes. (1) The password show/hide toggle is now keyboard-focusable (its `tabIndex={-1}` removed), so it sits in the tab order (field → toggle → submit) and can be operated without a mouse. (2) The Progress recovery tile's "Why" is now **state-aware**: the explain-layer `recovery` concept takes the readout's tone + driving muscles and returns a per-state title + cause + what-to-do (so "Watch" finally says which muscles and why), plus a **4-state colour-coded legend** (Fresh / Ready / Watch / Ease off) rendered by `WhyBody`, making the whole scale legible. No migration.
 
 **Shipped, Library tab deep-links (`feature/library-routines`, 2026-06-14, stacked on `feature/modals-modalsheet`):** `/pulse/library` and `/pulse/library/routines` are now deep-linkable and back/forward-aware, matching Progress / Profile. Pure `libraryTabFromPath` / `libraryTabPath` in `navigation.ts`, a `[tab]` route segment, and a URL-driven `LibraryView` (local tab mirrors `usePathname`, `router.push` on change). No migration. **Deferred (its own focused build): the Plan B RoutinesTab visual redesign** (restyled routine cards with split chips + active block-progress, a "New routine" chooser ModalSheet folding in Templates, a manage sheet, and the session editor in a sheet). It is a large component restructure plus a ~20-test rewrite of the superset/reorder editor, best verified live; the approved mockup is ready at `.superpowers/brainstorm/.../content/library-routines.html`.
 
