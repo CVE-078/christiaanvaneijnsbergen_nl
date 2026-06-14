@@ -49,13 +49,12 @@ export default function ExercisesTab() {
     const [formOpen, setFormOpen] = useState(false);
 
     // Derive the effective equipment set from travel-aware profile resolution.
-    const nowIso = new Date().toISOString();
+    const nowIso = useMemo(() => new Date().toISOString(), []);
     const timezone = profile.timezone ?? undefined;
     const activeId = profile.active_equipment_profile_id ?? null;
     const effectiveEquipment = useMemo(
         () => resolveEquipmentPrefill(equipmentProfiles, activeId, nowIso, timezone),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [equipmentProfiles, activeId],
+        [equipmentProfiles, activeId, nowIso, timezone],
     );
 
     // Derive active profile name for the filter control label.

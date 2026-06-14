@@ -89,7 +89,7 @@ export default function ExerciseRow({
                     e.stopPropagation();
                     onToggleFavorite(exercise);
                 }}
-                className={`shrink-0 cursor-pointer border-none bg-transparent p-0${favorite ? ' text-pulse-accent' : ' text-[#3a4250]'}`}>
+                className={`shrink-0 cursor-pointer border-none bg-transparent p-0${favorite ? ' text-pulse-accent' : ' text-pulse-muted'}`}>
                 <StarIcon filled={favorite} />
             </button>
 
