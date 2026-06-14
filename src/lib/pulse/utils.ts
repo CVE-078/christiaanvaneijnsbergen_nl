@@ -54,6 +54,7 @@ import type {
     ProgramPosition,
     SessionTargetRow,
     RecompTrend,
+    PrescriptionUnit,
 } from './types';
 
 // UUID v4 pattern used in new log keys
@@ -377,6 +378,28 @@ export function estimateSessionMinutes(rows: Array<{ sets: number; is_compound?:
         seconds += sets * (WORK_PER_SET_S + rest);
     }
     return Math.max(0, Math.round(seconds / 60 / 5) * 5);
+}
+
+// Format a session prescription for display (P1.3). The generator stores a numeric
+// rep range in routine_exercises.reps for every exercise (so the rep-based logger
+// keeps working); this turns that into the right label given the exercise's
+// `prescription_unit`:
+//   - 'time'     -> a hold from the catalogue (`hold`, e.g. "30-60s"), so an
+//                   isometric like Plank reads "30-60s hold", never a rep count.
+//   - 'per_side' -> "<reps> reps/side" for unilateral work.
+//   - 'reps' / unset -> "<reps> reps" (the existing behaviour).
+const DEFAULT_HOLD = '30-60s';
+export function formatPrescription(
+    reps: string,
+    unit: PrescriptionUnit | null | undefined,
+    hold?: string | null,
+    opts?: { compact?: boolean },
+): string {
+    const compact = opts?.compact ?? false;
+    const h = typeof hold === 'string' && hold.trim() ? hold : DEFAULT_HOLD;
+    if (unit === 'time') return compact ? h : `${h} hold`;
+    if (unit === 'per_side') return compact ? `${reps}/side` : `${reps} reps/side`;
+    return compact ? reps : `${reps} reps`;
 }
 
 // A lift is plateaued when its best e1RM has not improved across the last
@@ -708,6 +731,9 @@ export function computeSessionTargets(exercises: RoutineExercise[], logs: Logs, 
             name: re.exercise?.name ?? '',
             sets: re.sets,
             reps: re.reps,
+            prescription: formatPrescription(re.reps, re.exercise?.prescription_unit, re.exercise?.default_reps, {
+                compact: true,
+            }),
             bodyweight: isBodyweight(re.exercise?.equipment),
             weightKg,
         };

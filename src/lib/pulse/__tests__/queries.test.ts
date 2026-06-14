@@ -181,7 +181,7 @@ describe('loadExercises', () => {
         const exercises = await loadExercises(client, UID);
         expect(calls.table).toBe('exercises');
         expect(calls.select).toBe(
-            'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications',
+            'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications, prescription_unit',
         );
         expect(exercises.map((e) => e.name)).toEqual(['Bench', 'Squat', 'Curl']);
     });

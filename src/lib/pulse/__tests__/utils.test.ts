@@ -2296,3 +2296,32 @@ describe('sessionFocusLabel (Bug 6)', () => {
         expect(sessionFocusLabel(rows, 'lower', null)).toBe('Lower (Quads)');
     });
 });
+
+import { formatPrescription } from '@/lib/pulse/utils';
+
+describe('formatPrescription (P1.3)', () => {
+    it('renders a rep range with the reps label (default / unset unit)', () => {
+        expect(formatPrescription('8-12', 'reps', '8-12')).toBe('8-12 reps');
+        expect(formatPrescription('8-12', undefined, '8-12')).toBe('8-12 reps');
+        expect(formatPrescription('8-12', null, null)).toBe('8-12 reps');
+    });
+    it('renders a timed hold from the catalogue hold, not the generated reps', () => {
+        // The generated reps ("12-15") are ignored; the hold comes from the
+        // exercise's stored prescription so a Plank never reads as a rep range.
+        expect(formatPrescription('12-15', 'time', '30-60s')).toBe('30-60s hold');
+    });
+    it('falls back to a default hold when the catalogue hold is missing', () => {
+        expect(formatPrescription('12-15', 'time', '')).toBe('30-60s hold');
+        expect(formatPrescription('12-15', 'time', null)).toBe('30-60s hold');
+    });
+    it('marks per-side prescriptions for unilateral work', () => {
+        expect(formatPrescription('10-12', 'per_side', '10-12')).toBe('10-12 reps/side');
+    });
+    it('compact mode drops the "reps" word for the compact prescription surfaces', () => {
+        // Used by the next-session preview + the routine editor row, which render
+        // "{sets} × {prescription}".
+        expect(formatPrescription('8-12', 'reps', '8-12', { compact: true })).toBe('8-12');
+        expect(formatPrescription('12-15', 'time', '30-60s', { compact: true })).toBe('30-60s');
+        expect(formatPrescription('10-12', 'per_side', '10-12', { compact: true })).toBe('10-12/side');
+    });
+});

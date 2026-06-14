@@ -49,7 +49,7 @@ export default function NextSessionCard({ sessionLabel, dayLabel, rows, unit, on
                                 {row.name}
                             </div>
                             <div className="font-pulse-body text-[0.6875rem] tracking-[0.04em] text-pulse-muted mt-0.5">
-                                {row.sets} × {row.reps}
+                                {row.sets} × {row.prescription}
                             </div>
                         </div>
                         <span className="shrink-0 font-pulse text-[0.875rem] font-semibold tabular-nums text-pulse-dim">

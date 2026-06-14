@@ -20,7 +20,8 @@
 |------|-------|-------|--------|--------|
 | P1.1 | Essential-coverage-first slot filling | 1 | DONE | feature/generation-quality |
 | P1.2 | Restriction tag fixes + visible degradation | 1 | DONE | feature/generation-quality (migration hand-apply) |
-| P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | TODO | |
+| P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | DONE | feature/generation-quality (migration hand-apply) |
+| P1.3b | Log timed holds in Train/guided | 2 | TODO | deeper logging feature, deferred |
 | P1.4 | Duration over-band warning | 1 | DONE | feature/generation-quality |
 | P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | TODO | accuracy polish, not a blocker |
 | P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
@@ -91,13 +92,15 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 **Dependencies:** none. **Regression risk:** low-medium; goldens asserting `/^\d+-\d+$/` on core exercises need updating. **Migration:** hand-apply on merge.
 
-- [ ] Write failing test: Plank gets a time prescription, never `\d+-\d+` reps.
-- [ ] Author the migration (column + tagging).
-- [ ] Add `prescription_unit` to types + the generator branch.
-- [ ] Run suite; re-baseline affected goldens; code-review; commit.
+- [x] Write failing test: Plank gets a time prescription, never a rep range.
+- [x] Author the migration (column + Plank 'time' + unilateral 'per_side').
+- [x] Add `prescription_unit` to types + a pure `formatPrescription` helper (verbose + compact).
+- [x] Wire all three DISPLAY surfaces; run suite; code-review (clean); commit.
 
-**Done:** _(pending)_
-**Impact:** _(pending)_
+**Done:** Added `prescription_unit` ('reps' | 'time' | 'per_side') to the exercise model, a pure `formatPrescription` helper (verbose + compact modes, defensive hold guard), and threaded a compact `prescription` through `SessionTargetRow`. All three display prescription surfaces render correctly: the Plan accordion (`PlanSessionList`, verbose), the next-session preview (`NextSessionCard`), and the library routine editor (`RoutineExerciseRow`). The generator and stored `routine_exercises.reps` are deliberately UNCHANGED, so the rep-based logger and every generation golden are untouched. Migration `2026-06-14-22-27-38-exercise-prescription-unit.sql` (hand-apply): column + Plank -> 'time' + unilateral -> 'per_side'. 6 new formatter tests + a query-projection baseline update; suite 1580 green, typecheck clean. Second-opinion review: clean.
+**Impact:**
+- **User:** a Plank now reads "30-60s hold" instead of "12-15 reps", and unilateral lifts read per side ("10-12 reps/side" / "10-12/side"), consistently across the Plan, next-session, and routine-editor surfaces.
+- **Engine:** display-layer fix only. The generator, stored reps, and the rep-based logger are unchanged, so all goldens hold. Logging a timed hold in Train/guided (the logger accepting seconds, not reps) is a deeper deferred feature, tracked as P1.3b.
 
 ## P1.4 Duration as a real constraint (Issue 7) — has a product fork (see decision log)
 
