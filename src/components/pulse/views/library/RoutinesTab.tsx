@@ -2,23 +2,26 @@
 import { useState, useTransition } from 'react';
 import { mutate } from 'swr';
 import { usePulse } from '@/context/PulseContext';
-import { sessionTypeFor } from '@/lib/pulse/utils';
-import type { RoutineExercise, WorkoutType, WorkoutVariant } from '@/lib/pulse/types';
-import { WORKOUT_TYPE_LABELS } from '@/lib/pulse/constants';
-import { INPUT, BTN_PRIMARY, BTN_GHOST, CARD } from '@/components/pulse/ui';
+import { sessionTypeFor, formatProgramStatus } from '@/lib/pulse/utils';
+import { routineSessionChips } from '@/lib/pulse/library';
+import type { WorkoutType, WorkoutVariant } from '@/lib/pulse/types';
 import GenerateRoutineButton from '@/components/pulse/GenerateRoutineButton';
-import RoutineExerciseRow from './RoutineExerciseRow';
-import AddRoutineExerciseForm from './AddRoutineExerciseForm';
-
-const SECTION_LABEL = 'font-pulse text-[0.625rem] tracking-[0.1em] uppercase text-pulse-muted';
+import RoutineCard from './RoutineCard';
+import NewRoutineChooser from './NewRoutineChooser';
+import RoutineManageSheet from './RoutineManageSheet';
+import RoutineSessionEditor from './RoutineSessionEditor';
 
 // ── Routines tab ───────────────────────────────────────────────────────────────
+// Card list + a "New routine" chooser; each card opens a manage sheet, and a
+// scheduled routine's sessions open a per-session editor. Ad-hoc routines edit
+// inline inside the manage sheet. All mutations reuse the existing usePulse actions.
 export default function RoutinesTab() {
     const {
         routines,
         activeRoutine,
         exercises,
         profile,
+        programPosition,
         createRoutine,
         renameRoutine,
         deleteRoutine,
@@ -29,136 +32,52 @@ export default function RoutinesTab() {
         reorderRoutineExercises,
     } = usePulse();
     const [, startTransition] = useTransition();
-
     const unit = profile.unit;
 
-    const [routineName, setRoutineName] = useState('');
-    const [renamingId, setRenamingId] = useState<string | null>(null);
-    const [renameInput, setRenameInput] = useState('');
+    const [chooserOpen, setChooserOpen] = useState(false);
+    const [manageRoutineId, setManageRoutineId] = useState<string | null>(null);
+    const [editorSession, setEditorSession] = useState<{ type: WorkoutType; variant: WorkoutVariant | null } | null>(
+        null,
+    );
 
-    function handleCreateRoutine() {
-        const name = routineName.trim();
-        if (!name) return;
+    const managed = routines.find((r) => r.id === manageRoutineId) ?? null;
+
+    // ── Mutations (reused from the previous RoutinesTab) ──────────────────────
+    const handleCreateAdHoc = (name: string) =>
         startTransition(async () => {
-            await createRoutine(name);
-            setRoutineName('');
+            const created = await createRoutine(name);
+            setChooserOpen(false);
+            setManageRoutineId(created.id); // open the new routine so the user can add exercises
         });
-    }
-
-    function handleSetActive(id: string) {
-        startTransition(async () => {
-            await setActiveRoutine(id);
-        });
-    }
-
-    function handleDeleteRoutine(id: string, name: string) {
-        if (!window.confirm(`Delete routine "${name}"? This cannot be undone.`)) return;
+    const handleSetActive = (id: string) => startTransition(async () => void (await setActiveRoutine(id)));
+    const handleRename = (id: string, name: string) =>
+        startTransition(async () => void (await renameRoutine(id, name)));
+    const handleDelete = (id: string) =>
         startTransition(async () => {
             await deleteRoutine(id);
+            setManageRoutineId(null);
+            setEditorSession(null);
         });
-    }
-
-    function handleRenameSave(id: string) {
-        const name = renameInput.trim();
-        setRenamingId(null);
-        if (!name) return;
-        startTransition(async () => {
-            await renameRoutine(id, name);
-        });
-    }
-
-    function handleAddExercise(
+    const handleAdd = (
+        routineId: string,
         exerciseId: string,
         sets: string,
         reps: string,
-        startingWeightKg: number | null,
-        workoutType: WorkoutType,
-    ) {
-        if (!activeRoutine) return;
-        startTransition(async () => {
-            await addExerciseToRoutine(activeRoutine.id, exerciseId, sets, reps, startingWeightKg, workoutType);
-        });
-    }
+        kg: number | null,
+        type: WorkoutType,
+    ) => startTransition(async () => void (await addExerciseToRoutine(routineId, exerciseId, sets, reps, kg, type)));
+    const handleUpdate = (id: string, sets: string, reps: string, kg: number | null, rest: number | null) =>
+        startTransition(async () => void (await updateRoutineExercise(id, sets, reps, kg, rest)));
+    const handleReorder = (routineId: string, orderedIds: string[]) =>
+        startTransition(async () => void (await reorderRoutineExercises(routineId, orderedIds)));
 
-    const sortedActiveExercises = activeRoutine ? [...activeRoutine.exercises].sort((a, b) => a.order - b.order) : [];
-
-    async function handleMove(index: number, dir: -1 | 1) {
-        if (!activeRoutine) return;
-        const reordered = [...sortedActiveExercises];
-        const re = reordered[index];
-
-        if (re.superset_group_id !== null) {
-            const pairIdx = reordered
-                .map((r, i) => (r.superset_group_id === re.superset_group_id ? i : -1))
-                .filter((i) => i !== -1)
-                .sort((a, b) => a - b);
-            const [fi, si] = pairIdx;
-            if (dir === -1) {
-                if (fi === 0) return;
-                const above = reordered[fi - 1];
-                if (above.superset_group_id !== null) {
-                    // The neighbor above is itself a pair: move both of its members
-                    // as a unit so its adjacency is preserved.
-                    const neighbor = reordered
-                        .map((r, i) => (r.superset_group_id === above.superset_group_id ? i : -1))
-                        .filter((i) => i !== -1)
-                        .sort((a, b) => a - b);
-                    const start = neighbor[0];
-                    const count = neighbor.length;
-                    const moved = reordered.splice(start, count);
-                    reordered.splice(si + 1 - count, 0, ...moved);
-                } else {
-                    const [moved] = reordered.splice(fi - 1, 1);
-                    reordered.splice(fi + 1, 0, moved);
-                }
-            } else {
-                if (si === reordered.length - 1) return;
-                const below = reordered[si + 1];
-                if (below.superset_group_id !== null) {
-                    // The neighbor below is itself a pair: move both of its members
-                    // as a unit so its adjacency is preserved.
-                    const neighbor = reordered
-                        .map((r, i) => (r.superset_group_id === below.superset_group_id ? i : -1))
-                        .filter((i) => i !== -1)
-                        .sort((a, b) => a - b);
-                    const start = neighbor[0];
-                    const count = neighbor.length;
-                    const moved = reordered.splice(start, count);
-                    reordered.splice(fi, 0, ...moved);
-                } else {
-                    const [moved] = reordered.splice(si + 1, 1);
-                    reordered.splice(fi, 0, moved);
-                }
-            }
-        } else {
-            const target = index + dir;
-            if (target < 0 || target >= reordered.length) return;
-            const targetRe = reordered[target];
-            if (targetRe.superset_group_id !== null) {
-                const pairFirst = reordered.findIndex((r) => r.superset_group_id === targetRe.superset_group_id);
-                const [moved] = reordered.splice(index, 1);
-                if (dir === -1) {
-                    reordered.splice(pairFirst, 0, moved);
-                } else {
-                    reordered.splice(pairFirst + 1, 0, moved);
-                }
-            } else {
-                [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-            }
-        }
-
-        const orderedIds = reordered.map((r) => r.id);
-        await reorderRoutineExercises(activeRoutine.id, orderedIds);
-    }
-
-    async function handleRemove(id: string) {
-        const exercise = sortedActiveExercises.find((r) => r.id === id);
-        if (exercise?.superset_group_id) {
-            await fetch(`/api/pulse/supersets/${exercise.superset_group_id}`, { method: 'DELETE' });
+    async function handleRemove(routineId: string, id: string) {
+        const ex = routines.find((r) => r.id === routineId)?.exercises.find((re) => re.id === id);
+        if (ex?.superset_group_id) {
+            await fetch(`/api/pulse/supersets/${ex.superset_group_id}`, { method: 'DELETE' });
         }
         await removeExerciseFromRoutine(id);
     }
-
     async function handlePair(exerciseAId: string, exerciseBId: string) {
         const res = await fetch('/api/pulse/supersets', {
             method: 'POST',
@@ -168,219 +87,178 @@ export default function RoutinesTab() {
         if (!res.ok) return;
         await mutate('/api/pulse/routines');
     }
-
     async function handleUnpair(groupId: string) {
         const res = await fetch(`/api/pulse/supersets/${groupId}`, { method: 'DELETE' });
         if (!res.ok) return;
         await mutate('/api/pulse/routines');
     }
 
-    function handleUpdateExercise(
-        id: string,
-        sets: string,
-        reps: string,
-        startingWeightKg: number | null,
-        restSeconds: number | null,
-    ) {
-        startTransition(async () => {
-            await updateRoutineExercise(id, sets, reps, startingWeightKg, restSeconds);
-        });
-    }
-
-    // Group the active routine into sessions by (session type, variant), keeping
-    // each row's global index into sortedActiveExercises so move/pair logic stays
-    // unchanged. The session type comes from what the routine actually schedules:
-    // a full-body routine tags exercises push/pull/legs but is one "Full Body"
-    // session, so those roll up via sessionTypeFor. One group -> flat list.
-    const scheduleTypes = activeRoutine ? [...new Set(activeRoutine.schedule.map((s) => s.workout_type))] : [];
-    const sessionGroups: {
-        type: WorkoutType;
-        variant: WorkoutVariant | null;
-        items: { re: RoutineExercise; index: number }[];
-    }[] = [];
-    {
-        const byKey = new Map<string, number>();
-        sortedActiveExercises.forEach((re, index) => {
-            const sessionType = sessionTypeFor(re.workout_type, scheduleTypes);
-            const key = `${sessionType}:${re.variant ?? ''}`;
-            let gi = byKey.get(key);
-            if (gi === undefined) {
-                gi = sessionGroups.length;
-                byKey.set(key, gi);
-                sessionGroups.push({ type: sessionType, variant: re.variant ?? null, items: [] });
-            }
-            sessionGroups[gi].items.push({ re, index });
-        });
-    }
-
-    function renderRow(re: RoutineExercise, i: number, displayNumber: number) {
-        const isPaired = re.superset_group_id !== null;
-        const pairIndices = isPaired
-            ? sortedActiveExercises
-                  .map((r, idx) => (r.superset_group_id === re.superset_group_id ? idx : -1))
-                  .filter((idx) => idx !== -1)
-                  .sort((a, b) => a - b)
+    // ── Card meta + active-routine progress ───────────────────────────────────
+    const activeStatus =
+        activeRoutine && programPosition
+            ? formatProgramStatus(programPosition, activeRoutine.program_weeks ?? 12)
             : null;
-        const firstPairIdx = pairIndices?.[0] ?? i;
-        const secondPairIdx = pairIndices?.[1] ?? i;
-        const isFirstInPair = isPaired && i === firstPairIdx;
-        const next = sortedActiveExercises[i + 1];
-        const canPairWithNext = !isPaired && next !== undefined && next.superset_group_id === null;
 
-        let canMoveUp: boolean;
-        let canMoveDown: boolean;
-        if (isPaired) {
-            canMoveUp = firstPairIdx > 0;
-            canMoveDown = secondPairIdx < sortedActiveExercises.length - 1;
-        } else {
-            canMoveUp = i > 0;
-            canMoveDown = i < sortedActiveExercises.length - 1;
+    const cardMeta = (r: (typeof routines)[number]): string => {
+        if (r.schedule.length === 0) {
+            const n = r.exercises.length;
+            return `${n} ${n === 1 ? 'exercise' : 'exercises'} · no fixed schedule`;
         }
+        const sessions = routineSessionChips(r).length;
+        return `${sessions} ${sessions === 1 ? 'session' : 'sessions'} · ${r.program_weeks ?? 12}-week plan`;
+    };
 
-        return (
-            <RoutineExerciseRow
-                key={re.id}
-                re={re}
-                index={i}
-                displayNumber={displayNumber}
-                total={sortedActiveExercises.length}
-                unit={unit}
-                onMove={handleMove}
-                onRemove={handleRemove}
-                onUpdate={handleUpdateExercise}
-                canMoveUp={canMoveUp}
-                canMoveDown={canMoveDown}
-                onPair={canPairWithNext ? () => handlePair(re.id, next.id) : undefined}
-                onUnpair={isFirstInPair ? () => handleUnpair(re.superset_group_id!) : undefined}
-            />
-        );
-    }
+    // ── Session editor inputs (scheduled routine) ─────────────────────────────
+    const scheduleTypes = managed ? [...new Set(managed.schedule.map((s) => s.workout_type))] : [];
+    const orderedExercises = managed ? [...managed.exercises].sort((a, b) => a.order - b.order) : [];
+    const sessionExercises =
+        managed && editorSession
+            ? orderedExercises.filter(
+                  (re) =>
+                      sessionTypeFor(re.workout_type, scheduleTypes) === editorSession.type &&
+                      (re.variant ?? null) === editorSession.variant,
+              )
+            : [];
+    const sessionLabel = editorSession
+        ? sessionExercises.length > 0 || managed
+            ? editorSession.variant
+                ? `${editorSession.type[0].toUpperCase()}${editorSession.type.slice(1)} ${editorSession.variant}`
+                : `${editorSession.type[0].toUpperCase()}${editorSession.type.slice(1)}`
+            : ''
+        : '';
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Unified toolbar, Generate + Create routine actions in one row. */}
-            <div className="flex items-center gap-2">
-                <input
-                    aria-label="Routine name"
-                    placeholder="Routine name"
-                    value={routineName}
-                    onChange={(e) => setRoutineName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleCreateRoutine();
-                    }}
-                    className={`${INPUT} flex-1 min-w-0`}
-                />
-                <button onClick={handleCreateRoutine} className={`${BTN_PRIMARY} shrink-0`}>
-                    Create
+            {/* Count row + accent New routine */}
+            <div className="flex items-center justify-between">
+                <span className="font-pulse-body text-[0.66rem] uppercase tracking-[0.08em] text-pulse-muted">
+                    {routines.length} {routines.length === 1 ? 'routine' : 'routines'}
+                </span>
+                <button
+                    type="button"
+                    onClick={() => setChooserOpen(true)}
+                    className="flex items-center gap-1 rounded-lg bg-pulse-accent px-3 py-1.5 font-pulse text-[0.78rem] font-semibold text-pulse-bg">
+                    <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        aria-hidden>
+                        <line x1="8" y1="3" x2="8" y2="13" strokeLinecap="round" />
+                        <line x1="3" y1="8" x2="13" y2="8" strokeLinecap="round" />
+                    </svg>
+                    New routine
                 </button>
-                <GenerateRoutineButton label="Generate" className={`${BTN_GHOST} shrink-0`} />
             </div>
 
-            {/* Routine list */}
-            <div className="flex flex-col gap-2">
-                {routines.length === 0 ? (
-                    <div className="font-pulse text-[0.8125rem] text-pulse-muted tracking-[0.04em]">
-                        No routines yet. Create one above.
-                    </div>
-                ) : (
-                    routines.map((r) => {
+            {/* Card list */}
+            {routines.length === 0 ? (
+                <div className="font-pulse text-[0.8125rem] tracking-[0.04em] text-pulse-muted">
+                    No routines yet. Create one above.
+                </div>
+            ) : (
+                <div className="flex flex-col gap-2">
+                    {routines.map((r) => {
                         const isActive = activeRoutine?.id === r.id;
                         return (
-                            <div
+                            <RoutineCard
                                 key={r.id}
-                                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${
-                                    isActive ? 'bg-pulse-surface ring-1 ring-pulse-accent/40' : 'bg-pulse-surface'
-                                }`}>
-                                {renamingId === r.id ? (
-                                    <input
-                                        autoFocus
-                                        aria-label={`Rename ${r.name}`}
-                                        value={renameInput}
-                                        onChange={(e) => setRenameInput(e.target.value)}
-                                        onBlur={() => handleRenameSave(r.id)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleRenameSave(r.id);
-                                            if (e.key === 'Escape') setRenamingId(null);
-                                        }}
-                                        className={`${INPUT} flex-1 min-w-0`}
-                                    />
-                                ) : (
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-pulse text-sm text-pulse-text truncate">{r.name}</div>
-                                        <div className="font-pulse text-xs text-pulse-dim">
-                                            {r.exercises.length} {r.exercises.length === 1 ? 'exercise' : 'exercises'}
-                                        </div>
-                                    </div>
-                                )}
-                                {isActive ? (
-                                    <span className="font-pulse text-[0.625rem] tracking-[0.08em] uppercase text-pulse-accent bg-pulse-accent/10 rounded-full px-2 py-0.5 shrink-0">
-                                        Active
-                                    </span>
-                                ) : (
-                                    <button
-                                        onClick={() => handleSetActive(r.id)}
-                                        className="font-pulse text-xs text-pulse-dim bg-pulse-surface-2 border-none rounded-lg px-3 py-1.5 cursor-pointer shrink-0">
-                                        Set active
-                                    </button>
-                                )}
-                                {renamingId !== r.id && (
-                                    <button
-                                        onClick={() => {
-                                            setRenamingId(r.id);
-                                            setRenameInput(r.name);
-                                        }}
-                                        aria-label={`Rename ${r.name}`}
-                                        className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                                        Rename
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => handleDeleteRoutine(r.id, r.name)}
-                                    aria-label={`Delete ${r.name}`}
-                                    className="font-pulse text-xs text-pulse-dim bg-transparent border-none cursor-pointer shrink-0">
-                                    Delete
-                                </button>
-                            </div>
+                                routine={r}
+                                isActive={isActive}
+                                progress={
+                                    isActive && activeStatus
+                                        ? { fraction: activeStatus.progress, label: activeStatus.weekLabel }
+                                        : null
+                                }
+                                meta={cardMeta(r)}
+                                onOpen={() => {
+                                    setEditorSession(null);
+                                    setManageRoutineId(r.id);
+                                }}
+                            />
                         );
-                    })
-                )}
-            </div>
-
-            {/* Active routine editor */}
-            {activeRoutine && (
-                <div className={`${CARD} flex flex-col gap-4`}>
-                    <div className="font-pulse text-sm font-semibold text-pulse-text">
-                        Active: <span className="text-pulse-accent">{activeRoutine.name}</span>
-                    </div>
-
-                    {/* Add exercise to routine */}
-                    <AddRoutineExerciseForm exercises={exercises} unit={unit} onAdd={handleAddExercise} />
-
-                    {/* Routine exercise list */}
-                    <div className="flex flex-col gap-3">
-                        {sortedActiveExercises.length === 0 ? (
-                            <div className="font-pulse text-[0.8125rem] text-pulse-muted tracking-[0.04em]">
-                                No exercises in this routine yet.
-                            </div>
-                        ) : sessionGroups.length <= 1 ? (
-                            <div className="flex flex-col gap-2">
-                                {sortedActiveExercises.map((re, i) => renderRow(re, i, i + 1))}
-                            </div>
-                        ) : (
-                            sessionGroups.map((group) => (
-                                <div key={`${group.type}:${group.variant ?? ''}`} className="flex flex-col gap-2">
-                                    <div className={SECTION_LABEL}>
-                                        {WORKOUT_TYPE_LABELS[group.type]}
-                                        {group.variant ? ` · ${group.variant}` : ''}
-                                    </div>
-                                    {/* Per-session numbering (1..n within the section) matches Plan;
-                                        the global `index` still drives reorder/move bounds. */}
-                                    {group.items.map(({ re, index }, j) => renderRow(re, index, j + 1))}
-                                </div>
-                            ))
-                        )}
-                    </div>
+                    })}
                 </div>
+            )}
+
+            {/* New routine chooser: Generate (reuses GenerateRoutineButton) + Ad-hoc */}
+            <NewRoutineChooser
+                open={chooserOpen}
+                onClose={() => setChooserOpen(false)}
+                onAdHoc={handleCreateAdHoc}
+                generateSlot={
+                    <GenerateRoutineButton className="flex w-full items-center gap-3 rounded-[13px] border border-pulse-accent/40 bg-pulse-accent/[0.06] p-3.5 text-left">
+                        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] bg-pulse-accent text-pulse-bg">
+                            <svg
+                                width="17"
+                                height="17"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                aria-hidden>
+                                <path d="M8 1.5l1.6 3.4 3.7.5-2.7 2.6.7 3.7L8 10.4 4.7 12.2l.7-3.7L2.7 5.9l3.7-.5z" />
+                            </svg>
+                        </span>
+                        <span>
+                            <span className="font-pulse text-[0.9rem] font-medium text-pulse-text">
+                                Generate a routine
+                            </span>
+                            <span className="mt-0.5 block font-pulse text-[0.74rem] text-pulse-dim">
+                                Answer a few questions, we build and periodize it.
+                            </span>
+                        </span>
+                    </GenerateRoutineButton>
+                }
+            />
+
+            {/* Manage sheet (one open at a time; session editor replaces it) */}
+            {managed && !editorSession && (
+                <RoutineManageSheet
+                    open
+                    routine={managed}
+                    isActive={activeRoutine?.id === managed.id}
+                    exercises={exercises}
+                    unit={unit}
+                    onClose={() => setManageRoutineId(null)}
+                    onSetActive={() => handleSetActive(managed.id)}
+                    onRename={(name) => handleRename(managed.id, name)}
+                    onDelete={() => handleDelete(managed.id)}
+                    onOpenSession={(group) => setEditorSession(group)}
+                    onReorder={(ids) => handleReorder(managed.id, ids)}
+                    onRemove={(id) => handleRemove(managed.id, id)}
+                    onUpdate={handleUpdate}
+                    onAdd={(exId, sets, reps, kg, type) => handleAdd(managed.id, exId, sets, reps, kg, type)}
+                    onPair={handlePair}
+                    onUnpair={handleUnpair}
+                />
+            )}
+
+            {/* Per-session editor (scheduled routine) */}
+            {managed && editorSession && (
+                <RoutineSessionEditor
+                    open
+                    onClose={() => {
+                        setEditorSession(null);
+                        setManageRoutineId(null);
+                    }}
+                    onBack={() => setEditorSession(null)}
+                    title={sessionLabel}
+                    subtitle={`${managed.name} · ${sessionExercises.length} ${sessionExercises.length === 1 ? 'exercise' : 'exercises'}`}
+                    sessionExercises={sessionExercises}
+                    allExerciseIds={orderedExercises.map((re) => re.id)}
+                    type={editorSession.type}
+                    exercises={exercises}
+                    unit={unit}
+                    onReorder={(ids) => handleReorder(managed.id, ids)}
+                    onRemove={(id) => handleRemove(managed.id, id)}
+                    onUpdate={handleUpdate}
+                    onAdd={(exId, sets, reps, kg, type) => handleAdd(managed.id, exId, sets, reps, kg, type)}
+                    onPair={handlePair}
+                    onUnpair={handleUnpair}
+                />
             )}
         </div>
     );

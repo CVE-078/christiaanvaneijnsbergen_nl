@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { usePulse } from '@/context/PulseContext';
 import { BTN_PRIMARY } from '@/components/pulse/ui';
 import { recommendStyle } from '@/lib/pulse/generation';
@@ -14,9 +14,12 @@ import TuneYourPlanPanel, { type TuneYourPlanState } from './TuneYourPlanPanel';
 export default function GenerateRoutineButton({
     className,
     label = 'Generate routine',
+    children,
 }: {
     className?: string;
     label?: string;
+    /** Custom button content (e.g. a rich chooser row). Falls back to `label`. */
+    children?: ReactNode;
 }) {
     const {
         generateRoutine,
@@ -45,7 +48,7 @@ export default function GenerateRoutineButton({
     return (
         <>
             <button onClick={() => setOpen(true)} className={className ?? BTN_PRIMARY}>
-                {label}
+                {children ?? label}
             </button>
             {open && tuning && (
                 <TuneYourPlanPanel
