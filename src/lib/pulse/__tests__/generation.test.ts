@@ -3311,6 +3311,24 @@ describe('lower_post never seats a squat compound under a thin pool (2026-06-11)
         expect(sessionIds(bp, 'legs', null).map((id) => pat.get(id))).not.toContain('squat');
         expect(bp.warnings).toContain('limited_variety');
     });
+
+    it('lower_post with ZERO compounds never seats an off-contract squat via the Item 2 guard', () => {
+        // The Item 2 zero-compound guard (not the floor guard): strip every hinge AND
+        // lunge COMPOUND so the posterior first pass + floor guard leave the session
+        // with no compound at all (the hinge slot falls to the leg-curl isolation).
+        // Item 2 then seats one safe compound from the pool; it must NOT reach for the
+        // surviving squat (off-contract on the hinge-anchored posterior day) and ship
+        // it squat-led, but warn instead.
+        const pool = dumbbellBenchPool().filter(
+            (e) => !(e.is_compound && (e.movement_pattern === 'hinge' || e.movement_pattern === 'lunge')),
+        );
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
+        const pat = patternMap(pool);
+        const legsPatterns = sessionIds(bp, 'legs', null).map((id) => pat.get(id));
+        expect(legsPatterns).not.toContain('squat');
+        expect(bp.warnings).toContain('no_compound');
+    });
 });
 
 // ── Vertical-push anchors: Push Press is NOT a canonical primary (2026-06-11) ──

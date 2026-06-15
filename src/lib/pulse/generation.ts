@@ -1843,7 +1843,13 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                     ex.is_compound &&
                     ex.movement_pattern !== null &&
                     !chosenIds.has(ex.id) &&
-                    (!lowerOnly || FLOOR_FALLBACK_PATTERNS.lower.includes(ex.movement_pattern)),
+                    (!lowerOnly || FLOOR_FALLBACK_PATTERNS.lower.includes(ex.movement_pattern)) &&
+                    // Honor the emphasis-slot contract, exactly like the floor guard
+                    // (above): never seat a lower compound that would outrank the day's
+                    // anchor (a squat on the hinge-anchored posterior day), which would
+                    // ship it PRIMARY_LOWER and hijack the session. A no-op for upper /
+                    // full_body. If nothing in-contract survives, warn (below).
+                    !isOffContractLowerCompound(ex.movement_pattern, emphasis, session.focus),
             );
             if (fallback) {
                 // Keep the exercise count: drop the last (lowest-priority) isolation
