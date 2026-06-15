@@ -79,11 +79,21 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // 45-60 min comes from backfill (a 2nd accessory).
     lower_quad: {
         bias: 'hypertrophy',
-        slots: ['squat', 'lunge', 'glute_iso', 'calf', 'core'],
+        // Dedicated quad isolation (leg extension): the squat under-trains the
+        // biarticular rectus femoris, so a knee-extension isolation covers a real gap
+        // (science review). It displaces glute_iso (a posterior-chain move that belongs
+        // on the posterior day, where it is kept). glute_iso returns as the 6th slot
+        // (backfill) when the budget allows.
+        slots: ['squat', 'quad_iso', 'lunge', 'calf', 'core'],
     },
     lower_post: {
         bias: 'hypertrophy',
-        slots: ['hinge', 'glute_iso', 'lunge', 'calf', 'core'],
+        // Dedicated hamstring isolation (leg curl): the hinge cannot train the
+        // monoarticular short head of biceps femoris (knee-flexion only), so a leg
+        // curl is a unique, non-negotiable stimulus on a posterior day (science
+        // review). It displaces lunge (a knee-extension-dominant move that belongs on
+        // the quad day); lunge returns as the 6th slot (backfill) when budget allows.
+        slots: ['hinge', 'hamstring_iso', 'glute_iso', 'calf', 'core'],
         // The posterior day anchors on HINGE and never trains squat. The duress
         // lower fallbacks (the COMPOUND_FLOOR guard and the finisher deflection)
         // respect this: under a thin pool they reach for an in-contract compound
@@ -103,7 +113,9 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // model still PRESENTS a seated squat first (lower pattern priority).
     lower_lean: {
         bias: 'hypertrophy',
-        slots: ['lunge', 'squat', 'glute_iso', 'calf', 'core'],
+        // Quad-led aesthetic day: same dedicated quad-isolation slot as lower_quad
+        // (displaces glute_iso, which returns via backfill).
+        slots: ['lunge', 'squat', 'quad_iso', 'calf', 'core'],
     },
     // ── Full body ─────────────────────────────────────────────────────────────
     fb_strength: {

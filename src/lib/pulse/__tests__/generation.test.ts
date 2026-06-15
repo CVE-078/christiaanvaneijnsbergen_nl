@@ -215,13 +215,14 @@ describe('muscle priority', () => {
     });
 
     it('tiltEmphasis front-loads glute priority patterns compound-first (hinge before glute_iso)', () => {
-        const lower = EMPHASES.lower_post; // slots: hinge, glute_iso, lunge, calf, core
+        const lower = EMPHASES.lower_post; // slots: hinge, hamstring_iso, glute_iso, calf, core
         const tilted = tiltEmphasis(lower, 'glutes');
         // Bug 5: the glutes priority hierarchy is hinge > squat > lunge > glute_iso,
         // so the COMPOUND hip patterns lead and direct glute isolation follows. For
-        // lower_post (no squat slot) the present priority patterns are hinge, lunge,
-        // glute_iso in that order; calf + core (non-priority) keep their tail order.
-        expect(tilted.slots.slice(0, 3)).toEqual(['hinge', 'lunge', 'glute_iso']);
+        // lower_post (no squat or lunge slot) the present priority patterns are hinge
+        // then glute_iso; hamstring_iso (a leg, not glute, pattern), calf + core
+        // (non-priority) keep their tail order.
+        expect(tilted.slots.slice(0, 3)).toEqual(['hinge', 'glute_iso', 'hamstring_iso']);
         expect(tilted.slots[0]).toBe('hinge'); // a compound leads, never glute_iso
         expect(tilted.slots).toHaveLength(lower.slots.length); // permutation, no injection
         expect(new Set(tilted.slots)).toEqual(new Set(lower.slots));
@@ -280,6 +281,8 @@ const ALL_PATTERNS: MovementPattern[] = [
     'biceps_iso',
     'triceps_iso',
     'glute_iso',
+    'quad_iso',
+    'hamstring_iso',
 ];
 
 function deepPool(perPattern = 2): ExerciseMeta[] {
@@ -555,18 +558,20 @@ describe('heavy-work limit warning (P2.2)', () => {
 // ── Coverage-aware backfill: accessory over duplicate finisher (P2.1) ─────────
 
 describe('coverage-aware backfill (P2.1)', () => {
-    it('seats a hinge accessory instead of a 2nd calf/core when glute_iso is empty', () => {
+    it('seats a real lower accessory instead of a 2nd calf/core when glute_iso is empty', () => {
         // Reproduces the dumbbell lower_post filler bug (Case 01 Lower B: two calf
-        // raises + two core moves). With glute_iso unavailable and the heavy-dedup
-        // cap blocking a 2nd hinge, backfill used to stack a duplicate finisher. It
-        // should instead deflect to a non-compound hinge accessory (a leg-curl proxy).
+        // raises + two core moves). With glute_iso unavailable, coverage-aware
+        // backfill should deflect to a real lower-bucket accessory (a lunge, or the
+        // non-compound hinge accessory that slips past the heavy-dedup cap) rather
+        // than stacking a duplicate finisher.
         const pool = deepPool().filter((e) => e.movement_pattern !== 'glute_iso');
         pool.push(meta('hinge-accessory', 'hinge', ['dumbbells'], false));
         const bp = generateRoutine(input({ pool })); // ul-classic-4, Lower B = lower_post
         const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
         const lowerB = sessionIds(bp, 'lower', 'B');
-        // The accessory is chosen over a second finisher...
-        expect(lowerB).toContain('hinge-accessory');
+        // The gap is filled by a real lower-bucket accessory (a lunge or the
+        // injected hinge accessory), not a duplicate finisher...
+        expect(lowerB.some((id) => patternOf.get(id) === 'lunge' || id === 'hinge-accessory')).toBe(true);
         // ...and the session no longer doubles up a finisher pattern.
         const calfCount = lowerB.filter((id) => patternOf.get(id) === 'calf').length;
         const coreCount = lowerB.filter((id) => patternOf.get(id) === 'core').length;
@@ -1775,31 +1780,32 @@ describe('GQ2: lower-fatigue exercise preferred within same freshness (accessory
     });
 
     it('fresh high-fatigue still beats used low-fatigue (fresh wins over fatigue)', () => {
-        // glute_iso is exclusive to the 'legs' emphasis (unlike shoulder_iso,
-        // which also appears in 'push'/'pull'), so legs A / legs B are the only
-        // two slots competing for these two candidates -- a clean fresh-vs-used
-        // comparison, mirroring the original GQ2 'squat' setup.
-        function poolGlute(): ExerciseMeta[] {
+        // calf is requested by both lower_quad (legs A) and lower_post (legs B) and
+        // by no other ppl-x2-6 session, so legs A / legs B are the only two slots
+        // competing for these two candidates -- a clean fresh-vs-used comparison,
+        // mirroring the original GQ2 'squat' setup. (glute_iso now lives only on
+        // lower_post, so it is no longer a cross-session A/B contest.)
+        function poolCalf(): ExerciseMeta[] {
             return [
-                metaFatigue('glute-aa', 'glute_iso', 5, ['dumbbells'], false),
-                metaFatigue('glute-zz', 'glute_iso', 1, ['dumbbells'], false),
-                ...ALL_PATTERNS.filter((p) => p !== 'glute_iso').flatMap((p) => [
-                    meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
-                    meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                metaFatigue('calf-aa', 'calf', 5, ['dumbbells'], false),
+                metaFatigue('calf-zz', 'calf', 1, ['dumbbells'], false),
+                ...ALL_PATTERNS.filter((p) => p !== 'calf').flatMap((p) => [
+                    meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'core'),
+                    meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'core'),
                 ]),
             ];
         }
-        // After session A uses glute-zz (low fatigue, fresh), session B should
-        // pick glute-aa (high fatigue, fresh) rather than the used glute-zz.
+        // After session A uses calf-zz (low fatigue, fresh), session B should
+        // pick calf-aa (high fatigue, fresh) rather than the used calf-zz.
         const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: legs appears twice
-        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool: poolGlute() }));
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool: poolCalf() }));
         const legsA = sessionIds(bp, 'legs', 'A');
         const legsB = sessionIds(bp, 'legs', 'B');
-        // Session A picks the low-fatigue accessory (glute-zz, fatigue 1).
-        expect(legsA).toContain('glute-zz');
-        // Session B: glute-zz is used. Even though glute-aa is higher fatigue,
+        // Session A picks the low-fatigue accessory (calf-zz, fatigue 1).
+        expect(legsA).toContain('calf-zz');
+        // Session B: calf-zz is used. Even though calf-aa is higher fatigue,
         // it is the only FRESH option -- fresh wins.
-        expect(legsB).toContain('glute-aa');
+        expect(legsB).toContain('calf-aa');
     });
 });
 
@@ -2996,8 +3002,8 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'upper:A:back_iso-1:3x12-15',
                 'lower:A:squat-1:3x8-12',
                 'lower:A:lunge-1:3x8-12',
-                'lower:A:lunge-2:3x8-12',
-                'lower:A:glute_iso-1:3x12-15',
+                'lower:A:quad_iso-1:3x12-15',
+                'lower:A:quad_iso-2:3x12-15',
                 'lower:A:calf-1:3x12-15',
                 'lower:A:core-1:3x12-15',
                 'upper:B:vertical_push-2:3x8-12',
@@ -3007,8 +3013,8 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'upper:B:triceps_iso-1:3x12-15',
                 'upper:B:chest_iso-2:3x12-15',
                 'lower:B:hinge-1:3x8-12',
-                'lower:B:lunge-1:3x8-12',
-                'lower:B:glute_iso-2:3x12-15',
+                'lower:B:lunge-2:3x8-12',
+                'lower:B:hamstring_iso-1:3x12-15',
                 'lower:B:glute_iso-1:3x12-15',
                 'lower:B:calf-2:3x12-15',
                 'lower:B:core-2:3x12-15',
@@ -3028,8 +3034,8 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'upper:-:biceps_iso-1:3x10-15',
                 'lower:-:squat-1:3x8-12',
                 'lower:-:lunge-1:3x8-12',
-                'lower:-:lunge-2:3x8-12',
-                'lower:-:glute_iso-1:3x12-15',
+                'lower:-:quad_iso-1:3x12-15',
+                'lower:-:quad_iso-2:3x12-15',
                 'lower:-:calf-1:3x12-15',
                 'lower:-:core-1:3x12-15',
                 'push:-:horizontal_push-2:3x8-12',
@@ -3045,8 +3051,8 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'pull:-:biceps_iso-2:3x12-15',
                 'pull:-:back_iso-2:3x12-15',
                 'legs:-:hinge-1:3x8-12',
-                'legs:-:lunge-1:3x8-12',
-                'legs:-:glute_iso-2:3x12-15',
+                'legs:-:lunge-2:3x8-12',
+                'legs:-:hamstring_iso-1:3x12-15',
                 'legs:-:glute_iso-1:3x12-15',
                 'legs:-:calf-2:3x12-15',
                 'legs:-:core-2:3x12-15',
@@ -3067,7 +3073,7 @@ describe('minimum-compound floor + lower-bucket backfill (live-test Issue 1)', (
     // usable glute_iso, deep calf/core, full upper patterns.
     function dumbbellLowerPool(): ExerciseMeta[] {
         const upper = ALL_PATTERNS.filter(
-            (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'].includes(p),
+            (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'quad_iso', 'hamstring_iso', 'calf', 'core'].includes(p),
         ).flatMap((p) => [
             meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso')),
             meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso')),
@@ -3584,7 +3590,7 @@ describe('PHUL (#18): byte-identity guards for the other 4-day styles', () => {
                 'lower:A:squat-1:3x8-12',
                 'lower:A:lunge-1:3x8-12',
                 'lower:A:lunge-2:3x8-12',
-                'lower:A:glute_iso-1:3x12-15',
+                'lower:A:quad_iso-1:3x12-15',
                 'lower:A:calf-1:3x12-15',
                 'lower:A:core-1:3x12-15',
                 'upper:B:vertical_push-1:3x12-15',
@@ -3595,7 +3601,7 @@ describe('PHUL (#18): byte-identity guards for the other 4-day styles', () => {
                 'upper:B:back_iso-2:3x15-20',
                 'lower:B:hinge-1:3x8-12',
                 'lower:B:lunge-1:3x8-12',
-                'lower:B:glute_iso-2:3x12-15',
+                'lower:B:hamstring_iso-1:3x12-15',
                 'lower:B:glute_iso-1:3x12-15',
                 'lower:B:calf-2:3x12-15',
                 'lower:B:core-2:3x12-15',

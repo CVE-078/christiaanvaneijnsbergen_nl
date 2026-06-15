@@ -511,6 +511,8 @@ export const MOVEMENT_PATTERNS = [
     'biceps_iso',
     'triceps_iso',
     'glute_iso',
+    'quad_iso',
+    'hamstring_iso',
 ] as const;
 export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
 

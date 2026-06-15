@@ -6,7 +6,7 @@ import { MOVEMENT_PATTERNS, EXERCISE_CATEGORIES } from '../types';
 // (docs/superpowers/designs/2026-06-06-00-54-52-phase0-source-material.md §1).
 // These lock the canonical map so future engine work can't silently regress it.
 describe('PATTERN_MUSCLE_MAP', () => {
-    it('covers all 15 movement patterns and nothing else', () => {
+    it('covers all 17 movement patterns and nothing else', () => {
         for (const p of MOVEMENT_PATTERNS) {
             expect(PATTERN_MUSCLE_MAP[p]).toBeDefined();
         }
@@ -46,6 +46,8 @@ describe('PATTERN_MUSCLE_MAP', () => {
         expect(PATTERN_MUSCLE_MAP.biceps_iso).toEqual({ biceps: 1 });
         expect(PATTERN_MUSCLE_MAP.triceps_iso).toEqual({ triceps: 1 });
         expect(PATTERN_MUSCLE_MAP.glute_iso).toEqual({ glutes: 0.85, legs: 0.15 });
+        expect(PATTERN_MUSCLE_MAP.quad_iso).toEqual({ legs: 1 });
+        expect(PATTERN_MUSCLE_MAP.hamstring_iso).toEqual({ legs: 1 });
     });
 
     it('preserves the squat-vs-hinge distinction through glute proportion', () => {
