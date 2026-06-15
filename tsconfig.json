@@ -36,6 +36,7 @@
   ],
   "exclude": [
     "node_modules",
-    "scripts/seed"
+    "scripts/seed",
+    "scripts/gen-routine.ts"
   ]
 }

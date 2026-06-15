@@ -115,7 +115,7 @@ describe('resolveRepRange', () => {
             repRange('hypertrophy', true, 'build_muscle'),
         );
     });
-    it('balanced reproduces repRange exactly for every bias x compound/iso', () => {
+    it('balanced reproduces repRange exactly for every bias x compound/iso (no focus = unchanged)', () => {
         const biases: Bias[] = ['strength', 'balanced', 'hypertrophy', 'pump'];
         for (const b of biases) {
             for (const compound of [true, false]) {
@@ -124,6 +124,28 @@ describe('resolveRepRange', () => {
                 );
             }
         }
+    });
+    it('a build-muscle FULL-BODY strength compound floors to 6-8 on Balanced; other focuses + explicit heavy styles keep 3-6', () => {
+        // full-body heavy day for a balanced build-muscle lifter: 6-8, not a 3-6 power day
+        expect(resolveRepRange('strength', 'squat', true, 'build_muscle', 'balanced', undefined, 'full_body')).toBe('6-8');
+        // scoped to full_body: PHUL / ppl-x2 heavy days (upper/push focus) keep their intended 3-6
+        expect(resolveRepRange('strength', 'squat', true, 'build_muscle', 'balanced', undefined, 'upper')).toBe('3-6');
+        expect(resolveRepRange('strength', 'horizontal_push', true, 'build_muscle', 'balanced', undefined, 'push')).toBe(
+            '3-6',
+        );
+        // explicit Strength / Powerbuilding styles intend 3-6 even on full_body
+        expect(resolveRepRange('strength', 'squat', true, 'build_muscle', 'strength', undefined, 'full_body')).toBe('3-6');
+        expect(
+            resolveRepRange('strength', 'squat', true, 'build_muscle', 'powerbuilding', undefined, 'full_body'),
+        ).toBe('3-6');
+        // beginners keep the novice floor (5-8 via P3.1), not 6-8
+        expect(resolveRepRange('strength', 'squat', true, 'build_muscle', 'balanced', 'beginner', 'full_body')).toBe(
+            '5-8',
+        );
+        // isolation unaffected
+        expect(
+            resolveRepRange('strength', 'biceps_iso', false, 'build_muscle', 'balanced', undefined, 'full_body'),
+        ).toBe(repRange('strength', false, 'build_muscle'));
     });
     it('powerbuilding gives the strength range to every heavy pattern', () => {
         for (const p of POWERBUILDING_HEAVY_PATTERNS) {
@@ -371,9 +393,10 @@ describe('beginner / general-fitness rep floor (P3.1)', () => {
         expect(rows.some((e) => e.reps === '3-6')).toBe(false);
     });
 
-    it('intermediate build_muscle is unchanged (still 3-6 on the strength day)', () => {
+    it('intermediate build_muscle full-body heavy day is hypertrophy-heavy 6-8 (no 3-6 power day)', () => {
         const rows = fbStrengthA({});
-        expect(rows.some((e) => e.reps === '3-6')).toBe(true);
+        expect(rows.some((e) => e.reps === '3-6')).toBe(false);
+        expect(rows.some((e) => e.reps === '6-8')).toBe(true);
     });
 });
 
@@ -833,7 +856,7 @@ describe('supersets', () => {
 // ── 7. Rep ranges in a generated routine ─────────────────────────────────────
 
 describe('rep ranges in generation', () => {
-    it('a strength-bias full-body compound gets 3-6; a pump-bias day uses the pump table', () => {
+    it('a strength-bias full-body compound gets 6-8 for build_muscle; a pump-bias day uses the pump table', () => {
         // fb-hmhp-4: day A strength, day D pump.
         const bp = generateRoutine(
             input({
@@ -841,7 +864,8 @@ describe('rep ranges in generation', () => {
             }),
         );
         const dayA = bp.exercises.filter((e) => e.variant === 'A');
-        expect(dayA.some((e) => e.reps === '3-6')).toBe(true); // strength compound
+        expect(dayA.some((e) => e.reps === '6-8')).toBe(true); // full-body heavy day: hypertrophy-heavy, not a 3-6 power day
+        expect(dayA.some((e) => e.reps === '3-6')).toBe(false);
         const dayD = bp.exercises.filter((e) => e.variant === 'D');
         // pump table: compound 12-15, isolation 15-20.
         expect(dayD.every((e) => e.reps === '12-15' || e.reps === '15-20')).toBe(true);
@@ -3689,11 +3713,11 @@ describe('PHUL (#18): byte-identity guards for the other 4-day styles', () => {
         expect(flatten('fb-hmhp-4', [1, 2, 4, 5])).toEqual({
             schedule: ['1:full_body:A', '2:full_body:B', '4:full_body:C', '5:full_body:D'],
             exercises: [
-                'full_body:A:squat-1:4x3-6',
-                'full_body:A:horizontal_push-1:3x3-6',
-                'full_body:A:hinge-1:3x3-6',
-                'full_body:A:vertical_push-1:3x3-6',
-                'full_body:A:horizontal_pull-1:3x3-6',
+                'full_body:A:squat-1:4x6-8',
+                'full_body:A:horizontal_push-1:3x6-8',
+                'full_body:A:hinge-1:3x6-8',
+                'full_body:A:vertical_push-1:3x6-8',
+                'full_body:A:horizontal_pull-1:3x6-8',
                 'full_body:A:biceps_iso-1:3x10-15',
                 'full_body:B:squat-2:3x8-12',
                 'full_body:B:horizontal_push-2:3x8-12',

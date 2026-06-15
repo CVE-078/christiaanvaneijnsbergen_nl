@@ -703,6 +703,7 @@ export function resolveRepRange(
     goal: Goal | undefined,
     style: TrainingStyle,
     experience?: ExperienceLevel,
+    focus?: Focus,
 ): string {
     // P3.3 Bodybuilding character: isolation work gets the PUMP range (15-20) for a
     // hypertrophy-finisher feel, while compounds keep the hypertrophy range (8-12).
@@ -725,6 +726,18 @@ export function resolveRepRange(
     // untouched: base is returned as-is.
     if (isCompound && base === '3-6' && (experience === 'beginner' || goal === 'general_fitness')) {
         return '5-8';
+    }
+    // A build-muscle lifter on the Balanced (default) style should not get a pure
+    // 3-6 strength day on the FULL-BODY heavy day: a balanced hypertrophy full-body
+    // split's "heavy" day is hypertrophy-heavy (6-8), not powerlifting triples (this
+    // also drops it out of the estimator's "heavy" class, so a 30-min full-body
+    // session stops tripping over_time). Scoped to full_body so the deliberate heavy
+    // days of other splits (PHUL power days, the ppl-x2 heavy push/pull days) keep
+    // their intended 3-6; and to balanced + build_muscle so explicit Strength /
+    // Powerbuilding styles (which intend 3-6) and lose_fat (never 3-6) are untouched.
+    // Beginners are already floored to 5-8 just above.
+    if (isCompound && base === '3-6' && style === 'balanced' && goal === 'build_muscle' && focus === 'full_body') {
+        return '6-8';
     }
     return base;
 }
@@ -1924,7 +1937,15 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            const reps = resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, styleForBias, answers.experience);
+            const reps = resolveRepRange(
+                effectiveBias,
+                pattern,
+                ex.is_compound,
+                answers.goal,
+                styleForBias,
+                answers.experience,
+                session.focus,
+            );
             const rowObj = { sets: exSets, is_compound: ex.is_compound, reps, supersetGroupId: groupId };
             sessionRows.push(rowObj);
             const exObj = {
