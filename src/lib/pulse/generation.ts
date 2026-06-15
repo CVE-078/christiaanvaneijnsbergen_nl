@@ -275,13 +275,18 @@ export const PRIORITY_PATTERNS: Record<PriorityMuscle, MovementPattern[]> = {
     arms: ['biceps_iso', 'triceps_iso'],
 };
 
-// Measurable priority (P3.2): a priority muscle adds this many extra direct sets
-// across the WEEK, spread one-per-exercise over the priority-pattern lifts already
-// selected (priority never injects a slot, so this only deepens existing priority
-// work). Capped so total volume stays recoverable and the rest of the programme
-// keeps its balance; never reduces other muscles' volume. Null priority = 0 extra
+// Measurable priority (P3.2): a priority muscle adds up to this many extra direct
+// sets across the WEEK, spread one-per-exercise over the priority-pattern lifts
+// already selected (priority never injects a slot, so this only deepens existing
+// priority work). 4 (not 3) so a priority is clearly meaningful, not cosmetic
+// (science review). Never reduces other muscles' volume. Null priority = 0 extra
 // sets, so the no-priority path stays byte-identical.
-const PRIORITY_EXTRA_SETS_PER_WEEK = 3;
+const PRIORITY_EXTRA_SETS_PER_WEEK = 4;
+// Hard ceiling on the priority muscle's TOTAL weekly direct sets (baseline + the
+// bumps above): added sets stop once the muscle reaches this, so a priority never
+// pushes a muscle past its recoverable volume into junk territory (science review:
+// ~20 sets/muscle/week is the natural ceiling for an intermediate).
+const PRIORITY_MUSCLE_SET_CEILING = 20;
 
 /** Default priority seeded from gender (UI only): female → glutes, else balanced. */
 export function genderDefault(gender: Gender | null): PriorityMuscle | 'balanced' {
@@ -1754,9 +1759,12 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     // P2.2: count strength-biased (heavy) sessions to flag an over-demanding week.
     let strengthSessions = 0;
     // P3.2: weekly budget of extra sets for the priority muscle, spent one-per-exercise
-    // across the routine. Null priority -> 0, so the no-priority path is byte-identical.
+    // across the routine, and a running total of the muscle's direct sets so the bump
+    // stops at the recoverable ceiling. Null priority -> 0, so the no-priority path is
+    // byte-identical.
     const priorityPatterns = input.priority ? new Set(PRIORITY_PATTERNS[input.priority]) : null;
     let priorityExtraBudget = priorityPatterns ? PRIORITY_EXTRA_SETS_PER_WEEK : 0;
+    let priorityMuscleSets = 0;
 
     style.sessions.forEach((session, i) => {
         if (i >= days.length) return;
@@ -1876,11 +1884,16 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            // P3.2: deepen the priority muscle by one set per priority-pattern lift,
-            // up to the weekly cap. Bounded and additive (never reduces other work).
-            if (priorityPatterns && priorityExtraBudget > 0 && priorityPatterns.has(pattern)) {
-                exSets += 1;
-                priorityExtraBudget -= 1;
+            // P3.2: deepen the priority muscle by one set per priority-pattern lift, up
+            // to the weekly budget AND only while the muscle stays under its recoverable
+            // total-set ceiling (so a priority never tips into junk volume). Additive;
+            // never reduces other work.
+            if (priorityPatterns && priorityPatterns.has(pattern)) {
+                if (priorityExtraBudget > 0 && priorityMuscleSets + exSets + 1 <= PRIORITY_MUSCLE_SET_CEILING) {
+                    exSets += 1;
+                    priorityExtraBudget -= 1;
+                }
+                priorityMuscleSets += exSets;
             }
             const reps = resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, styleForBias, answers.experience);
             sessionRows.push({ sets: exSets, is_compound: ex.is_compound, reps, supersetGroupId: groupId });

@@ -500,15 +500,17 @@ describe('measurable priority muscle (P3.2)', () => {
         const prioritized = generateRoutine(input({ pool: deepPool(), priority: 'chest' }));
         const delta = totalSets(prioritized) - totalSets(base);
         expect(delta).toBeGreaterThan(0);
-        expect(delta).toBeLessThanOrEqual(3); // capped at +3 sets/week
+        expect(delta).toBeLessThanOrEqual(4); // capped at +4 sets/week
     });
 
-    it('lands the extra sets on the priority muscle patterns', () => {
+    it('lands the extra sets on the priority muscle patterns, capped at the recoverable ceiling', () => {
         const pool = deepPool();
         const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
         const base = generateRoutine(input({ pool }));
         const prioritized = generateRoutine(input({ pool, priority: 'chest' }));
         expect(chestSets(prioritized, patternOf)).toBeGreaterThan(chestSets(base, patternOf));
+        // Total weekly direct chest sets never exceed the ~20-set recoverable ceiling.
+        expect(chestSets(prioritized, patternOf)).toBeLessThanOrEqual(20);
     });
 
     it('null priority is byte-identical to the balanced baseline (no extra volume)', () => {
