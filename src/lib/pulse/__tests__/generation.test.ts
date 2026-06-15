@@ -1896,9 +1896,11 @@ describe('GQ3: anchor patterns prefer higher fatigue', () => {
 });
 
 describe('P0 3.1: compound-first within a mixed pattern (squat / hinge)', () => {
-    // `squat` and `hinge` are the only compound/isolation MIXED patterns (Leg
-    // Extension lives in `squat`, Leg Curl in `hinge`, for lack of a quad_iso /
-    // hamstring_iso pattern). When a thin pool removes the named-anchor compounds,
+    // Exercises the DEFENSIVE compound-first guard for a synthetic/legacy pool where
+    // an unnamed isolation shares a compound pattern. (In the real catalog Leg
+    // Extension / Leg Curl now live in the dedicated quad_iso / hamstring_iso patterns,
+    // so squat / hinge no longer mix; this guard is a no-op there but still backstops
+    // such mixed pools.) When a thin pool removes the named-anchor compounds,
     // an UNNAMED compound competes in-pattern with the isolation. Without the
     // compound-first guard the anchor-pattern fatigue tiebreak (higher-first) lets
     // a higher-fatigue isolation win the primary slot, and COMPOUND_FLOOR then
@@ -2970,11 +2972,13 @@ describe('Item 5: ppl-x2-6 A/B differentiation', () => {
     });
 });
 
-describe('Item 5: byte-identity guards for unchanged styles', () => {
-    // Captured from the pre-change generator (2026-06-11) with input() defaults
-    // (deepPool(2), dumbbells-only, 45-60 min, intermediate, build_muscle,
-    // anchorDow default). The Item 5 change touches ONLY STYLES[6] plus four new
-    // EMPHASES entries, so these three styles must reproduce byte-identically.
+describe('Item 5 + leg-isolation re-tag: byte-identity goldens', () => {
+    // Captured with input() defaults (deepPool(2), dumbbells-only, 45-60 min,
+    // intermediate, build_muscle, anchorDow default). ppl-3 still reproduces the
+    // 2026-06-11 pre-change golden (no split-lower emphasis). ul-classic-4 and
+    // ulppl-5 were REBASELINED by the quad_iso / hamstring_iso leg re-tag (their
+    // lower days swapped glute_iso/lunge for the dedicated knee-isolation slots) and
+    // now lock the post-re-tag output. The lock is intact either way.
     function flatten(count: number, key: string, days: number[]) {
         const style = STYLES[count].find((s) => s.key === key) as ProgramStyle;
         const bp = generateRoutine(input({ style, trainingDays: days }));
@@ -3012,7 +3016,7 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
         });
     });
 
-    it('ul-classic-4 reproduces its pre-change golden', () => {
+    it('ul-classic-4 matches its byte-identity golden (rebaselined by the leg re-tag)', () => {
         expect(flatten(4, 'ul-classic-4', [1, 2, 4, 5])).toEqual({
             schedule: ['1:upper:A', '2:lower:A', '4:upper:B', '5:lower:B'],
             exercises: [
@@ -3044,7 +3048,7 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
         });
     });
 
-    it('ulppl-5 reproduces its pre-change golden', () => {
+    it('ulppl-5 matches its byte-identity golden (rebaselined by the leg re-tag)', () => {
         expect(flatten(5, 'ulppl-5', [1, 2, 3, 4, 5])).toEqual({
             schedule: ['1:upper:-', '2:lower:-', '3:push:-', '4:pull:-', '5:legs:-'],
             exercises: [

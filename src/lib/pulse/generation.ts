@@ -82,8 +82,9 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         // Dedicated quad isolation (leg extension): the squat under-trains the
         // biarticular rectus femoris, so a knee-extension isolation covers a real gap
         // (science review). It displaces glute_iso (a posterior-chain move that belongs
-        // on the posterior day, where it is kept). glute_iso returns as the 6th slot
-        // (backfill) when the budget allows.
+        // on the posterior day, where it is kept). glute_iso does NOT return here: on a
+        // deep pool at 45-60 min the 6th pick is a 2nd quad_iso, keeping the quad day
+        // quad-focused by design.
         slots: ['squat', 'quad_iso', 'lunge', 'calf', 'core'],
     },
     lower_post: {
@@ -92,7 +93,8 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         // monoarticular short head of biceps femoris (knee-flexion only), so a leg
         // curl is a unique, non-negotiable stimulus on a posterior day (science
         // review). It displaces lunge (a knee-extension-dominant move that belongs on
-        // the quad day); lunge returns as the 6th slot (backfill) when budget allows.
+        // the quad day); lunge returns as the day's 2nd compound via the minimum-compound
+        // floor guard (the first pass seats only hinge), not the backfill loop.
         slots: ['hinge', 'hamstring_iso', 'glute_iso', 'calf', 'core'],
         // The posterior day anchors on HINGE and never trains squat. The duress
         // lower fallbacks (the COMPOUND_FLOOR guard and the finisher deflection)
@@ -114,7 +116,8 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     lower_lean: {
         bias: 'hypertrophy',
         // Quad-led aesthetic day: same dedicated quad-isolation slot as lower_quad
-        // (displaces glute_iso, which returns via backfill).
+        // (displaces glute_iso). glute_iso does NOT return; on a deep pool the 6th pick
+        // is a 2nd lunge, fitting this unilateral-led day.
         slots: ['lunge', 'squat', 'quad_iso', 'calf', 'core'],
     },
     // ── Full body ─────────────────────────────────────────────────────────────
@@ -231,9 +234,10 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         // Squat AND hinge are the two heavy money lifts (3-6 reps); squat is
         // PRIMARY_LOWER and takes the +1 set bump, the deadlift (hinge) lands
         // SECONDARY_LOWER. lunge for unilateral work, calf + core finishers. The 6th
-        // pick at 45-60 min comes from backfill. No hamstring-isolation slot: once the
-        // deadlift fills hinge, HEAVY_DEDUP_PATTERNS blocks a second, and there is no
-        // hamstring_iso pattern, so the deadlift is this day's posterior work.
+        // pick at 45-60 min comes from backfill. No hamstring_iso slot by design (the
+        // pattern now exists and lower_post uses it): the deadlift IS this PHUL day's
+        // heavy posterior work, and once it fills hinge HEAVY_DEDUP_PATTERNS blocks a
+        // second heavy hinge anyway.
         slots: ['squat', 'hinge', 'lunge', 'calf', 'core'],
     },
     phul_upper_hyp: {
@@ -257,8 +261,9 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         bias: 'hypertrophy',
         // Volume lower, quad-biased: squat-led, lunge before hinge for selection
         // freshness on the quad pattern. hinge supplies hamstring/posterior volume at
-        // 8-12 (the leg-curl proxy; Pulse has no quad_iso / hamstring_iso pattern), so
-        // both lower days carry a hinge (heavy deadlift on Power, moderate hinge here).
+        // 8-12. PHUL deliberately keeps both lower days hinge-anchored (heavy deadlift
+        // on Power, moderate hinge here) for progressive overload across the pair,
+        // rather than the dedicated hamstring_iso slot lower_post uses.
         slots: ['squat', 'lunge', 'hinge', 'glute_iso', 'calf', 'core'],
     },
 };
@@ -1137,14 +1142,15 @@ function selectForSession(
                 // (P0 3.1) Compound-first, below the named-anchor rank and above
                 // fatigue (anchor > compound > fatigue): a compound beats an
                 // isolation for the same slot regardless of fatigue cost. DEFENSIVE
-                // ARTIFACT, not a general policy: it is live for exactly the two
-                // mixed patterns `squat` (Leg Extension) and `hinge` (Leg Curl),
-                // which only mix compound + isolation because no quad_iso /
-                // hamstring_iso pattern exists; it is a no-op for the other 13
-                // (segregated) patterns and is expected to become effectively dead
-                // once those patterns are added. Do NOT propagate this to other
-                // ordering layers (the floor already filters is_compound, pick /
-                // backfill walk fixed slots, the role model orders post-selection).
+                // ARTIFACT, not a general policy: it once disambiguated the mixed
+                // `squat` (Leg Extension) / `hinge` (Leg Curl) patterns. Now that
+                // quad_iso / hamstring_iso exist and the migration moved Leg Extension /
+                // Leg Curl out of squat / hinge, it is effectively dead for the real
+                // catalog (as predicted) but stays as a no-op safety net for synthetic /
+                // legacy pools where an unnamed isolation still shares a compound
+                // pattern. Do NOT propagate this to other ordering layers (the floor
+                // already filters is_compound, pick / backfill walk fixed slots, the
+                // role model orders post-selection).
                 const aComp = a.is_compound ? 0 : 1;
                 const bComp = b.is_compound ? 0 : 1;
                 if (aComp !== bComp) return aComp - bComp;
