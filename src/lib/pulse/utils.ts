@@ -415,7 +415,7 @@ export function estimateSessionMinutes(
 //                   isometric like Plank reads "30-60s hold", never a rep count.
 //   - 'per_side' -> "<reps> reps/side" for unilateral work.
 //   - 'reps' / unset -> "<reps> reps" (the existing behaviour).
-const DEFAULT_HOLD = '30-60s';
+export const DEFAULT_HOLD = '30-60s';
 export function formatPrescription(
     reps: string,
     unit: PrescriptionUnit | null | undefined,

@@ -353,21 +353,37 @@ describe('SetLogger', () => {
     });
 
     describe('timed holds (P1.3b)', () => {
+        // Production wiring: the generator stores a NUMERIC rep range in re.reps
+        // (-> repsRange) even for a hold, and the hold prescription "30-60s" lives in
+        // the exercise's default_reps (-> holdRange). The timed branch must read
+        // holdRange, never repsRange.
+        const timedProps = { timed: true, repsRange: '15-20', holdRange: '30-60s' } as const;
+
         it('renders a seconds input instead of weight/reps when timed', () => {
-            render(<SetLogger {...defaultProps} timed repsRange="30-60" />);
+            render(<SetLogger {...defaultProps} {...timedProps} />);
             expect(screen.getByRole('spinbutton', { name: /hold time in seconds/i })).toBeInTheDocument();
             expect(screen.queryByRole('spinbutton', { name: /weight in kg/i })).not.toBeInTheDocument();
             expect(screen.queryByRole('spinbutton', { name: /repetitions/i })).not.toBeInTheDocument();
         });
 
-        it('prefills the seconds input from the first number in the prescription', () => {
-            render(<SetLogger {...defaultProps} timed repsRange="30-60" />);
+        it('prefills seconds and shows the target from holdRange, NOT the numeric repsRange', () => {
+            // Regression: repsRange="15-20" must not leak in as "15s". The hold range
+            // "30-60s" drives both the prefill (30) and the target copy.
+            render(<SetLogger {...defaultProps} {...timedProps} />);
             expect(screen.getByRole('spinbutton', { name: /hold time in seconds/i })).toHaveValue(30);
+            expect(screen.getByText(/target 30-60s/i)).toBeInTheDocument();
+            expect(screen.queryByText(/15-20/)).not.toBeInTheDocument();
+        });
+
+        it('falls back to the default hold range when holdRange is absent', () => {
+            render(<SetLogger {...defaultProps} timed repsRange="15-20" />);
+            expect(screen.getByRole('spinbutton', { name: /hold time in seconds/i })).toHaveValue(30);
+            expect(screen.getByText(/target 30-60s/i)).toBeInTheDocument();
         });
 
         it('saves a hold (duration_s, kg/reps 0) and never a weight set', async () => {
             const onSave = vi.fn();
-            render(<SetLogger {...defaultProps} timed repsRange="30-60" onSave={onSave} />);
+            render(<SetLogger {...defaultProps} {...timedProps} onSave={onSave} />);
             const input = screen.getByRole('spinbutton', { name: /hold time in seconds/i });
             await userEvent.clear(input);
             await userEvent.type(input, '45');
@@ -377,7 +393,7 @@ describe('SetLogger', () => {
 
         it('rejects an out-of-range hold and does not save', async () => {
             const onSave = vi.fn();
-            render(<SetLogger {...defaultProps} timed repsRange="30-60" onSave={onSave} />);
+            render(<SetLogger {...defaultProps} {...timedProps} onSave={onSave} />);
             const input = screen.getByRole('spinbutton', { name: /hold time in seconds/i });
             await userEvent.clear(input);
             await userEvent.click(screen.getByRole('button', { name: /save/i }));
@@ -387,7 +403,7 @@ describe('SetLogger', () => {
 
         it('shows the "Ns hold" readout and an Edit control when saved', async () => {
             const savedHold: LogEntry = { kg: 0, reps: 0, rir: 0, saved: true, duration_s: 45 };
-            render(<SetLogger {...defaultProps} timed entry={savedHold} />);
+            render(<SetLogger {...defaultProps} {...timedProps} entry={savedHold} />);
             expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
             expect(screen.getByText(/45s hold/i)).toBeInTheDocument();
             await userEvent.click(screen.getByRole('button', { name: /edit/i }));

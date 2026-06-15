@@ -324,6 +324,7 @@ function ExerciseCard({
                                     bodyweight={bodyweight}
                                     plateLoaded={plateLoaded}
                                     timed={timed}
+                                    holdRange={display.default_reps}
                                     onSave={(e) => handleSetSave(key, e)}
                                     onDelete={() => onDelete(key)}
                                 />

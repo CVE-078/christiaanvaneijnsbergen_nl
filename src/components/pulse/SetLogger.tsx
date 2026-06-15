@@ -9,6 +9,7 @@ import {
     parseDecimalInput,
     MIN_KG,
     MAX_KG,
+    DEFAULT_HOLD,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { BARBELL_KG } from '@/lib/pulse/constants';
@@ -60,6 +61,11 @@ interface Props {
     // keeps every weight-based caller byte-identical. A hold carries no e1RM /
     // progression / deload / plate calc / drop set / RIR.
     timed?: boolean;
+    // The hold prescription for a timed exercise, e.g. "30-60s" (from the
+    // exercise's default_reps). Separate from repsRange, which always carries the
+    // NUMERIC generated rep range even for a hold; the timed branch shows the
+    // seconds prescription, not those reps. Falls back to DEFAULT_HOLD when absent.
+    holdRange?: string;
     onSave: (entry: LogEntry) => void;
     onDelete?: () => void;
 }
@@ -92,6 +98,7 @@ export default function SetLogger({
     totalSets,
     plateLoaded = true,
     timed = false,
+    holdRange,
     onSave,
     onDelete,
 }: Props) {
@@ -128,10 +135,11 @@ export default function SetLogger({
             [],
     );
     // P1.3b timed-hold input (whole seconds). Prefilled from the saved hold, else
-    // the first number in the prescription (e.g. "30-60" -> "30"), else blank.
+    // the first number of the hold prescription (e.g. "30-60s" -> "30"). Uses
+    // holdRange (default_reps), NOT repsRange (which carries the numeric rep range).
     const [seconds, setSeconds] = useState(() => {
         if (entry?.duration_s != null) return String(entry.duration_s);
-        const firstNum = (repsRange ?? '').match(/\d+/)?.[0];
+        const firstNum = ((holdRange ?? '').trim() || DEFAULT_HOLD).match(/\d+/)?.[0];
         return firstNum ?? '';
     });
     const [editing, setEditing] = useState(false);
@@ -282,8 +290,9 @@ export default function SetLogger({
     // 0). No weight x reps, e1RM, progression, deload, plate calc, drop set, or RIR,
     // so it leaves the entire weight-based render path below untouched.
     if (timed) {
-        const prescription = (repsRange ?? '').trim();
-        const targetText = prescription ? `${prescription}s` : 'a hold';
+        // holdRange (default_reps) already carries the unit, e.g. "30-60s"; fall back
+        // to DEFAULT_HOLD. Never repsRange (the numeric generated rep range).
+        const targetText = (holdRange ?? '').trim() || DEFAULT_HOLD;
         const handleSaveTimed = () => {
             const s = parseInt(seconds, 10);
             if (!Number.isFinite(s) || s < 1 || s > 3600) {

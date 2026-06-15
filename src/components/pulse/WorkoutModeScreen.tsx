@@ -376,6 +376,7 @@ function ExerciseSetRows({
                         totalSets={maxSets}
                         plateLoaded={plateLoaded}
                         timed={timed}
+                        holdRange={display.default_reps}
                         onSave={(e) => onSave(key, e)}
                         onDelete={() => onDelete(key)}
                     />
