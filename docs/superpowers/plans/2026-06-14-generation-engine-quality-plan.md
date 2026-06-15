@@ -21,7 +21,7 @@
 | P1.1 | Essential-coverage-first slot filling | 1 | DONE | feature/generation-quality |
 | P1.2 | Restriction tag fixes + visible degradation | 1 | DONE | feature/generation-quality (migration hand-apply) |
 | P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | DONE | feature/generation-quality (migration hand-apply) |
-| P1.3b | Log timed holds in Train/guided | 2 | TODO | deeper logging feature, deferred |
+| P1.3b | Log timed holds (data layer DONE; UI deferred) | 2 | PARTIAL | feature/generation-quality; SetLogger UI needs visual verify |
 | P1.4 | Duration over-band warning | 1 | DONE | feature/generation-quality |
 | P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | DONE | feature/generation-quality |
 | P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
@@ -160,8 +160,8 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 - **User:** a very heavy week (5+ strength days) shows a "Demanding week" notice suggesting a lighter style or fewer days if recovery suffers.
 - **Engine:** a counter + threshold warning at the end of generation; no selection change, all goldens hold. (Per-session heavy-compound count and consecutive-day checks were not needed; the weekly count maps directly to the finding. A fatigue MODEL / auto-correction stays out of scope.)
 
-## P2.3 Post-generation programme validator (Issue 9, the meta-fix) — DONE
-**Done:** new pure `src/lib/pulse/programValidation.ts` (`validateProgram(blueprint, pool)`) runs after generation (wired in `generateAndSaveRoutine`, merged into the routine `warnings`) with three WEEK-level checks the per-session inline warnings cannot express: (1) **push/pull imbalance** (weighted via the muscle bridge; warns above ~2.5:1, calibrated below every golden), (2) **label_mismatch** (a labelled lower day must lead with the compound its name implies — this is P1.5b), (3) **no_vertical_pull** (scoped to splits with an upper/pull day to host it, pool-gated, so pure full-body is exempt). Warn-only, never repairs or blocks (stays a checker, not a planner). The 5 existing inline warnings stay inline (no consolidation). 8 unit tests + a 6-golden-input sweep proving the validator is a no-op on the golden path; 3 `WARNING_COPY` keys. Suite 1610 green, typecheck clean. No migration (`warnings` is an existing `text[]`). Validator runs in the action, so the generation goldens are structurally untouched.
+## P2.3 Post-generation programme validator (Issue 9, the meta-fix) - DONE
+**Done:** new pure `src/lib/pulse/programValidation.ts` (`validateProgram(blueprint, pool)`) runs after generation (wired in `generateAndSaveRoutine`, merged into the routine `warnings`) with three WEEK-level checks the per-session inline warnings cannot express: (1) **push/pull imbalance** (weighted via the muscle bridge; warns above ~2.5:1, calibrated below every golden), (2) **label_mismatch** (a labelled lower day must lead with the compound its name implies - this is P1.5b), (3) **no_vertical_pull** (scoped to splits with an upper/pull day to host it, pool-gated, so pure full-body is exempt). Warn-only, never repairs or blocks (stays a checker, not a planner). The 5 existing inline warnings stay inline (no consolidation). 8 unit tests + a 6-golden-input sweep proving the validator is a no-op on the golden path; 3 `WARNING_COPY` keys. Suite 1610 green, typecheck clean. No migration (`warnings` is an existing `text[]`). Validator runs in the action, so the generation goldens are structurally untouched.
 **Impact:**
 - **User:** the Plan page now surfaces three week-level notices when they genuinely apply (a lopsided push/pull week; a labelled day that lost its defining lift under thin-pool/restriction degradation; an upper/pull split missing vertical pulling when equipment supports one). All warn-only; nothing is changed or blocked.
 - **Engine:** a separate pure checker over the finished blueprint; no generation change, goldens untouched. Product calls resolved conservatively: vertical-pull is scoped to upper/pull splits (no new nag for full-body users), and the push/pull threshold is generous so a legitimately press-leaning full-body week does not false-positive.
@@ -170,26 +170,26 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 
 # Phase 3 - Deeper personalisation
 
-## P3.1 Independent experience and goal (Issue 5) — rep floor DONE
+## P3.1 Independent experience and goal (Issue 5) - rep floor DONE
 **Done (rep floor):** `resolveRepRange` gained an `experience` arg and a clamp: a beginner OR a general_fitness compound never gets the 3-6 range, it is floored to 6-10. Threaded `answers.experience` to the call site. Intermediate/advanced build_muscle (the golden baseline) is byte-identical (the clamp only fires for beginner/general_fitness). 3 new tests; suite 1589 green, typecheck clean. Decision applied: 6-10 floor; general_fitness reuses the same floor (moderate-heavy on the heavy day).
 **Impact:**
 - **User:** beginners and general-fitness users no longer see powerlifting-style 3-6 prescriptions on the heavy day; they get a moderate 6-10. Intermediate/advanced muscle-building is unchanged.
 - **Engine:** a scoped clamp keyed on experience/goal; golden baseline byte-identical.
 **P3.1b DONE (difficulty filter):** `difficulty` threaded onto `ExerciseMeta` + the action pool (select + `ExercisePoolRow` + map, additive). `selectForSession` gained an `experience` arg; `byPattern` got a no-op-when-absent layer that soft-deprioritises `advanced`-difficulty lifts for a beginner (never excludes). Goldens byte-identical (synthetic pools have no `difficulty`; non-beginner is a no-op). 1 new test; suite 1590 green, typecheck clean. **Impact (user):** a beginner now gets simpler exercise choices where the catalogue tags difficulty; intermediate/advanced unchanged. **Impact (engine):** an early `byPattern` sort layer keyed on `experience` + `difficulty`, no-op by default.
 
-## P3.2 Measurable priority muscle (Issue 6) — DONE
+## P3.2 Measurable priority muscle (Issue 6) - DONE
 **Done:** a weekly budget of `PRIORITY_EXTRA_SETS_PER_WEEK` (3) extra sets is spent one-per-exercise across the priority muscle's patterns (`PRIORITY_PATTERNS`) already selected, deepening existing priority work without injecting slots or touching other muscles. Null priority -> 0 budget, so the no-priority path (and every golden) is byte-identical. 3 new tests (bounded delta, lands on the priority patterns, null identity); suite 1586 green, typecheck clean. No migration. Decision applied: +3 capped, additive only.
 **Impact:**
 - **User:** choosing a priority muscle now visibly adds ~3 sets/week of that muscle's work on top of the reordering, so priority is measurably different from balanced (Issue 6 fixed) without blowing up total volume.
 - **Engine:** a capped weekly counter + a +1 in the set-assignment loop; null priority unchanged, so goldens hold. Combines with the strength set-bump (a priority lift that is also the strength lead gets both).
 
-## P3.3 Bodybuilding character (Issue 5) — DONE
+## P3.3 Bodybuilding character (Issue 5) - DONE
 **Done:** under the Bodybuilding training style, isolation work now uses the PUMP range (15-20) while compounds stay hypertrophy (8-12) (a style-gated branch in `resolveRepRange`), and each non-PHUL session carries one extra isolation slot via `BODYBUILDING_ISO_SLOT` + a +1 exercise budget. Gated on `trainingStyle === 'bodybuilding'` (PHUL excluded, split identity wins per P1.5), so Balanced output is byte-identical and all 6 goldens hold. 3 new tests; suite 1595 green, typecheck clean. No migration. (Strength high-frequency overload = warn-only, shipped as P2.2.)
 **Impact:**
 - **User:** a Bodybuilding routine reads like a hypertrophy program (higher-rep accessories + more isolation volume) instead of a generic 8-12. A 45-60 Bodybuilding session may now surface the "may run long" notice from the extra exercise (honest, per the warn-not-trim decision). Balanced / Strength / Powerbuilding / PHUL are unchanged.
 - **Engine:** a style-gated rep-range branch + a +1 isolation slot/budget per non-PHUL session, both no-ops under any other style; goldens unaffected. (Product note: the +1 budget can trip `over_time`; shipped per the recommended "warn is honest" call.)
 
-## P3.4 Controlled variety, split differentiation, equipment visibility (Issues 14-16) — ANALYSED, no sound bounded change; (c) deferred
+## P3.4 Controlled variety, split differentiation, equipment visibility (Issues 14-16) - ANALYSED, no sound bounded change; (c) deferred
 A design fan-out proposed four sub-changes; adversarial verification against the real `byPattern` sort showed three are already satisfied and one needs deferral:
 - **(a) `consistent` keeps anchors without duplicating accessories:** ALREADY true and test-locked (`'consistent' still rotates accessories`, generation.test.ts:1532). `consistent` only anchors `COMPOUND_ANCHOR_PATTERNS`; accessories use the same fresh-preference path as `varied`. No change.
 - **(b) `varied` reduces same-class repetition more strongly:** already handled. `byPattern` layer 4 (sub-class freshness) sinks used-class candidates, and `pick`'s fresh-id preference correctly prefers a NEW exercise over repeating the exact one (cross-session dedup tested at GQ3, generation.test.ts:1852). The blueprint's proposal (prefer fresh-class over fresh-id) would repeat the EXACT same exercise to avoid a class repeat, which is strictly worse. Dismissed.
@@ -205,6 +205,16 @@ A design fan-out proposed four sub-changes; adversarial verification against the
 1. **P1.2 restriction tagging:** RESOLVED - conservative + warn. Fix only clear inconsistencies (Step-Up -> knee), keep one genuinely-safe option per pattern, and emit a visible warning when a restriction still empties an essential pattern.
 2. **P1.4 duration over-budget behaviour:** RESOLVED - warn, keep volume. Improve the estimate (warmups, supersets, intensity) and warn when a session runs long; never silently drop requested work. No auto-trim.
 3. **P1.5 PHUL under Powerbuilding:** RESOLVED - preserve the contrast. Split identity outranks training style: PHUL always uses its own power/hypertrophy day biases for rep ranges and the set bump, so it looks like PHUL under any training style.
+
+---
+
+# Deferred items with findings (need user / science input)
+
+## P1.3b logging UI - data layer DONE, SetLogger UI deferred for visual verify
+The data layer shipped: a `duration_s` column (conditional-CHECK migration `2026-06-15-09-24-17-set-logs-duration.sql`, hand-apply), `LogEntry.duration_s`, a hold-aware `validateLogEntry`, `isTimedEntry` excluding holds from every weight aggregate (e1RM / PR / best / tonnage / last-session / share), and the read/write path (queries + upsertLog). 9 new tests; suite 1618 green. **IMPORTANT live-DB finding:** the design fan-out claimed set_logs has no CHECK constraints; the LIVE DB actually has `kg_check (kg>0..500)` and `reps_check (reps 1..100)`, so a hold (kg=0/reps=0) would have failed both. The migration rewrites those CHECKs to be conditional on `duration_s`, keeping the full rails for normal sets. **Deferred:** the SetLogger timed-input UI (a seconds input instead of weight x reps, both card + editorial variants, + ExerciseCard/WorkoutModeScreen wiring) is a visual mobile-UX change to a 849-line, 40-test component best done with your eyes; the data layer correctly handles holds the moment that UI lands.
+
+## Quad/hamstring isolation patterns - DEFERRED (the blueprint's "golden-safe" version regresses real routines)
+Adversarial verification found the design fan-out's recommended "Diff 1" (add `quad_iso`/`hamstring_iso` patterns + re-tag Leg Extension/Leg Curl off squat/hinge, keep the defensive byPattern layer) is golden-safe ONLY for the synthetic goldens (they never contain Leg Curl/Extension). In the REAL catalogue it removes Leg Curl + Leg Extension from generated routines (no emphasis requests the new patterns), regressing the dumbbell/machine cases where they currently fill the hinge/squat slot (audit Cases 05/06/08/09/10) and breaking the P2.1 leg-curl deflection for dumbbell users. The CORRECT version gives the lower emphases dedicated quad/hamstring-iso slots so the work still appears, which re-baselines goldens AND is a coaching-science composition call (which lower days get a quad/ham-iso slot, and what it displaces). Routed to the science lane per the engine-change process, like P3.4(c). The enum + muscle-bridge + migration are ready to lift from the blueprint once the emphasis composition is decided.
 
 ---
 
