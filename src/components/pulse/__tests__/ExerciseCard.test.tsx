@@ -224,4 +224,53 @@ describe('ExerciseCard', () => {
         await userEvent.click(screen.getByRole('button', { name: /expand hack squat/i }));
         expect(screen.getByText(/swapped from leg press/i)).toBeInTheDocument();
     });
+
+    describe('timed holds (P1.3b)', () => {
+        // Valid-UUID id so the history/last-session functions (parseLogKey + UUID_RE)
+        // see the logs; the generator stores a NUMERIC rep range even for a hold.
+        const HOLD_ID = 'a1b2c3d4-e5f6-47a8-9b0c-1a2b3c4d5e6f';
+        const plank: RoutineExercise = {
+            ...routineExercise,
+            id: HOLD_ID,
+            exercise_id: 'ex-plank',
+            reps: '12-15',
+            exercise: {
+                id: 'ex-plank',
+                name: 'Plank',
+                category: 'abs',
+                default_sets: '3',
+                default_reps: '30-60s',
+                user_id: null,
+                equipment: [],
+                prescription_unit: 'time',
+            },
+        };
+        // Legacy weight-based logs (no duration_s) from before the exercise was timed.
+        const mk = (kg: number) => ({ kg, reps: 14, rir: 2, saved: true });
+        const weightLogs = { [`1-${HOLD_ID}-0`]: mk(10), [`1-${HOLD_ID}-1`]: mk(10) };
+
+        it('shows the hold prescription in the header, not the numeric rep range', () => {
+            render(<ExerciseCard {...defaultProps} routineExercise={plank} week={2} logs={weightLogs} />);
+            expect(screen.getByText(/30-60s hold/i)).toBeInTheDocument();
+            expect(screen.queryByText(/12-15 reps/i)).not.toBeInTheDocument();
+        });
+
+        it('hides the weight-based Last and Best/1RM strips for a timed hold', async () => {
+            render(<ExerciseCard {...defaultProps} routineExercise={plank} week={2} logs={weightLogs} />);
+            expect(screen.queryByText(/Last:/i)).not.toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: /expand plank/i }));
+            expect(screen.queryByText(/1RM/i)).not.toBeInTheDocument();
+        });
+
+        it('gate proof: the same lift with the same weight logs DOES show Last + 1RM when not timed', async () => {
+            const nonTimed: RoutineExercise = {
+                ...plank,
+                exercise: { ...plank.exercise, prescription_unit: undefined },
+            };
+            render(<ExerciseCard {...defaultProps} routineExercise={nonTimed} week={2} logs={weightLogs} />);
+            expect(screen.getByText(/Last:/i)).toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: /expand plank/i }));
+            expect(screen.getByText(/1RM/i)).toBeInTheDocument();
+        });
+    });
 });

@@ -11,6 +11,7 @@ import {
     isPlateLoaded,
     computeE1RMHistory,
     shouldDeload,
+    formatPrescription,
 } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import { useToast } from '@/lib/pulse/toast';
@@ -515,6 +516,13 @@ export default function WorkoutModeScreen({
     const single = Array.isArray(step) ? null : step;
     const pair = Array.isArray(step) ? step : null;
     const lastSession = single ? computeLastSession(logs, single.id, week) : null;
+    // P1.3b: a timed hold shows its seconds prescription, not weight x reps, and has
+    // no weight-based last-session readout (any weight rows are legacy, pre-timed).
+    const singleDisplay = single ? displayOf(single) : null;
+    const singleTimed = singleDisplay?.prescription_unit === 'time';
+    const singlePrescription = single
+        ? formatPrescription(single.reps, singleDisplay?.prescription_unit, singleDisplay?.default_reps)
+        : '';
 
     // Fire a quiet success toast only on the save transition into a PR.
     function handleSetSave(key: string, entry: LogEntry) {
@@ -701,9 +709,9 @@ export default function WorkoutModeScreen({
                             <div className="mt-2.5 font-pulse-body text-[0.71875rem] leading-relaxed text-pulse-dim">
                                 {single ? (
                                     <>
-                                        {single.sets} sets <span className="text-pulse-muted">·</span> {single.reps}{' '}
-                                        reps
-                                        {lastSession && (
+                                        {single.sets} sets <span className="text-pulse-muted">·</span>{' '}
+                                        {singlePrescription}
+                                        {!singleTimed && lastSession && (
                                             <>
                                                 <br />
                                                 <span className="text-pulse-muted">Last: </span>
@@ -823,8 +831,12 @@ export default function WorkoutModeScreen({
                             {single ? (
                                 <>
                                     <HeroChip b={single.sets} k="sets" />
-                                    <HeroChip b={single.reps} k="reps" />
-                                    {lastSession && (
+                                    {singleTimed ? (
+                                        <HeroChip b={singleDisplay?.default_reps ?? '30-60s'} k="hold" />
+                                    ) : (
+                                        <HeroChip b={single.reps} k="reps" />
+                                    )}
+                                    {!singleTimed && lastSession && (
                                         <HeroChip
                                             last
                                             k="Last"
@@ -904,7 +916,9 @@ export default function WorkoutModeScreen({
                         const done = total > 0 && d === total;
                         const current = i === safeIdx;
                         const rowName = Array.isArray(st) ? st.map((re) => nameOf(re)).join(' + ') : nameOf(st);
-                        const detail = Array.isArray(st) ? 'Superset' : `${st.sets} × ${st.reps}`;
+                        const detail = Array.isArray(st)
+                            ? 'Superset'
+                            : `${st.sets} × ${formatPrescription(st.reps, displayOf(st).prescription_unit, displayOf(st).default_reps, { compact: true })}`;
                         return (
                             <button
                                 key={Array.isArray(st) ? st[0].id : st.id}

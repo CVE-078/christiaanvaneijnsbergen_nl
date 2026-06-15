@@ -14,6 +14,7 @@ import {
     shouldDeload,
     isBodyweight,
     isPlateLoaded,
+    formatPrescription,
 } from '@/lib/pulse/utils';
 import { explainCopy } from '@/lib/pulse/explainCopy';
 import { useToast } from '@/lib/pulse/toast';
@@ -130,15 +131,19 @@ function ExerciseCard({
                             {display.name}
                         </div>
                         <div className="font-pulse text-[0.78125rem] tracking-[0.03em] text-pulse-muted mt-1">
-                            {re.sets} × {re.reps} reps
-                            {re.starting_weight_kg !== null && (
+                            {/* Prescription-unit aware (matches the Plan page): "30-60s hold"
+                                for a timed exercise, "12-15 reps/side" for unilateral, else reps. */}
+                            {re.sets} × {formatPrescription(re.reps, display.prescription_unit, display.default_reps)}
+                            {!timed && re.starting_weight_kg !== null && (
                                 <>
                                     {' '}
                                     · {toDisplay(re.starting_weight_kg, unit)} {unit} start
                                 </>
                             )}
                         </div>
-                        {lastSession && (
+                        {/* A timed hold has no weight x reps last-session readout (any
+                            weight rows are legacy, pre-timed logs); suppress it. */}
+                        {!timed && lastSession && (
                             <div className="font-pulse text-[0.8125rem] text-pulse-dim mt-1">
                                 Last: {toDisplay(lastSession.kg, unit)} {unit} × {lastSession.reps} ×{' '}
                                 {lastSession.setCount} sets
@@ -196,7 +201,9 @@ function ExerciseCard({
 
                 {open && (
                     <div className="px-[1.125rem] pt-1 pb-4 flex flex-col gap-2.5">
-                        <ExerciseHistoryPanel history={exerciseHistory} unit={unit} />
+                        {/* A hold has no best-set / e1RM / trend; hide the weight-based
+                            history panel for a timed exercise (legacy weight rows aside). */}
+                        {!timed && <ExerciseHistoryPanel history={exerciseHistory} unit={unit} />}
                         {stalled && (
                             <div className="rounded-lg bg-pulse-surface-2 px-3 py-2.5">
                                 <p className="font-pulse text-[0.78125rem] font-semibold text-pulse-accent">
