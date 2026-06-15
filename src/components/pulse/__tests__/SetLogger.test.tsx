@@ -351,4 +351,47 @@ describe('SetLogger', () => {
         await userEvent.click(screen.getByRole('button', { name: /add drop set/i }));
         expect(screen.getByRole('spinbutton', { name: /drop 1 weight/i })).toBeInTheDocument();
     });
+
+    describe('timed holds (P1.3b)', () => {
+        it('renders a seconds input instead of weight/reps when timed', () => {
+            render(<SetLogger {...defaultProps} timed repsRange="30-60" />);
+            expect(screen.getByRole('spinbutton', { name: /hold time in seconds/i })).toBeInTheDocument();
+            expect(screen.queryByRole('spinbutton', { name: /weight in kg/i })).not.toBeInTheDocument();
+            expect(screen.queryByRole('spinbutton', { name: /repetitions/i })).not.toBeInTheDocument();
+        });
+
+        it('prefills the seconds input from the first number in the prescription', () => {
+            render(<SetLogger {...defaultProps} timed repsRange="30-60" />);
+            expect(screen.getByRole('spinbutton', { name: /hold time in seconds/i })).toHaveValue(30);
+        });
+
+        it('saves a hold (duration_s, kg/reps 0) and never a weight set', async () => {
+            const onSave = vi.fn();
+            render(<SetLogger {...defaultProps} timed repsRange="30-60" onSave={onSave} />);
+            const input = screen.getByRole('spinbutton', { name: /hold time in seconds/i });
+            await userEvent.clear(input);
+            await userEvent.type(input, '45');
+            await userEvent.click(screen.getByRole('button', { name: /save/i }));
+            expect(onSave).toHaveBeenCalledWith({ kg: 0, reps: 0, rir: 0, saved: true, duration_s: 45 });
+        });
+
+        it('rejects an out-of-range hold and does not save', async () => {
+            const onSave = vi.fn();
+            render(<SetLogger {...defaultProps} timed repsRange="30-60" onSave={onSave} />);
+            const input = screen.getByRole('spinbutton', { name: /hold time in seconds/i });
+            await userEvent.clear(input);
+            await userEvent.click(screen.getByRole('button', { name: /save/i }));
+            expect(onSave).not.toHaveBeenCalled();
+            expect(screen.getByText(/enter seconds/i)).toBeInTheDocument();
+        });
+
+        it('shows the "Ns hold" readout and an Edit control when saved', async () => {
+            const savedHold: LogEntry = { kg: 0, reps: 0, rir: 0, saved: true, duration_s: 45 };
+            render(<SetLogger {...defaultProps} timed entry={savedHold} />);
+            expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
+            expect(screen.getByText(/45s hold/i)).toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+            expect(screen.getByRole('spinbutton', { name: /hold time in seconds/i })).toHaveValue(45);
+        });
+    });
 });

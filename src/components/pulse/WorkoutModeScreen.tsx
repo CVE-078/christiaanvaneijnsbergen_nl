@@ -334,11 +334,13 @@ function ExerciseSetRows({
     // Bodyweight + plate-loaded both follow the displayed exercise so a swap is honored.
     const bodyweight = isBodyweight(display.equipment);
     const plateLoaded = isPlateLoaded(display.equipment);
+    // P1.3b: a timed isometric hold logs seconds, not weight x reps; no deload.
+    const timed = display.prescription_unit === 'time';
     // Auto-deload a stalled lift, matching the Train card path (ExerciseCard): a
     // plateaued, not-recently-deloaded e1RM history backs the prefilled target off
     // to ~90%. Bodyweight lifts have a 0 e1RM by construction, so the detector
     // would false-flag them; shouldDeload reads e1rm history, skip it there.
-    const deload = !bodyweight && shouldDeload(computeE1RMHistory(logs, re.id));
+    const deload = !bodyweight && !timed && shouldDeload(computeE1RMHistory(logs, re.id));
     // Single-active focus: the next unsaved set is the only one showing inputs; the
     // rest render as dimmed "not started" previews. -1 when every set is logged.
     const activeIdx = Array.from({ length: maxSets }, (_, s) => logKey(week, re.id, s)).findIndex(
@@ -373,6 +375,7 @@ function ExerciseSetRows({
                         active={s === activeIdx}
                         totalSets={maxSets}
                         plateLoaded={plateLoaded}
+                        timed={timed}
                         onSave={(e) => onSave(key, e)}
                         onDelete={() => onDelete(key)}
                     />

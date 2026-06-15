@@ -54,6 +54,12 @@ interface Props {
     // caller derives this from equipment via isPlateLoaded; default true keeps
     // existing callers unchanged. Off hides the calc on dumbbell / cable / machine.
     plateLoaded?: boolean;
+    // P1.3b: a timed isometric hold (e.g. Plank), derived by the caller from the
+    // exercise's prescription_unit === 'time'. Replaces the weight x reps form with
+    // a single seconds input and logs a hold (duration_s, kg/reps 0). Default false
+    // keeps every weight-based caller byte-identical. A hold carries no e1RM /
+    // progression / deload / plate calc / drop set / RIR.
+    timed?: boolean;
     onSave: (entry: LogEntry) => void;
     onDelete?: () => void;
 }
@@ -85,6 +91,7 @@ export default function SetLogger({
     active = true,
     totalSets,
     plateLoaded = true,
+    timed = false,
     onSave,
     onDelete,
 }: Props) {
@@ -120,6 +127,13 @@ export default function SetLogger({
             entry?.drops?.map((d) => ({ id: newDropId(), kg: String(toDisplay(d.kg, unit)), reps: String(d.reps) })) ??
             [],
     );
+    // P1.3b timed-hold input (whole seconds). Prefilled from the saved hold, else
+    // the first number in the prescription (e.g. "30-60" -> "30"), else blank.
+    const [seconds, setSeconds] = useState(() => {
+        if (entry?.duration_s != null) return String(entry.duration_s);
+        const firstNum = (repsRange ?? '').match(/\d+/)?.[0];
+        return firstNum ?? '';
+    });
     const [editing, setEditing] = useState(false);
     const [inputError, setInputError] = useState<string | null>(null);
     const [platesOpen, setPlatesOpen] = useState(false);
@@ -262,6 +276,227 @@ export default function SetLogger({
     const rirClause =
         targetRIR > 0 ? `stop with about ${targetRIR} rep${targetRIR === 1 ? '' : 's'} left` : 'push close to failure';
     const deloadTankClause = targetRIR > 0 ? ` and keep ${targetRIR} rep${targetRIR === 1 ? '' : 's'} in the tank` : '';
+
+    // ── P1.3b: timed isometric hold ─────────────────────────────────────────────
+    // A self-contained branch: one seconds input, logs a hold (duration_s, kg/reps
+    // 0). No weight x reps, e1RM, progression, deload, plate calc, drop set, or RIR,
+    // so it leaves the entire weight-based render path below untouched.
+    if (timed) {
+        const prescription = (repsRange ?? '').trim();
+        const targetText = prescription ? `${prescription}s` : 'a hold';
+        const handleSaveTimed = () => {
+            const s = parseInt(seconds, 10);
+            if (!Number.isFinite(s) || s < 1 || s > 3600) {
+                setInputError('Enter seconds (1–3600)');
+                return;
+            }
+            setInputError(null);
+            onSave({ kg: 0, reps: 0, rir: 0, saved: true, duration_s: s });
+            setEditing(false);
+        };
+        const resetSeconds = () => setSeconds(entry?.duration_s != null ? String(entry.duration_s) : '');
+        const handleEditTimed = () => {
+            resetSeconds();
+            setEditing(true);
+            setInputError(null);
+        };
+        const handleCancelTimed = () => {
+            resetSeconds();
+            setEditing(false);
+            setInputError(null);
+        };
+
+        // Guided single-active focus: dimmed "not started" preview.
+        if (editorial && !saved && !editing && !active) {
+            return (
+                <div className="flex items-center gap-3.5 border-b border-pulse-border py-3 opacity-50">
+                    <span className="w-[3.75rem] shrink-0 font-pulse-body text-[0.625rem] uppercase tracking-[0.16em] text-pulse-muted">
+                        {setLabel}
+                    </span>
+                    <span className="font-pulse-body text-[0.8125rem] tracking-[0.02em] text-pulse-muted">
+                        Not started · hold {targetText}
+                    </span>
+                </div>
+            );
+        }
+
+        const secondsInput = (
+            <input
+                type="number"
+                aria-label="Hold time in seconds"
+                placeholder="sec"
+                inputMode="numeric"
+                value={seconds}
+                min={1}
+                max={3600}
+                step={5}
+                onChange={(e) => {
+                    setSeconds(e.target.value);
+                    setInputError(null);
+                }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTimed();
+                }}
+                className={
+                    editorial
+                        ? 'w-16 min-w-0 bg-transparent font-pulse-display text-2xl font-bold leading-none text-pulse-text outline-none [appearance:textfield] placeholder:text-pulse-muted [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+                        : inputClass
+                }
+            />
+        );
+
+        return (
+            <div className="flex flex-col">
+                <div
+                    className={
+                        editorial
+                            ? 'group flex items-center gap-3.5 border-b border-pulse-border py-3 transition-colors duration-200'
+                            : `flex items-center gap-3 rounded-[11px] px-3.5 py-[0.6875rem] transition-colors duration-200 ${
+                                  showInputs
+                                      ? 'bg-transparent shadow-[inset_0_0_0_1px_var(--color-pulse-border)]'
+                                      : 'bg-pulse-surface'
+                              }`
+                    }>
+                    {editorial ? (
+                        <span
+                            className={`w-[3.75rem] shrink-0 font-pulse-body text-[0.625rem] uppercase tracking-[0.16em] ${
+                                saved ? 'text-pulse-accent' : 'text-pulse-muted'
+                            }`}>
+                            {setLabel}
+                        </span>
+                    ) : (
+                        <span
+                            className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full ${
+                                showInputs
+                                    ? 'shadow-[inset_0_0_0_1.5px_var(--color-pulse-border)]'
+                                    : 'bg-pulse-accent text-pulse-bg'
+                            }`}>
+                            {!showInputs && (
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={3.2}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-3 w-3"
+                                    aria-hidden>
+                                    <path d="M5 13l4 4L19 7" />
+                                </svg>
+                            )}
+                        </span>
+                    )}
+
+                    {showInputs ? (
+                        <>
+                            <div className={`flex min-w-0 flex-1 flex-col ${editorial ? 'gap-2' : 'gap-[0.25rem]'}`}>
+                                {editorial ? (
+                                    <>
+                                        <label className="flex w-fit flex-col gap-0.5 rounded-xl border border-pulse-border bg-pulse-bg px-3 py-1.5 transition-colors focus-within:border-pulse-accent/60">
+                                            <span className="font-pulse-body text-[0.5625rem] uppercase tracking-[0.16em] text-pulse-muted">
+                                                Hold
+                                            </span>
+                                            <span className="flex items-baseline gap-1">
+                                                {secondsInput}
+                                                <span className="font-pulse text-[0.6875rem] font-medium text-pulse-dim">
+                                                    sec
+                                                </span>
+                                            </span>
+                                        </label>
+                                        <p className="font-pulse-body text-[0.75rem] leading-snug tracking-[0.01em] text-pulse-dim">
+                                            Hold steady for {targetText}. Brace and breathe.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-pulse-body text-[0.5625rem] uppercase tracking-[0.16em] text-pulse-muted">
+                                            Hold
+                                        </span>
+                                        <span className="font-pulse text-[0.75rem] text-pulse-dim">
+                                            target {targetText}
+                                        </span>
+                                    </div>
+                                )}
+                                {inputError && (
+                                    <span className="font-pulse text-[0.6875rem] text-pulse-accent">{inputError}</span>
+                                )}
+                            </div>
+                            {!editorial && (
+                                <span className="flex shrink-0 items-baseline gap-1">
+                                    {secondsInput}
+                                    <span className="font-pulse text-[0.6875rem] font-medium text-pulse-dim">s</span>
+                                </span>
+                            )}
+                            {editing && (
+                                <button
+                                    onClick={handleCancelTimed}
+                                    className="shrink-0 cursor-pointer rounded-sm border border-pulse-border bg-transparent px-2 py-1 font-pulse text-[0.75rem] uppercase tracking-[0.06em] text-pulse-dim">
+                                    Cancel
+                                </button>
+                            )}
+                            <button
+                                onClick={handleSaveTimed}
+                                className="h-10 shrink-0 cursor-pointer rounded-[6px] border-none bg-pulse-accent px-4 font-pulse text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-pulse-bg transition-opacity duration-100">
+                                {editing ? 'Update' : 'Save'}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            {editorial ? (
+                                <span className="font-pulse-display text-xl font-semibold leading-none text-pulse-text">
+                                    {entry!.duration_s}
+                                    <span className="font-pulse text-[0.8125rem] font-medium text-pulse-dim">
+                                        {' '}
+                                        s hold
+                                    </span>
+                                </span>
+                            ) : (
+                                <span className="font-pulse text-[0.90625rem] tracking-[0.01em] text-pulse-text">
+                                    {entry!.duration_s}s hold
+                                </span>
+                            )}
+                            <div className="ml-auto flex shrink-0 items-center gap-3">
+                                <div
+                                    className={
+                                        editorial
+                                            ? 'flex items-center gap-3 opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100'
+                                            : 'contents'
+                                    }>
+                                    <button
+                                        onClick={handleEditTimed}
+                                        className="cursor-pointer border-none bg-transparent p-0 font-pulse text-[0.75rem] uppercase tracking-[0.06em] text-pulse-dim">
+                                        Edit
+                                    </button>
+                                    {onDelete && (
+                                        <button
+                                            onClick={onDelete}
+                                            className="cursor-pointer border-none bg-transparent p-0 font-pulse text-[0.75rem] text-pulse-dim">
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                                {editorial && (
+                                    <span className="grid h-[1.375rem] w-[1.375rem] place-items-center rounded-full bg-pulse-accent text-pulse-bg">
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth={3.2}
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="h-3 w-3"
+                                            aria-hidden>
+                                            <path d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     // Guided single-active focus: an unsaved set that is not the active one shows a
     // dimmed "not started" preview instead of a full input form (Editorial draft C).
