@@ -691,11 +691,13 @@ export function resolveRepRange(
             ? repRange(POWERBUILDING_HEAVY_PATTERNS.has(pattern) ? 'strength' : 'hypertrophy', isCompound, goal)
             : repRange(effectiveBias, isCompound, goal);
     // P3.1: a beginner or a general-fitness lifter never receives the heaviest 3-6
-    // compound range; floor it to a moderate 6-10. Experience and goal modulate the
-    // prescription independently of the split's bias. Intermediate/advanced
-    // build_muscle (the golden baseline) is untouched: base is returned as-is.
+    // compound range; floor it to 5-8 (a crisp 5 at high RIR is the textbook novice
+    // method; only sub-5 near-max work carries the real novice risk, per the science
+    // review). Experience and goal modulate the prescription independently of the
+    // split's bias. Intermediate/advanced build_muscle (the golden baseline) is
+    // untouched: base is returned as-is.
     if (isCompound && base === '3-6' && (experience === 'beginner' || goal === 'general_fitness')) {
-        return '6-10';
+        return '5-8';
     }
     return base;
 }

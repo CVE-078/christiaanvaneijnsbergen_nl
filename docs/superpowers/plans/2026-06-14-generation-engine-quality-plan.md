@@ -210,6 +210,19 @@ A design fan-out proposed four sub-changes; adversarial verification against the
 
 ---
 
+# Review-loop reconciliation (2026-06-15, Claude.ai science + Perplexity evidence)
+
+Bundle A (validate shipped decisions) - reconciled against code:
+- **#1 beginner/general-fitness compound floor: ADOPTED change** 6-10 -> **5-8** (both lenses; honors the 5-rep novice method). Also lowered `isHeavyRange` to lower-bound <= 4 so 5-8 is treated as moderate (not heavy) by the duration estimator.
+- **#6 push/pull imbalance: ADOPTED change** 2.5:1 -> **2.0:1** (both lenses; 2.5 was too lenient, normal programs run to ~1.5:1).
+- **#7 vertical-pull nudge: ADOPTED Claude.ai** - now MOVEMENT-gated, not split-gated: fires when the week has horizontal pull but no vertical pull and the usable pool supplies one, full-body included (the lat gap is the same on a full-body all-horizontal week). Dismissed Perplexity's unreasoned "keep". fb-hmhp-4 now correctly earns the warning.
+- **#3 PHUL precedence: VERIFIED + test added** - safety-floor (#1) outranks split identity outranks style; a beginner PHUL power day is floored off 3-6 (the floor is applied on the resolved base, after style resolution).
+- **#2 (bodybuilding 15-20), #5 (5+ heavy days), #8 (duration placeholders): KEPT** as shipped. #8 warmup front-loading (180s first heavy + ~60s each additional vs flat +120) is a noted polish, deferred to "tune against logged data".
+- **#4 priority dose: ESCALATED** - genuine conflict (Claude.ai +4-5, Perplexity +2; both want a per-muscle volume ceiling). Asking the user; the ceiling is the shared structural fix.
+
+Bundle B (deferred quad/ham + lower-day) - both lenses agree, GO:
+- Dedicated `quad_iso`/`hamstring_iso` slots: quad day drops glute-iso for leg-extension; posterior day drops lunge for leg-curl (keeps glute-iso); 6th slot brings the displaced accessory back. The hamstring-iso slot is the "non-negotiable" (short-head of biceps femoris is knee-flexion-only). NO cross-day rep-range split (composition + lift-type rep assignment already create the contrast). To implement (big: enum + muscleMap + migration + emphasis edits + golden re-baseline).
+
 # Deferred items with findings (need user / science input)
 
 ## P1.3b logging UI - data layer DONE, SetLogger UI deferred for visual verify

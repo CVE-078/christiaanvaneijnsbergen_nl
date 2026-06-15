@@ -336,10 +336,30 @@ describe('beginner / general-fitness rep floor (P3.1)', () => {
             }),
         ).exercises.filter((e) => e.workout_type === 'full_body' && e.variant === 'A');
 
-    it('a beginner never gets a 3-6 compound on the strength day (floored to 6-10)', () => {
+    it('a beginner never gets a 3-6 compound on the strength day (floored to 5-8)', () => {
         const rows = fbStrengthA({ experience: 'beginner' });
         expect(rows.some((e) => e.reps === '3-6')).toBe(false);
-        expect(rows.some((e) => e.reps === '6-10')).toBe(true);
+        expect(rows.some((e) => e.reps === '5-8')).toBe(true);
+    });
+
+    it('a beginner who picks PHUL still gets its power day floored off 3-6 (safety > split > style)', () => {
+        const pool = deepPool(2);
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const phul = STYLES[4].find((s) => s.key === 'phul-4') as ProgramStyle;
+        const bp = generateRoutine(
+            input({
+                style: phul,
+                pool,
+                trainingDays: [1, 2, 4, 5],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 4 },
+            }),
+        );
+        const upperAcompounds = bp.exercises.filter((e) => {
+            const p = patternOf.get(e.exercise_id);
+            return e.workout_type === 'upper' && e.variant === 'A' && p && !p.endsWith('_iso');
+        });
+        expect(upperAcompounds.length).toBeGreaterThan(0);
+        expect(upperAcompounds.every((e) => e.reps !== '3-6')).toBe(true);
     });
 
     it('a general-fitness lifter never gets a 3-6 compound', () => {
@@ -356,22 +376,26 @@ describe('beginner / general-fitness rep floor (P3.1)', () => {
 // ── Post-generation validator clean on golden inputs (P2.3) ──────────────────
 
 describe('post-generation validator is clean on the golden inputs (P2.3)', () => {
-    const cases: Array<{ key: string; days: number[] }> = [
-        { key: 'ppl-3', days: [1, 3, 5] },
-        { key: 'ul-classic-4', days: [1, 2, 4, 5] },
-        { key: 'ulppl-5', days: [1, 2, 3, 5, 6] },
-        { key: 'ul-aesthetic-4', days: [1, 2, 4, 5] },
-        { key: 'ppl-fb-4', days: [1, 2, 4, 5] },
-        { key: 'fb-hmhp-4', days: [1, 2, 4, 5] },
+    // fb-hmhp-4 legitimately carries no vertical pull (the full-body emphases use
+    // horizontal pulling), so on a pool that supplies a vertical pull it correctly
+    // earns no_vertical_pull (movement-based check, P2.3 + science review). Every
+    // other golden contains a vertical pull, so it stays clean.
+    const cases: Array<{ key: string; days: number[]; expect: string[] }> = [
+        { key: 'ppl-3', days: [1, 3, 5], expect: [] },
+        { key: 'ul-classic-4', days: [1, 2, 4, 5], expect: [] },
+        { key: 'ulppl-5', days: [1, 2, 3, 5, 6], expect: [] },
+        { key: 'ul-aesthetic-4', days: [1, 2, 4, 5], expect: [] },
+        { key: 'ppl-fb-4', days: [1, 2, 4, 5], expect: [] },
+        { key: 'fb-hmhp-4', days: [1, 2, 4, 5], expect: ['no_vertical_pull'] },
     ];
-    for (const { key, days } of cases) {
-        it(`${key} generates with no week-level warnings`, () => {
+    for (const { key, days, expect: want } of cases) {
+        it(`${key} validator warnings == ${JSON.stringify(want)}`, () => {
             const styleObj = Object.values(STYLES)
                 .flat()
                 .find((s) => s.key === key) as ProgramStyle;
             const pool = deepPool();
             const bp = generateRoutine(input({ style: styleObj, trainingDays: days, pool }));
-            expect(validateProgram(bp, pool)).toEqual([]);
+            expect(validateProgram(bp, pool)).toEqual(want);
         });
     }
 

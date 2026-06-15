@@ -13,10 +13,11 @@ const PUSH_PULL_IMBALANCE = 'push_pull_imbalance';
 const LABEL_MISMATCH = 'label_mismatch';
 const NO_VERTICAL_PULL = 'no_vertical_pull';
 
-// Generous: a full-body week legitimately leans press-heavy, so only a real
-// lopsidedness (~2.5:1 weighted) warns. Verified below the 6 frozen golden inputs
-// (worst is well under this), so the validator is a no-op on the golden path.
-const PUSH_PULL_RATIO_MAX = 2.5;
+// Ideal push:pull is ~1:1 (slightly pull-favored is healthiest); normal programs
+// run up to ~1.5:1 press-heavy without concern, so 2:1 catches a genuine imbalance
+// with a buffer above normal (science-review consensus; 2.5 was too lenient). The
+// 6 frozen golden inputs stay below this (worst is fb-hmhp-4 ~1.83 by count).
+const PUSH_PULL_RATIO_MAX = 2.0;
 
 const PRESS_MUSCLES = ['chest', 'shoulders', 'triceps'] as const;
 const PULL_MUSCLES = ['back', 'biceps'] as const;
@@ -71,17 +72,17 @@ export function validateProgram(blueprint: RoutineBlueprint, pool: ExerciseMeta[
         if (!ok && !warnings.includes(LABEL_MISMATCH)) warnings.push(LABEL_MISMATCH);
     }
 
-    // CHECK 3: weekly vertical-pull presence, scoped to weeks whose split has an
-    // upper/pull day to host it (pure full-body uses horizontal pulling by design, so
-    // it is exempt and never nagged), and only when the pool can actually supply one.
-    const hostsVerticalPull = blueprint.schedule.some(
-        (d) => d.workout_type === 'upper' || d.workout_type === 'pull',
-    );
-    if (hostsVerticalPull) {
-        const hasVerticalPull = rows.some((r) => r.pattern === 'vertical_pull');
-        const poolHasVerticalPull = pool.some((e) => e.movement_pattern === 'vertical_pull');
-        if (!hasVerticalPull && poolHasVerticalPull) warnings.push(NO_VERTICAL_PULL);
-    }
+    // CHECK 3: weekly vertical-pull presence, conditioned on MOVEMENT, not split type
+    // (science review): the gap is missing lat work, and a full-body week that lands on
+    // all-horizontal pulling has the exact same gap as an upper/pull split. Fire when
+    // the week trains pulling but has NO vertical pull and the usable pool can supply
+    // one. Requiring existing horizontal pull avoids double-flagging a no-pull-at-all
+    // program (covered by missing_pattern); the pool gate means a dumbbell-only user
+    // with no pulldown/pull-up bar is never nagged about a movement they cannot do.
+    const hasVerticalPull = rows.some((r) => r.pattern === 'vertical_pull');
+    const hasHorizontalPull = rows.some((r) => r.pattern === 'horizontal_pull');
+    const poolHasVerticalPull = pool.some((e) => e.movement_pattern === 'vertical_pull');
+    if (hasHorizontalPull && !hasVerticalPull && poolHasVerticalPull) warnings.push(NO_VERTICAL_PULL);
 
     return warnings;
 }

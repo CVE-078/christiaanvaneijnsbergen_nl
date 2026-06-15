@@ -121,11 +121,21 @@ describe('validateProgram (P2.3)', () => {
         expect(validateProgram(bp, POOL_NO_VPULL)).not.toContain('no_vertical_pull');
     });
 
-    it('exempts a pure full-body week from no_vertical_pull (no upper/pull session to host it)', () => {
+    it('fires no_vertical_pull on a full-body week too (movement-based, not split-based)', () => {
+        // A full-body week that lands on all-horizontal pulling has the same lat gap
+        // as an upper/pull split, so it is NOT exempt when the pool supports a vertical pull.
         const schedule: RoutineBlueprint['schedule'] = [
             { day_of_week: 1, workout_type: 'full_body', variant: 'A', label: null },
         ];
         const bp = blueprint([{ pattern: 'horizontal_pull', workout_type: 'full_body', variant: 'A' }], schedule);
+        expect(validateProgram(bp, POOL)).toContain('no_vertical_pull');
+        expect(validateProgram(bp, POOL_NO_VPULL)).not.toContain('no_vertical_pull');
+    });
+
+    it('does not fire no_vertical_pull when the week trains no pulling at all', () => {
+        // No horizontal pull either => not a "missing vertical pull" case (a no-pull
+        // program is a different gap), so this check stays silent.
+        const bp = blueprint([{ pattern: 'horizontal_push' }, { pattern: 'squat' }]);
         expect(validateProgram(bp, POOL)).not.toContain('no_vertical_pull');
     });
 

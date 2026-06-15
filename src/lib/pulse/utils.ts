@@ -362,13 +362,14 @@ export function buildBlockArc(weeks: number): BlockArcWeek[] {
     }));
 }
 
-// A rep range whose lower bound is <= 5 reps is "heavy" (a strength range like
-// "3-6"): it rests longer and needs warm-up ramp sets. Moderate ranges (6-10,
-// 8-12, ...) do not. Used only by the duration estimate.
+// A rep range whose lower bound is <= 4 reps is "heavy" (the max-strength range
+// "3-6"): it rests longer and needs warm-up ramp sets. Moderate ranges (5-8, 6-10,
+// 8-12, ...) do not. The threshold is 4 (not 5) so the beginner 5-8 floor is treated
+// as moderate, not heavy. Used only by the duration estimate.
 function isHeavyRange(reps?: string | null): boolean {
     if (!reps) return false;
     const m = reps.match(/\d+/);
-    return m ? Number(m[0]) <= 5 : false;
+    return m ? Number(m[0]) <= 4 : false;
 }
 
 // Rough estimate of how long a planned session takes, in minutes (P1.4b). Per
