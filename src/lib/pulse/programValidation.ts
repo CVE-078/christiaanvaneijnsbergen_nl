@@ -19,7 +19,15 @@ const NO_VERTICAL_PULL = 'no_vertical_pull';
 // 6 frozen golden inputs stay below this (worst is fb-hmhp-4 ~1.83 by count).
 const PUSH_PULL_RATIO_MAX = 2.0;
 
-const PRESS_MUSCLES = ['chest', 'shoulders', 'triceps'] as const;
+// Push/pull balance is measured on the unambiguous contributors: chest + triceps
+// (press) vs back + biceps (pull). `shoulders` is deliberately EXCLUDED: the muscle
+// bridge has a single undifferentiated `shoulders` category, so side- and rear-delt
+// isolation (lateral raise, reverse fly) and the small shoulder share of rows would
+// otherwise be miscounted as "press" and flag balanced hypertrophy programs (the
+// 45-min baseline tripped this). Front-delt pressing is still captured via chest +
+// triceps on the press lifts. Differentiating delt heads is the muscle-volume
+// warnings follow-up (P1 #4 full version).
+const PRESS_MUSCLES = ['chest', 'triceps'] as const;
 const PULL_MUSCLES = ['back', 'biceps'] as const;
 const LOWER_COMPOUND: ReadonlySet<MovementPattern> = new Set(['squat', 'hinge', 'lunge']);
 

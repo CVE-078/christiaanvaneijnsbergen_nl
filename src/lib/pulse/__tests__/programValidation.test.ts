@@ -82,6 +82,20 @@ describe('validateProgram (P2.3)', () => {
         expect(validateProgram(bp, POOL)).not.toContain('push_pull_imbalance');
     });
 
+    it('shoulder isolation does not inflate the press side (rear/side delts are not pressing)', () => {
+        // The muscle bridge maps all shoulder_iso to the undifferentiated "shoulders",
+        // so counting it as press wrongly flagged balanced programs that simply added
+        // lateral / rear-delt work (the 45-min baseline). Compound press/pull is 1:1 here.
+        const bp = blueprint([
+            { pattern: 'horizontal_push' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'shoulder_iso' },
+            { pattern: 'shoulder_iso' },
+            { pattern: 'shoulder_iso' },
+        ]);
+        expect(validateProgram(bp, POOL)).not.toContain('push_pull_imbalance');
+    });
+
     it('flags label_mismatch when a hamstring day leads with a squat', () => {
         const schedule: RoutineBlueprint['schedule'] = [
             { day_of_week: 1, workout_type: 'lower', variant: 'B', label: 'Lower (Hamstrings & Glutes)' },
