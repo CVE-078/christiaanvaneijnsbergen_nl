@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useMediaQuery } from '@/hooks/pulse/useMediaQuery';
-import { exerciseReason } from '@/lib/pulse/utils';
+import { exerciseReason, formatPrescription } from '@/lib/pulse/utils';
 import { EQUIPMENT_LABELS } from '@/lib/pulse/constants';
 import type { RoutineExercise } from '@/lib/pulse/types';
 
@@ -63,7 +63,7 @@ function ExerciseRow({
                     {re.exercise?.name ?? ''}
                 </div>
                 <div className="mt-0.5 font-pulse-body text-[0.66rem] tracking-[0.04em] text-pulse-dim">
-                    {re.sets} sets · {re.reps} reps
+                    {re.sets} sets · {formatPrescription(re.reps, re.exercise?.prescription_unit, re.exercise?.default_reps)}
                 </div>
                 {reason && (
                     <div className="mt-1 font-pulse text-[0.72rem] leading-[1.4] text-pulse-muted">{reason}</div>

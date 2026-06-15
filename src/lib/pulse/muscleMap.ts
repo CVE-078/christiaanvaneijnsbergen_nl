@@ -30,6 +30,10 @@ export const PATTERN_MUSCLE_MAP: Record<MovementPattern, MuscleContribution> = {
     biceps_iso: { biceps: 1 },
     triceps_iso: { triceps: 1 },
     glute_iso: { glutes: 0.85, legs: 0.15 },
+    // Direct knee-extension / knee-flexion isolation. `legs` is the single leg bucket
+    // (the map collapses quads/hamstrings into legs, as squat/hinge/lunge already do).
+    quad_iso: { legs: 1 },
+    hamstring_iso: { legs: 1 },
 };
 
 // The weighted muscle-category contributions for a movement pattern. Returns a

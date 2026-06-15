@@ -47,6 +47,7 @@ export async function upsertLog(
             rir: entry.rir,
             saved: true,
             drops: Array.isArray(entry.drops) && entry.drops.length > 0 ? entry.drops : null,
+            duration_s: entry.duration_s ?? null,
             session_id: sessionId ?? null,
             workout_date: workoutDate ?? null,
             updated_at: new Date().toISOString(),

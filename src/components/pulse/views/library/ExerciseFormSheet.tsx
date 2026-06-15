@@ -22,6 +22,8 @@ export const PATTERN_LABELS: Record<MovementPattern, string> = {
     biceps_iso: 'Biceps isolation',
     triceps_iso: 'Triceps isolation',
     glute_iso: 'Glute isolation',
+    quad_iso: 'Quad isolation (leg extension)',
+    hamstring_iso: 'Hamstring isolation (leg curl)',
 };
 
 // Human-readable labels for EquipmentKey values (title-case, matching the mockup).

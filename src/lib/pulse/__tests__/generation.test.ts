@@ -23,9 +23,11 @@ import {
     CANONICAL_ANCHORS,
     assignRole,
     focusLabelForEmphasis,
+    PRIORITY_MUSCLE_SET_CEILING,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
+import { validateProgram } from '@/lib/pulse/programValidation';
 import type {
     EquipmentKey,
     MovementPattern,
@@ -214,13 +216,14 @@ describe('muscle priority', () => {
     });
 
     it('tiltEmphasis front-loads glute priority patterns compound-first (hinge before glute_iso)', () => {
-        const lower = EMPHASES.lower_post; // slots: hinge, glute_iso, lunge, calf, core
+        const lower = EMPHASES.lower_post; // slots: hinge, hamstring_iso, glute_iso, calf, core
         const tilted = tiltEmphasis(lower, 'glutes');
         // Bug 5: the glutes priority hierarchy is hinge > squat > lunge > glute_iso,
         // so the COMPOUND hip patterns lead and direct glute isolation follows. For
-        // lower_post (no squat slot) the present priority patterns are hinge, lunge,
-        // glute_iso in that order; calf + core (non-priority) keep their tail order.
-        expect(tilted.slots.slice(0, 3)).toEqual(['hinge', 'lunge', 'glute_iso']);
+        // lower_post (no squat or lunge slot) the present priority patterns are hinge
+        // then glute_iso; hamstring_iso (a leg, not glute, pattern), calf + core
+        // (non-priority) keep their tail order.
+        expect(tilted.slots.slice(0, 3)).toEqual(['hinge', 'glute_iso', 'hamstring_iso']);
         expect(tilted.slots[0]).toBe('hinge'); // a compound leads, never glute_iso
         expect(tilted.slots).toHaveLength(lower.slots.length); // permutation, no injection
         expect(new Set(tilted.slots)).toEqual(new Set(lower.slots));
@@ -279,6 +282,8 @@ const ALL_PATTERNS: MovementPattern[] = [
     'biceps_iso',
     'triceps_iso',
     'glute_iso',
+    'quad_iso',
+    'hamstring_iso',
 ];
 
 function deepPool(perPattern = 2): ExerciseMeta[] {
@@ -320,6 +325,405 @@ function input(overrides: Partial<GenerationInput> = {}): GenerationInput {
 function sessionIds(bp: ReturnType<typeof generateRoutine>, wt: string, variant: string | null): string[] {
     return bp.exercises.filter((e) => e.workout_type === wt && e.variant === variant).map((e) => e.exercise_id);
 }
+
+// ── Beginner / general-fitness rep floor (P3.1) ──────────────────────────────
+
+describe('beginner / general-fitness rep floor (P3.1)', () => {
+    const fbStrengthA = (overrides: Partial<GenerationInput['answers']>) =>
+        generateRoutine(
+            input({
+                style: STYLES[3][0], // fb-3: Full Body A = fb_strength (strength bias)
+                answers: { equipment: dumbbellsOnly, experience: 'intermediate', goal: 'build_muscle', days: 3, ...overrides },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool: deepPool(),
+            }),
+        ).exercises.filter((e) => e.workout_type === 'full_body' && e.variant === 'A');
+
+    it('a beginner never gets a 3-6 compound on the strength day (floored to 5-8)', () => {
+        const rows = fbStrengthA({ experience: 'beginner' });
+        expect(rows.some((e) => e.reps === '3-6')).toBe(false);
+        expect(rows.some((e) => e.reps === '5-8')).toBe(true);
+    });
+
+    it('a beginner who picks PHUL still gets its power day floored off 3-6 (safety > split > style)', () => {
+        const pool = deepPool(2);
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const phul = STYLES[4].find((s) => s.key === 'phul-4') as ProgramStyle;
+        const bp = generateRoutine(
+            input({
+                style: phul,
+                pool,
+                trainingDays: [1, 2, 4, 5],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 4 },
+            }),
+        );
+        const upperAcompounds = bp.exercises.filter((e) => {
+            const p = patternOf.get(e.exercise_id);
+            return e.workout_type === 'upper' && e.variant === 'A' && p && !p.endsWith('_iso');
+        });
+        expect(upperAcompounds.length).toBeGreaterThan(0);
+        expect(upperAcompounds.every((e) => e.reps !== '3-6')).toBe(true);
+    });
+
+    it('a general-fitness lifter never gets a 3-6 compound', () => {
+        const rows = fbStrengthA({ goal: 'general_fitness' });
+        expect(rows.some((e) => e.reps === '3-6')).toBe(false);
+    });
+
+    it('intermediate build_muscle is unchanged (still 3-6 on the strength day)', () => {
+        const rows = fbStrengthA({});
+        expect(rows.some((e) => e.reps === '3-6')).toBe(true);
+    });
+});
+
+// ── Post-generation validator clean on golden inputs (P2.3) ──────────────────
+
+describe('post-generation validator is clean on the golden inputs (P2.3)', () => {
+    // fb-hmhp-4 legitimately carries no vertical pull (the full-body emphases use
+    // horizontal pulling), so on a pool that supplies a vertical pull it correctly
+    // earns no_vertical_pull (movement-based check, P2.3 + science review). Every
+    // other golden contains a vertical pull, so it stays clean.
+    const cases: Array<{ key: string; days: number[]; expect: string[] }> = [
+        { key: 'ppl-3', days: [1, 3, 5], expect: [] },
+        { key: 'ul-classic-4', days: [1, 2, 4, 5], expect: [] },
+        { key: 'ulppl-5', days: [1, 2, 3, 5, 6], expect: [] },
+        { key: 'ul-aesthetic-4', days: [1, 2, 4, 5], expect: [] },
+        { key: 'ppl-fb-4', days: [1, 2, 4, 5], expect: [] },
+        { key: 'fb-hmhp-4', days: [1, 2, 4, 5], expect: ['no_vertical_pull'] },
+    ];
+    for (const { key, days, expect: want } of cases) {
+        it(`${key} validator warnings == ${JSON.stringify(want)}`, () => {
+            const styleObj = Object.values(STYLES)
+                .flat()
+                .find((s) => s.key === key) as ProgramStyle;
+            const pool = deepPool();
+            const bp = generateRoutine(input({ style: styleObj, trainingDays: days, pool }));
+            expect(validateProgram(bp, pool)).toEqual(want);
+        });
+    }
+
+    it('validateProgram is a no-op on the default golden path', () => {
+        expect(validateProgram(generateRoutine(input()), deepPool())).toEqual([]);
+    });
+});
+
+// ── Bodybuilding character (P3.3) ────────────────────────────────────────────
+
+describe('bodybuilding character (P3.3)', () => {
+    const isIso = (p: MovementPattern | null | undefined) =>
+        !!p && (p.endsWith('_iso') || p === 'calf' || p === 'core');
+
+    it('isolation gets the pump range (15-20); compounds stay hypertrophy (8-12); balanced unchanged', () => {
+        expect(resolveRepRange('hypertrophy', 'chest_iso', false, 'build_muscle', 'bodybuilding')).toBe('15-20');
+        expect(resolveRepRange('hypertrophy', 'horizontal_push', true, 'build_muscle', 'bodybuilding')).toBe('8-12');
+        expect(resolveRepRange('hypertrophy', 'chest_iso', false, 'build_muscle', 'balanced')).toBe('12-15');
+    });
+
+    it('a bodybuilding routine reads pump (15-20) on isolation and hypertrophy (8-12) on compounds', () => {
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const bb = generateRoutine(input({ pool, trainingStyle: 'bodybuilding' }));
+        for (const e of bb.exercises) {
+            const expected = isIso(patternOf.get(e.exercise_id)) ? '15-20' : '8-12';
+            expect(e.reps).toBe(expected);
+        }
+    });
+
+    it('balanced is byte-identical to no training style (bodybuilding rep-range change is gated)', () => {
+        const pool = deepPool();
+        const a = generateRoutine(input({ pool }));
+        const b = generateRoutine(input({ pool, trainingStyle: 'balanced' }));
+        expect(a.exercises).toEqual(b.exercises);
+    });
+
+    it('PHUL is excluded: split identity outranks bodybuilding (power day stays 3-6)', () => {
+        const pool = deepPool(2);
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const phul = STYLES[4].find((s) => s.key === 'phul-4') as ProgramStyle;
+        const bb = generateRoutine(
+            input({ style: phul, pool, trainingStyle: 'bodybuilding', trainingDays: [1, 2, 4, 5] }),
+        );
+        const upperA = bb.exercises.filter((e) => e.workout_type === 'upper' && e.variant === 'A');
+        const compounds = upperA.filter((e) => !isIso(patternOf.get(e.exercise_id)));
+        expect(compounds.length).toBeGreaterThan(0);
+        expect(compounds.every((e) => e.reps === '3-6')).toBe(true);
+    });
+});
+
+// ── Beginner exercise-complexity filter (P3.1b) ──────────────────────────────
+
+describe('beginner exercise-complexity filter (P3.1b)', () => {
+    it('a beginner soft-deprioritises an advanced-difficulty lift; intermediate is unaffected', () => {
+        const pool = deepPool().map((e) =>
+            e.id === 'horizontal_push-1'
+                ? { ...e, difficulty: 'advanced' as const }
+                : e.id === 'horizontal_push-2'
+                  ? { ...e, difficulty: 'beginner' as const }
+                  : e,
+        );
+        const beginner = generateRoutine(
+            input({
+                pool,
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 4 },
+            }),
+        );
+        const intermediate = generateRoutine(
+            input({
+                pool,
+                answers: { equipment: dumbbellsOnly, experience: 'intermediate', goal: 'build_muscle', days: 4 },
+            }),
+        );
+        const has = (bp: ReturnType<typeof generateRoutine>, id: string) =>
+            bp.exercises.some((e) => e.exercise_id === id);
+        // Beginner avoids the advanced option and takes the beginner-friendly one.
+        expect(has(beginner, 'horizontal_push-1')).toBe(false);
+        expect(has(beginner, 'horizontal_push-2')).toBe(true);
+        // Intermediate is unaffected (normal id tiebreak picks -1).
+        expect(has(intermediate, 'horizontal_push-1')).toBe(true);
+    });
+});
+
+// ── Measurable priority muscle (P3.2) ────────────────────────────────────────
+
+describe('measurable priority muscle (P3.2)', () => {
+    const totalSets = (bp: ReturnType<typeof generateRoutine>) =>
+        bp.exercises.reduce((n, e) => n + Number(e.sets), 0);
+    const chestSets = (bp: ReturnType<typeof generateRoutine>, patternOf: Map<string, MovementPattern | null>) =>
+        bp.exercises
+            .filter((e) => {
+                const p = patternOf.get(e.exercise_id);
+                return p === 'horizontal_push' || p === 'chest_iso';
+            })
+            .reduce((n, e) => n + Number(e.sets), 0);
+
+    it('adds bounded extra weekly volume vs an otherwise identical balanced baseline', () => {
+        // Issue 6: priority was ordering-only. It must now add measurable weekly
+        // volume to the priority muscle, capped so the rest of the plan stays balanced.
+        const base = generateRoutine(input({ pool: deepPool() }));
+        const prioritized = generateRoutine(input({ pool: deepPool(), priority: 'chest' }));
+        const delta = totalSets(prioritized) - totalSets(base);
+        expect(delta).toBeGreaterThan(0);
+        expect(delta).toBeLessThanOrEqual(4); // capped at +4 sets/week
+    });
+
+    it('lands the extra sets on the priority muscle patterns, capped at the recoverable ceiling', () => {
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const base = generateRoutine(input({ pool }));
+        const prioritized = generateRoutine(input({ pool, priority: 'chest' }));
+        expect(chestSets(prioritized, patternOf)).toBeGreaterThan(chestSets(base, patternOf));
+        // Total weekly direct chest sets never exceed the ~20-set recoverable ceiling.
+        expect(chestSets(prioritized, patternOf)).toBeLessThanOrEqual(20);
+    });
+
+    it('null priority is byte-identical to the balanced baseline (no extra volume)', () => {
+        const a = generateRoutine(input({ pool: deepPool() }));
+        const b = generateRoutine(input({ pool: deepPool(), priority: null }));
+        expect(totalSets(a)).toBe(totalSets(b));
+    });
+
+    it('never pushes the priority muscle past the ceiling on a dense split (gates on the weekly total, not a running count)', () => {
+        // Regression: the dose ceiling used to gate on a mid-stream running count, so
+        // on a 6-day advanced split (chest already baseline-saturated) early-session
+        // bumps landed while the muscle's true weekly total was already at/over the
+        // ceiling -- adding junk volume on top of a maxed muscle. The gate now uses the
+        // projected weekly total, so when baseline already meets the ceiling, zero
+        // sets are added.
+        const pool = deepPool(3);
+        const style = STYLES[6][0]; // ppl-x2-6 (the densest split)
+        const adv = { equipment: dumbbellsOnly, experience: 'advanced' as const, goal: 'build_muscle' as const, days: 6 as const };
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const days = [1, 2, 3, 4, 5, 6];
+        const base = generateRoutine(input({ style, trainingDays: days, pool, answers: adv }));
+        const prioritized = generateRoutine(input({ style, trainingDays: days, pool, answers: adv, priority: 'chest' }));
+        const baseChest = chestSets(base, patternOf);
+        // The dose never lands the muscle above max(baseline, ceiling): bumps stop at
+        // the ceiling, and when baseline already exceeds it, nothing is added. The old
+        // running-count gate violated this (it reached baseline + bumps).
+        expect(chestSets(prioritized, patternOf)).toBeLessThanOrEqual(Math.max(baseChest, PRIORITY_MUSCLE_SET_CEILING));
+    });
+});
+
+// ── Heavy-work limit warning (P2.2) ──────────────────────────────────────────
+
+describe('heavy-work limit warning (P2.2)', () => {
+    const sixDays = [1, 2, 3, 4, 5, 6];
+    it('warns when a high-frequency week is almost all heavy (Strength style, 6 days)', () => {
+        // Strength remaps every session to a strength bias; on a 6-day split that
+        // is six heavy days, which is hard to recover from (Case 03).
+        const bp = generateRoutine(
+            input({
+                style: STYLES[6][0], // ppl-x2-6
+                answers: { equipment: dumbbellsOnly, experience: 'advanced', goal: 'build_muscle', days: 6 },
+                trainingDays: sixDays,
+                trainingStyle: 'strength',
+                pool: deepPool(),
+            }),
+        );
+        expect(bp.warnings).toContain('demanding_week');
+    });
+
+    it('does not warn for a balanced 6-day week (only the two heavy PPL days)', () => {
+        const bp = generateRoutine(
+            input({
+                style: STYLES[6][0],
+                answers: { equipment: dumbbellsOnly, experience: 'advanced', goal: 'build_muscle', days: 6 },
+                trainingDays: sixDays,
+                pool: deepPool(),
+            }),
+        );
+        expect(bp.warnings).not.toContain('demanding_week');
+    });
+});
+
+// ── Coverage-aware backfill: accessory over duplicate finisher (P2.1) ─────────
+
+describe('coverage-aware backfill (P2.1)', () => {
+    it('seats a real lower accessory instead of a 2nd calf/core when glute_iso is empty', () => {
+        // Reproduces the dumbbell lower_post filler bug (Case 01 Lower B: two calf
+        // raises + two core moves). With glute_iso unavailable, coverage-aware
+        // backfill should deflect to a real lower-bucket accessory (a lunge, or the
+        // non-compound hinge accessory that slips past the heavy-dedup cap) rather
+        // than stacking a duplicate finisher.
+        const pool = deepPool().filter((e) => e.movement_pattern !== 'glute_iso');
+        pool.push(meta('hinge-accessory', 'hinge', ['dumbbells'], false));
+        const bp = generateRoutine(input({ pool })); // ul-classic-4, Lower B = lower_post
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const lowerB = sessionIds(bp, 'lower', 'B');
+        // The gap is filled by a real lower-bucket accessory (a lunge or the
+        // injected hinge accessory), not a duplicate finisher...
+        expect(lowerB.some((id) => patternOf.get(id) === 'lunge' || id === 'hinge-accessory')).toBe(true);
+        // ...and the session no longer doubles up a finisher pattern.
+        const calfCount = lowerB.filter((id) => patternOf.get(id) === 'calf').length;
+        const coreCount = lowerB.filter((id) => patternOf.get(id) === 'core').length;
+        expect(calfCount).toBeLessThanOrEqual(1);
+        expect(coreCount).toBeLessThanOrEqual(1);
+    });
+});
+
+// ── Essential movement coverage (P1.1) ───────────────────────────────────────
+
+describe('essential movement coverage (P1.1)', () => {
+    const LOWER: MovementPattern[] = ['squat', 'hinge', 'lunge'];
+    const PUSH: MovementPattern[] = ['horizontal_push', 'vertical_push'];
+    const PULL: MovementPattern[] = ['horizontal_pull', 'vertical_pull'];
+
+    it('a 30-min full-body week covers lower + push + pull in every session', () => {
+        // Regression for Issue 1: the full-body emphases list a pull at slot index 3,
+        // past a beginner 30-min budget of 3, so a short full-body WEEK trained zero
+        // pulls. Essential coverage must reserve budget for lower/push/pull.
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0], // fb-3
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool,
+            }),
+        );
+        for (const s of bp.schedule) {
+            const patterns = sessionIds(bp, s.workout_type, s.variant).map((id) => patternOf.get(id)!);
+            expect(patterns).toHaveLength(3);
+            expect(patterns.some((p) => LOWER.includes(p))).toBe(true);
+            expect(patterns.some((p) => PUSH.includes(p))).toBe(true);
+            expect(patterns.some((p) => PULL.includes(p))).toBe(true);
+        }
+    });
+
+    it('a full-body week never trains zero pulls across the whole week', () => {
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool,
+            }),
+        );
+        const weekPatterns = bp.exercises.map((e) => patternOf.get(e.exercise_id)!);
+        expect(weekPatterns.some((p) => PULL.includes(p))).toBe(true);
+    });
+});
+
+// ── Restriction degradation warning (P1.2) ───────────────────────────────────
+
+describe('restriction degradation warning (P1.2)', () => {
+    it('warns when restrictions leave a full-body session without a pull', () => {
+        // Tag every pull as contraindicated, then restrict it: the pull pattern is
+        // emptied, so a full-body week cannot cover pulling. The routine must flag
+        // the gap rather than silently shipping push + legs only.
+        const pool = deepPool().map((e) =>
+            e.movement_pattern === 'horizontal_pull' || e.movement_pattern === 'vertical_pull'
+                ? { ...e, contraindications: ['shoulder' as RestrictionFlag] }
+                : e,
+        );
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool,
+                restrictions: ['shoulder'],
+            }),
+        );
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const PULL: MovementPattern[] = ['horizontal_pull', 'vertical_pull'];
+        // No pull was selectable (the restriction removed them all)...
+        expect(bp.exercises.every((e) => !PULL.includes(patternOf.get(e.exercise_id)!))).toBe(true);
+        // ...and the routine flags the missing pattern.
+        expect(bp.warnings).toContain('missing_pattern');
+    });
+
+    it('does not warn when restrictions still leave a usable pull', () => {
+        // Only the barbell row is contraindicated; dumbbell pulls remain, so the
+        // pattern is covered and no missing-pattern warning fires.
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                restrictions: ['shoulder'],
+            }),
+        );
+        expect(bp.warnings).not.toContain('missing_pattern');
+    });
+});
+
+// ── Session duration warning (P1.4) ──────────────────────────────────────────
+
+describe('session duration warning (P1.4)', () => {
+    it('warns when a session is estimated to exceed the selected time band', () => {
+        // Advanced 45-60 min = 6 exercises x 4 sets; a compound-heavy upper day
+        // estimates ~65 min, over the 60-min band. The engine keeps the volume
+        // (decision: warn, do not trim) and flags it.
+        const bp = generateRoutine(
+            input({
+                answers: { equipment: dumbbellsOnly, experience: 'advanced', goal: 'build_muscle', days: 4 },
+                sessionTime: '45–60 min',
+            }),
+        );
+        expect(bp.warnings).toContain('over_time');
+    });
+
+    it('does not warn for a 30-min routine that fits its band', () => {
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0],
+                answers: { equipment: dumbbellsOnly, experience: 'beginner', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+            }),
+        );
+        expect(bp.warnings).not.toContain('over_time');
+    });
+});
 
 // ── 1. Equipment filter ──────────────────────────────────────────────────────
 
@@ -1398,31 +1802,32 @@ describe('GQ2: lower-fatigue exercise preferred within same freshness (accessory
     });
 
     it('fresh high-fatigue still beats used low-fatigue (fresh wins over fatigue)', () => {
-        // glute_iso is exclusive to the 'legs' emphasis (unlike shoulder_iso,
-        // which also appears in 'push'/'pull'), so legs A / legs B are the only
-        // two slots competing for these two candidates -- a clean fresh-vs-used
-        // comparison, mirroring the original GQ2 'squat' setup.
-        function poolGlute(): ExerciseMeta[] {
+        // calf is requested by both lower_quad (legs A) and lower_post (legs B) and
+        // by no other ppl-x2-6 session, so legs A / legs B are the only two slots
+        // competing for these two candidates -- a clean fresh-vs-used comparison,
+        // mirroring the original GQ2 'squat' setup. (glute_iso now lives only on
+        // lower_post, so it is no longer a cross-session A/B contest.)
+        function poolCalf(): ExerciseMeta[] {
             return [
-                metaFatigue('glute-aa', 'glute_iso', 5, ['dumbbells'], false),
-                metaFatigue('glute-zz', 'glute_iso', 1, ['dumbbells'], false),
-                ...ALL_PATTERNS.filter((p) => p !== 'glute_iso').flatMap((p) => [
-                    meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
-                    meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'calf' && p !== 'core'),
+                metaFatigue('calf-aa', 'calf', 5, ['dumbbells'], false),
+                metaFatigue('calf-zz', 'calf', 1, ['dumbbells'], false),
+                ...ALL_PATTERNS.filter((p) => p !== 'calf').flatMap((p) => [
+                    meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'core'),
+                    meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso') && p !== 'core'),
                 ]),
             ];
         }
-        // After session A uses glute-zz (low fatigue, fresh), session B should
-        // pick glute-aa (high fatigue, fresh) rather than the used glute-zz.
+        // After session A uses calf-zz (low fatigue, fresh), session B should
+        // pick calf-aa (high fatigue, fresh) rather than the used calf-zz.
         const style = STYLES[6][0] as ProgramStyle; // ppl-x2-6: legs appears twice
-        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool: poolGlute() }));
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5, 6], pool: poolCalf() }));
         const legsA = sessionIds(bp, 'legs', 'A');
         const legsB = sessionIds(bp, 'legs', 'B');
-        // Session A picks the low-fatigue accessory (glute-zz, fatigue 1).
-        expect(legsA).toContain('glute-zz');
-        // Session B: glute-zz is used. Even though glute-aa is higher fatigue,
+        // Session A picks the low-fatigue accessory (calf-zz, fatigue 1).
+        expect(legsA).toContain('calf-zz');
+        // Session B: calf-zz is used. Even though calf-aa is higher fatigue,
         // it is the only FRESH option -- fresh wins.
-        expect(legsB).toContain('glute-aa');
+        expect(legsB).toContain('calf-aa');
     });
 });
 
@@ -1491,9 +1896,11 @@ describe('GQ3: anchor patterns prefer higher fatigue', () => {
 });
 
 describe('P0 3.1: compound-first within a mixed pattern (squat / hinge)', () => {
-    // `squat` and `hinge` are the only compound/isolation MIXED patterns (Leg
-    // Extension lives in `squat`, Leg Curl in `hinge`, for lack of a quad_iso /
-    // hamstring_iso pattern). When a thin pool removes the named-anchor compounds,
+    // Exercises the DEFENSIVE compound-first guard for a synthetic/legacy pool where
+    // an unnamed isolation shares a compound pattern. (In the real catalog Leg
+    // Extension / Leg Curl now live in the dedicated quad_iso / hamstring_iso patterns,
+    // so squat / hinge no longer mix; this guard is a no-op there but still backstops
+    // such mixed pools.) When a thin pool removes the named-anchor compounds,
     // an UNNAMED compound competes in-pattern with the isolation. Without the
     // compound-first guard the anchor-pattern fatigue tiebreak (higher-first) lets
     // a higher-fatigue isolation win the primary slot, and COMPOUND_FLOOR then
@@ -2565,11 +2972,13 @@ describe('Item 5: ppl-x2-6 A/B differentiation', () => {
     });
 });
 
-describe('Item 5: byte-identity guards for unchanged styles', () => {
-    // Captured from the pre-change generator (2026-06-11) with input() defaults
-    // (deepPool(2), dumbbells-only, 45-60 min, intermediate, build_muscle,
-    // anchorDow default). The Item 5 change touches ONLY STYLES[6] plus four new
-    // EMPHASES entries, so these three styles must reproduce byte-identically.
+describe('Item 5 + leg-isolation re-tag: byte-identity goldens', () => {
+    // Captured with input() defaults (deepPool(2), dumbbells-only, 45-60 min,
+    // intermediate, build_muscle, anchorDow default). ppl-3 still reproduces the
+    // 2026-06-11 pre-change golden (no split-lower emphasis). ul-classic-4 and
+    // ulppl-5 were REBASELINED by the quad_iso / hamstring_iso leg re-tag (their
+    // lower days swapped glute_iso/lunge for the dedicated knee-isolation slots) and
+    // now lock the post-re-tag output. The lock is intact either way.
     function flatten(count: number, key: string, days: number[]) {
         const style = STYLES[count].find((s) => s.key === key) as ProgramStyle;
         const bp = generateRoutine(input({ style, trainingDays: days }));
@@ -2607,7 +3016,7 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
         });
     });
 
-    it('ul-classic-4 reproduces its pre-change golden', () => {
+    it('ul-classic-4 matches its byte-identity golden (rebaselined by the leg re-tag)', () => {
         expect(flatten(4, 'ul-classic-4', [1, 2, 4, 5])).toEqual({
             schedule: ['1:upper:A', '2:lower:A', '4:upper:B', '5:lower:B'],
             exercises: [
@@ -2619,8 +3028,8 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'upper:A:back_iso-1:3x12-15',
                 'lower:A:squat-1:3x8-12',
                 'lower:A:lunge-1:3x8-12',
-                'lower:A:lunge-2:3x8-12',
-                'lower:A:glute_iso-1:3x12-15',
+                'lower:A:quad_iso-1:3x12-15',
+                'lower:A:quad_iso-2:3x12-15',
                 'lower:A:calf-1:3x12-15',
                 'lower:A:core-1:3x12-15',
                 'upper:B:vertical_push-2:3x8-12',
@@ -2630,8 +3039,8 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'upper:B:triceps_iso-1:3x12-15',
                 'upper:B:chest_iso-2:3x12-15',
                 'lower:B:hinge-1:3x8-12',
-                'lower:B:lunge-1:3x8-12',
-                'lower:B:glute_iso-2:3x12-15',
+                'lower:B:lunge-2:3x8-12',
+                'lower:B:hamstring_iso-1:3x12-15',
                 'lower:B:glute_iso-1:3x12-15',
                 'lower:B:calf-2:3x12-15',
                 'lower:B:core-2:3x12-15',
@@ -2639,7 +3048,7 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
         });
     });
 
-    it('ulppl-5 reproduces its pre-change golden', () => {
+    it('ulppl-5 matches its byte-identity golden (rebaselined by the leg re-tag)', () => {
         expect(flatten(5, 'ulppl-5', [1, 2, 3, 4, 5])).toEqual({
             schedule: ['1:upper:-', '2:lower:-', '3:push:-', '4:pull:-', '5:legs:-'],
             exercises: [
@@ -2651,8 +3060,8 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'upper:-:biceps_iso-1:3x10-15',
                 'lower:-:squat-1:3x8-12',
                 'lower:-:lunge-1:3x8-12',
-                'lower:-:lunge-2:3x8-12',
-                'lower:-:glute_iso-1:3x12-15',
+                'lower:-:quad_iso-1:3x12-15',
+                'lower:-:quad_iso-2:3x12-15',
                 'lower:-:calf-1:3x12-15',
                 'lower:-:core-1:3x12-15',
                 'push:-:horizontal_push-2:3x8-12',
@@ -2668,8 +3077,8 @@ describe('Item 5: byte-identity guards for unchanged styles', () => {
                 'pull:-:biceps_iso-2:3x12-15',
                 'pull:-:back_iso-2:3x12-15',
                 'legs:-:hinge-1:3x8-12',
-                'legs:-:lunge-1:3x8-12',
-                'legs:-:glute_iso-2:3x12-15',
+                'legs:-:lunge-2:3x8-12',
+                'legs:-:hamstring_iso-1:3x12-15',
                 'legs:-:glute_iso-1:3x12-15',
                 'legs:-:calf-2:3x12-15',
                 'legs:-:core-2:3x12-15',
@@ -2690,7 +3099,7 @@ describe('minimum-compound floor + lower-bucket backfill (live-test Issue 1)', (
     // usable glute_iso, deep calf/core, full upper patterns.
     function dumbbellLowerPool(): ExerciseMeta[] {
         const upper = ALL_PATTERNS.filter(
-            (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'calf', 'core'].includes(p),
+            (p) => !['squat', 'hinge', 'lunge', 'glute_iso', 'quad_iso', 'hamstring_iso', 'calf', 'core'].includes(p),
         ).flatMap((p) => [
             meta(`${p}-1`, p, ['dumbbells'], !p.endsWith('_iso')),
             meta(`${p}-2`, p, ['dumbbells'], !p.endsWith('_iso')),
@@ -2928,6 +3337,24 @@ describe('lower_post never seats a squat compound under a thin pool (2026-06-11)
         expect(sessionIds(bp, 'legs', null).map((id) => pat.get(id))).not.toContain('squat');
         expect(bp.warnings).toContain('limited_variety');
     });
+
+    it('lower_post with ZERO compounds never seats an off-contract squat via the Item 2 guard', () => {
+        // The Item 2 zero-compound guard (not the floor guard): strip every hinge AND
+        // lunge COMPOUND so the posterior first pass + floor guard leave the session
+        // with no compound at all (the hinge slot falls to the leg-curl isolation).
+        // Item 2 then seats one safe compound from the pool; it must NOT reach for the
+        // surviving squat (off-contract on the hinge-anchored posterior day) and ship
+        // it squat-led, but warn instead.
+        const pool = dumbbellBenchPool().filter(
+            (e) => !(e.is_compound && (e.movement_pattern === 'hinge' || e.movement_pattern === 'lunge')),
+        );
+        const style = STYLES[5].find((s) => s.key === 'ulppl-5') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 3, 4, 5], pool, answers: advancedDb }));
+        const pat = patternMap(pool);
+        const legsPatterns = sessionIds(bp, 'legs', null).map((id) => pat.get(id));
+        expect(legsPatterns).not.toContain('squat');
+        expect(bp.warnings).toContain('no_compound');
+    });
 });
 
 // ── Vertical-push anchors: Push Press is NOT a canonical primary (2026-06-11) ──
@@ -3006,6 +3433,31 @@ describe('PHUL (#18): phul-4 powerbuilding style', () => {
             { focus: 'upper', emphasis: 'phul_upper_hyp', variant: 'B' },
             { focus: 'lower', emphasis: 'phul_lower_hyp', variant: 'B' },
         ]);
+    });
+
+    it('preserves the power/hypertrophy contrast under the Powerbuilding training style (P1.5)', () => {
+        // Split identity outranks training style: PHUL keeps its own per-day biases,
+        // so Powerbuilding does NOT flatten the volume day to heavy. Before the fix,
+        // the powerbuilding pattern-override made Upper B compounds 3-6 + a set bump,
+        // identical to Upper A.
+        const pool = deepPool(2);
+        const bp = generateRoutine(
+            input({ style: phul(), trainingDays: fourDays, pool, trainingStyle: 'powerbuilding' }),
+        );
+        const pat = patternMap(pool);
+        const rows = (wt: string, v: string) =>
+            bp.exercises.filter((e) => e.workout_type === wt && e.variant === v);
+        const compounds = (wt: string, v: string) =>
+            rows(wt, v).filter((e) => {
+                const p = pat.get(e.exercise_id);
+                return p && !p.endsWith('_iso') && p !== 'calf' && p !== 'core';
+            });
+        // Power upper day stays heavy with the single set bump.
+        expect(compounds('upper', 'A').every((e) => e.reps === '3-6')).toBe(true);
+        expect(rows('upper', 'A').filter((e) => e.sets === '4')).toHaveLength(1);
+        // Hypertrophy upper day stays moderate with no bump (not flattened to heavy).
+        expect(compounds('upper', 'B').every((e) => e.reps === '8-12')).toBe(true);
+        expect(rows('upper', 'B').every((e) => e.sets === '3')).toBe(true);
     });
 
     // Shared blueprint for the composition goldens: deep pool, 45-60 min, balanced.
@@ -3182,7 +3634,7 @@ describe('PHUL (#18): byte-identity guards for the other 4-day styles', () => {
                 'lower:A:squat-1:3x8-12',
                 'lower:A:lunge-1:3x8-12',
                 'lower:A:lunge-2:3x8-12',
-                'lower:A:glute_iso-1:3x12-15',
+                'lower:A:quad_iso-1:3x12-15',
                 'lower:A:calf-1:3x12-15',
                 'lower:A:core-1:3x12-15',
                 'upper:B:vertical_push-1:3x12-15',
@@ -3193,7 +3645,7 @@ describe('PHUL (#18): byte-identity guards for the other 4-day styles', () => {
                 'upper:B:back_iso-2:3x15-20',
                 'lower:B:hinge-1:3x8-12',
                 'lower:B:lunge-1:3x8-12',
-                'lower:B:glute_iso-2:3x12-15',
+                'lower:B:hamstring_iso-1:3x12-15',
                 'lower:B:glute_iso-1:3x12-15',
                 'lower:B:calf-2:3x12-15',
                 'lower:B:core-2:3x12-15',

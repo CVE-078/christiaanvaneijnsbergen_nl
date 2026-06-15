@@ -513,6 +513,18 @@ describe('estimateSessionMinutes', () => {
     it('treats a missing is_compound flag as isolation rest', () => {
         expect(estimateSessionMinutes([{ sets: 3 }])).toBe(estimateSessionMinutes([{ sets: 3, is_compound: false }]));
     });
+
+    it('estimates more time for a heavy (strength-range) compound than a moderate one (P1.4b)', () => {
+        const heavy = estimateSessionMinutes([{ sets: 4, is_compound: true, reps: '3-6' }]);
+        const moderate = estimateSessionMinutes([{ sets: 4, is_compound: true, reps: '8-12' }]);
+        expect(heavy).toBeGreaterThan(moderate);
+    });
+
+    it('a supersetted session estimates less than the same exercises done straight (P1.4b)', () => {
+        const rows = (groupId: string | null) =>
+            Array.from({ length: 4 }, () => ({ sets: 4, is_compound: true, reps: '8-12', supersetGroupId: groupId }));
+        expect(estimateSessionMinutes(rows('g1'))).toBeLessThan(estimateSessionMinutes(rows(null)));
+    });
 });
 
 describe('logKey', () => {
@@ -2294,5 +2306,58 @@ describe('sessionFocusLabel (Bug 6)', () => {
     it('treats an absent variant field as a null variant', () => {
         const rows = [{ day_of_week: 1, workout_type: 'lower' as const, label: 'Lower (Quads)' }];
         expect(sessionFocusLabel(rows, 'lower', null)).toBe('Lower (Quads)');
+    });
+});
+
+import { formatPrescription, isTimedEntry } from '@/lib/pulse/utils';
+import type { LogEntry } from '@/lib/pulse/types';
+
+describe('timed-hold exclusion from weight math (P1.3b)', () => {
+    const RID = '22222222-2222-4222-8222-222222222222';
+    const hold: LogEntry = { kg: 0, reps: 0, rir: 0, saved: true, duration_s: 45 };
+    const lift: LogEntry = { kg: 100, reps: 5, rir: 2, saved: true };
+
+    it('isTimedEntry detects a hold', () => {
+        expect(isTimedEntry(hold)).toBe(true);
+        expect(isTimedEntry(lift)).toBe(false);
+    });
+    it('a hold contributes no PR, best set, or e1RM point', () => {
+        const logs = { [logKey(1, RID, 0)]: hold };
+        expect(computePRMap(logs)[RID]).toBeUndefined();
+        expect(computeBestSets(logs)[RID]).toBeUndefined();
+        expect(computeE1RMHistory(logs, RID)).toEqual([]);
+    });
+    it('a mixed log (weighted set + hold on the same exercise) matches the weighted set alone', () => {
+        const withHold = { [logKey(1, RID, 0)]: lift, [logKey(1, RID, 1)]: hold };
+        const liftOnly = { [logKey(1, RID, 0)]: lift };
+        expect(computePRMap(withHold)).toEqual(computePRMap(liftOnly));
+        expect(computeE1RMHistory(withHold, RID)).toEqual(computeE1RMHistory(liftOnly, RID));
+    });
+});
+
+describe('formatPrescription (P1.3)', () => {
+    it('renders a rep range with the reps label (default / unset unit)', () => {
+        expect(formatPrescription('8-12', 'reps', '8-12')).toBe('8-12 reps');
+        expect(formatPrescription('8-12', undefined, '8-12')).toBe('8-12 reps');
+        expect(formatPrescription('8-12', null, null)).toBe('8-12 reps');
+    });
+    it('renders a timed hold from the catalogue hold, not the generated reps', () => {
+        // The generated reps ("12-15") are ignored; the hold comes from the
+        // exercise's stored prescription so a Plank never reads as a rep range.
+        expect(formatPrescription('12-15', 'time', '30-60s')).toBe('30-60s hold');
+    });
+    it('falls back to a default hold when the catalogue hold is missing', () => {
+        expect(formatPrescription('12-15', 'time', '')).toBe('30-60s hold');
+        expect(formatPrescription('12-15', 'time', null)).toBe('30-60s hold');
+    });
+    it('marks per-side prescriptions for unilateral work', () => {
+        expect(formatPrescription('10-12', 'per_side', '10-12')).toBe('10-12 reps/side');
+    });
+    it('compact mode drops the "reps" word for the compact prescription surfaces', () => {
+        // Used by the next-session preview + the routine editor row, which render
+        // "{sets} × {prescription}".
+        expect(formatPrescription('8-12', 'reps', '8-12', { compact: true })).toBe('8-12');
+        expect(formatPrescription('12-15', 'time', '30-60s', { compact: true })).toBe('30-60s');
+        expect(formatPrescription('10-12', 'per_side', '10-12', { compact: true })).toBe('10-12/side');
     });
 });

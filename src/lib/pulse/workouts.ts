@@ -1,5 +1,5 @@
 import type { Logs, WorkoutSession } from './types';
-import { parseLogKey } from './utils';
+import { parseLogKey, isTimedEntry } from './utils';
 
 // A single logged set within an exercise.
 export interface WorkoutSet {
@@ -57,6 +57,7 @@ export function assembleWorkouts(
     for (const [key, entry] of Object.entries(logs)) {
         const sid = entry.session_id;
         if (!sid) continue;
+        if (isTimedEntry(entry)) continue; // holds carry no kg x reps; keep them out of workout stats
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         const arr = bySession.get(sid) ?? [];
@@ -132,6 +133,7 @@ export function exerciseSetsByWeek(
     const byWeek = new Map<number, { setIdx: number; kg: number; reps: number; rir: number }[]>();
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         if (parsed.routineExerciseId !== routineExerciseId) continue;

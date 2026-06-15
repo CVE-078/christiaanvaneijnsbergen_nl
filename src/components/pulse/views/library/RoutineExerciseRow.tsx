@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { toDisplay, toKg } from '@/lib/pulse/utils';
+import { toDisplay, toKg, formatPrescription } from '@/lib/pulse/utils';
 import { usePulse } from '@/context/PulseContext';
 import type { RoutineExercise, Unit } from '@/lib/pulse/types';
 import { INPUT, BTN_PRIMARY } from '@/components/pulse/ui';
@@ -206,7 +206,7 @@ export default function RoutineExerciseRow({
             {/* Line 2: sets x reps meta (only when not editing) */}
             {!editing && (
                 <span className="font-pulse text-[0.6875rem] text-pulse-dim pl-7">
-                    {re.sets} × {re.reps}
+                    {re.sets} × {formatPrescription(re.reps, re.exercise?.prescription_unit, re.exercise?.default_reps, { compact: true })}
                     {re.starting_weight_kg !== null && (
                         <>
                             {' '}

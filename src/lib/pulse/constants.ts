@@ -27,6 +27,30 @@ export const WARNING_COPY: Record<string, { title: string; body: string }> = {
         title: 'Accessory work only',
         body: 'Your movement restrictions removed all compound options for one or more sessions, so they use accessory work only. Consider adjusting your restrictions or equipment.',
     },
+    over_time: {
+        title: 'May run long',
+        body: 'Some sessions are estimated to take longer than your selected session length. You can shorten them by dropping an accessory, or keep them as planned.',
+    },
+    missing_pattern: {
+        title: 'Missing a key movement',
+        body: 'Your equipment or movement restrictions left a session without one of its key movements (for example pulling). The plan still works, this is a heads-up. Adding equipment or easing a restriction would round it out.',
+    },
+    demanding_week: {
+        title: 'Demanding week',
+        body: 'Most of your sessions this week are heavy strength work, which is hard to recover from at this frequency. If recovery suffers, ease off with a lighter training style on some days or train fewer days.',
+    },
+    push_pull_imbalance: {
+        title: "Push and pull aren't balanced",
+        body: 'This week leans noticeably more toward one of pushing or pulling. That is fine for a focused block, but over time balanced pushing and pulling protects your shoulders and posture.',
+    },
+    label_mismatch: {
+        title: "A day's focus shifted",
+        body: 'One of your labelled training days no longer leads with the lift its name implies, usually because your equipment or restriction settings removed the main option. The plan still works; adjusting equipment or restrictions would restore the intended focus.',
+    },
+    no_vertical_pull: {
+        title: 'No vertical pulling this week',
+        body: 'None of your sessions include a vertical pull (pull-ups or lat pulldowns), which build the lats and upper back. Your equipment supports one, so adding it on a pull or upper day would round out your back work.',
+    },
 };
 
 export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {

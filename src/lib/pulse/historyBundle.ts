@@ -1,4 +1,4 @@
-import { calcE1RM, parseLogKey } from './utils';
+import { calcE1RM, parseLogKey, isTimedEntry } from './utils';
 import { secondarySets } from './muscleMap';
 import type {
     Logs,
@@ -73,7 +73,9 @@ export function computeHistoryBundle(
             volByWeek[week][wt] = (volByWeek[week][wt] ?? 0) + 1;
         }
 
-        // computeBestSets
+        // computeBestSets - a timed hold has no e1RM; it still counts above as a
+        // set in buildHistory + volume-by-type, but never as a best/PR.
+        if (isTimedEntry(val)) continue;
         const e1rm = calcE1RM(val.kg, val.reps);
         const currentBest = bestSets[routineExerciseId];
         if (!currentBest || e1rm > currentBest.e1rm) {

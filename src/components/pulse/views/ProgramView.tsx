@@ -147,7 +147,12 @@ export default function ProgramView() {
                     sessionFocusLabel(activeRoutine?.schedule ?? [], type, variant) ??
                     `${WORKOUT_TYPE_LABELS[type] ?? type}${variant ? ` ${variant}` : ''}`,
                 durationMin: estimateSessionMinutes(
-                    exs.map((re) => ({ sets: parseMaxSets(re.sets), is_compound: re.exercise?.is_compound })),
+                    exs.map((re) => ({
+                        sets: parseMaxSets(re.sets),
+                        is_compound: re.exercise?.is_compound,
+                        reps: re.reps,
+                        supersetGroupId: re.superset_group_id,
+                    })),
                 ),
                 setCount: exs.reduce((sum, re) => sum + parseMaxSets(re.sets), 0),
                 focus: [...new Set(exs.map((re) => re.exercise?.category).filter(Boolean))]

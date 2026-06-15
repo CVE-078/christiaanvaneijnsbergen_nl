@@ -1,4 +1,4 @@
-import { parseLogKey, isSetPR } from './utils';
+import { parseLogKey, isSetPR, isTimedEntry } from './utils';
 import type { Logs, PRMap } from './types';
 
 // Quote a CSV field only when it contains a comma, quote, or newline, doubling
@@ -21,6 +21,7 @@ export function buildWorkoutCsv(
     const rows: string[][] = [];
     for (const [key, entry] of Object.entries(logs)) {
         if (!entry?.saved) continue;
+        if (isTimedEntry(entry)) continue; // a timed hold has no weight x reps row in the CSV
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         const drops = entry.drops?.length ? entry.drops.map((d) => `${d.kg}×${d.reps}`).join(' · ') : '';

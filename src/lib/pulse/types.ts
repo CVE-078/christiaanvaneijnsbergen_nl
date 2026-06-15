@@ -7,6 +7,10 @@ export interface LogEntry {
     // Links this set to the workout_session it was logged in (null for older /
     // unlinked rows). Used to assemble per-workout detail with real dates.
     session_id?: string | null;
+    // P1.3b: a timed isometric hold in whole seconds (e.g. Plank). When present this
+    // is a hold, not a weight x reps set: kg/reps are 0 and it carries no e1RM /
+    // tonnage / PR (excluded from every weight-based aggregate via isTimedEntry).
+    duration_s?: number | null;
 }
 
 export type Logs = Record<string, LogEntry>;
@@ -229,6 +233,10 @@ export interface SessionTargetRow {
     name: string;
     sets: string;
     reps: string;
+    // Compact, prescription-unit-aware label for display (e.g. "8-12", "30-60s",
+    // "10-12/side"). Use this rather than `reps` when rendering the preview, so an
+    // isometric reads as a hold and unilateral work reads per side (P1.3).
+    prescription: string;
     bodyweight: boolean;
     // Prefilled working weight in kg, or null when there is none yet (week 1, or a
     // fresh lift with no starting weight).
@@ -293,6 +301,11 @@ export interface RecoveryDetail {
     toGo: number;
 }
 
+// How an exercise's prescription is read (P1.3). 'reps' (default) = a normal rep
+// range; 'time' = a timed hold (default_reps holds the hold range, e.g. "30-60s")
+// so isometrics never render as a rep count; 'per_side' = the reps are per limb.
+export type PrescriptionUnit = 'reps' | 'time' | 'per_side';
+
 export interface DbExercise {
     id: string;
     name: string;
@@ -303,6 +316,8 @@ export interface DbExercise {
     equipment?: EquipmentKey[];
     movement_pattern?: MovementPattern | null;
     is_compound?: boolean;
+    // P1.3: prescription rendering hint. Optional/additive (absent = 'reps').
+    prescription_unit?: PrescriptionUnit | null;
     // Smart substitution v2 (#8): same-stimulus family + per-exercise joint-stress
     // flags, used to rank swap alternatives. Optional (additive; not every caller
     // selects them).
@@ -496,6 +511,8 @@ export const MOVEMENT_PATTERNS = [
     'biceps_iso',
     'triceps_iso',
     'glute_iso',
+    'quad_iso',
+    'hamstring_iso',
 ] as const;
 export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
 

@@ -28,7 +28,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 // Canonical select strings. These are authoritative: the layout and the API
 // routes should both call the loaders below rather than duplicating queries.
-const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops, session_id';
+const LOGS_SELECT = 'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops, session_id, duration_s';
 const PROFILE_SELECT =
     'display_name, unit, length_unit, active_routine_id, active_equipment_profile_id, onboarding_completed, goal_weight_kg, gender, priority_muscle, timezone, accent_color, training_style, variety_preference, loading_lean, movement_restrictions';
 const PRIORITY_MUSCLE_VALUES = ['glutes', 'legs', 'chest', 'back', 'shoulders', 'arms', 'balanced'];
@@ -38,7 +38,7 @@ const LOADING_LEAN_VALUES = ['barbell', 'dumbbell', 'machine', 'cable'];
 const BODYWEIGHT_SELECT = 'id, logged_at, weight_kg';
 const MEASUREMENTS_SELECT = 'id, measured_at, waist_cm, hips_cm, chest_cm, arms_cm';
 const EXERCISES_SELECT =
-    'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications';
+    'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications, prescription_unit';
 const NOTES_SELECT = 'week, routine_exercise_id, note';
 const SWAPS_SELECT = 'week, routine_exercise_id, exercise_id';
 const HIDDEN_PREFS_SELECT = 'exercise_id';
@@ -50,7 +50,7 @@ const DECISION_EVENTS_SELECT = 'id, routine_id, type, trigger, affected_area, we
 const EQUIPMENT_PROFILES_SELECT = 'id, name, equipment, created_at, expires_at';
 const ROUTINES_SELECT = `
             id, user_id, name, created_at, rationale, program_weeks, program_anchor, warnings,
-            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications ) ),
+            exercises:routine_exercises ( id, routine_id, exercise_id, workout_type, variant, order, sets, reps, starting_weight_kg, rest_seconds, superset_group_id, exercise:exercises ( id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications, prescription_unit ) ),
             schedule:routine_schedule ( day_of_week, workout_type, variant, label )
         `;
 
@@ -67,6 +67,7 @@ export async function loadLogs(supabase: SupabaseServerClient, userId: string): 
             saved: row.saved,
             session_id: row.session_id ?? null,
             ...(Array.isArray(row.drops) && row.drops.length > 0 ? { drops: row.drops } : {}),
+            ...(row.duration_s != null ? { duration_s: row.duration_s } : {}),
         };
     }
     return validateLogs(raw) ? raw : {};

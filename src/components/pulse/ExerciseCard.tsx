@@ -14,6 +14,7 @@ import {
     shouldDeload,
     isBodyweight,
     isPlateLoaded,
+    formatPrescription,
 } from '@/lib/pulse/utils';
 import { explainCopy } from '@/lib/pulse/explainCopy';
 import { useToast } from '@/lib/pulse/toast';
@@ -95,9 +96,12 @@ function ExerciseCard({
     const lastSession = lastSessionProp !== undefined ? lastSessionProp : computeLastSession(logs, re.id, week);
     const prevKey0 = logKey(week - 1, re.id, 0);
     const prevEntry0 = week > 1 ? logs[prevKey0] : undefined;
+    // P1.3b: a timed isometric hold (plank etc.) logs seconds, not weight x reps,
+    // and carries no working weight / warmup / e1RM / progression / deload.
+    const timed = display.prescription_unit === 'time';
     const workingWeightKg =
         computeSuggestion(prevEntry0?.saved ? prevEntry0 : undefined, week) ?? re.starting_weight_kg ?? null;
-    const warmupSets = workingWeightKg !== null ? computeWarmupSets(workingWeightKg, unit) : [];
+    const warmupSets = !timed && workingWeightKg !== null ? computeWarmupSets(workingWeightKg, unit) : [];
     // Quiet for new lifts: computePlateau returns false with <=3 logged weeks.
     // When stalled and not already rebuilding from a recent deload, the set
     // targets below auto-deload (see SetLogger). `deload` implies `stalled`.
@@ -106,8 +110,8 @@ function ExerciseCard({
     const bodyweight = isBodyweight(display.equipment);
     const plateLoaded = isPlateLoaded(display.equipment);
     const e1rmHistory = computeE1RMHistory(logs, re.id);
-    const stalled = !bodyweight && computePlateau(e1rmHistory);
-    const deload = !bodyweight && shouldDeload(e1rmHistory);
+    const stalled = !bodyweight && !timed && computePlateau(e1rmHistory);
+    const deload = !bodyweight && !timed && shouldDeload(e1rmHistory);
     // "What did I do here last time" (#13): best set + estimated 1RM + retrospective
     // trend, shown in the expanded card at the point of logging. The previous-note
     // field needs the notes map (not threaded to this card yet), so it stays empty
@@ -127,15 +131,19 @@ function ExerciseCard({
                             {display.name}
                         </div>
                         <div className="font-pulse text-[0.78125rem] tracking-[0.03em] text-pulse-muted mt-1">
-                            {re.sets} × {re.reps} reps
-                            {re.starting_weight_kg !== null && (
+                            {/* Prescription-unit aware (matches the Plan page): "30-60s hold"
+                                for a timed exercise, "12-15 reps/side" for unilateral, else reps. */}
+                            {re.sets} × {formatPrescription(re.reps, display.prescription_unit, display.default_reps)}
+                            {!timed && re.starting_weight_kg !== null && (
                                 <>
                                     {' '}
                                     · {toDisplay(re.starting_weight_kg, unit)} {unit} start
                                 </>
                             )}
                         </div>
-                        {lastSession && (
+                        {/* A timed hold has no weight x reps last-session readout (any
+                            weight rows are legacy, pre-timed logs); suppress it. */}
+                        {!timed && lastSession && (
                             <div className="font-pulse text-[0.8125rem] text-pulse-dim mt-1">
                                 Last: {toDisplay(lastSession.kg, unit)} {unit} × {lastSession.reps} ×{' '}
                                 {lastSession.setCount} sets
@@ -193,7 +201,9 @@ function ExerciseCard({
 
                 {open && (
                     <div className="px-[1.125rem] pt-1 pb-4 flex flex-col gap-2.5">
-                        <ExerciseHistoryPanel history={exerciseHistory} unit={unit} />
+                        {/* A hold has no best-set / e1RM / trend; hide the weight-based
+                            history panel for a timed exercise (legacy weight rows aside). */}
+                        {!timed && <ExerciseHistoryPanel history={exerciseHistory} unit={unit} />}
                         {stalled && (
                             <div className="rounded-lg bg-pulse-surface-2 px-3 py-2.5">
                                 <p className="font-pulse text-[0.78125rem] font-semibold text-pulse-accent">
@@ -320,6 +330,8 @@ function ExerciseCard({
                                     deload={deload}
                                     bodyweight={bodyweight}
                                     plateLoaded={plateLoaded}
+                                    timed={timed}
+                                    holdRange={display.default_reps}
                                     onSave={(e) => handleSetSave(key, e)}
                                     onDelete={() => onDelete(key)}
                                 />

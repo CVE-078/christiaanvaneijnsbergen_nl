@@ -35,9 +35,22 @@ const LOG_KEY_RE =
 // the bulk `validateLogs` and the per-row `upsertLog` server action.
 export function validateLogEntry(entry: unknown): entry is LogEntry {
     if (typeof entry !== 'object' || entry === null) return false;
-    const { kg, reps, rir, saved, drops } = entry as Record<string, unknown>;
-    if (typeof kg !== 'number' || kg <= 0 || kg > 500) return false;
-    if (typeof reps !== 'number' || !Number.isInteger(reps) || reps < 1 || reps > 100) return false;
+    const { kg, reps, rir, saved, drops, duration_s } = entry as Record<string, unknown>;
+    // P1.3b: a timed hold (duration_s present) carries no weight x reps; it stores
+    // duration in seconds and leaves kg/reps at 0. Validate the hold shape and relax
+    // the kg>0 / reps>=1 rails accordingly (mirrors the conditional DB CHECK). A
+    // normal set (no duration_s) keeps the full rails verbatim.
+    const isHold = duration_s !== undefined && duration_s !== null;
+    if (isHold) {
+        if (typeof duration_s !== 'number' || !Number.isInteger(duration_s) || duration_s < 1 || duration_s > 3600)
+            return false;
+        if (typeof kg !== 'number' || kg < 0 || kg > 500) return false;
+        if (typeof reps !== 'number' || !Number.isInteger(reps) || reps < 0 || reps > 100) return false;
+        if (drops !== undefined && drops !== null) return false; // no drop sets on a hold in v1
+    } else {
+        if (typeof kg !== 'number' || kg <= 0 || kg > 500) return false;
+        if (typeof reps !== 'number' || !Number.isInteger(reps) || reps < 1 || reps > 100) return false;
+    }
     if (typeof rir !== 'number' || !Number.isInteger(rir) || rir < 0 || rir > 10) return false;
     if (typeof saved !== 'boolean') return false;
     if (drops !== undefined && drops !== null) {

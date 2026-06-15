@@ -19,6 +19,7 @@ import type {
 } from './types';
 import type { ExperienceLevel, Goal, OnboardingAnswers } from './recommendation';
 import { EMPTY_BEHAVIOR, type BehaviorSignal } from './behavior';
+import { estimateSessionMinutes } from './utils';
 
 export type { Focus };
 
@@ -78,11 +79,23 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // 45-60 min comes from backfill (a 2nd accessory).
     lower_quad: {
         bias: 'hypertrophy',
-        slots: ['squat', 'lunge', 'glute_iso', 'calf', 'core'],
+        // Dedicated quad isolation (leg extension): the squat under-trains the
+        // biarticular rectus femoris, so a knee-extension isolation covers a real gap
+        // (science review). It displaces glute_iso (a posterior-chain move that belongs
+        // on the posterior day, where it is kept). glute_iso does NOT return here: on a
+        // deep pool at 45-60 min the 6th pick is a 2nd quad_iso, keeping the quad day
+        // quad-focused by design.
+        slots: ['squat', 'quad_iso', 'lunge', 'calf', 'core'],
     },
     lower_post: {
         bias: 'hypertrophy',
-        slots: ['hinge', 'glute_iso', 'lunge', 'calf', 'core'],
+        // Dedicated hamstring isolation (leg curl): the hinge cannot train the
+        // monoarticular short head of biceps femoris (knee-flexion only), so a leg
+        // curl is a unique, non-negotiable stimulus on a posterior day (science
+        // review). It displaces lunge (a knee-extension-dominant move that belongs on
+        // the quad day); lunge returns as the day's 2nd compound via the minimum-compound
+        // floor guard (the first pass seats only hinge), not the backfill loop.
+        slots: ['hinge', 'hamstring_iso', 'glute_iso', 'calf', 'core'],
         // The posterior day anchors on HINGE and never trains squat. The duress
         // lower fallbacks (the COMPOUND_FLOOR guard and the finisher deflection)
         // respect this: under a thin pool they reach for an in-contract compound
@@ -102,7 +115,10 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
     // model still PRESENTS a seated squat first (lower pattern priority).
     lower_lean: {
         bias: 'hypertrophy',
-        slots: ['lunge', 'squat', 'glute_iso', 'calf', 'core'],
+        // Quad-led aesthetic day: same dedicated quad-isolation slot as lower_quad
+        // (displaces glute_iso). glute_iso does NOT return; on a deep pool the 6th pick
+        // is a 2nd lunge, fitting this unilateral-led day.
+        slots: ['lunge', 'squat', 'quad_iso', 'calf', 'core'],
     },
     // ── Full body ─────────────────────────────────────────────────────────────
     fb_strength: {
@@ -218,9 +234,10 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         // Squat AND hinge are the two heavy money lifts (3-6 reps); squat is
         // PRIMARY_LOWER and takes the +1 set bump, the deadlift (hinge) lands
         // SECONDARY_LOWER. lunge for unilateral work, calf + core finishers. The 6th
-        // pick at 45-60 min comes from backfill. No hamstring-isolation slot: once the
-        // deadlift fills hinge, HEAVY_DEDUP_PATTERNS blocks a second, and there is no
-        // hamstring_iso pattern, so the deadlift is this day's posterior work.
+        // pick at 45-60 min comes from backfill. No hamstring_iso slot by design (the
+        // pattern now exists and lower_post uses it): the deadlift IS this PHUL day's
+        // heavy posterior work, and once it fills hinge HEAVY_DEDUP_PATTERNS blocks a
+        // second heavy hinge anyway.
         slots: ['squat', 'hinge', 'lunge', 'calf', 'core'],
     },
     phul_upper_hyp: {
@@ -244,8 +261,9 @@ export const EMPHASES: Record<EmphasisKey, Emphasis> = {
         bias: 'hypertrophy',
         // Volume lower, quad-biased: squat-led, lunge before hinge for selection
         // freshness on the quad pattern. hinge supplies hamstring/posterior volume at
-        // 8-12 (the leg-curl proxy; Pulse has no quad_iso / hamstring_iso pattern), so
-        // both lower days carry a hinge (heavy deadlift on Power, moderate hinge here).
+        // 8-12. PHUL deliberately keeps both lower days hinge-anchored (heavy deadlift
+        // on Power, moderate hinge here) for progressive overload across the pair,
+        // rather than the dedicated hamstring_iso slot lower_post uses.
         slots: ['squat', 'lunge', 'hinge', 'glute_iso', 'calf', 'core'],
     },
 };
@@ -267,12 +285,30 @@ export const PRIORITY_PATTERNS: Record<PriorityMuscle, MovementPattern[]> = {
     // session's slots, so adding squat/lunge here never injects them into a day that
     // lacks them.
     glutes: ['hinge', 'squat', 'lunge', 'glute_iso'],
-    legs: ['squat', 'lunge'],
+    // Compound-first, then the direct knee-extension / knee-flexion isolation that
+    // became real patterns with the leg-isolation split (so a legs priority also
+    // deepens the posterior day's hinge + Leg Curl and the quad day's Leg Extension,
+    // not just the squat + lunge). Mirrors every sibling priority pairing compound +
+    // its direct isolation.
+    legs: ['squat', 'hinge', 'lunge', 'quad_iso', 'hamstring_iso'],
     chest: ['horizontal_push', 'chest_iso'],
     back: ['horizontal_pull', 'back_iso'],
     shoulders: ['vertical_push', 'shoulder_iso'],
     arms: ['biceps_iso', 'triceps_iso'],
 };
+
+// Measurable priority (P3.2): a priority muscle adds up to this many extra direct
+// sets across the WEEK, spread one-per-exercise over the priority-pattern lifts
+// already selected (priority never injects a slot, so this only deepens existing
+// priority work). 4 (not 3) so a priority is clearly meaningful, not cosmetic
+// (science review). Never reduces other muscles' volume. Null priority = 0 extra
+// sets, so the no-priority path stays byte-identical.
+const PRIORITY_EXTRA_SETS_PER_WEEK = 4;
+// Hard ceiling on the priority muscle's TOTAL weekly direct sets (baseline + the
+// bumps above): added sets stop once the muscle reaches this, so a priority never
+// pushes a muscle past its recoverable volume into junk territory (science review:
+// ~20 sets/muscle/week is the natural ceiling for an intermediate).
+export const PRIORITY_MUSCLE_SET_CEILING = 20;
 
 /** Default priority seeded from gender (UI only): female → glutes, else balanced. */
 export function genderDefault(gender: Gender | null): PriorityMuscle | 'balanced' {
@@ -666,12 +702,31 @@ export function resolveRepRange(
     isCompound: boolean,
     goal: Goal | undefined,
     style: TrainingStyle,
+    experience?: ExperienceLevel,
 ): string {
-    if (style === 'powerbuilding') {
-        const heavy = POWERBUILDING_HEAVY_PATTERNS.has(pattern);
-        return repRange(heavy ? 'strength' : 'hypertrophy', isCompound, goal);
+    // P3.3 Bodybuilding character: isolation work gets the PUMP range (15-20) for a
+    // hypertrophy-finisher feel, while compounds keep the hypertrophy range (8-12).
+    // Gated on `style` (NOT effectiveBias), so it is a no-op for every other style and
+    // the frozen goldens (captured at Balanced) hold. A session whose own bias is
+    // already 'pump' is unchanged (its iso was already 15-20). lose_fat rides through
+    // repRange unchanged.
+    if (style === 'bodybuilding') {
+        return isCompound ? repRange(effectiveBias, true, goal) : repRange('pump', false, goal);
     }
-    return repRange(effectiveBias, isCompound, goal);
+    const base =
+        style === 'powerbuilding'
+            ? repRange(POWERBUILDING_HEAVY_PATTERNS.has(pattern) ? 'strength' : 'hypertrophy', isCompound, goal)
+            : repRange(effectiveBias, isCompound, goal);
+    // P3.1: a beginner or a general-fitness lifter never receives the heaviest 3-6
+    // compound range; floor it to 5-8 (a crisp 5 at high RIR is the textbook novice
+    // method; only sub-5 near-max work carries the real novice risk, per the science
+    // review). Experience and goal modulate the prescription independently of the
+    // split's bias. Intermediate/advanced build_muscle (the golden baseline) is
+    // untouched: base is returned as-is.
+    if (isCompound && base === '3-6' && (experience === 'beginner' || goal === 'general_fitness')) {
+        return '5-8';
+    }
+    return base;
 }
 
 const FOCUS_TYPE: Record<Focus, WorkoutType> = {
@@ -708,6 +763,10 @@ export interface ExerciseMeta {
      *  has the exercise filtered out of generation. Empty for the vast majority
      *  of exercises (DB default '{}'). */
     contraindications: RestrictionFlag[];
+    /** Skill/complexity tier (P3.1b). A beginner soft-deprioritises 'advanced'
+     *  lifts in selection. Optional: absent => never deprioritised, so synthetic
+     *  pools and the goldens are byte-identical. */
+    difficulty?: ExperienceLevel;
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
@@ -724,6 +783,18 @@ function isContraindicated(ex: ExerciseMeta, restrictions: Set<RestrictionFlag>)
     // safe patterns. Empty restriction set = no-op (identity).
     if (restrictions.size === 0) return false;
     return ex.contraindications.some((c) => restrictions.has(c));
+}
+
+// The pool the generator can actually draw from for a given user: equipment-owned
+// and not contraindicated. Exported so callers (e.g. the post-generation validator)
+// can reason about what was AVAILABLE, not the raw catalogue (a dumbbell-only user
+// has no usable vertical pull even though the catalogue contains pulldowns).
+export function usablePool(
+    pool: ExerciseMeta[],
+    equipment: Set<EquipmentKey>,
+    restrictions: Set<RestrictionFlag>,
+): ExerciseMeta[] {
+    return pool.filter((ex) => hasEquipment(ex, equipment) && !isContraindicated(ex, restrictions));
 }
 
 // ── Exercise ordering ────────────────────────────────────────────────────────
@@ -781,10 +852,46 @@ const FLOOR_REGION: Record<Focus, 'lower' | 'upper'> = {
 // unchanged; the quad/posterior split softens only under thin equipment.
 const LOWER_BUCKET_FALLBACK: MovementPattern[] = ['squat', 'hinge', 'lunge', 'glute_iso'];
 const FINISHER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['calf', 'core']);
+
+// P3.3 isolation lean (a +1 isolation slot under Bodybuilding) was dropped: the
+// emphases are already isolation-saturated, so a NOVEL extra isolation pattern only
+// exists for a couple of upper emphases (and a duplicate just hits PATTERN_CAP /
+// wastes the budget on a thin pool). A genuine isolation lean needs the quad/
+// hamstring-iso patterns + a lower-emphasis redesign (deferred, science-gated). The
+// Bodybuilding character ships via the pump rep ranges in resolveRepRange (isolation
+// 15-20), which is the clean, robust half.
 // Stable warning KEY (not the user-facing sentence). Display copy lives in
 // WARNING_COPY (constants.ts) and renders in the Plan generation-warning notice;
 // stored in the routine's `warnings` column.
 const LIMITED_VARIETY_WARNING = 'limited_variety';
+
+// ── Essential movement coverage (P1.1) ──────────────────────────────────────
+// Per-focus OR-groups of movement patterns a session must cover before its
+// budget is spent on optional slots. The first pass reserves budget for any
+// still-uncovered essential group, so a tight budget cannot starve a defining
+// pattern. Without this, the full-body emphases list horizontal_pull at slot
+// index 3; a 30-min beginner budget of 3 truncated before it, so a short
+// full-body WEEK trained zero pulls (Issue 1). When essentials fit naturally
+// (the common case, including every golden at its budget) no slot is skipped
+// and the first pass is byte-identical to the original. Only full_body is gated
+// today: the other focuses already cover their defining patterns within budget
+// via emphasis ordering + the compound floor, so their groups are empty (a
+// no-op path). The groups are OR-sets (any one pattern covers the group); the
+// walk fills whichever group pattern the emphasis lists first, and a final
+// inject step covers a group whose patterns are absent from the slot list or
+// had no candidates (degrading safely if the whole group is unavailable).
+const ESSENTIAL_PATTERNS: Record<Focus, MovementPattern[][]> = {
+    full_body: [
+        ['squat', 'hinge', 'lunge'],
+        ['horizontal_push', 'vertical_push'],
+        ['horizontal_pull', 'vertical_pull'],
+    ],
+    lower: [],
+    legs: [],
+    upper: [],
+    push: [],
+    pull: [],
+};
 
 // ── Lower-compound pattern priority + duress-fallback contract ───────────────
 // Lower-body compound priority (squat anchors over hinge over lunge). Used by
@@ -939,6 +1046,7 @@ function selectForSession(
     usedSubstitutionClasses: Set<string>,
     loadingLean?: LoadingPreference | null,
     behavior: BehaviorSignal = EMPTY_BEHAVIOR,
+    experience?: ExperienceLevel,
 ): { selected: Selected[]; floorUnmet: boolean } {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
     // Behavior demote (#7): O(1) membership for the sort layer below.
@@ -999,6 +1107,15 @@ function selectForSession(
                     const bDemote = demoteSet.has(b.id) ? 1 : 0;
                     if (aDemote !== bDemote) return aDemote - bDemote;
                 }
+                // P3.1b: a beginner soft-deprioritises 'advanced'-difficulty lifts
+                // (never excludes, so thin pools still fill). No-op for other
+                // experience levels and for exercises without a difficulty tag, so
+                // synthetic pools and the goldens are byte-identical.
+                if (experience === 'beginner') {
+                    const aHard = a.difficulty === 'advanced' ? 1 : 0;
+                    const bHard = b.difficulty === 'advanced' ? 1 : 0;
+                    if (aHard !== bHard) return aHard - bHard;
+                }
                 if (preferredKey) {
                     const aMatch = a.equipment.includes(preferredKey) ? 0 : 1;
                     const bMatch = b.equipment.includes(preferredKey) ? 0 : 1;
@@ -1025,14 +1142,15 @@ function selectForSession(
                 // (P0 3.1) Compound-first, below the named-anchor rank and above
                 // fatigue (anchor > compound > fatigue): a compound beats an
                 // isolation for the same slot regardless of fatigue cost. DEFENSIVE
-                // ARTIFACT, not a general policy: it is live for exactly the two
-                // mixed patterns `squat` (Leg Extension) and `hinge` (Leg Curl),
-                // which only mix compound + isolation because no quad_iso /
-                // hamstring_iso pattern exists; it is a no-op for the other 13
-                // (segregated) patterns and is expected to become effectively dead
-                // once those patterns are added. Do NOT propagate this to other
-                // ordering layers (the floor already filters is_compound, pick /
-                // backfill walk fixed slots, the role model orders post-selection).
+                // ARTIFACT, not a general policy: it once disambiguated the mixed
+                // `squat` (Leg Extension) / `hinge` (Leg Curl) patterns. Now that
+                // quad_iso / hamstring_iso exist and the migration moved Leg Extension /
+                // Leg Curl out of squat / hinge, it is effectively dead for the real
+                // catalog (as predicted) but stays as a no-op safety net for synthetic /
+                // legacy pools where an unnamed isolation still shares a compound
+                // pattern. Do NOT propagate this to other ordering layers (the floor
+                // already filters is_compound, pick / backfill walk fixed slots, the
+                // role model orders post-selection).
                 const aComp = a.is_compound ? 0 : 1;
                 const bComp = b.is_compound ? 0 : 1;
                 if (aComp !== bComp) return aComp - bComp;
@@ -1083,7 +1201,12 @@ function selectForSession(
     // `relaxHeavyCap` / `relaxUnilateralCap`: thin-pool fallbacks -- allow a
     // second heavy compound, or a second unilateral pick, only after a full
     // backfill round produces nothing else.
-    const pick = (slot: MovementPattern, relaxHeavyCap = false, relaxUnilateralCap = false): boolean => {
+    const pick = (
+        slot: MovementPattern,
+        relaxHeavyCap = false,
+        relaxUnilateralCap = false,
+        accessoryInHeavy = false,
+    ): boolean => {
         let candidates = byPattern(slot).filter((ex) => !chosenIds.has(ex.id));
         if (candidates.length === 0) return false;
 
@@ -1097,7 +1220,15 @@ function selectForSession(
         // Heavy-compound cap: skip if this Tier-1 pattern is already filled,
         // unless the cap has been relaxed because no other option is available.
         if (!relaxHeavyCap && HEAVY_DEDUP_PATTERNS.has(slot) && heavyPatternFilled.has(slot)) {
-            return false;
+            // accessoryInHeavy (P2.1): when the heavy compound is already seated,
+            // still allow a NON-COMPOUND accessory in this pattern (e.g. a leg curl
+            // on the hinge) so a thin session can add real work instead of a
+            // duplicate finisher. Never seats a 2nd heavy COMPOUND. Without the flag
+            // the slot stays fully blocked (the original behaviour).
+            if (!accessoryInHeavy) return false;
+            const accessory = candidates.filter((ex) => !ex.is_compound);
+            if (accessory.length === 0) return false;
+            candidates = accessory;
         }
 
         // Unilateral cap: once a unilateral COMPOUND has filled this session, skip a
@@ -1154,10 +1285,32 @@ function selectForSession(
         return true;
     };
 
-    // First pass: one exercise per slot in emphasis order.
+    // First pass: one exercise per slot in emphasis order, reserving budget for
+    // any still-uncovered ESSENTIAL group (P1.1) so a tight budget cannot starve
+    // a defining pattern. An "optional" slot (one that does not serve a currently
+    // uncovered essential group) is skipped when picking it would leave no room
+    // for the remaining uncovered essentials. When essentials fit naturally the
+    // reservation never bites and this is the exact original first pass.
+    const essentialGroups = ESSENTIAL_PATTERNS[focus];
+    const groupCovered = (group: MovementPattern[]) => chosen.some((c) => group.includes(c.pattern));
+    const uncoveredEssentials = () => essentialGroups.reduce((n, g) => (groupCovered(g) ? n : n + 1), 0);
     for (const slot of emphasis.slots) {
         if (chosen.length >= count) break;
+        const servesUncovered = essentialGroups.some((g) => !groupCovered(g) && g.includes(slot));
+        if (!servesUncovered && chosen.length + uncoveredEssentials() >= count) continue;
         pick(slot);
+    }
+    // Inject any essential group still uncovered: its emphasis pattern had no
+    // candidates, or no group pattern appears in the slot list. Try each pattern
+    // in the group in preference order; degrade safely if all are unavailable
+    // (the group stays uncovered, backfill fills the slot, and a later validation
+    // pass surfaces the gap).
+    for (const group of essentialGroups) {
+        if (chosen.length >= count) break;
+        if (groupCovered(group)) continue;
+        for (const p of group) {
+            if (pick(p)) break;
+        }
     }
 
     // Minimum-compound floor guard (live-test Issue 1): runs BEFORE backfill,
@@ -1225,16 +1378,28 @@ function selectForSession(
         );
         for (const slot of slotsByPriority) {
             if (chosen.length >= count) break;
-            // Finisher deflection: before seating a REPEAT calf/core, prefer a
-            // fresh lower-bucket pattern outside the emphasis (a Dumbbell RDL
-            // on the dumbbell-only quad day beats a 2nd calf + 2nd core). Deep
-            // pools never reach a finisher repeat, so this is duress-only.
-            if (FINISHER_PATTERNS.has(slot) && patternCount(slot) >= 1 && lowerBucketExtras.length > 0) {
+            // Finisher deflection (P2.1): before seating a REPEAT calf/core, prefer
+            // adding a non-finisher exercise: (1) a fresh lower-bucket pattern
+            // outside the emphasis (a Dumbbell RDL on the dumbbell-only quad day
+            // beats a 2nd calf + 2nd core), or (2) a non-compound accessory in an
+            // emphasis non-finisher pattern that the heavy cap would otherwise block
+            // (a leg curl on the hinge). Deep pools fill the slot with a non-finisher
+            // before reaching here, so this is duress-only and leaves goldens unchanged.
+            if (FINISHER_PATTERNS.has(slot) && patternCount(slot) >= 1) {
                 let deflected = false;
                 for (const p of lowerBucketExtras) {
                     if (pick(p, relaxedHeavyCap, relaxedUnilateralCap)) {
                         deflected = true;
                         break;
+                    }
+                }
+                if (!deflected) {
+                    for (const p of emphasis.slots) {
+                        if (FINISHER_PATTERNS.has(p) || patternCount(p) >= PATTERN_CAP) continue;
+                        if (pick(p, relaxedHeavyCap, relaxedUnilateralCap, true)) {
+                            deflected = true;
+                            break;
+                        }
                     }
                 }
                 if (deflected) {
@@ -1542,6 +1707,30 @@ export interface RoutineBlueprint {
 // Stable warning KEY (display copy in WARNING_COPY, constants.ts).
 const NO_COMPOUND_WARNING = 'no_compound';
 
+// Duration guard (P1.4). Upper bound (minutes) per session-time band; null = no
+// cap ('90+ min' is open-ended). A generated session whose estimate exceeds its
+// band is flagged with OVER_TIME_WARNING: the engine keeps the requested volume
+// (decision: warn, do not trim) and surfaces a heads-up so the label is honest.
+// The 5-minute rounding in estimateSessionMinutes is the tolerance, so the
+// warning fires only when the rounded estimate strictly exceeds the band max.
+const OVER_TIME_WARNING = 'over_time';
+// Stable warning KEY for essential-coverage degradation (P1.2): equipment /
+// restrictions emptied an essential movement group for a focus (e.g. a full-body
+// session left without any pull). Display copy in WARNING_COPY (constants.ts).
+const MISSING_PATTERN_WARNING = 'missing_pattern';
+// Bounded heavy-work limit (P2.2). When more than this many sessions in the week
+// are strength-biased (heavy), the week is flagged 'demanding': hard to recover
+// from at high frequency (e.g. a 6-day split under the Strength style, which
+// remaps every session to strength). Warning-only (keep the plan; the user opted
+// into the style); a fatigue MODEL / auto-correction is out of scope.
+const HEAVY_WEEK_SESSION_LIMIT = 4;
+const DEMANDING_WEEK_WARNING = 'demanding_week';
+const SESSION_TIME_MAX_MIN: Record<SessionTime, number | null> = {
+    '~30 min': 30,
+    '45–60 min': 60,
+    '90+ min': null,
+};
+
 let groupCounter = 0;
 function defaultGroupId(): string {
     groupCounter += 1;
@@ -1573,9 +1762,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const isSuperset = sessionTime === '~30 min';
 
     const restrictions = new Set(input.restrictions ?? []);
-    const usable = pool
-        .filter((ex) => hasEquipment(ex, answers.equipment))
-        .filter((ex) => !isContraindicated(ex, restrictions));
+    const usable = usablePool(pool, answers.equipment, restrictions);
     const used = new Set<string>();
     // Routine-wide record of substitution_class values already selected, so
     // selectForSession can soft-deprioritize functionally-identical lifts that
@@ -1592,6 +1779,26 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const schedule: RoutineBlueprint['schedule'] = [];
     const exercises: RoutineBlueprint['exercises'] = [];
     const warnings: string[] = [];
+    // P2.2: count strength-biased (heavy) sessions to flag an over-demanding week.
+    let strengthSessions = 0;
+    // P3.2: weekly budget of extra sets for the priority muscle, spent one-per-exercise
+    // across the routine, and a running total of the muscle's direct sets so the bump
+    // stops at the recoverable ceiling. Null priority -> 0, so the no-priority path is
+    // byte-identical.
+    const priorityPatterns = input.priority ? new Set(PRIORITY_PATTERNS[input.priority]) : null;
+    // The priority dose is applied AFTER all sessions are selected, not inline,
+    // so its ceiling can gate on the muscle's PROJECTED weekly total instead of a
+    // mid-stream running count. Inline gating let early-session bumps land while
+    // later-session baseline volume silently pushed the muscle past the ceiling.
+    // We accumulate the baseline (pre-bump) priority-pattern set total and a list of
+    // the rows eligible for a +1, then distribute the budget once the total is known.
+    let baselinePrioritySets = 0;
+    const priorityBumpables: Array<{ row: { sets: number }; ex: { sets: string } }> = [];
+    // Each session's rows, kept so the over-time estimate runs AFTER the priority
+    // bump (it must reflect the final set counts, not the pre-bump ones).
+    const perSessionRows: Array<
+        Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }>
+    > = [];
 
     style.sessions.forEach((session, i) => {
         if (i >= days.length) return;
@@ -1606,7 +1813,17 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
 
         const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';
-        const effectiveBias = resolveBias(emphasis.bias, trainingStyle);
+        // Split identity outranks training style (P1.5). PHUL's identity IS its
+        // power-vs-hypertrophy day contrast, encoded in the per-day emphasis biases
+        // (phul_*_power = strength, phul_*_hyp = hypertrophy). The style remap would
+        // otherwise collapse both days to one bias (Powerbuilding -> all strength,
+        // Bodybuilding -> all hypertrophy), erasing the split. So PHUL sessions
+        // resolve their bias (and thus rep range + set bump) from their OWN
+        // emphasis, ignoring the style remap. Byte-identical under Balanced (the
+        // remap is the identity there), so the PHUL-under-Balanced goldens hold.
+        const styleForBias: TrainingStyle = session.emphasis.startsWith('phul_') ? 'balanced' : trainingStyle;
+        const effectiveBias = resolveBias(emphasis.bias, styleForBias);
+        if (effectiveBias === 'strength') strengthSessions += 1;
         const { selected, floorUnmet } = selectForSession(
             emphasis,
             session.focus,
@@ -1618,6 +1835,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             usedSubstitutionClasses,
             input.loadingLean,
             input.behavior ?? EMPTY_BEHAVIOR,
+            answers.experience,
         );
 
         // Live-test Issue 1: an unmet compound floor (some compounds, fewer
@@ -1647,7 +1865,13 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                     ex.is_compound &&
                     ex.movement_pattern !== null &&
                     !chosenIds.has(ex.id) &&
-                    (!lowerOnly || FLOOR_FALLBACK_PATTERNS.lower.includes(ex.movement_pattern)),
+                    (!lowerOnly || FLOOR_FALLBACK_PATTERNS.lower.includes(ex.movement_pattern)) &&
+                    // Honor the emphasis-slot contract, exactly like the floor guard
+                    // (above): never seat a lower compound that would outrank the day's
+                    // anchor (a squat on the hinge-anchored posterior day), which would
+                    // ship it PRIMARY_LOWER and hijack the session. A no-op for upper /
+                    // full_body. If nothing in-contract survives, warn (below).
+                    !isOffContractLowerCompound(ex.movement_pattern, emphasis, session.focus),
             );
             if (fallback) {
                 // Keep the exercise count: drop the last (lowest-priority) isolation
@@ -1662,6 +1886,21 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             }
         }
 
+        // Essential-coverage degradation (P1.2): if equipment / restrictions left an
+        // essential movement group uncovered for this focus (e.g. a full-body session
+        // with no pull after a shoulder restriction emptied every pull), flag it rather
+        // than silently shipping a session missing a defining movement. Essential
+        // groups are full_body-only today (see ESSENTIAL_PATTERNS); other focuses gain
+        // coverage definitions with the post-generation validator (P2.3).
+        const essentialFor = ESSENTIAL_PATTERNS[session.focus];
+        if (
+            essentialFor.length > 0 &&
+            essentialFor.some((g) => !selected.some((s) => g.includes(s.pattern))) &&
+            !warnings.includes(MISSING_PATTERN_WARNING)
+        ) {
+            warnings.push(MISSING_PATTERN_WARNING);
+        }
+
         // Role ordering (Item 4): assign each selected exercise a role and order the
         // session PRIMARY_LOWER -> PRIMARY_UPPER -> SECONDARY_LOWER -> SECONDARY_UPPER
         // -> ISOLATION -> FINISHER, so the two heaviest compounds lead and are
@@ -1671,6 +1910,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
         let firstCompoundBumped = false;
         const baseSets = Math.max(3, sets);
+        const sessionRows: Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }> =
+            [];
 
         const ordered = isSuperset
             ? buildSupersets(orderedSelection, makeGroupId)
@@ -1683,17 +1924,71 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            exercises.push({
+            const reps = resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, styleForBias, answers.experience);
+            const rowObj = { sets: exSets, is_compound: ex.is_compound, reps, supersetGroupId: groupId };
+            sessionRows.push(rowObj);
+            const exObj = {
                 exercise_id: ex.id,
                 workout_type,
                 variant,
                 order,
                 sets: String(exSets),
-                reps: resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, trainingStyle),
+                reps,
                 superset_group_id: groupId,
-            });
+            };
+            exercises.push(exObj);
+            // P3.2: record this row as eligible for the priority +1 and add its
+            // baseline sets to the weekly total. The bump is distributed after the
+            // loop, gated on the projected total (see below). Order of records is the
+            // session-then-position order, so the earliest priority lifts get the
+            // budget first, as before.
+            if (priorityPatterns && priorityPatterns.has(pattern)) {
+                baselinePrioritySets += exSets;
+                priorityBumpables.push({ row: rowObj, ex: exObj });
+            }
         });
+
+        perSessionRows.push(sessionRows);
     });
+
+    // P3.2 priority dose: deepen the priority muscle by one set per priority-pattern
+    // lift, up to the weekly budget AND only while the muscle's PROJECTED weekly total
+    // stays under its recoverable ceiling (so a priority never tips an already-loaded
+    // muscle into junk volume). Now that every session is selected, baselinePrioritySets
+    // is the true week total, so the ceiling is enforced against it (not a mid-stream
+    // count). Additive; never reduces other work. Null priority leaves this empty, so
+    // the no-priority path stays byte-identical.
+    {
+        let budget = PRIORITY_EXTRA_SETS_PER_WEEK;
+        let total = baselinePrioritySets;
+        for (const b of priorityBumpables) {
+            if (budget <= 0 || total + 1 > PRIORITY_MUSCLE_SET_CEILING) break;
+            b.row.sets += 1;
+            b.ex.sets = String(b.row.sets);
+            total += 1;
+            budget -= 1;
+        }
+    }
+
+    // Duration guard (P1.4): flag (never trim) a session whose estimate exceeds its
+    // time band, so a "45-60 min" routine that lands at ~65 min is honest about it.
+    // Runs post-bump so the estimate reflects the final set counts.
+    const bandMax = SESSION_TIME_MAX_MIN[sessionTime];
+    if (bandMax !== null) {
+        for (const rows of perSessionRows) {
+            if (estimateSessionMinutes(rows) > bandMax) {
+                warnings.push(OVER_TIME_WARNING);
+                break;
+            }
+        }
+    }
+
+    // Heavy-work limit (P2.2): a week with too many strength-biased sessions is
+    // hard to recover from (e.g. a 6-day split under the Strength style). Flag it;
+    // keep the plan (warn, do not auto-correct).
+    if (strengthSessions > HEAVY_WEEK_SESSION_LIMIT && !warnings.includes(DEMANDING_WEEK_WARNING)) {
+        warnings.push(DEMANDING_WEEK_WARNING);
+    }
 
     return { schedule, exercises, warnings };
 }

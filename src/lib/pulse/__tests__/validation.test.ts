@@ -4,6 +4,29 @@ import { validateLogs, validateDecisionEvent } from '@/lib/pulse/validation';
 const KEY = '3-11111111-1111-4111-8111-111111111111-0';
 const base = { kg: 80, reps: 8, rir: 2, saved: true };
 
+describe('validateLogs timed holds (P1.3b)', () => {
+    it('accepts a hold: duration_s set, kg/reps 0', () => {
+        expect(validateLogs({ [KEY]: { kg: 0, reps: 0, rir: 0, saved: true, duration_s: 45 } })).toBe(true);
+    });
+    it('rejects a hold with out-of-range or non-integer duration_s', () => {
+        for (const d of [0, 3601, 12.5]) {
+            expect(validateLogs({ [KEY]: { kg: 0, reps: 0, rir: 0, saved: true, duration_s: d } })).toBe(false);
+        }
+    });
+    it('rejects a hold that also carries drops', () => {
+        expect(
+            validateLogs({ [KEY]: { kg: 0, reps: 0, rir: 0, saved: true, duration_s: 45, drops: [{ kg: 40, reps: 8 }] } }),
+        ).toBe(false);
+    });
+    it('still rejects a NORMAL set with kg 0 or reps 0 (rails unchanged for non-holds)', () => {
+        expect(validateLogs({ [KEY]: { kg: 0, reps: 8, rir: 2, saved: true } })).toBe(false);
+        expect(validateLogs({ [KEY]: { kg: 80, reps: 0, rir: 2, saved: true } })).toBe(false);
+    });
+    it('still accepts a normal weighted set', () => {
+        expect(validateLogs({ [KEY]: base })).toBe(true);
+    });
+});
+
 describe('validateLogs drops', () => {
     it('accepts a set with no drops', () => {
         expect(validateLogs({ [KEY]: base })).toBe(true);

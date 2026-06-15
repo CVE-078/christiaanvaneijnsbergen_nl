@@ -64,7 +64,9 @@ describe('loadLogs', () => {
         });
         const logs = await loadLogs(client, UID);
         expect(calls.table).toBe('set_logs');
-        expect(calls.select).toBe('week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops, session_id');
+        expect(calls.select).toBe(
+            'week, routine_exercise_id, set_idx, kg, reps, rir, saved, drops, session_id, duration_s',
+        );
         expect(logs[`3-${REID}-0`]).toEqual({ kg: 50, reps: 8, rir: 2, saved: true, session_id: null });
     });
 
@@ -181,7 +183,7 @@ describe('loadExercises', () => {
         const exercises = await loadExercises(client, UID);
         expect(calls.table).toBe('exercises');
         expect(calls.select).toBe(
-            'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications',
+            'id, name, category, default_sets, default_reps, user_id, movement_pattern, equipment, is_compound, substitution_class, contraindications, prescription_unit',
         );
         expect(exercises.map((e) => e.name)).toEqual(['Bench', 'Squat', 'Curl']);
     });
