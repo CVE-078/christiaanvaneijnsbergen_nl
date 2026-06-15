@@ -392,21 +392,21 @@ describe('bodybuilding character (P3.3)', () => {
         expect(resolveRepRange('hypertrophy', 'chest_iso', false, 'build_muscle', 'balanced')).toBe('12-15');
     });
 
-    it('carries more isolation than balanced, +1 exercise per session, pump reps on isolation', () => {
+    it('a bodybuilding routine reads pump (15-20) on isolation and hypertrophy (8-12) on compounds', () => {
         const pool = deepPool();
         const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
-        const balanced = generateRoutine(input({ pool }));
         const bb = generateRoutine(input({ pool, trainingStyle: 'bodybuilding' }));
-        const isoCount = (bp: ReturnType<typeof generateRoutine>) =>
-            bp.exercises.filter((e) => isIso(patternOf.get(e.exercise_id))).length;
-        expect(isoCount(bb)).toBeGreaterThan(isoCount(balanced));
-        // +1 exercise per non-PHUL session (ul-classic-4 has 4).
-        expect(bb.exercises.length).toBe(balanced.exercises.length + 4);
-        // every isolation reads pump (15-20), every compound reads hypertrophy (8-12).
         for (const e of bb.exercises) {
             const expected = isIso(patternOf.get(e.exercise_id)) ? '15-20' : '8-12';
             expect(e.reps).toBe(expected);
         }
+    });
+
+    it('balanced is byte-identical to no training style (bodybuilding rep-range change is gated)', () => {
+        const pool = deepPool();
+        const a = generateRoutine(input({ pool }));
+        const b = generateRoutine(input({ pool, trainingStyle: 'balanced' }));
+        expect(a.exercises).toEqual(b.exercises);
     });
 
     it('PHUL is excluded: split identity outranks bodybuilding (power day stays 3-6)', () => {

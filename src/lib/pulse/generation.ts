@@ -756,6 +756,18 @@ function isContraindicated(ex: ExerciseMeta, restrictions: Set<RestrictionFlag>)
     return ex.contraindications.some((c) => restrictions.has(c));
 }
 
+// The pool the generator can actually draw from for a given user: equipment-owned
+// and not contraindicated. Exported so callers (e.g. the post-generation validator)
+// can reason about what was AVAILABLE, not the raw catalogue (a dumbbell-only user
+// has no usable vertical pull even though the catalogue contains pulldowns).
+export function usablePool(
+    pool: ExerciseMeta[],
+    equipment: Set<EquipmentKey>,
+    restrictions: Set<RestrictionFlag>,
+): ExerciseMeta[] {
+    return pool.filter((ex) => hasEquipment(ex, equipment) && !isContraindicated(ex, restrictions));
+}
+
 // ── Exercise ordering ────────────────────────────────────────────────────────
 // Within-session presentation order is assigned by the exercise role model
 // (assignRole / orderByRole, defined below after the Selected type), which replaced
@@ -812,19 +824,13 @@ const FLOOR_REGION: Record<Focus, 'lower' | 'upper'> = {
 const LOWER_BUCKET_FALLBACK: MovementPattern[] = ['squat', 'hinge', 'lunge', 'glute_iso'];
 const FINISHER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['calf', 'core']);
 
-// P3.3 isolation lean: one extra isolation pattern appended per session under the
-// Bodybuilding training style, so a Bodybuilding session carries measurably more
-// isolation than the same emphasis under Balanced. Chosen per focus to be a pattern
-// at most once in any emphasis of that focus, so the append stays within PATTERN_CAP.
-// Bodybuilding-only; Balanced never reads it, so the goldens are unaffected.
-const BODYBUILDING_ISO_SLOT: Record<Focus, MovementPattern> = {
-    push: 'chest_iso',
-    pull: 'biceps_iso',
-    legs: 'glute_iso',
-    upper: 'biceps_iso',
-    lower: 'glute_iso',
-    full_body: 'shoulder_iso',
-};
+// P3.3 isolation lean (a +1 isolation slot under Bodybuilding) was dropped: the
+// emphases are already isolation-saturated, so a NOVEL extra isolation pattern only
+// exists for a couple of upper emphases (and a duplicate just hits PATTERN_CAP /
+// wastes the budget on a thin pool). A genuine isolation lean needs the quad/
+// hamstring-iso patterns + a lower-emphasis redesign (deferred, science-gated). The
+// Bodybuilding character ships via the pump rep ranges in resolveRepRange (isolation
+// 15-20), which is the clean, robust half.
 // Stable warning KEY (not the user-facing sentence). Display copy lives in
 // WARNING_COPY (constants.ts) and renders in the Plan generation-warning notice;
 // stored in the routine's `warnings` column.
@@ -1726,9 +1732,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const isSuperset = sessionTime === '~30 min';
 
     const restrictions = new Set(input.restrictions ?? []);
-    const usable = pool
-        .filter((ex) => hasEquipment(ex, answers.equipment))
-        .filter((ex) => !isContraindicated(ex, restrictions));
+    const usable = usablePool(pool, answers.equipment, restrictions);
     const used = new Set<string>();
     // Routine-wide record of substitution_class values already selected, so
     // selectForSession can soft-deprioritize functionally-identical lifts that
@@ -1763,19 +1767,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             label: focusLabelForEmphasis(session.emphasis),
         });
 
-        const baseEmphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
+        const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';
-        // P3.3 isolation lean: under Bodybuilding append one focus-appropriate isolation
-        // slot and grant +1 exercise budget so it is filled, so a Bodybuilding session
-        // carries measurably more isolation than the same emphasis under Balanced.
-        // Additive (never reorders/removes existing slots) and gated on the style, so
-        // Balanced output is byte-identical. PHUL is excluded for the same reason its
-        // bias is (split identity outranks training style, P1.5).
-        const isBodybuilding = trainingStyle === 'bodybuilding' && !session.emphasis.startsWith('phul_');
-        const emphasis: Emphasis = isBodybuilding
-            ? { bias: baseEmphasis.bias, slots: [...baseEmphasis.slots, BODYBUILDING_ISO_SLOT[session.focus]] }
-            : baseEmphasis;
-        const sessionCount = isBodybuilding ? exCount + 1 : exCount;
         // Split identity outranks training style (P1.5). PHUL's identity IS its
         // power-vs-hypertrophy day contrast, encoded in the per-day emphasis biases
         // (phul_*_power = strength, phul_*_hyp = hypertrophy). The style remap would
@@ -1790,7 +1783,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const { selected, floorUnmet } = selectForSession(
             emphasis,
             session.focus,
-            sessionCount,
+            exCount,
             usable,
             used,
             variety,

@@ -6,6 +6,7 @@ import {
     applyTemplateVolume,
     buildRationale,
     generateRoutine,
+    usablePool,
     orderTrainingDays,
     resolveStyle,
     resolvePriority,
@@ -553,7 +554,12 @@ export async function generateAndSaveRoutine(
     // week-level checks from the post-generation validator (push/pull balance, label
     // integrity, vertical-pull coverage). Both are non-blocking notice KEYS persisted
     // to the routine's `warnings` column, rendered on the Plan page from WARNING_COPY.
-    const weekWarnings = validateProgram(blueprint, pool);
+    // Validate against the USABLE pool (equipment-owned, not contraindicated), the
+    // same set the generator drew from, so a check like "no vertical pull" only
+    // fires when the user could actually have had one (a dumbbell-only user with no
+    // pulldown/pull-up bar is not nagged about a movement they cannot perform).
+    const usable = usablePool(pool, answers.equipment, new Set(resolvedRestrictions));
+    const weekWarnings = validateProgram(blueprint, usable);
     const warnings = [...blueprint.warnings, ...weekWarnings.filter((w) => !blueprint.warnings.includes(w))];
     const { data: routine, error: routineErr } = await supabase
         .from('workout_routines')

@@ -1132,6 +1132,7 @@ export function accumulatePerMuscle(
     };
     for (const [key, val] of Object.entries(logs)) {
         if (!val.saved) continue;
+        if (isTimedEntry(val)) continue; // a hold carries no weight-set volume / meaningful RIR
         const parsed = parseLogKey(key);
         if (!parsed || parsed.week !== week) continue;
         const cat = catById.get(parsed.routineExerciseId);
@@ -1280,6 +1281,7 @@ export function computeStrengthByWeek(logs: Logs): Array<{ week: number; total: 
     const bestPerSlotPerWeek = new Map<string, number>(); // `${week}|${reId}` -> best e1rm
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         const k = `${parsed.week}|${parsed.routineExerciseId}`;
