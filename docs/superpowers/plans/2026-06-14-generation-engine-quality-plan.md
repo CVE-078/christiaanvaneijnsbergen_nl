@@ -21,7 +21,7 @@
 | P1.1 | Essential-coverage-first slot filling | 1 | DONE | feature/generation-quality |
 | P1.2 | Restriction tag fixes + visible degradation | 1 | DONE | feature/generation-quality (migration hand-apply) |
 | P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | DONE | feature/generation-quality (migration hand-apply) |
-| P1.3b | Log timed holds (data layer DONE; UI deferred) | 2 | PARTIAL | feature/generation-quality; SetLogger UI needs visual verify |
+| P1.3b | Log timed holds (data + UI shipped) | 2 | DONE | feature/generation-quality; v1 UI awaits user mobile eyeball |
 | P1.4 | Duration over-band warning | 1 | DONE | feature/generation-quality |
 | P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | DONE | feature/generation-quality |
 | P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
@@ -224,7 +224,9 @@ Bundle B (deferred quad/ham + lower-day) - both lenses agreed, GO -> **SHIPPED**
 
 # Deferred items with findings (need user / science input)
 
-## P1.3b logging UI - data layer DONE, SetLogger UI deferred for visual verify
+## P1.3b logging UI - SHIPPED (data + UI; v1 awaits user mobile eyeball)
+**UI (commit 088550e):** SetLogger gained a self-contained `timed` branch (early return): one whole-seconds input replaces weight x reps, saving a hold (`duration_s`, kg/reps/rir 0) with an "Ns hold" readout, in BOTH the card (Train) and editorial (guided) variants. No e1RM / progression / deload / warmup / plate calc / drop set / RIR for a hold. ExerciseCard + WorkoutModeScreen derive `timed` from the displayed (swap-aware) exercise's `prescription_unit === 'time'` and skip warmup + deload. The entire weight x reps path is byte-identical (`timed` defaults false); 5 new tests + 40 existing green; suite 1626. **Open:** the v1 look is unverified on a real device - the user reserved the mobile eyeball as the ship gate (build clean v1, eyeball, ship if good). Needs a timed-tagged exercise (e.g. Plank) in an active routine to exercise it live.
+
 The data layer shipped: a `duration_s` column (conditional-CHECK migration `2026-06-15-09-24-17-set-logs-duration.sql`, hand-apply), `LogEntry.duration_s`, a hold-aware `validateLogEntry`, `isTimedEntry` excluding holds from every weight aggregate, and the read/write path (queries + upsertLog). 9 new tests; suite 1619 green. **Adversarial review found 6 MORE readers** that did weight-math without the guard (buildWorkoutCsv, assembleWorkouts, exerciseSetsByWeek, computeHistoryBundle best-sets, accumulatePerMuscle, computeStrengthByWeek; milestones is covered transitively via assembleWorkouts) - all now guarded, so a logged hold cannot pollute CSV export, workout stats, history best-sets, recovery readout, or the strength trend. Latent until the UI ships (no hold can be created yet), but the data layer is now complete. **IMPORTANT live-DB finding:** the design fan-out claimed set_logs has no CHECK constraints; the LIVE DB actually has `kg_check (kg>0..500)` and `reps_check (reps 1..100)`, so a hold (kg=0/reps=0) would have failed both. The migration rewrites those CHECKs to be conditional on `duration_s`, keeping the full rails for normal sets. **Deferred:** the SetLogger timed-input UI (a seconds input instead of weight x reps, both card + editorial variants, + ExerciseCard/WorkoutModeScreen wiring) is a visual mobile-UX change to a 849-line, 40-test component best done with your eyes; the data layer correctly handles holds the moment that UI lands.
 
 ## Quad/hamstring isolation patterns - SHIPPED (Bundle B, science-blessed; commit 8845117)
