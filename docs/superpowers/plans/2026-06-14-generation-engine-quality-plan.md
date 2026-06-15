@@ -33,7 +33,7 @@
 | P3.1b | Difficulty-based exercise-complexity filter | 3 | DONE | feature/generation-quality |
 | P3.2 | Measurable priority muscle | 3 | DONE | feature/generation-quality |
 | P3.3 | Bodybuilding character (pump iso + isolation lean) | 3 | DONE | feature/generation-quality |
-| P3.4 | Variety, split differentiation, equipment visibility | 3 | TODO | |
+| P3.4 | Variety/split/equipment (analysed) | 3 | DONE | (a)(b)(d) already in byPattern; (c) deferred (science) |
 
 Each item below carries a **Done** line (filled when complete: what changed) and an **Impact** line (how it affects the user or the engine). This is the per-improvement record requested.
 
@@ -187,8 +187,14 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 - **User:** a Bodybuilding routine reads like a hypertrophy program (higher-rep accessories + more isolation volume) instead of a generic 8-12. A 45-60 Bodybuilding session may now surface the "may run long" notice from the extra exercise (honest, per the warn-not-trim decision). Balanced / Strength / Powerbuilding / PHUL are unchanged.
 - **Engine:** a style-gated rep-range branch + a +1 isolation slot/budget per non-PHUL session, both no-ops under any other style; goldens unaffected. (Product note: the +1 budget can trip `over_time`; shipped per the recommended "warn is honest" call.)
 
-## P3.4 Controlled variety, split differentiation, equipment visibility (Issues 14-16)
-`consistent` keeps anchors without forcing accessory duplication; `varied` reduces same-class repetition more strongly; differentiate similar 4/5-day lower days; make loading-lean more visibly effective. **Regression risk:** medium. **Done:** _(pending)_ · **Impact:** _(pending)_
+## P3.4 Controlled variety, split differentiation, equipment visibility (Issues 14-16) — ANALYSED, no sound bounded change; (c) deferred
+A design fan-out proposed four sub-changes; adversarial verification against the real `byPattern` sort showed three are already satisfied and one needs deferral:
+- **(a) `consistent` keeps anchors without duplicating accessories:** ALREADY true and test-locked (`'consistent' still rotates accessories`, generation.test.ts:1532). `consistent` only anchors `COMPOUND_ANCHOR_PATTERNS`; accessories use the same fresh-preference path as `varied`. No change.
+- **(b) `varied` reduces same-class repetition more strongly:** already handled. `byPattern` layer 4 (sub-class freshness) sinks used-class candidates, and `pick`'s fresh-id preference correctly prefers a NEW exercise over repeating the exact one (cross-session dedup tested at GQ3, generation.test.ts:1852). The blueprint's proposal (prefer fresh-class over fresh-id) would repeat the EXACT same exercise to avoid a class repeat, which is strictly worse. Dismissed.
+- **(d) loading-lean re-prefer on a 2nd same-pattern slot:** no-op. `byPattern` layer 3 orders preferred-equipment first, and `pick`'s fresh-id walk respects that order, so the 2nd slot already gets the preferred modality when a fresh one exists (tested at generation.test.ts:1594). No change.
+- **(c) deeper lower-day differentiation:** the one real gap, DEFERRED. It re-baselines 5 of 6 goldens and needs a coaching-science call on WHAT the two lower days should differ by (rep character vs slot composition vs the quad/hamstring iso patterns). Route through the science lens before coding (engine-change process).
+
+**Done:** No code change (the bounded sub-changes are already in the engine or unsound). **Impact:** none now; (c) flagged for a science-gated follow-on.
 
 ---
 
