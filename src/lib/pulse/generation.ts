@@ -677,6 +677,15 @@ export function resolveRepRange(
     style: TrainingStyle,
     experience?: ExperienceLevel,
 ): string {
+    // P3.3 Bodybuilding character: isolation work gets the PUMP range (15-20) for a
+    // hypertrophy-finisher feel, while compounds keep the hypertrophy range (8-12).
+    // Gated on `style` (NOT effectiveBias), so it is a no-op for every other style and
+    // the frozen goldens (captured at Balanced) hold. A session whose own bias is
+    // already 'pump' is unchanged (its iso was already 15-20). lose_fat rides through
+    // repRange unchanged.
+    if (style === 'bodybuilding') {
+        return isCompound ? repRange(effectiveBias, true, goal) : repRange('pump', false, goal);
+    }
     const base =
         style === 'powerbuilding'
             ? repRange(POWERBUILDING_HEAVY_PATTERNS.has(pattern) ? 'strength' : 'hypertrophy', isCompound, goal)
@@ -802,6 +811,20 @@ const FLOOR_REGION: Record<Focus, 'lower' | 'upper'> = {
 // unchanged; the quad/posterior split softens only under thin equipment.
 const LOWER_BUCKET_FALLBACK: MovementPattern[] = ['squat', 'hinge', 'lunge', 'glute_iso'];
 const FINISHER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['calf', 'core']);
+
+// P3.3 isolation lean: one extra isolation pattern appended per session under the
+// Bodybuilding training style, so a Bodybuilding session carries measurably more
+// isolation than the same emphasis under Balanced. Chosen per focus to be a pattern
+// at most once in any emphasis of that focus, so the append stays within PATTERN_CAP.
+// Bodybuilding-only; Balanced never reads it, so the goldens are unaffected.
+const BODYBUILDING_ISO_SLOT: Record<Focus, MovementPattern> = {
+    push: 'chest_iso',
+    pull: 'biceps_iso',
+    legs: 'glute_iso',
+    upper: 'biceps_iso',
+    lower: 'glute_iso',
+    full_body: 'shoulder_iso',
+};
 // Stable warning KEY (not the user-facing sentence). Display copy lives in
 // WARNING_COPY (constants.ts) and renders in the Plan generation-warning notice;
 // stored in the routine's `warnings` column.
@@ -1740,8 +1763,19 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             label: focusLabelForEmphasis(session.emphasis),
         });
 
-        const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
+        const baseEmphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
         const trainingStyle = input.trainingStyle ?? 'balanced';
+        // P3.3 isolation lean: under Bodybuilding append one focus-appropriate isolation
+        // slot and grant +1 exercise budget so it is filled, so a Bodybuilding session
+        // carries measurably more isolation than the same emphasis under Balanced.
+        // Additive (never reorders/removes existing slots) and gated on the style, so
+        // Balanced output is byte-identical. PHUL is excluded for the same reason its
+        // bias is (split identity outranks training style, P1.5).
+        const isBodybuilding = trainingStyle === 'bodybuilding' && !session.emphasis.startsWith('phul_');
+        const emphasis: Emphasis = isBodybuilding
+            ? { bias: baseEmphasis.bias, slots: [...baseEmphasis.slots, BODYBUILDING_ISO_SLOT[session.focus]] }
+            : baseEmphasis;
+        const sessionCount = isBodybuilding ? exCount + 1 : exCount;
         // Split identity outranks training style (P1.5). PHUL's identity IS its
         // power-vs-hypertrophy day contrast, encoded in the per-day emphasis biases
         // (phul_*_power = strength, phul_*_hyp = hypertrophy). The style remap would
@@ -1756,7 +1790,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const { selected, floorUnmet } = selectForSession(
             emphasis,
             session.focus,
-            exCount,
+            sessionCount,
             usable,
             used,
             variety,

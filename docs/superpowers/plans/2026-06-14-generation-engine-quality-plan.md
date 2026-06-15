@@ -32,7 +32,7 @@
 | P3.1 | Experience/goal rep floor (beginner + general-fitness) | 3 | DONE | feature/generation-quality |
 | P3.1b | Difficulty-based exercise-complexity filter | 3 | DONE | feature/generation-quality |
 | P3.2 | Measurable priority muscle | 3 | DONE | feature/generation-quality |
-| P3.3 | Style modulates without erasing identity | 3 | TODO | |
+| P3.3 | Bodybuilding character (pump iso + isolation lean) | 3 | DONE | feature/generation-quality |
 | P3.4 | Variety, split differentiation, equipment visibility | 3 | TODO | |
 
 Each item below carries a **Done** line (filled when complete: what changed) and an **Impact** line (how it affects the user or the engine). This is the per-improvement record requested.
@@ -181,8 +181,11 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 - **User:** choosing a priority muscle now visibly adds ~3 sets/week of that muscle's work on top of the reordering, so priority is measurably different from balanced (Issue 6 fixed) without blowing up total volume.
 - **Engine:** a capped weekly counter + a +1 in the set-assignment loop; null priority unchanged, so goldens hold. Combines with the strength set-bump (a priority lift that is also the strength lead gets both).
 
-## P3.3 Style modulates without erasing identity (Issue 5)
-Enforce split-identity-over-style; bodybuilding adds isolation/volume character; strength caps total weekly heavy volume on high-frequency splits. **Regression risk:** high. **Done:** _(pending)_ · **Impact:** _(pending)_
+## P3.3 Bodybuilding character (Issue 5) — DONE
+**Done:** under the Bodybuilding training style, isolation work now uses the PUMP range (15-20) while compounds stay hypertrophy (8-12) (a style-gated branch in `resolveRepRange`), and each non-PHUL session carries one extra isolation slot via `BODYBUILDING_ISO_SLOT` + a +1 exercise budget. Gated on `trainingStyle === 'bodybuilding'` (PHUL excluded, split identity wins per P1.5), so Balanced output is byte-identical and all 6 goldens hold. 3 new tests; suite 1595 green, typecheck clean. No migration. (Strength high-frequency overload = warn-only, shipped as P2.2.)
+**Impact:**
+- **User:** a Bodybuilding routine reads like a hypertrophy program (higher-rep accessories + more isolation volume) instead of a generic 8-12. A 45-60 Bodybuilding session may now surface the "may run long" notice from the extra exercise (honest, per the warn-not-trim decision). Balanced / Strength / Powerbuilding / PHUL are unchanged.
+- **Engine:** a style-gated rep-range branch + a +1 isolation slot/budget per non-PHUL session, both no-ops under any other style; goldens unaffected. (Product note: the +1 budget can trip `over_time`; shipped per the recommended "warn is honest" call.)
 
 ## P3.4 Controlled variety, split differentiation, equipment visibility (Issues 14-16)
 `consistent` keeps anchors without forcing accessory duplication; `varied` reduces same-class repetition more strongly; differentiate similar 4/5-day lower days; make loading-lean more visibly effective. **Regression risk:** medium. **Done:** _(pending)_ · **Impact:** _(pending)_

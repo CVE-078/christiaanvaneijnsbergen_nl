@@ -352,6 +352,49 @@ describe('beginner / general-fitness rep floor (P3.1)', () => {
     });
 });
 
+// ── Bodybuilding character (P3.3) ────────────────────────────────────────────
+
+describe('bodybuilding character (P3.3)', () => {
+    const isIso = (p: MovementPattern | null | undefined) =>
+        !!p && (p.endsWith('_iso') || p === 'calf' || p === 'core');
+
+    it('isolation gets the pump range (15-20); compounds stay hypertrophy (8-12); balanced unchanged', () => {
+        expect(resolveRepRange('hypertrophy', 'chest_iso', false, 'build_muscle', 'bodybuilding')).toBe('15-20');
+        expect(resolveRepRange('hypertrophy', 'horizontal_push', true, 'build_muscle', 'bodybuilding')).toBe('8-12');
+        expect(resolveRepRange('hypertrophy', 'chest_iso', false, 'build_muscle', 'balanced')).toBe('12-15');
+    });
+
+    it('carries more isolation than balanced, +1 exercise per session, pump reps on isolation', () => {
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const balanced = generateRoutine(input({ pool }));
+        const bb = generateRoutine(input({ pool, trainingStyle: 'bodybuilding' }));
+        const isoCount = (bp: ReturnType<typeof generateRoutine>) =>
+            bp.exercises.filter((e) => isIso(patternOf.get(e.exercise_id))).length;
+        expect(isoCount(bb)).toBeGreaterThan(isoCount(balanced));
+        // +1 exercise per non-PHUL session (ul-classic-4 has 4).
+        expect(bb.exercises.length).toBe(balanced.exercises.length + 4);
+        // every isolation reads pump (15-20), every compound reads hypertrophy (8-12).
+        for (const e of bb.exercises) {
+            const expected = isIso(patternOf.get(e.exercise_id)) ? '15-20' : '8-12';
+            expect(e.reps).toBe(expected);
+        }
+    });
+
+    it('PHUL is excluded: split identity outranks bodybuilding (power day stays 3-6)', () => {
+        const pool = deepPool(2);
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const phul = STYLES[4].find((s) => s.key === 'phul-4') as ProgramStyle;
+        const bb = generateRoutine(
+            input({ style: phul, pool, trainingStyle: 'bodybuilding', trainingDays: [1, 2, 4, 5] }),
+        );
+        const upperA = bb.exercises.filter((e) => e.workout_type === 'upper' && e.variant === 'A');
+        const compounds = upperA.filter((e) => !isIso(patternOf.get(e.exercise_id)));
+        expect(compounds.length).toBeGreaterThan(0);
+        expect(compounds.every((e) => e.reps === '3-6')).toBe(true);
+    });
+});
+
 // ── Beginner exercise-complexity filter (P3.1b) ──────────────────────────────
 
 describe('beginner exercise-complexity filter (P3.1b)', () => {
