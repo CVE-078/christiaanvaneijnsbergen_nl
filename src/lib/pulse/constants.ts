@@ -39,6 +39,18 @@ export const WARNING_COPY: Record<string, { title: string; body: string }> = {
         title: 'Demanding week',
         body: 'Most of your sessions this week are heavy strength work, which is hard to recover from at this frequency. If recovery suffers, ease off with a lighter training style on some days or train fewer days.',
     },
+    push_pull_imbalance: {
+        title: "Push and pull aren't balanced",
+        body: 'This week leans noticeably more toward one of pushing or pulling. That is fine for a focused block, but over time balanced pushing and pulling protects your shoulders and posture.',
+    },
+    label_mismatch: {
+        title: "A day's focus shifted",
+        body: 'One of your labelled training days no longer leads with the lift its name implies, usually because your equipment or restriction settings removed the main option. The plan still works; adjusting equipment or restrictions would restore the intended focus.',
+    },
+    no_vertical_pull: {
+        title: 'No vertical pulling this week',
+        body: 'None of your sessions include a vertical pull (pull-ups or lat pulldowns), which build the lats and upper back. Your equipment supports one, so adding it on a pull or upper day would round out your back work.',
+    },
 };
 
 export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {

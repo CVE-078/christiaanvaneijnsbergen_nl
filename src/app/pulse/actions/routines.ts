@@ -12,6 +12,7 @@ import {
     genderDefault,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta } from '@/lib/pulse/generation';
+import { validateProgram } from '@/lib/pulse/programValidation';
 import { EXPERIENCE_LEVELS, GOALS, type ExperienceLevel, type OnboardingAnswers } from '@/lib/pulse/recommendation';
 import { isWeeklyFrequency } from '@/lib/pulse/weeklyFrequency';
 import { EQUIPMENT_KEYS, RESTRICTION_FLAGS } from '@/lib/pulse/types';
@@ -548,14 +549,15 @@ export async function generateAndSaveRoutine(
         makeGroupId: () => crypto.randomUUID(),
     });
 
-    // Item 2: a minimum-compound guard can return non-blocking notice KEYS (a
-    // session whose compounds were all filtered out by restrictions/equipment).
-    // Persist them to the routine's `warnings` column so the Plan page renders them
-    // as a distinct, dismissible notice (copy from WARNING_COPY), instead of gluing
-    // their sentences into the rationale prose forever.
+    // Item 2 / P2.3: the per-session inline warnings (blueprint.warnings) plus the
+    // week-level checks from the post-generation validator (push/pull balance, label
+    // integrity, vertical-pull coverage). Both are non-blocking notice KEYS persisted
+    // to the routine's `warnings` column, rendered on the Plan page from WARNING_COPY.
+    const weekWarnings = validateProgram(blueprint, pool);
+    const warnings = [...blueprint.warnings, ...weekWarnings.filter((w) => !blueprint.warnings.includes(w))];
     const { data: routine, error: routineErr } = await supabase
         .from('workout_routines')
-        .insert({ user_id: user.id, name: routineName, rationale, warnings: blueprint.warnings })
+        .insert({ user_id: user.id, name: routineName, rationale, warnings })
         .select('id, user_id, name, created_at')
         .single();
     if (routineErr || !routine) throw new Error('Failed to create routine');

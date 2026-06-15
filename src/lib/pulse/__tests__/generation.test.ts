@@ -26,6 +26,7 @@ import {
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
+import { validateProgram } from '@/lib/pulse/programValidation';
 import type {
     EquipmentKey,
     MovementPattern,
@@ -349,6 +350,33 @@ describe('beginner / general-fitness rep floor (P3.1)', () => {
     it('intermediate build_muscle is unchanged (still 3-6 on the strength day)', () => {
         const rows = fbStrengthA({});
         expect(rows.some((e) => e.reps === '3-6')).toBe(true);
+    });
+});
+
+// ── Post-generation validator clean on golden inputs (P2.3) ──────────────────
+
+describe('post-generation validator is clean on the golden inputs (P2.3)', () => {
+    const cases: Array<{ key: string; days: number[] }> = [
+        { key: 'ppl-3', days: [1, 3, 5] },
+        { key: 'ul-classic-4', days: [1, 2, 4, 5] },
+        { key: 'ulppl-5', days: [1, 2, 3, 5, 6] },
+        { key: 'ul-aesthetic-4', days: [1, 2, 4, 5] },
+        { key: 'ppl-fb-4', days: [1, 2, 4, 5] },
+        { key: 'fb-hmhp-4', days: [1, 2, 4, 5] },
+    ];
+    for (const { key, days } of cases) {
+        it(`${key} generates with no week-level warnings`, () => {
+            const styleObj = Object.values(STYLES)
+                .flat()
+                .find((s) => s.key === key) as ProgramStyle;
+            const pool = deepPool();
+            const bp = generateRoutine(input({ style: styleObj, trainingDays: days, pool }));
+            expect(validateProgram(bp, pool)).toEqual([]);
+        });
+    }
+
+    it('validateProgram is a no-op on the default golden path', () => {
+        expect(validateProgram(generateRoutine(input()), deepPool())).toEqual([]);
     });
 });
 

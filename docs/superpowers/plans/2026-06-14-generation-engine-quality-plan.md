@@ -25,10 +25,10 @@
 | P1.4 | Duration over-band warning | 1 | DONE | feature/generation-quality |
 | P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | DONE | feature/generation-quality |
 | P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
-| P1.5b | Label-validity floor (quad/posterior/push/pull structure) | 2 | TODO | folds into P2.3 validator |
+| P1.5b | Label-validity floor | 2 | DONE | feature/generation-quality (in P2.3 label_mismatch) |
 | P2.1 | Coverage-aware backfill (no duplicate finisher) | 2 | DONE | feature/generation-quality |
 | P2.2 | Bounded heavy-work limit (demanding-week warning) | 2 | DONE | feature/generation-quality |
-| P2.3 | Post-generation programme validator | 2 | TODO | |
+| P2.3 | Post-generation programme validator | 2 | DONE | feature/generation-quality |
 | P3.1 | Experience/goal rep floor (beginner + general-fitness) | 3 | DONE | feature/generation-quality |
 | P3.1b | Difficulty-based exercise-complexity filter | 3 | DONE | feature/generation-quality |
 | P3.2 | Measurable priority muscle | 3 | DONE | feature/generation-quality |
@@ -160,9 +160,11 @@ Each item below carries a **Done** line (filled when complete: what changed) and
 - **User:** a very heavy week (5+ strength days) shows a "Demanding week" notice suggesting a lighter style or fewer days if recovery suffers.
 - **Engine:** a counter + threshold warning at the end of generation; no selection change, all goldens hold. (Per-session heavy-compound count and consecutive-day checks were not needed; the weekly count maps directly to the finding. A fatigue MODEL / auto-correction stays out of scope.)
 
-## P2.3 Post-generation programme validator (Issue 9, the meta-fix)
-**Responsibilities:** weekly coverage, label integrity, duration fit, filler limits, restriction degradation, heavy-work limits. **Outputs:** fail (only zero-compound, already guarded) / repair (bounded single-slot swaps) / warn / info. **Files:** new pure `src/lib/pulse/programValidation.ts`, called from `generateRoutine` tail; warnings flow through `warnings[]` + `GenerationWarningNotice`. **Determinism:** sorted inputs, bounded ordered repairs. Hosts P1.4, P1.5, P2.1, P2.2. **Regression risk:** medium; scope repairs to fire only on a violation so clean routines stay byte-identical.
-**Done:** _(pending)_ · **Impact:** _(pending)_
+## P2.3 Post-generation programme validator (Issue 9, the meta-fix) — DONE
+**Done:** new pure `src/lib/pulse/programValidation.ts` (`validateProgram(blueprint, pool)`) runs after generation (wired in `generateAndSaveRoutine`, merged into the routine `warnings`) with three WEEK-level checks the per-session inline warnings cannot express: (1) **push/pull imbalance** (weighted via the muscle bridge; warns above ~2.5:1, calibrated below every golden), (2) **label_mismatch** (a labelled lower day must lead with the compound its name implies — this is P1.5b), (3) **no_vertical_pull** (scoped to splits with an upper/pull day to host it, pool-gated, so pure full-body is exempt). Warn-only, never repairs or blocks (stays a checker, not a planner). The 5 existing inline warnings stay inline (no consolidation). 8 unit tests + a 6-golden-input sweep proving the validator is a no-op on the golden path; 3 `WARNING_COPY` keys. Suite 1610 green, typecheck clean. No migration (`warnings` is an existing `text[]`). Validator runs in the action, so the generation goldens are structurally untouched.
+**Impact:**
+- **User:** the Plan page now surfaces three week-level notices when they genuinely apply (a lopsided push/pull week; a labelled day that lost its defining lift under thin-pool/restriction degradation; an upper/pull split missing vertical pulling when equipment supports one). All warn-only; nothing is changed or blocked.
+- **Engine:** a separate pure checker over the finished blueprint; no generation change, goldens untouched. Product calls resolved conservatively: vertical-pull is scoped to upper/pull splits (no new nag for full-body users), and the push/pull threshold is generous so a legitimately press-leaning full-body week does not false-positive.
 
 ---
 
