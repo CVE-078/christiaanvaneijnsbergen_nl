@@ -2309,7 +2309,31 @@ describe('sessionFocusLabel (Bug 6)', () => {
     });
 });
 
-import { formatPrescription } from '@/lib/pulse/utils';
+import { formatPrescription, isTimedEntry } from '@/lib/pulse/utils';
+import type { LogEntry } from '@/lib/pulse/types';
+
+describe('timed-hold exclusion from weight math (P1.3b)', () => {
+    const RID = '22222222-2222-4222-8222-222222222222';
+    const hold: LogEntry = { kg: 0, reps: 0, rir: 0, saved: true, duration_s: 45 };
+    const lift: LogEntry = { kg: 100, reps: 5, rir: 2, saved: true };
+
+    it('isTimedEntry detects a hold', () => {
+        expect(isTimedEntry(hold)).toBe(true);
+        expect(isTimedEntry(lift)).toBe(false);
+    });
+    it('a hold contributes no PR, best set, or e1RM point', () => {
+        const logs = { [logKey(1, RID, 0)]: hold };
+        expect(computePRMap(logs)[RID]).toBeUndefined();
+        expect(computeBestSets(logs)[RID]).toBeUndefined();
+        expect(computeE1RMHistory(logs, RID)).toEqual([]);
+    });
+    it('a mixed log (weighted set + hold on the same exercise) matches the weighted set alone', () => {
+        const withHold = { [logKey(1, RID, 0)]: lift, [logKey(1, RID, 1)]: hold };
+        const liftOnly = { [logKey(1, RID, 0)]: lift };
+        expect(computePRMap(withHold)).toEqual(computePRMap(liftOnly));
+        expect(computeE1RMHistory(withHold, RID)).toEqual(computeE1RMHistory(liftOnly, RID));
+    });
+});
 
 describe('formatPrescription (P1.3)', () => {
     it('renders a rep range with the reps label (default / unset unit)', () => {

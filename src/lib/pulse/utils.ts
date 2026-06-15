@@ -669,10 +669,18 @@ export function isPlateLoaded(equipment: string[] | null | undefined): boolean {
     return (equipment ?? []).includes('barbell');
 }
 
+// P1.3b: a logged set is a timed isometric hold (Plank etc.) rather than a
+// weight x reps set. Holds carry no e1RM / tonnage / PR, so every weight-based
+// aggregate skips them via this guard.
+export function isTimedEntry(val: { duration_s?: number | null } | null | undefined): boolean {
+    return val?.duration_s != null;
+}
+
 export function computePRMap(logs: Logs): Record<string, number> {
     const map: Record<string, number> = {};
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         // New format: "<week>-<uuid>-<setIdx>"
         const parsed = parseLogKey(key);
         if (!parsed) continue;
@@ -829,6 +837,7 @@ export function computeE1RMHistory(logs: Logs, routineExerciseId: string): Array
     const weekBest: Record<number, number> = {};
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         if (parsed.routineExerciseId !== routineExerciseId) continue;
@@ -845,6 +854,7 @@ export function computeBestSets(logs: Logs): Record<string, BestSet> {
     const best: Record<string, BestSet> = {};
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         const { week, routineExerciseId } = parsed;
@@ -888,6 +898,7 @@ export function computeLastSession(
 
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         const { week, routineExerciseId: rid } = parsed;
@@ -910,6 +921,7 @@ export function computeLastSessionMap(logs: Logs, currentWeek: number): Map<stri
     const byRidWeek = new Map<string, Map<number, Array<{ kg: number; reps: number }>>>();
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         const { week, routineExerciseId: rid } = parsed;
@@ -1024,6 +1036,7 @@ export function computeShareStats(
 
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         const parsed = parseLogKey(key);
         if (!parsed) continue;
         const { week: w, routineExerciseId: rid } = parsed;
@@ -1067,6 +1080,7 @@ export function computeSessionTonnage(exercises: RoutineExercise[], logs: Logs, 
     let kg = 0;
     for (const [key, val] of Object.entries(logs)) {
         if (!val?.saved) continue;
+        if (isTimedEntry(val)) continue;
         const parsed = parseLogKey(key);
         if (!parsed || parsed.week !== week) continue;
         if (!ids.has(parsed.routineExerciseId)) continue;

@@ -7,6 +7,10 @@ export interface LogEntry {
     // Links this set to the workout_session it was logged in (null for older /
     // unlinked rows). Used to assemble per-workout detail with real dates.
     session_id?: string | null;
+    // P1.3b: a timed isometric hold in whole seconds (e.g. Plank). When present this
+    // is a hold, not a weight x reps set: kg/reps are 0 and it carries no e1RM /
+    // tonnage / PR (excluded from every weight-based aggregate via isTimedEntry).
+    duration_s?: number | null;
 }
 
 export type Logs = Record<string, LogEntry>;
