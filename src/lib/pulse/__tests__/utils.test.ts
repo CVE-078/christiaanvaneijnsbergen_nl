@@ -513,6 +513,18 @@ describe('estimateSessionMinutes', () => {
     it('treats a missing is_compound flag as isolation rest', () => {
         expect(estimateSessionMinutes([{ sets: 3 }])).toBe(estimateSessionMinutes([{ sets: 3, is_compound: false }]));
     });
+
+    it('estimates more time for a heavy (strength-range) compound than a moderate one (P1.4b)', () => {
+        const heavy = estimateSessionMinutes([{ sets: 4, is_compound: true, reps: '3-6' }]);
+        const moderate = estimateSessionMinutes([{ sets: 4, is_compound: true, reps: '8-12' }]);
+        expect(heavy).toBeGreaterThan(moderate);
+    });
+
+    it('a supersetted session estimates less than the same exercises done straight (P1.4b)', () => {
+        const rows = (groupId: string | null) =>
+            Array.from({ length: 4 }, () => ({ sets: 4, is_compound: true, reps: '8-12', supersetGroupId: groupId }));
+        expect(estimateSessionMinutes(rows('g1'))).toBeLessThan(estimateSessionMinutes(rows(null)));
+    });
 });
 
 describe('logKey', () => {

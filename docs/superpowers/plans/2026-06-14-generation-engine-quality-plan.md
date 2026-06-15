@@ -23,7 +23,7 @@
 | P1.3 | Exercise-specific prescriptions (time / per-side) | 1 | DONE | feature/generation-quality (migration hand-apply) |
 | P1.3b | Log timed holds in Train/guided | 2 | TODO | deeper logging feature, deferred |
 | P1.4 | Duration over-band warning | 1 | DONE | feature/generation-quality |
-| P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | TODO | accuracy polish, not a blocker |
+| P1.4b | Estimator refinement (warmups/superset/intensity) | 2 | DONE | feature/generation-quality |
 | P1.5 | PHUL identity preserved across styles | 1 | DONE | feature/generation-quality |
 | P1.5b | Label-validity floor (quad/posterior/push/pull structure) | 2 | TODO | folds into P2.3 validator |
 | P2.1 | Coverage-aware backfill (no duplicate finisher) | 2 | DONE | feature/generation-quality |

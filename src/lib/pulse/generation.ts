@@ -1833,7 +1833,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
         let firstCompoundBumped = false;
         const baseSets = Math.max(3, sets);
-        const sessionRows: Array<{ sets: number; is_compound: boolean }> = [];
+        const sessionRows: Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }> =
+            [];
 
         const ordered = isSuperset
             ? buildSupersets(orderedSelection, makeGroupId)
@@ -1852,21 +1853,15 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets += 1;
                 priorityExtraBudget -= 1;
             }
-            sessionRows.push({ sets: exSets, is_compound: ex.is_compound });
+            const reps = resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, styleForBias, answers.experience);
+            sessionRows.push({ sets: exSets, is_compound: ex.is_compound, reps, supersetGroupId: groupId });
             exercises.push({
                 exercise_id: ex.id,
                 workout_type,
                 variant,
                 order,
                 sets: String(exSets),
-                reps: resolveRepRange(
-                    effectiveBias,
-                    pattern,
-                    ex.is_compound,
-                    answers.goal,
-                    styleForBias,
-                    answers.experience,
-                ),
+                reps,
                 superset_group_id: groupId,
             });
         });

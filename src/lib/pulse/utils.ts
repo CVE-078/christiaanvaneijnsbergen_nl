@@ -362,20 +362,46 @@ export function buildBlockArc(weeks: number): BlockArcWeek[] {
     }));
 }
 
-// Rough estimate of how long a planned session takes, in minutes. Per working
-// set: a fixed work estimate plus rest, where compounds rest longer than
-// isolation. Rounded to the nearest 5 so it reads as the estimate it is ("~50
-// min"), never false precision. Constants are defensible defaults to be tuned
-// against logged session durations, not researched values.
-export function estimateSessionMinutes(rows: Array<{ sets: number; is_compound?: boolean }>): number {
+// A rep range whose lower bound is <= 5 reps is "heavy" (a strength range like
+// "3-6"): it rests longer and needs warm-up ramp sets. Moderate ranges (6-10,
+// 8-12, ...) do not. Used only by the duration estimate.
+function isHeavyRange(reps?: string | null): boolean {
+    if (!reps) return false;
+    const m = reps.match(/\d+/);
+    return m ? Number(m[0]) <= 5 : false;
+}
+
+// Rough estimate of how long a planned session takes, in minutes (P1.4b). Per
+// working set: a fixed work estimate plus rest. Refinements over the naive model:
+//   - intensity: a HEAVY compound (strength rep range) rests longer than a
+//     moderate one, which rests longer than isolation.
+//   - warm-ups: a heavy compound adds ramp-up time once (you build up to a heavy
+//     working weight); moderate/light work is ramped quickly and absorbed by the
+//     per-set estimate, so no separate warm-up is billed (this also keeps a 30-min
+//     superset session inside its band).
+//   - supersets: a set whose exercise is paired (supersetGroupId set) shares rest
+//     with its antagonist, so its rest is halved.
+// Rounded to the nearest 5 so it reads as the estimate it is ("~50 min"), never
+// false precision. Constants are defensible defaults to be tuned against logged
+// session durations, not researched values.
+export function estimateSessionMinutes(
+    rows: Array<{ sets: number; is_compound?: boolean; reps?: string | null; supersetGroupId?: string | null }>,
+): number {
     const WORK_PER_SET_S = 40;
-    const REST_COMPOUND_S = 150;
     const REST_ISO_S = 75;
+    const REST_COMPOUND_S = 150;
+    const REST_HEAVY_COMPOUND_S = 210;
+    const WARMUP_PER_HEAVY_COMPOUND_S = 120;
+    const SUPERSET_REST_FACTOR = 0.5;
     let seconds = 0;
     for (const r of rows) {
         const sets = Math.max(0, Math.floor(r.sets ?? 0));
-        const rest = r.is_compound ? REST_COMPOUND_S : REST_ISO_S;
+        if (sets === 0) continue;
+        const heavy = r.is_compound === true && isHeavyRange(r.reps);
+        let rest = r.is_compound ? (heavy ? REST_HEAVY_COMPOUND_S : REST_COMPOUND_S) : REST_ISO_S;
+        if (r.supersetGroupId) rest = Math.round(rest * SUPERSET_REST_FACTOR);
         seconds += sets * (WORK_PER_SET_S + rest);
+        if (heavy) seconds += WARMUP_PER_HEAVY_COMPOUND_S;
     }
     return Math.max(0, Math.round(seconds / 60 / 5) * 5);
 }
