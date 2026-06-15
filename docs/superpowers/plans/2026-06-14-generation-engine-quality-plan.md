@@ -33,7 +33,7 @@
 | P3.1b | Difficulty-based exercise-complexity filter | 3 | DONE | feature/generation-quality |
 | P3.2 | Measurable priority muscle | 3 | DONE | feature/generation-quality |
 | P3.3 | Bodybuilding character (pump-range isolation) | 3 | DONE | feature/generation-quality (isolation-lean dropped, see notes) |
-| P3.4 | Variety/split/equipment (analysed) | 3 | DONE | (a)(b)(d) already in byPattern; (c) deferred (science) |
+| P3.4 | Variety/split/equipment (analysed) | 3 | DONE | (a)(b)(d) already in byPattern; (c) lower-day differentiation shipped as quad/ham iso (Bundle B, commit 8845117) |
 
 Each item below carries a **Done** line (filled when complete: what changed) and an **Impact** line (how it affects the user or the engine). This is the per-improvement record requested.
 
@@ -196,9 +196,9 @@ A design fan-out proposed four sub-changes; adversarial verification against the
 - **(a) `consistent` keeps anchors without duplicating accessories:** ALREADY true and test-locked (`'consistent' still rotates accessories`, generation.test.ts:1532). `consistent` only anchors `COMPOUND_ANCHOR_PATTERNS`; accessories use the same fresh-preference path as `varied`. No change.
 - **(b) `varied` reduces same-class repetition more strongly:** already handled. `byPattern` layer 4 (sub-class freshness) sinks used-class candidates, and `pick`'s fresh-id preference correctly prefers a NEW exercise over repeating the exact one (cross-session dedup tested at GQ3, generation.test.ts:1852). The blueprint's proposal (prefer fresh-class over fresh-id) would repeat the EXACT same exercise to avoid a class repeat, which is strictly worse. Dismissed.
 - **(d) loading-lean re-prefer on a 2nd same-pattern slot:** no-op. `byPattern` layer 3 orders preferred-equipment first, and `pick`'s fresh-id walk respects that order, so the 2nd slot already gets the preferred modality when a fresh one exists (tested at generation.test.ts:1594). No change.
-- **(c) deeper lower-day differentiation:** the one real gap, DEFERRED. It re-baselines 5 of 6 goldens and needs a coaching-science call on WHAT the two lower days should differ by (rep character vs slot composition vs the quad/hamstring iso patterns). Route through the science lens before coding (engine-change process).
+- **(c) deeper lower-day differentiation:** the one real gap, now SHIPPED as the quad/hamstring isolation patterns (Bundle B, commit 8845117; see "Quad/hamstring isolation patterns - SHIPPED" below). The science call resolved to slot composition: a dedicated `quad_iso` on the quad day and `hamstring_iso` on the posterior day, same rep ranges. Re-baselined the 3 affected goldens.
 
-**Done:** No code change (the bounded sub-changes are already in the engine or unsound). **Impact:** none now; (c) flagged for a science-gated follow-on.
+**Done:** No code change in P3.4 itself (the bounded sub-changes (a)(b)(d) are already in the engine or unsound); (c) shipped via Bundle B. **Impact:** the two lower days now differ by real knee-extension vs knee-flexion isolation, not just which compound anchors.
 
 ---
 
