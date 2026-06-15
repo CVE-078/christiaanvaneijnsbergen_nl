@@ -280,7 +280,12 @@ export const PRIORITY_PATTERNS: Record<PriorityMuscle, MovementPattern[]> = {
     // session's slots, so adding squat/lunge here never injects them into a day that
     // lacks them.
     glutes: ['hinge', 'squat', 'lunge', 'glute_iso'],
-    legs: ['squat', 'lunge'],
+    // Compound-first, then the direct knee-extension / knee-flexion isolation that
+    // became real patterns with the leg-isolation split (so a legs priority also
+    // deepens the posterior day's hinge + Leg Curl and the quad day's Leg Extension,
+    // not just the squat + lunge). Mirrors every sibling priority pairing compound +
+    // its direct isolation.
+    legs: ['squat', 'hinge', 'lunge', 'quad_iso', 'hamstring_iso'],
     chest: ['horizontal_push', 'chest_iso'],
     back: ['horizontal_pull', 'back_iso'],
     shoulders: ['vertical_push', 'shoulder_iso'],
@@ -298,7 +303,7 @@ const PRIORITY_EXTRA_SETS_PER_WEEK = 4;
 // bumps above): added sets stop once the muscle reaches this, so a priority never
 // pushes a muscle past its recoverable volume into junk territory (science review:
 // ~20 sets/muscle/week is the natural ceiling for an intermediate).
-const PRIORITY_MUSCLE_SET_CEILING = 20;
+export const PRIORITY_MUSCLE_SET_CEILING = 20;
 
 /** Default priority seeded from gender (UI only): female → glutes, else balanced. */
 export function genderDefault(gender: Gender | null): PriorityMuscle | 'balanced' {
@@ -1775,8 +1780,19 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     // stops at the recoverable ceiling. Null priority -> 0, so the no-priority path is
     // byte-identical.
     const priorityPatterns = input.priority ? new Set(PRIORITY_PATTERNS[input.priority]) : null;
-    let priorityExtraBudget = priorityPatterns ? PRIORITY_EXTRA_SETS_PER_WEEK : 0;
-    let priorityMuscleSets = 0;
+    // The priority dose is applied AFTER all sessions are selected, not inline,
+    // so its ceiling can gate on the muscle's PROJECTED weekly total instead of a
+    // mid-stream running count. Inline gating let early-session bumps land while
+    // later-session baseline volume silently pushed the muscle past the ceiling.
+    // We accumulate the baseline (pre-bump) priority-pattern set total and a list of
+    // the rows eligible for a +1, then distribute the budget once the total is known.
+    let baselinePrioritySets = 0;
+    const priorityBumpables: Array<{ row: { sets: number }; ex: { sets: string } }> = [];
+    // Each session's rows, kept so the over-time estimate runs AFTER the priority
+    // bump (it must reflect the final set counts, not the pre-bump ones).
+    const perSessionRows: Array<
+        Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }>
+    > = [];
 
     style.sessions.forEach((session, i) => {
         if (i >= days.length) return;
@@ -1902,20 +1918,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            // P3.2: deepen the priority muscle by one set per priority-pattern lift, up
-            // to the weekly budget AND only while the muscle stays under its recoverable
-            // total-set ceiling (so a priority never tips into junk volume). Additive;
-            // never reduces other work.
-            if (priorityPatterns && priorityPatterns.has(pattern)) {
-                if (priorityExtraBudget > 0 && priorityMuscleSets + exSets + 1 <= PRIORITY_MUSCLE_SET_CEILING) {
-                    exSets += 1;
-                    priorityExtraBudget -= 1;
-                }
-                priorityMuscleSets += exSets;
-            }
             const reps = resolveRepRange(effectiveBias, pattern, ex.is_compound, answers.goal, styleForBias, answers.experience);
-            sessionRows.push({ sets: exSets, is_compound: ex.is_compound, reps, supersetGroupId: groupId });
-            exercises.push({
+            const rowObj = { sets: exSets, is_compound: ex.is_compound, reps, supersetGroupId: groupId };
+            sessionRows.push(rowObj);
+            const exObj = {
                 exercise_id: ex.id,
                 workout_type,
                 variant,
@@ -1923,21 +1929,53 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 sets: String(exSets),
                 reps,
                 superset_group_id: groupId,
-            });
+            };
+            exercises.push(exObj);
+            // P3.2: record this row as eligible for the priority +1 and add its
+            // baseline sets to the weekly total. The bump is distributed after the
+            // loop, gated on the projected total (see below). Order of records is the
+            // session-then-position order, so the earliest priority lifts get the
+            // budget first, as before.
+            if (priorityPatterns && priorityPatterns.has(pattern)) {
+                baselinePrioritySets += exSets;
+                priorityBumpables.push({ row: rowObj, ex: exObj });
+            }
         });
 
-        // Duration guard (P1.4): flag (never trim) a session whose estimate
-        // exceeds its time band, so a "45-60 min" routine that lands at ~65 min
-        // is honest about it rather than silently mislabelled.
-        const bandMax = SESSION_TIME_MAX_MIN[sessionTime];
-        if (
-            bandMax !== null &&
-            estimateSessionMinutes(sessionRows) > bandMax &&
-            !warnings.includes(OVER_TIME_WARNING)
-        ) {
-            warnings.push(OVER_TIME_WARNING);
-        }
+        perSessionRows.push(sessionRows);
     });
+
+    // P3.2 priority dose: deepen the priority muscle by one set per priority-pattern
+    // lift, up to the weekly budget AND only while the muscle's PROJECTED weekly total
+    // stays under its recoverable ceiling (so a priority never tips an already-loaded
+    // muscle into junk volume). Now that every session is selected, baselinePrioritySets
+    // is the true week total, so the ceiling is enforced against it (not a mid-stream
+    // count). Additive; never reduces other work. Null priority leaves this empty, so
+    // the no-priority path stays byte-identical.
+    {
+        let budget = PRIORITY_EXTRA_SETS_PER_WEEK;
+        let total = baselinePrioritySets;
+        for (const b of priorityBumpables) {
+            if (budget <= 0 || total + 1 > PRIORITY_MUSCLE_SET_CEILING) break;
+            b.row.sets += 1;
+            b.ex.sets = String(b.row.sets);
+            total += 1;
+            budget -= 1;
+        }
+    }
+
+    // Duration guard (P1.4): flag (never trim) a session whose estimate exceeds its
+    // time band, so a "45-60 min" routine that lands at ~65 min is honest about it.
+    // Runs post-bump so the estimate reflects the final set counts.
+    const bandMax = SESSION_TIME_MAX_MIN[sessionTime];
+    if (bandMax !== null) {
+        for (const rows of perSessionRows) {
+            if (estimateSessionMinutes(rows) > bandMax) {
+                warnings.push(OVER_TIME_WARNING);
+                break;
+            }
+        }
+    }
 
     // Heavy-work limit (P2.2): a week with too many strength-biased sessions is
     // hard to recover from (e.g. a 6-day split under the Strength style). Flag it;

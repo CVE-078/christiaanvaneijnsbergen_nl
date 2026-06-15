@@ -23,6 +23,7 @@ import {
     CANONICAL_ANCHORS,
     assignRole,
     focusLabelForEmphasis,
+    PRIORITY_MUSCLE_SET_CEILING,
 } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
@@ -520,6 +521,27 @@ describe('measurable priority muscle (P3.2)', () => {
         const a = generateRoutine(input({ pool: deepPool() }));
         const b = generateRoutine(input({ pool: deepPool(), priority: null }));
         expect(totalSets(a)).toBe(totalSets(b));
+    });
+
+    it('never pushes the priority muscle past the ceiling on a dense split (gates on the weekly total, not a running count)', () => {
+        // Regression: the dose ceiling used to gate on a mid-stream running count, so
+        // on a 6-day advanced split (chest already baseline-saturated) early-session
+        // bumps landed while the muscle's true weekly total was already at/over the
+        // ceiling -- adding junk volume on top of a maxed muscle. The gate now uses the
+        // projected weekly total, so when baseline already meets the ceiling, zero
+        // sets are added.
+        const pool = deepPool(3);
+        const style = STYLES[6][0]; // ppl-x2-6 (the densest split)
+        const adv = { equipment: dumbbellsOnly, experience: 'advanced' as const, goal: 'build_muscle' as const, days: 6 as const };
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const days = [1, 2, 3, 4, 5, 6];
+        const base = generateRoutine(input({ style, trainingDays: days, pool, answers: adv }));
+        const prioritized = generateRoutine(input({ style, trainingDays: days, pool, answers: adv, priority: 'chest' }));
+        const baseChest = chestSets(base, patternOf);
+        // The dose never lands the muscle above max(baseline, ceiling): bumps stop at
+        // the ceiling, and when baseline already exceeds it, nothing is added. The old
+        // running-count gate violated this (it reached baseline + bumps).
+        expect(chestSets(prioritized, patternOf)).toBeLessThanOrEqual(Math.max(baseChest, PRIORITY_MUSCLE_SET_CEILING));
     });
 });
 
