@@ -1,5 +1,7 @@
 # Generation calibration pass (Spec 3.1)
 
+> **Shipped 2026-06-16** on `feature/generation-calibration` (six changes + the `pickIsolationForMuscle` isolation-only safety fix found in verification). Migration `2026-06-16-13-33-44-exercise-dips-straightarm-reclassify.sql` hand-applies on merge. Suite 1685, typecheck clean.
+
 A bounded, evidence-driven calibration of the generator after the Tier-2 muscle-coverage work shipped (#151 warnings, #152 gap-fill). Driven by a two-round ChatGPT + Perplexity review loop over 10 real-catalogue routines (`docs/audits/2026-06-16-12-25-04-generation-samples-for-review.md`). Both reviewers validated the core ("floors evidence-based and appropriate", "bands textbook-correct", "volume system good enough"); these are calibration + data fixes, not architecture. The bigger context-sensitive exercise-scoring lever is split into its own next spec.
 
 ## Scope (six changes; user-confirmed)

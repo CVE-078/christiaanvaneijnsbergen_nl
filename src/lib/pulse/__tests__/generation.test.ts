@@ -30,6 +30,7 @@ import {
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
 import { validateProgram } from '@/lib/pulse/programValidation';
+import { weeklyMuscleSets, deriveSeedPrimaryMuscle } from '@/lib/pulse/muscleVolume';
 import type {
     EquipmentKey,
     MovementPattern,
@@ -324,6 +325,16 @@ function deepPool(perPattern = 2): ExerciseMeta[] {
     pool.push(meta('mach-lp', 'squat', ['machines'], true));
     pool.push(meta('bar-pu', 'vertical_pull', ['pull_up_bar'], true));
     return pool;
+}
+
+// An attributed copy of deepPool: every exercise carries a primary_muscle (derived from
+// its pattern via the seed mirror), so gap-fill's attribution gate fires and the major-
+// muscle integration test can measure real per-muscle weekly volume.
+function attributedDumbbellPool(): ExerciseMeta[] {
+    return deepPool().map((e) => ({
+        ...e,
+        primary_muscle: deriveSeedPrimaryMuscle(e.movement_pattern, e.substitution_class, e.name ?? ''),
+    }));
 }
 
 const dumbbellsOnly = new Set<EquipmentKey>(['dumbbells']);
@@ -3983,5 +3994,24 @@ describe('floorRepRangeForLoad (Change A: load-limited dumbbell compounds)', () 
     it('no-ops on a nameless exercise (synthetic-golden safety)', () => {
         const nameless = { ...ex('squat', ['dumbbells'], true), name: undefined };
         expect(floorRepRangeForLoad('6-8', nameless)).toBe('6-8');
+    });
+});
+
+describe('major-muscle minimums on an attributed pool (Change C/D integration)', () => {
+    it('a 30-min 4-day routine keeps chest/back/quads >= 6 (no accessory-filled-while-major-collapses)', () => {
+        // Attributed pool: the dumbbell deepPool with primary_muscle set, so gap-fill runs.
+        const pool = attributedDumbbellPool();
+        const bp = generateRoutine(
+            input({
+                style: STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle,
+                trainingDays: [1, 2, 4, 5],
+                pool,
+                sessionTime: '~30 min',
+            }),
+        );
+        const counts = weeklyMuscleSets(bp, pool);
+        expect(counts.chest.direct).toBeGreaterThanOrEqual(6);
+        expect(counts.lats.direct + counts.upper_back.direct).toBeGreaterThanOrEqual(6);
+        expect(counts.quads.direct).toBeGreaterThanOrEqual(6);
     });
 });
