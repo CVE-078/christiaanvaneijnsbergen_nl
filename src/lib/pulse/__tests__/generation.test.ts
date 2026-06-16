@@ -30,7 +30,15 @@ import {
     assignRole,
     focusLabelForEmphasis,
     PRIORITY_MUSCLE_SET_CEILING,
+    STYLE_PROFILES,
+    STYLE_AFFINITY_MAX,
+    ATTRIBUTE_BUMP,
+    REP_FIT_BONUS_MAX,
+    REPEAT_PENALTY,
+    repeatPenaltyFor,
+    contextScore,
 } from '@/lib/pulse/generation';
+import type { ScoreContext, ScoreBreakdown, StyleProfile } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
 import { validateProgram } from '@/lib/pulse/programValidation';
@@ -4089,5 +4097,22 @@ describe('major-muscle minimums on an attributed pool (Change C/D integration)',
         expect(counts.chest.direct).toBeGreaterThanOrEqual(6);
         expect(counts.lats.direct + counts.upper_back.direct).toBeGreaterThanOrEqual(6);
         expect(counts.quads.direct).toBeGreaterThanOrEqual(6);
+    });
+});
+
+describe('STYLE_PROFILES', () => {
+    it('Balanced is the neutral identity (no preferences, no reorder)', () => {
+        const p = STYLE_PROFILES.balanced;
+        expect(p.preferredAttributes.size).toBe(0);
+        expect(Object.keys(p.equipmentBias)).toHaveLength(0);
+        expect(p.compoundBias).toBe(0);
+        expect(p.canonicalReorder).toBeUndefined();
+    });
+    it('Bodybuilding reorders three patterns and prefers incline/lengthened', () => {
+        const p = STYLE_PROFILES.bodybuilding;
+        expect(p.preferredAttributes.has('incline')).toBe(true);
+        expect(Object.keys(p.canonicalReorder ?? {})).toEqual(
+            expect.arrayContaining(['horizontal_push', 'horizontal_pull', 'squat']),
+        );
     });
 });

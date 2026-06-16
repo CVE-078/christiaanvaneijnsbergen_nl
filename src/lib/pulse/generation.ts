@@ -1180,6 +1180,67 @@ export function isolationQuality(ex: ExerciseMeta): number {
     return ex.quality ?? NEUTRAL_QUALITY;
 }
 
+// ── Context score tunables (spec 2026-06-16-14-57-31, section 7) ─────────────────────
+// Magnitude-banded so precedence is unambiguous; locked by ordering-invariant tests.
+export const STYLE_AFFINITY_MAX = 0.25; // cap on the accessory style bump
+export const ATTRIBUTE_BUMP = 0.1; // per matched preferred attribute
+export const REP_FIT_BONUS_MAX = 0.1; // graded overlap tiebreak, below quality/style
+// Saturating weekly-repeat penalty by prior-selection count (index = prior count, capped).
+export const REPEAT_PENALTY = [0, -0.5, -0.75, -0.85] as const;
+
+export function repeatPenaltyFor(priorCount: number): number {
+    if (priorCount <= 0) return 0;
+    return REPEAT_PENALTY[Math.min(priorCount, REPEAT_PENALTY.length - 1)];
+}
+
+export interface StyleProfile {
+    preferredAttributes: ReadonlySet<string>;
+    equipmentBias: Partial<Record<EquipmentKey, number>>;
+    compoundBias: number; // + favours compounds, - favours isolation density
+    canonicalReorder?: Partial<Record<MovementPattern, string[]>>;
+}
+
+// Balanced is the neutral identity: every term zero, no reorder, so a Balanced routine is
+// byte-identical (the golden invariant). Powerbuilding/Strength lean barbell + compound but
+// their reorder largely matches the canonical default (which already leads with barbell), so
+// their primaries stay heavy-barbell on purpose; they diverge from Balanced via reps, not
+// exercises. Bodybuilding is the style that visibly diverges (machine/cable/incline primaries).
+export const STYLE_PROFILES: Record<TrainingStyle, StyleProfile> = {
+    balanced: { preferredAttributes: new Set(), equipmentBias: {}, compoundBias: 0 },
+    strength: {
+        preferredAttributes: new Set(),
+        equipmentBias: { barbell: 0.1 },
+        compoundBias: 0.1,
+    },
+    powerbuilding: {
+        preferredAttributes: new Set(),
+        equipmentBias: { barbell: 0.1 },
+        compoundBias: 0.1,
+    },
+    bodybuilding: {
+        preferredAttributes: new Set(['incline', 'lengthened_bias']),
+        equipmentBias: { machines: 0.1, cables: 0.1 },
+        compoundBias: -0.05,
+        canonicalReorder: {
+            horizontal_push: [
+                'Incline Dumbbell Press',
+                'Incline Barbell Press',
+                'Dumbbell Bench Press',
+                'Machine Chest Press',
+                'Barbell Bench Press',
+            ],
+            horizontal_pull: [
+                'Seated Cable Row',
+                'Chest-Supported Row',
+                'Dumbbell Single-Arm Row',
+                'T-Bar Row',
+                'Barbell Row',
+            ],
+            squat: ['Hack Squat', 'Leg Press', 'Barbell Squat'],
+        },
+    },
+};
+
 // ── Slot selection (cross-session avoid-set) ─────────────────────────────────
 
 interface Selected {
