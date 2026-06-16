@@ -1,5 +1,6 @@
 import type { MovementPattern } from './types';
 import { PATTERN_MUSCLE_MAP } from './muscleMap';
+import { muscleCoverageGaps } from './muscleVolume';
 import type { ExerciseMeta, RoutineBlueprint } from './generation';
 
 // Post-generation programme validator (P2.3). A pure, deterministic CHECKER that
@@ -12,6 +13,7 @@ import type { ExerciseMeta, RoutineBlueprint } from './generation';
 const PUSH_PULL_IMBALANCE = 'push_pull_imbalance';
 const LABEL_MISMATCH = 'label_mismatch';
 const NO_VERTICAL_PULL = 'no_vertical_pull';
+const MUSCLE_COVERAGE_LOW = 'muscle_coverage_low';
 
 // Ideal push:pull is ~1:1, and a slight PULL favor is the healthiest per the cited
 // science. The two directions are NOT treated symmetrically (#4-refinement):
@@ -101,6 +103,14 @@ export function validateProgram(blueprint: RoutineBlueprint, pool: ExerciseMeta[
     const hasHorizontalPull = rows.some((r) => r.pattern === 'horizontal_pull');
     const poolHasVerticalPull = pool.some((e) => e.movement_pattern === 'vertical_pull');
     if (hasHorizontalPull && !hasVerticalPull && poolHasVerticalPull) warnings.push(NO_VERTICAL_PULL);
+
+    // CHECK 1b: per-muscle direct-set coverage (Tier-2 Spec 1). Warn-only, additive,
+    // independent of the push/pull check above. Reads each exercise's stored
+    // primary_muscle via the pool; the no-data guard inside muscleCoverageGaps keeps
+    // this silent for unattributed (synthetic) pools, so it does not change the goldens.
+    if (muscleCoverageGaps(blueprint, pool).length > 0) {
+        warnings.push(MUSCLE_COVERAGE_LOW);
+    }
 
     return warnings;
 }

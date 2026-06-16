@@ -206,4 +206,25 @@ describe('validateProgram (P2.3)', () => {
         const bp = blueprint(rows);
         expect(validateProgram(bp, POOL)).toEqual(validateProgram(bp, POOL));
     });
+
+    // ── Muscle-coverage warning (Tier-2 Spec 1) ───────────────────────────────
+    it('flags muscle_coverage_low when a targeted muscle is under-dosed', () => {
+        // ids == patterns so the blueprint helper (exercise_id = pattern) matches.
+        const musclePool: ExerciseMeta[] = [
+            { ...meta('shoulder_iso', 'shoulder_iso'), primary_muscle: 'side_delts' },
+            { ...meta('horizontal_push', 'horizontal_push'), primary_muscle: 'chest' },
+        ];
+        // side_delts 3 sets < min 8 (gap); chest 12 sets >= min 10 (ok).
+        const bp = blueprint([
+            { pattern: 'shoulder_iso', sets: 3 },
+            { pattern: 'horizontal_push', sets: 12 },
+        ]);
+        expect(validateProgram(bp, musclePool)).toContain('muscle_coverage_low');
+    });
+
+    it('does NOT flag muscle_coverage_low on an unattributed (synthetic) pool', () => {
+        // The standard POOL has no primary_muscle -> no-data guard -> silent.
+        const bp = blueprint([{ pattern: 'horizontal_push' }, { pattern: 'horizontal_pull' }]);
+        expect(validateProgram(bp, POOL)).not.toContain('muscle_coverage_low');
+    });
 });
