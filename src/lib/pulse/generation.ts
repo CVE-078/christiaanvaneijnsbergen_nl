@@ -21,7 +21,7 @@ import type {
 import type { ExperienceLevel, Goal, OnboardingAnswers } from './recommendation';
 import { EMPTY_BEHAVIOR, type BehaviorSignal } from './behavior';
 import { estimateSessionMinutes } from './utils';
-import { applyCoverageGapFill } from './gapFill';
+import { applyCoverageGapFill, trimToMrv } from './gapFill';
 import { weeklyMuscleSets, MUSCLE_SET_TARGETS, type MuscleTarget } from './muscleVolume';
 
 export type { Focus };
@@ -2424,6 +2424,15 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // Replace the exercises list in place with the gap-filled one.
         exercises.length = 0;
         exercises.push(...filled);
+
+        // Item 4: soft MRV ceiling (see trimToMrv). Trim the lowest-value ACCESSORY
+        // (isolation) sets of any target muscle over its band max; compounds are never
+        // trimmed (a split's structural compound volume is left to training-time deloads).
+        // The priority dose caps at the band max, so this never undoes a priority.
+        // Attributed-pool only (no-op on synthetic pools), so the goldens are unchanged.
+        const trimmed = trimToMrv({ exercises, schedule, pool });
+        exercises.length = 0;
+        exercises.push(...trimmed);
         // Rebuild perSessionRows from the final exercises so the duration guard sees
         // the additions (group by session, derive is_compound from the pool).
         const bySession = new Map<string, Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }>>();

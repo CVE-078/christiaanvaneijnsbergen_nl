@@ -1,6 +1,6 @@
 import type { Muscle, MovementPattern, Focus } from './types';
 import type { ExerciseMeta, RoutineBlueprint } from './generation';
-import { weeklyMuscleSets } from './muscleVolume';
+import { weeklyMuscleSets, MUSCLE_SET_TARGETS, type MuscleTarget } from './muscleVolume';
 import { estimateSessionMinutes } from './utils';
 
 // Minimum-coverage gap-fill (Tier-2 Spec 3). A deterministic, capped, post-generation
@@ -336,6 +336,49 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
                 }
             }
             if (!acted) break; // no eligible session can take more for this muscle
+        }
+    }
+    return exercises;
+}
+
+/** Item 4: soft MRV ceiling. Returns a new exercises array with ACCESSORY (isolation)
+ *  sets trimmed for any target muscle whose weekly direct volume exceeds its band max,
+ *  one set at a time from the highest-set isolation down to a 2-set floor. Compounds are
+ *  never trimmed (a split's structural compound volume is left to training-time deloads),
+ *  so a muscle whose excess is all compound work simply stays over max (soft). No-op when
+ *  no exercise carries a primary_muscle (synthetic / unattributed pool). Pure. */
+export function trimToMrv(input: {
+    exercises: Row[];
+    schedule: RoutineBlueprint['schedule'];
+    pool: ExerciseMeta[];
+}): Row[] {
+    const { schedule, pool } = input;
+    const metaById = new Map(pool.map((e) => [e.id, e]));
+    const exercises = input.exercises.map((e) => ({ ...e }));
+    if (!exercises.some((e) => metaById.get(e.exercise_id)?.primary_muscle)) return exercises;
+    const MIN_ISO_SETS = 2;
+    const counts = weeklyMuscleSets({ schedule, exercises, warnings: [] }, pool);
+    for (const target of Object.keys(MUSCLE_SET_TARGETS) as MuscleTarget[]) {
+        const max = MUSCLE_SET_TARGETS[target].max;
+        const underlying: Muscle[] = target === 'back' ? ['lats', 'upper_back'] : [target as Muscle];
+        let current = underlying.reduce((n, m) => n + counts[m].direct, 0);
+        let guard = 0;
+        while (current > max && guard++ < 100) {
+            const row = exercises
+                .filter((e) => {
+                    const m = metaById.get(e.exercise_id);
+                    return (
+                        m &&
+                        !m.is_compound &&
+                        m.primary_muscle != null &&
+                        underlying.includes(m.primary_muscle) &&
+                        Number(e.sets) > MIN_ISO_SETS
+                    );
+                })
+                .sort((a, b) => Number(b.sets) - Number(a.sets) || a.exercise_id.localeCompare(b.exercise_id))[0];
+            if (!row) break; // nothing left to trim safely (compounds carry the rest)
+            row.sets = String(Number(row.sets) - 1);
+            current -= 1;
         }
     }
     return exercises;

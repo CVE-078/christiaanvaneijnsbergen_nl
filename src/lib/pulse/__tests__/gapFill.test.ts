@@ -69,7 +69,7 @@ describe('pickIsolationForMuscle', () => {
     });
 });
 
-import { applyCoverageGapFill } from '@/lib/pulse/gapFill';
+import { applyCoverageGapFill, trimToMrv } from '@/lib/pulse/gapFill';
 import type { RoutineBlueprint } from '@/lib/pulse/generation';
 
 type Row = RoutineBlueprint['exercises'][number];
@@ -324,6 +324,41 @@ describe('Item 1: set-inflation cap (iso never out-sets the session top compound
         ];
         const out = applyCoverageGapFill({ exercises, schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
         expect(Number(out.find((e) => e.exercise_id === 'sd')!.sets)).toBe(6);
+    });
+});
+
+describe('Item 4: trimToMrv (soft MRV ceiling)', () => {
+    const schedule = [{ day_of_week: 1, workout_type: 'push' as const, variant: null, label: null }];
+    it('trims isolation sets when a muscle exceeds its band max, down to a 2-set floor', () => {
+        // triceps max is 12. Two triceps isolations at 8 each = 16 direct (over max). Trim
+        // accessory sets back toward 12.
+        const pool = [iso('t1', 'triceps', 'triceps_iso'), iso('t2', 'triceps', 'triceps_iso')];
+        const exercises = [
+            { exercise_id: 't1', workout_type: 'push' as const, variant: null, order: 0, sets: '8', reps: '12-15', superset_group_id: null },
+            { exercise_id: 't2', workout_type: 'push' as const, variant: null, order: 1, sets: '8', reps: '12-15', superset_group_id: null },
+        ];
+        const out = trimToMrv({ exercises, schedule, pool });
+        const total = out.reduce((n, e) => n + Number(e.sets), 0);
+        expect(total).toBe(12); // trimmed from 16 to the band max
+        for (const e of out) expect(Number(e.sets)).toBeGreaterThanOrEqual(2); // never below the floor
+    });
+    it('never trims compounds; a compound-driven excess stays over max (soft)', () => {
+        // Three quad compounds at 6 each = 18 direct, max 16. No isolations to trim, so the
+        // excess is left to deloads (compounds are never cut).
+        const squat: ExerciseMeta = {
+            id: 's', name: undefined, movement_pattern: 'squat', equipment: ['barbell'], is_compound: true,
+            category: 'legs' as ExerciseMeta['category'], substitution_class: null, unilateral: false,
+            contraindications: [], primary_muscle: 'quads',
+        };
+        const exercises = [0, 1, 2].map((i) => ({
+            exercise_id: 's', workout_type: 'push' as const, variant: null, order: i, sets: '6', reps: '6-8', superset_group_id: null,
+        }));
+        const out = trimToMrv({ exercises, schedule, pool: [squat] });
+        expect(out.reduce((n, e) => n + Number(e.sets), 0)).toBe(18); // unchanged: compounds untouched
+    });
+    it('no-op on an unattributed (synthetic) pool', () => {
+        const out = trimToMrv({ exercises: [row('x', 0, 9)], schedule, pool: [] });
+        expect(Number(out[0].sets)).toBe(9);
     });
 });
 
