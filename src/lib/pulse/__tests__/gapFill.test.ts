@@ -195,3 +195,50 @@ describe('chest is a gap-fill target (Change C)', () => {
         expect(GAP_FILL_TARGETS).not.toContain('quads');
     });
 });
+
+describe('Phase 2 session balancing + contribution cap (Change D)', () => {
+    it('distributes a side-delt gap across two eligible sessions instead of piling on one', () => {
+        // 4-day plan => side_delts floor 8. push:A starts with a side-delt iso at 3; push:B
+        // is a second eligible push session with no side-delt work yet, and the pool has a
+        // second side-delt iso to insert. The OLD Phase 2 piled all 5 extra sets onto the
+        // lone iso (-> 8); the balanced restructure inserts into push:B and bumps both, so
+        // neither exceeds 2*base (6) and two isolations carry the volume.
+        const pool = [iso('sdA', 'side_delts', 'shoulder_iso'), iso('sdB', 'side_delts', 'shoulder_iso')];
+        const sessionCtx = new Map([
+            ['push:A', { focus: 'push' as const, isoReps: '12-15', baseSets: 3 }],
+            ['push:B', { focus: 'push' as const, isoReps: '12-15', baseSets: 3 }],
+        ]);
+        const schedule = [
+            { day_of_week: 1, workout_type: 'push' as const, variant: 'A' as const, label: null },
+            { day_of_week: 2, workout_type: 'push' as const, variant: 'B' as const, label: null },
+            { day_of_week: 3, workout_type: 'push' as const, variant: 'C' as const, label: null },
+            { day_of_week: 4, workout_type: 'push' as const, variant: 'D' as const, label: null },
+        ];
+        const exercises = [
+            { exercise_id: 'sdA', workout_type: 'push' as const, variant: 'A' as const, order: 0, sets: '3', reps: '12-15', superset_group_id: null },
+        ];
+        const out = applyCoverageGapFill({ exercises, schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
+        const sets = out.filter((e) => e.exercise_id === 'sdA' || e.exercise_id === 'sdB').map((e) => Number(e.sets));
+        // total reaches floor 8, spread across two isolations, neither exceeding 2*base (6).
+        expect(sets.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(8);
+        expect(Math.max(...sets)).toBeLessThanOrEqual(6);
+        expect(sets.length).toBe(2); // a second isolation was inserted (distribution, not piling)
+    });
+
+    it('contribution cap: a single isolation is never bumped past 2x its base sets', () => {
+        // 4-day => biceps floor 8, but only one biceps iso and one eligible session (base 3).
+        // The OLD Phase 2 bumped that lone iso all the way to 8; the contribution cap stops
+        // it at 2*base = 6 (the shortfall is then reported by muscle_coverage_low, not piled).
+        const pool = [iso('bi', 'biceps', 'biceps_iso')];
+        const sessionCtx = new Map([['pull:A', { focus: 'pull' as const, isoReps: '12-15', baseSets: 3 }]]);
+        const schedule = [
+            { day_of_week: 1, workout_type: 'pull' as const, variant: 'A' as const, label: null },
+            { day_of_week: 2, workout_type: 'pull' as const, variant: 'B' as const, label: null },
+            { day_of_week: 3, workout_type: 'pull' as const, variant: 'C' as const, label: null },
+            { day_of_week: 4, workout_type: 'pull' as const, variant: 'D' as const, label: null },
+        ];
+        const exercises = [{ exercise_id: 'bi', workout_type: 'pull' as const, variant: 'A' as const, order: 0, sets: '3', reps: '12-15', superset_group_id: null }];
+        const out = applyCoverageGapFill({ exercises, schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
+        expect(Number(out.find((e) => e.exercise_id === 'bi')!.sets)).toBe(6);
+    });
+});

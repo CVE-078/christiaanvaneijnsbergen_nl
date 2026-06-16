@@ -225,32 +225,63 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
         if (key) seat(muscle, key);
     }
 
-    // ---- Phase 2: nudge below-floor partials ----
-    // Snapshot the tally once for ordering; ties break by declaration order in GAP_FILL_TARGETS.
+    // ---- Phase 2: distribute below-floor partials, balanced across sessions ----
+    // Snapshot the tally once for ordering; ties break by declaration order.
     const postPhase1 = direct();
     const ordered = [...GAP_FILL_TARGETS].sort(
         (a, b) =>
             postPhase1[a] / coverageFloor(a, dayCount) - postPhase1[b] / coverageFloor(b, dayCount) ||
             GAP_FILL_TARGETS.indexOf(a) - GAP_FILL_TARGETS.indexOf(b),
     );
+    // Direct sets of a muscle within one session.
+    const muscleSetsInSession = (muscle: GapFillTarget, key: string) =>
+        sessionRowsFor(key)
+            .filter((e) => metaById.get(e.exercise_id)?.primary_muscle === muscle)
+            .reduce((n, e) => n + Number(e.sets), 0);
     for (const muscle of ordered) {
         let guard = 0;
-        while (guard++ < 50) {
-            // Compute current sets once per iteration, not inside a comparator.
-            const sets = direct()[muscle];
-            if (sets >= coverageFloor(muscle, dayCount)) break;
-            // try a set-bump on the cheapest existing isolation for this muscle
-            const existingIso = exercises
-                .filter((e) => metaById.get(e.exercise_id)?.primary_muscle === muscle)
-                .sort((a, b) => Number(a.sets) - Number(b.sets))[0];
-            if (existingIso && sets < GAP_FILL_SET_CEILING && Number(existingIso.sets) < GAP_FILL_SET_CEILING) {
-                existingIso.sets = String(Number(existingIso.sets) + 1);
-                continue;
+        while (guard++ < 80) {
+            if (direct()[muscle] >= coverageFloor(muscle, dayCount)) break;
+            // Eligible sessions for this muscle, lowest current representation first.
+            const region = MUSCLE_REGION[muscle];
+            const keys = schedule
+                .map((s) => sessionKey(s.workout_type, s.variant))
+                .filter((k) => {
+                    const f = sessionCtx.get(k)?.focus;
+                    return f && region.includes(f);
+                })
+                .sort((a, b) => muscleSetsInSession(muscle, a) - muscleSetsInSession(muscle, b));
+            let acted = false;
+            for (const key of keys) {
+                const base = sessionCtx.get(key)?.baseSets ?? 3;
+                // bump an existing isolation here if it is under BOTH the per-exercise
+                // contribution cap (2*base) and the weekly ceiling.
+                const bumpable = sessionRowsFor(key)
+                    .filter(
+                        (e) =>
+                            metaById.get(e.exercise_id)?.primary_muscle === muscle &&
+                            Number(e.sets) < 2 * base &&
+                            Number(e.sets) < GAP_FILL_SET_CEILING,
+                    )
+                    .sort((a, b) => Number(a.sets) - Number(b.sets))[0];
+                if (bumpable && direct()[muscle] < GAP_FILL_SET_CEILING) {
+                    bumpable.sets = String(Number(bumpable.sets) + 1);
+                    acted = true;
+                    break;
+                }
+                // else try to insert one here (budget + time + pool gated by seat/eligibility).
+                if (
+                    added < ROUTINE_ADD_CAP &&
+                    (sessionAddCount.get(key) ?? 0) < PER_SESSION_ADD_CAP &&
+                    sessionRowsFor(key).filter((e) => metaById.get(e.exercise_id)?.movement_pattern === ISO_PATTERN_FOR[muscle]).length < PATTERN_CAP &&
+                    (bandMaxMin === null || sessionMinutes(key) < bandMaxMin) &&
+                    seat(muscle, key)
+                ) {
+                    acted = true;
+                    break;
+                }
             }
-            // nothing to bump: try one insert, within budget + headroom
-            if (added >= ROUTINE_ADD_CAP) break;
-            const key = pickSession(muscle, false); // below-floor insert needs headroom
-            if (!key || !seat(muscle, key)) break;
+            if (!acted) break; // no eligible session can take more for this muscle
         }
     }
     return exercises;
