@@ -4230,3 +4230,71 @@ describe('anchors never rank by contextScore.total', () => {
         expect(push).toContain('canon'); // canonical wins despite lower quality
     });
 });
+
+// ── Task 3.6: Seed-coverage + catalogue-consistency + style-distinctiveness ───
+
+// A named, realistic-looking pool built from deepPool() so style levers have
+// something to act on. Every exercise gets a name + quality. A subset gets
+// attributes (incline/lengthened_bias) and equipment that allow the bodybuilding
+// canonicalReorder to diverge from the balanced CANONICAL_ANCHORS.
+// Equipment is all-dumbbells by default in deepPool, so we replace the two
+// horizontal_push entries with one barbell + one dumbbell named candidate so
+// both styles can pick differently (Balanced: Barbell Bench Press, BB: Incline
+// Dumbbell Press).
+function namedCatalogueLikePool(): ExerciseMeta[] {
+    const base = deepPool().filter((e) => e.movement_pattern !== 'horizontal_push');
+    // Named horizontal_push candidates: Balanced canonical leads with barbell bench,
+    // Bodybuilding canonical leads with incline dumbbell.
+    const hpBarbell = meta('hp-bb', 'horizontal_push', ['barbell', 'bench'], true, {
+        name: 'Barbell Bench Press',
+        quality: 0.9,
+    });
+    const hpIncline = meta('hp-inc', 'horizontal_push', ['dumbbells', 'bench'], true, {
+        name: 'Incline Dumbbell Press',
+        quality: 0.88,
+        attributes: ['incline'],
+    });
+    return [...base, hpBarbell, hpIncline];
+}
+
+describe('scoring seed catalogue consistency', () => {
+    // Mirror the ISOLATION_QUALITY guard (generation.test.ts ~2708): assert that every
+    // name in STYLE_PROFILES canonicalReorder lists is present verbatim in the existing
+    // exercise metadata seed. All 13 names were verified present in this seed on 2026-06-16.
+    it('every canonicalReorder name appears in the exercise metadata seed', () => {
+        const seed = readFileSync(
+            resolve(process.cwd(), 'docs/migrations/2026-06-06-11-28-49-exercise-metadata-fields-seed.sql'),
+            'utf8',
+        );
+        for (const profile of Object.values(STYLE_PROFILES)) {
+            for (const names of Object.values(profile.canonicalReorder ?? {})) {
+                for (const n of names) {
+                    expect(
+                        seed.includes(n),
+                        `canonicalReorder name "${n}" not found in the metadata seed`,
+                    ).toBe(true);
+                }
+            }
+        }
+    });
+});
+
+describe('style distinctiveness', () => {
+    it('Bodybuilding and Balanced produce measurably different exercise sets on the same inputs', () => {
+        // Use a named pool so the canonicalReorder divergence can act: Balanced picks
+        // Barbell Bench Press (CANONICAL_ANCHORS rank 0) while Bodybuilding picks
+        // Incline Dumbbell Press (canonicalReorder rank 0) on horizontal_push.
+        const pool = namedCatalogueLikePool();
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        const sharedAnswers = {
+            equipment: new Set<EquipmentKey>(['dumbbells', 'barbell', 'bench']),
+            experience: 'intermediate' as const,
+            goal: 'build_muscle' as const,
+            days: 4 as const,
+        };
+        const balanced = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool, trainingStyle: 'balanced', answers: sharedAnswers }));
+        const bb = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool, trainingStyle: 'bodybuilding', answers: sharedAnswers }));
+        const ids = (bp: ReturnType<typeof generateRoutine>) => bp.exercises.map((e) => e.exercise_id).sort().join(',');
+        expect(ids(bb)).not.toBe(ids(balanced));
+    });
+});
