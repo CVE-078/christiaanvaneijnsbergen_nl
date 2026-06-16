@@ -1370,6 +1370,7 @@ function selectForSession(
     style: TrainingStyle = 'balanced',
     usedCount: Map<string, number> = new Map(),
     sessionMode: 'short' | 'normal' = 'normal',
+    shoulderRestricted = false,
 ): { selected: Selected[]; floorUnmet: boolean } {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
     // Resolved once per session so the byPattern comparator can use it for style-aware
@@ -1462,8 +1463,14 @@ function selectForSession(
                 const bSubUsed =
                     b.substitution_class !== null && usedSubstitutionClasses.has(b.substitution_class) ? 1 : 0;
                 if (aSubUsed !== bSubUsed) return aSubUsed - bSubUsed;
-                const aFrontRaise = verticalPushFilled && a.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
-                const bFrontRaise = verticalPushFilled && b.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
+                // Item C (round 3): suppress front-delt isolation (Front Raise) when a
+                // vertical press filled the session OR a shoulder restriction is active.
+                // Round-2 Item 5 de-emphasises the press slot under a shoulder flag, which
+                // left verticalPushFilled false and let Front Raise back in; the explicit
+                // shoulderRestricted term keeps the suppression firing regardless.
+                const frontDeltSuppressed = verticalPushFilled || shoulderRestricted;
+                const aFrontRaise = frontDeltSuppressed && a.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
+                const bFrontRaise = frontDeltSuppressed && b.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
                 if (aFrontRaise !== bFrontRaise) return aFrontRaise - bFrontRaise;
                 // Gross rep-mismatch (context-scoring spec, all patterns): a candidate
                 // whose window does not overlap its prescribed band sorts last. Dominant,
@@ -2228,6 +2235,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             styleForBias,
             usedCount,
             isSuperset ? 'short' : 'normal',
+            restrictions.has('shoulder'),
         );
 
         // Live-test Issue 1: an unmet compound floor (some compounds, fewer
