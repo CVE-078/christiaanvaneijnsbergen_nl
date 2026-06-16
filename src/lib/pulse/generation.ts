@@ -1097,11 +1097,13 @@ export const CANONICAL_ANCHORS: Partial<Record<MovementPattern, string[]>> = {
     hinge: ['Romanian Deadlift', 'Dumbbell Romanian Deadlift', 'Deadlift', 'Rack Pull', 'Sumo Deadlift'],
 };
 
-/** Canonical-anchor rank for an exercise within a pattern (lower = more canonical).
- *  Infinity when the pattern has no list or the exercise has no matching name, so it
- *  is a pure tiebreak that leaves nameless / unlisted exercises in their prior order. */
-function anchorRank(ex: ExerciseMeta, pattern: MovementPattern): number {
-    const order = CANONICAL_ANCHORS[pattern];
+/** Canonical-anchor rank for an exercise within a pattern (lower = more canonical). When the
+ *  active style supplies a `canonicalReorder` for the pattern, that name order is used;
+ *  otherwise CANONICAL_ANCHORS. Infinity when neither lists the exercise (or it is nameless),
+ *  so it is a pure tiebreak that leaves nameless/unlisted exercises in their prior order, and
+ *  Balanced (no reorder) is byte-identical. */
+export function anchorRank(ex: ExerciseMeta, pattern: MovementPattern, profile?: StyleProfile): number {
+    const order = profile?.canonicalReorder?.[pattern] ?? CANONICAL_ANCHORS[pattern];
     if (!order || !ex.name) return Infinity;
     const i = order.indexOf(ex.name);
     return i === -1 ? Infinity : i;
@@ -1334,6 +1336,10 @@ function selectForSession(
     style: TrainingStyle = 'balanced',
 ): { selected: Selected[]; floorUnmet: boolean } {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
+    // Resolved once per session so the byPattern comparator can use it for style-aware
+    // anchorRank without re-indexing. Balanced has no canonicalReorder, so it is a no-op
+    // for the golden tests and the byte-identity invariant holds.
+    const styleProfile = STYLE_PROFILES[style];
     // The prescribed rep band for a candidate in slot `p` (mirrors the assignment-time
     // call, minus floorRepRangeForLoad which never widens past a window). Used by the
     // gross rep-mismatch layer. Pure of side effects.
@@ -1439,8 +1445,8 @@ function selectForSession(
                 // of Close-Grip Bench Press. Infinity for nameless / unlisted exercises
                 // (Infinity !== Infinity is false -> falls through to fatigue), so synthetic
                 // pools stay byte-identical to base.
-                const aRank = anchorRank(a, p);
-                const bRank = anchorRank(b, p);
+                const aRank = anchorRank(a, p, styleProfile);
+                const bRank = anchorRank(b, p, styleProfile);
                 if (aRank !== bRank) return aRank - bRank;
                 // (P0 3.1) Compound-first, below the named-anchor rank and above
                 // fatigue (anchor > compound > fatigue): a compound beats an

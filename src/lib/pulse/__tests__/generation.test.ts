@@ -37,6 +37,7 @@ import {
     REPEAT_PENALTY,
     repeatPenaltyFor,
     contextScore,
+    anchorRank,
 } from '@/lib/pulse/generation';
 import type { ScoreContext, ScoreBreakdown, StyleProfile } from '@/lib/pulse/generation';
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
@@ -4136,5 +4137,20 @@ describe('contextScore', () => {
         const m = meta('r', 'biceps_iso', ['dumbbells'], false, { name: 'Cable Curl', quality: 1.0 } as Partial<ExerciseMeta>);
         expect(contextScore(m, { ...ctxBB, priorCount: 1 }).repeatPenalty).toBe(-0.5);
         expect(contextScore(m, { ...ctxBB, priorCount: 5 }).repeatPenalty).toBe(-0.85);
+    });
+});
+
+describe('style-aware anchorRank', () => {
+    it('Bodybuilding floats Incline DB Press ahead of Barbell Bench on horizontal_push', () => {
+        const incline = meta('id', 'horizontal_push', ['dumbbells'], true, { name: 'Incline Dumbbell Press' });
+        const flat = meta('bb', 'horizontal_push', ['barbell'], true, { name: 'Barbell Bench Press' });
+        const bbProfile = STYLE_PROFILES.bodybuilding;
+        expect(anchorRank(incline, 'horizontal_push', bbProfile)).toBeLessThan(
+            anchorRank(flat, 'horizontal_push', bbProfile),
+        );
+        // Balanced keeps the default order (flat bench leads).
+        expect(anchorRank(flat, 'horizontal_push', STYLE_PROFILES.balanced)).toBeLessThan(
+            anchorRank(incline, 'horizontal_push', STYLE_PROFILES.balanced),
+        );
     });
 });
