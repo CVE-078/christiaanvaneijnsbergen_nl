@@ -1,5 +1,5 @@
 import { MUSCLES } from './types';
-import type { Muscle } from './types';
+import type { Muscle, MovementPattern } from './types';
 import type { ExerciseMeta, RoutineBlueprint } from './generation';
 
 // Muscle-coverage observability (Tier-2 Spec 1). PROGRAMMING COVERAGE, NOT BIOMECHANICAL
@@ -42,4 +42,85 @@ export function weeklyMuscleSets(
         }
     }
     return out;
+}
+
+/** A warning-target key: a Muscle, or the aggregate 'back' (= lats + upper_back). The
+ *  9 keys here are exactly the muscles in the validated science table; front_delts /
+ *  calves / core are deliberately absent (informational-only). */
+export type MuscleTarget =
+    | 'chest'
+    | 'back'
+    | 'side_delts'
+    | 'rear_delts'
+    | 'biceps'
+    | 'triceps'
+    | 'quads'
+    | 'hamstrings'
+    | 'glutes';
+
+/** Weekly direct-set bands (intermediate hypertrophy), the validated target table. */
+export const MUSCLE_SET_TARGETS: Record<MuscleTarget, { min: number; max: number }> = {
+    chest: { min: 10, max: 16 },
+    back: { min: 12, max: 18 },
+    side_delts: { min: 8, max: 14 },
+    rear_delts: { min: 6, max: 12 },
+    biceps: { min: 8, max: 12 },
+    triceps: { min: 8, max: 12 },
+    quads: { min: 10, max: 16 },
+    hamstrings: { min: 8, max: 14 },
+    glutes: { min: 8, max: 14 },
+};
+
+/** Direct sets attributed to a target. Owns the back roll-up (lats + upper_back) so the
+ *  taxonomy and the target definitions cannot drift apart. NOTE: the back aggregate is a
+ *  v1 simplification (a lats-2 / upper_back-15 program passes back-17 while being
+ *  one-dimensional); the lats-vs-upper-back split is what the Spec 2 variety scoring
+ *  addresses. Documented, not a silent gap. */
+export function targetDirectSets(direct: Record<Muscle, number>, target: MuscleTarget): number {
+    if (target === 'back') return (direct.lats ?? 0) + (direct.upper_back ?? 0);
+    return direct[target as Muscle] ?? 0;
+}
+
+export interface MuscleGap {
+    target: MuscleTarget;
+    direct: number;
+    min: number;
+    ratio: number; // direct / min; lower = more severe
+}
+
+/** Targeted muscles whose weekly DIRECT sets fall below the band minimum, worst-first by
+ *  ratio. Under-dose only. NO-DATA GUARD: if no exercise carries a primary_muscle the
+ *  routine is unattributed (synthetic pool) and we cannot assess coverage, so return []
+ *  (this keeps the P2.3 validator goldens clean). Only muscles that have at least one
+ *  pool exercise targeting them are evaluated (muscles absent from the pool are
+ *  out-of-scope and not flagged). */
+export function muscleCoverageGaps(blueprint: RoutineBlueprint, pool: ExerciseMeta[]): MuscleGap[] {
+    const metaById = new Map(pool.map((e) => [e.id, e]));
+    const hasAttribution = blueprint.exercises.some((r) => metaById.get(r.exercise_id)?.primary_muscle);
+    if (!hasAttribution) return [];
+
+    const counts = weeklyMuscleSets(blueprint, pool);
+    const direct = {} as Record<Muscle, number>;
+    for (const m of MUSCLES) direct[m] = counts[m].direct;
+
+    // Build the set of muscles represented in the pool (any exercise targeting them).
+    const poolMuscles = new Set<Muscle>();
+    for (const ex of pool) {
+        if (ex.primary_muscle) poolMuscles.add(ex.primary_muscle);
+    }
+
+    const gaps: MuscleGap[] = [];
+    for (const target of Object.keys(MUSCLE_SET_TARGETS) as MuscleTarget[]) {
+        // Only evaluate targets that have at least one pool exercise.
+        const inScope =
+            target === 'back'
+                ? poolMuscles.has('lats') || poolMuscles.has('upper_back')
+                : poolMuscles.has(target as Muscle);
+        if (!inScope) continue;
+        const { min } = MUSCLE_SET_TARGETS[target];
+        const d = targetDirectSets(direct, target);
+        if (d < min) gaps.push({ target, direct: d, min, ratio: d / min });
+    }
+    gaps.sort((a, b) => a.ratio - b.ratio || a.target.localeCompare(b.target));
+    return gaps;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { weeklyMuscleSets } from '@/lib/pulse/muscleVolume';
+import { weeklyMuscleSets, muscleCoverageGaps, targetDirectSets, MUSCLE_SET_TARGETS } from '@/lib/pulse/muscleVolume';
 import type { ExerciseMeta, RoutineBlueprint } from '@/lib/pulse/generation';
 import type { Muscle } from '@/lib/pulse/types';
 
@@ -54,5 +54,64 @@ describe('weeklyMuscleSets', () => {
         const nameless: ExerciseMeta = { ...ex('x', 'chest'), primary_muscle: undefined };
         const result = weeklyMuscleSets(bp([{ id: 'x', sets: 4 }]), [nameless]);
         expect(result.chest.direct).toBe(0);
+    });
+});
+
+describe('muscleCoverageGaps', () => {
+    // Pool: one direct exercise per muscle so we can dial each muscle's weekly sets.
+    const poolFor = (muscles: Muscle[]) => muscles.map((m, i) => ex(`${m}-${i}`, m));
+
+    it('flags a muscle below its band minimum, with a severity ratio', () => {
+        const pool = poolFor(['side_delts']);
+        // 3 sets of side delts, target min 8 -> gap, ratio 3/8.
+        const gaps = muscleCoverageGaps(bp([{ id: 'side_delts-0', sets: 3 }]), pool);
+        const sd = gaps.find((g) => g.target === 'side_delts');
+        expect(sd).toBeDefined();
+        expect(sd!.direct).toBe(3);
+        expect(sd!.min).toBe(8);
+        expect(sd!.ratio).toBeCloseTo(3 / 8);
+    });
+
+    it('does NOT flag a muscle at or above its minimum', () => {
+        const pool = poolFor(['biceps']);
+        const gaps = muscleCoverageGaps(bp([{ id: 'biceps-0', sets: 8 }]), pool);
+        expect(gaps.some((g) => g.target === 'biceps')).toBe(false);
+    });
+
+    it('aggregates lats + upper_back into the back target (roll-up)', () => {
+        const pool = poolFor(['lats', 'upper_back']);
+        // lats 4 + upper_back 9 = 13 >= back min 12 -> back NOT flagged.
+        const gaps = muscleCoverageGaps(
+            bp([{ id: 'lats-0', sets: 4 }, { id: 'upper_back-1', sets: 9 }]),
+            pool,
+        );
+        expect(gaps.some((g) => g.target === 'back')).toBe(false);
+        // targetDirectSets owns the roll-up.
+        expect(targetDirectSets({ lats: 4, upper_back: 9 } as Record<Muscle, number>, 'back')).toBe(13);
+    });
+
+    it('sorts gaps worst-first by ratio', () => {
+        const pool = poolFor(['biceps', 'side_delts']);
+        // biceps 6/8 = 0.75, side_delts 2/8 = 0.25 -> side_delts first.
+        const gaps = muscleCoverageGaps(
+            bp([{ id: 'biceps-0', sets: 6 }, { id: 'side_delts-1', sets: 2 }]),
+            pool,
+        );
+        expect(gaps.map((g) => g.target)).toEqual(['side_delts', 'biceps']);
+    });
+
+    it('never flags informational-only muscles (front_delts / calves / core)', () => {
+        expect(MUSCLE_SET_TARGETS).not.toHaveProperty('front_delts');
+        expect(MUSCLE_SET_TARGETS).not.toHaveProperty('calves');
+        expect(MUSCLE_SET_TARGETS).not.toHaveProperty('core');
+        const pool = poolFor(['front_delts']);
+        const gaps = muscleCoverageGaps(bp([{ id: 'front_delts-0', sets: 0.0001 }]), pool);
+        expect(gaps.some((g) => (g.target as string) === 'front_delts')).toBe(false);
+    });
+
+    it('NO-DATA GUARD: returns [] when no exercise has a primary_muscle', () => {
+        const unattributed: ExerciseMeta = { ...ex('x', 'chest'), primary_muscle: undefined };
+        const gaps = muscleCoverageGaps(bp([{ id: 'x', sets: 1 }]), [unattributed]);
+        expect(gaps).toEqual([]);
     });
 });
