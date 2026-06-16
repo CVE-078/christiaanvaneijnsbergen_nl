@@ -138,8 +138,8 @@ export function deriveSeedPrimaryMuscle(
     substitutionClass: string | null,
     name: string,
 ): Muscle {
-    // Explicit overrides for fuzzy back_iso lifts (the rest of back_iso -> upper_back).
-    if (name === 'Dumbbell Pullover') return 'lats';
+    // Explicit overrides for lat-biased back_iso lifts (the rest of back_iso -> upper_back).
+    if (name === 'Dumbbell Pullover' || name === 'Straight-Arm Pulldown') return 'lats';
 
     // Delt heads come from substitution_class (patterns cannot resolve front/side/rear).
     if (substitutionClass === 'lateral_raise') return 'side_delts';

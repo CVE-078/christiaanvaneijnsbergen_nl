@@ -18,6 +18,7 @@ import {
     tiltEmphasis,
     resolveBias,
     resolveRepRange,
+    floorRepRangeForLoad,
     POWERBUILDING_HEAVY_PATTERNS,
     COMPOUND_ANCHOR_PATTERNS,
     CANONICAL_ANCHORS,
@@ -29,6 +30,7 @@ import {
 import type { ExerciseMeta, GenerationInput } from '@/lib/pulse/generation';
 import { EMPTY_BEHAVIOR } from '@/lib/pulse/behavior';
 import { validateProgram } from '@/lib/pulse/programValidation';
+import { weeklyMuscleSets, deriveSeedPrimaryMuscle } from '@/lib/pulse/muscleVolume';
 import type {
     EquipmentKey,
     MovementPattern,
@@ -323,6 +325,16 @@ function deepPool(perPattern = 2): ExerciseMeta[] {
     pool.push(meta('mach-lp', 'squat', ['machines'], true));
     pool.push(meta('bar-pu', 'vertical_pull', ['pull_up_bar'], true));
     return pool;
+}
+
+// An attributed copy of deepPool: every exercise carries a primary_muscle (derived from
+// its pattern via the seed mirror), so gap-fill's attribution gate fires and the major-
+// muscle integration test can measure real per-muscle weekly volume.
+function attributedDumbbellPool(): ExerciseMeta[] {
+    return deepPool().map((e) => ({
+        ...e,
+        primary_muscle: deriveSeedPrimaryMuscle(e.movement_pattern, e.substitution_class, e.name ?? ''),
+    }));
 }
 
 const dumbbellsOnly = new Set<EquipmentKey>(['dumbbells']);
@@ -3946,5 +3958,60 @@ describe('gap-fill: no-op on synthetic (unattributed) pools', () => {
             const b = JSON.stringify(generateRoutine(input({ style, trainingDays: config.days })));
             expect(a).toBe(b);
         }
+    });
+});
+
+describe('floorRepRangeForLoad (Change A: load-limited dumbbell compounds)', () => {
+    const ex = (pattern: MovementPattern, equipment: EquipmentKey[], compound: boolean): ExerciseMeta => ({
+        id: 'x',
+        name: 'Dumbbell Test Lift',
+        movement_pattern: pattern,
+        equipment,
+        is_compound: compound,
+        category: 'legs' as ExerciseCategory,
+        substitution_class: null,
+        unilateral: false,
+        contraindications: [],
+    });
+    it('floors a dumbbell-only lower compound below 10 reps to 10-15', () => {
+        expect(floorRepRangeForLoad('6-8', ex('squat', ['dumbbells'], true))).toBe('10-15');
+        expect(floorRepRangeForLoad('3-6', ex('hinge', ['dumbbells'], true))).toBe('10-15');
+        expect(floorRepRangeForLoad('6-8', ex('lunge', ['dumbbells'], true))).toBe('10-15');
+    });
+    it('leaves it alone when already at/above 10 reps', () => {
+        expect(floorRepRangeForLoad('10-15', ex('squat', ['dumbbells'], true))).toBe('10-15');
+        expect(floorRepRangeForLoad('12-15', ex('squat', ['dumbbells'], true))).toBe('12-15');
+    });
+    it('does NOT touch barbell/machine/cable lower compounds', () => {
+        expect(floorRepRangeForLoad('6-8', ex('squat', ['barbell'], true))).toBe('6-8');
+        expect(floorRepRangeForLoad('6-8', ex('squat', ['dumbbells', 'machines'], true))).toBe('6-8');
+    });
+    it('does NOT touch isolations or upper-body dumbbell compounds (narrowed predicate)', () => {
+        expect(floorRepRangeForLoad('6-8', ex('biceps_iso', ['dumbbells'], false))).toBe('6-8');
+        expect(floorRepRangeForLoad('8-10', ex('shoulder_iso', ['dumbbells'], false))).toBe('8-10');
+        expect(floorRepRangeForLoad('6-8', ex('horizontal_push', ['dumbbells'], true))).toBe('6-8');
+    });
+    it('no-ops on a nameless exercise (synthetic-golden safety)', () => {
+        const nameless = { ...ex('squat', ['dumbbells'], true), name: undefined };
+        expect(floorRepRangeForLoad('6-8', nameless)).toBe('6-8');
+    });
+});
+
+describe('major-muscle minimums on an attributed pool (Change C/D integration)', () => {
+    it('a 30-min 4-day routine keeps chest/back/quads >= 6 (no accessory-filled-while-major-collapses)', () => {
+        // Attributed pool: the dumbbell deepPool with primary_muscle set, so gap-fill runs.
+        const pool = attributedDumbbellPool();
+        const bp = generateRoutine(
+            input({
+                style: STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle,
+                trainingDays: [1, 2, 4, 5],
+                pool,
+                sessionTime: '~30 min',
+            }),
+        );
+        const counts = weeklyMuscleSets(bp, pool);
+        expect(counts.chest.direct).toBeGreaterThanOrEqual(6);
+        expect(counts.lats.direct + counts.upper_back.direct).toBeGreaterThanOrEqual(6);
+        expect(counts.quads.direct).toBeGreaterThanOrEqual(6);
     });
 });
