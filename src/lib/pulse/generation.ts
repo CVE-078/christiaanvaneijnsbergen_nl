@@ -1241,6 +1241,66 @@ export const STYLE_PROFILES: Record<TrainingStyle, StyleProfile> = {
     },
 };
 
+export interface ScoreContext {
+    goal?: Goal;
+    style: TrainingStyle;
+    focus: Focus;
+    repBand: [number, number];
+    priorCount: number; // routine-wide prior selections of this exercise
+    sessionMode?: 'short' | 'normal'; // ~30 min sessions favour compounds slightly
+}
+
+export interface ScoreBreakdown {
+    total: number;
+    quality: number;
+    styleAffinity: number;
+    repFitBonus: number;
+    repeatPenalty: number;
+}
+
+const NEUTRAL_BREAKDOWN: ScoreBreakdown = {
+    total: NEUTRAL_QUALITY,
+    quality: NEUTRAL_QUALITY,
+    styleAffinity: 0,
+    repFitBonus: 0,
+    repeatPenalty: 0,
+};
+
+/** Style affinity for an exercise under a profile, clamped to [0, STYLE_AFFINITY_MAX]. */
+function styleAffinity(ex: ExerciseMeta, profile: StyleProfile, sessionMode?: 'short' | 'normal'): number {
+    let a = 0;
+    for (const attr of ex.attributes ?? []) if (profile.preferredAttributes.has(attr)) a += ATTRIBUTE_BUMP;
+    for (const eq of ex.equipment) a += profile.equipmentBias[eq] ?? 0;
+    if (ex.is_compound) a += profile.compoundBias;
+    if (sessionMode === 'short' && ex.is_compound) a += 0.05; // time-crunch overlay
+    return Math.max(0, Math.min(STYLE_AFFINITY_MAX, a));
+}
+
+/** Graded rep-fit bonus for an overlapping window: tighter + better-centred windows score
+ *  higher, capped at REP_FIT_BONUS_MAX. No window or no overlap -> 0 (overlap is the gross
+ *  layer's job, not this one). */
+function repFitBonus(ex: ExerciseMeta, band: [number, number]): number {
+    const window = repWindow(ex);
+    if (!window || !bandOverlapsWindow(band, window)) return 0;
+    const overlap = Math.min(band[1], window[1]) - Math.max(band[0], window[0]);
+    const span = Math.max(1, band[1] - band[0]);
+    return REP_FIT_BONUS_MAX * Math.max(0, Math.min(1, (overlap + 1) / (span + 1)));
+}
+
+/** Context-sensitive selection score (spec section 2). Nameless/metadata-absent ->
+ *  NEUTRAL_BREAKDOWN, so synthetic pools score uniformly and the comparator falls through
+ *  exactly as the old ISOLATION_QUALITY layer did (the load-bearing golden guard: an
+ *  ungated repeat penalty would reorder a nameless pool that repeats an id). Pure. */
+export function contextScore(ex: ExerciseMeta, ctx: ScoreContext): ScoreBreakdown {
+    if (!ex.name) return NEUTRAL_BREAKDOWN;
+    const profile = STYLE_PROFILES[ctx.style];
+    const quality = ex.quality ?? NEUTRAL_QUALITY;
+    const sa = styleAffinity(ex, profile, ctx.sessionMode);
+    const rf = repFitBonus(ex, ctx.repBand);
+    const rp = repeatPenaltyFor(ctx.priorCount);
+    return { total: quality + sa + rf + rp, quality, styleAffinity: sa, repFitBonus: rf, repeatPenalty: rp };
+}
+
 // ── Slot selection (cross-session avoid-set) ─────────────────────────────────
 
 interface Selected {

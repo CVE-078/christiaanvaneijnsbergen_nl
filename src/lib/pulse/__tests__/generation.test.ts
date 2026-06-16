@@ -4116,3 +4116,25 @@ describe('STYLE_PROFILES', () => {
         );
     });
 });
+
+describe('contextScore', () => {
+    const ctxBB: ScoreContext = { goal: 'build_muscle' as const, style: 'bodybuilding' as const, focus: 'push' as const, repBand: [8, 12] as [number, number], priorCount: 0 };
+    it('returns neutral breakdown for a nameless exercise (golden guard)', () => {
+        const m = meta('n', 'biceps_iso', ['dumbbells'], false);
+        const s = contextScore(m, ctxBB);
+        expect(s.total).toBe(0.8); // NEUTRAL_QUALITY, all other terms 0
+        expect(s.styleAffinity).toBe(0);
+        expect(s.repeatPenalty).toBe(0);
+    });
+    it('adds a bounded style bump for a preferred attribute', () => {
+        const incline = meta('i', 'biceps_iso', ['cables'], false, { name: 'Incline Dumbbell Curl', quality: 0.95, attributes: ['incline', 'lengthened_bias'] } as Partial<ExerciseMeta>);
+        const s = contextScore(incline, ctxBB);
+        expect(s.styleAffinity).toBeGreaterThan(0);
+        expect(s.styleAffinity).toBeLessThanOrEqual(0.25); // STYLE_AFFINITY_MAX
+    });
+    it('applies the saturating repeat penalty by prior count', () => {
+        const m = meta('r', 'biceps_iso', ['dumbbells'], false, { name: 'Cable Curl', quality: 1.0 } as Partial<ExerciseMeta>);
+        expect(contextScore(m, { ...ctxBB, priorCount: 1 }).repeatPenalty).toBe(-0.5);
+        expect(contextScore(m, { ...ctxBB, priorCount: 5 }).repeatPenalty).toBe(-0.85);
+    });
+});
