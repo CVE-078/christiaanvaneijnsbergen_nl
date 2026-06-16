@@ -51,6 +51,10 @@ export const WARNING_COPY: Record<string, { title: string; body: string }> = {
         title: 'No vertical pulling this week',
         body: 'None of your sessions include a vertical pull (pull-ups or lat pulldowns), which build the lats and upper back. Your equipment supports one, so adding it on a pull or upper day would round out your back work.',
     },
+    muscle_coverage_low: {
+        title: 'Some muscles may be under-dosed',
+        body: 'A few muscles look like they are getting less direct work this week than is ideal for growth. That can be fine for a focused block; if a muscle matters to you, add a direct set or two for it. These targets are guidelines, not hard rules.',
+    },
 };
 
 export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {

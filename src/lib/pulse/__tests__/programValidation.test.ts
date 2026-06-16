@@ -82,6 +82,67 @@ describe('validateProgram (P2.3)', () => {
         expect(validateProgram(bp, POOL)).not.toContain('push_pull_imbalance');
     });
 
+    it('shoulder isolation does not inflate the press side (rear/side delts are not pressing)', () => {
+        // The muscle bridge maps all shoulder_iso to the undifferentiated "shoulders",
+        // so counting it as press wrongly flagged balanced programs that simply added
+        // lateral / rear-delt work (the 45-min baseline). Compound press/pull is 1:1 here.
+        const bp = blueprint([
+            { pattern: 'horizontal_push' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'shoulder_iso' },
+            { pattern: 'shoulder_iso' },
+            { pattern: 'shoulder_iso' },
+        ]);
+        expect(validateProgram(bp, POOL)).not.toContain('push_pull_imbalance');
+    });
+
+    // ── #4-refinement: asymmetric push/pull threshold ─────────────────────────
+    // Press-heavy is the posture / shoulder risk the warning copy cites, so it now
+    // flags at 1.5 (tightened from 2.0). A slightly pull-favored (back-focused) week
+    // is the healthiest per the cited science, so the pull-heavy side keeps the
+    // looser 2.0 tolerance and an intentional aesthetic back-lean stays clean.
+    it('flags a moderately PRESS-heavy week (ratio ~1.78), tightened from 2.0', () => {
+        // press = 4 x horizontal_push (0.80 each), pull = 2 x horizontal_pull (0.90):
+        // ratio 1.78, between the old 2.0 and the new 1.5 press cap. Was clean before.
+        const bp = blueprint([
+            { pattern: 'horizontal_push' },
+            { pattern: 'horizontal_push' },
+            { pattern: 'horizontal_push' },
+            { pattern: 'horizontal_push' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_pull' },
+        ]);
+        expect(validateProgram(bp, POOL)).toContain('push_pull_imbalance');
+    });
+
+    it('does NOT flag a moderately PULL-heavy week at the same ~1.69 ratio (healthy back-lean tolerated)', () => {
+        // pull = 3 x horizontal_pull (0.90), press = 2 x horizontal_push (0.80): ratio
+        // 1.69, pull-favored. The press side at the same ratio would flag; the pull side
+        // is tolerated up to 2.0 (mirrors the intentionally back-focused aesthetic split).
+        const bp = blueprint([
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_push' },
+            { pattern: 'horizontal_push' },
+        ]);
+        expect(validateProgram(bp, POOL)).not.toContain('push_pull_imbalance');
+    });
+
+    it('still flags an EXTREME pull-heavy week (ratio > 2.0)', () => {
+        // pull = 5 x horizontal_pull, press = 1 x horizontal_push: ratio ~5.6. Even the
+        // healthy direction warns once the lean is extreme.
+        const bp = blueprint([
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_pull' },
+            { pattern: 'horizontal_push' },
+        ]);
+        expect(validateProgram(bp, POOL)).toContain('push_pull_imbalance');
+    });
+
     it('flags label_mismatch when a hamstring day leads with a squat', () => {
         const schedule: RoutineBlueprint['schedule'] = [
             { day_of_week: 1, workout_type: 'lower', variant: 'B', label: 'Lower (Hamstrings & Glutes)' },
@@ -144,5 +205,26 @@ describe('validateProgram (P2.3)', () => {
         rows.push({ pattern: 'horizontal_pull' });
         const bp = blueprint(rows);
         expect(validateProgram(bp, POOL)).toEqual(validateProgram(bp, POOL));
+    });
+
+    // ── Muscle-coverage warning (Tier-2 Spec 1) ───────────────────────────────
+    it('flags muscle_coverage_low when a targeted muscle is under-dosed', () => {
+        // ids == patterns so the blueprint helper (exercise_id = pattern) matches.
+        const musclePool: ExerciseMeta[] = [
+            { ...meta('shoulder_iso', 'shoulder_iso'), primary_muscle: 'side_delts' },
+            { ...meta('horizontal_push', 'horizontal_push'), primary_muscle: 'chest' },
+        ];
+        // side_delts 3 sets < min 8 (gap); chest 12 sets >= min 10 (ok).
+        const bp = blueprint([
+            { pattern: 'shoulder_iso', sets: 3 },
+            { pattern: 'horizontal_push', sets: 12 },
+        ]);
+        expect(validateProgram(bp, musclePool)).toContain('muscle_coverage_low');
+    });
+
+    it('does NOT flag muscle_coverage_low on an unattributed (synthetic) pool', () => {
+        // The standard POOL has no primary_muscle -> no-data guard -> silent.
+        const bp = blueprint([{ pattern: 'horizontal_push' }, { pattern: 'horizontal_pull' }]);
+        expect(validateProgram(bp, POOL)).not.toContain('muscle_coverage_low');
     });
 });

@@ -21,6 +21,7 @@ import {
     POWERBUILDING_HEAVY_PATTERNS,
     COMPOUND_ANCHOR_PATTERNS,
     CANONICAL_ANCHORS,
+    ISOLATION_QUALITY,
     assignRole,
     focusLabelForEmphasis,
     PRIORITY_MUSCLE_SET_CEILING,
@@ -115,7 +116,7 @@ describe('resolveRepRange', () => {
             repRange('hypertrophy', true, 'build_muscle'),
         );
     });
-    it('balanced reproduces repRange exactly for every bias x compound/iso', () => {
+    it('balanced reproduces repRange exactly for every bias x compound/iso (no focus = unchanged)', () => {
         const biases: Bias[] = ['strength', 'balanced', 'hypertrophy', 'pump'];
         for (const b of biases) {
             for (const compound of [true, false]) {
@@ -124,6 +125,28 @@ describe('resolveRepRange', () => {
                 );
             }
         }
+    });
+    it('a build-muscle FULL-BODY strength compound floors to 6-8 on Balanced; other focuses + explicit heavy styles keep 3-6', () => {
+        // full-body heavy day for a balanced build-muscle lifter: 6-8, not a 3-6 power day
+        expect(resolveRepRange('strength', 'squat', true, 'build_muscle', 'balanced', undefined, 'full_body')).toBe('6-8');
+        // scoped to full_body: PHUL / ppl-x2 heavy days (upper/push focus) keep their intended 3-6
+        expect(resolveRepRange('strength', 'squat', true, 'build_muscle', 'balanced', undefined, 'upper')).toBe('3-6');
+        expect(resolveRepRange('strength', 'horizontal_push', true, 'build_muscle', 'balanced', undefined, 'push')).toBe(
+            '3-6',
+        );
+        // explicit Strength / Powerbuilding styles intend 3-6 even on full_body
+        expect(resolveRepRange('strength', 'squat', true, 'build_muscle', 'strength', undefined, 'full_body')).toBe('3-6');
+        expect(
+            resolveRepRange('strength', 'squat', true, 'build_muscle', 'powerbuilding', undefined, 'full_body'),
+        ).toBe('3-6');
+        // beginners keep the novice floor (5-8 via P3.1), not 6-8
+        expect(resolveRepRange('strength', 'squat', true, 'build_muscle', 'balanced', 'beginner', 'full_body')).toBe(
+            '5-8',
+        );
+        // isolation unaffected
+        expect(
+            resolveRepRange('strength', 'biceps_iso', false, 'build_muscle', 'balanced', undefined, 'full_body'),
+        ).toBe(repRange('strength', false, 'build_muscle'));
     });
     it('powerbuilding gives the strength range to every heavy pattern', () => {
         for (const p of POWERBUILDING_HEAVY_PATTERNS) {
@@ -371,9 +394,10 @@ describe('beginner / general-fitness rep floor (P3.1)', () => {
         expect(rows.some((e) => e.reps === '3-6')).toBe(false);
     });
 
-    it('intermediate build_muscle is unchanged (still 3-6 on the strength day)', () => {
+    it('intermediate build_muscle full-body heavy day is hypertrophy-heavy 6-8 (no 3-6 power day)', () => {
         const rows = fbStrengthA({});
-        expect(rows.some((e) => e.reps === '3-6')).toBe(true);
+        expect(rows.some((e) => e.reps === '3-6')).toBe(false);
+        expect(rows.some((e) => e.reps === '6-8')).toBe(true);
     });
 });
 
@@ -633,6 +657,31 @@ describe('essential movement coverage (P1.1)', () => {
         }
     });
 
+    it('a 30-min build-muscle full-body session earns isolation while keeping its compounds (intermediate+)', () => {
+        // A 30-min full-body day used to truncate to 4 compounds + 0 isolation. The
+        // scoped fix gives build-muscle full-body short sessions the fuller budget so
+        // an isolation slot is reached, without dropping a compound (review consensus).
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0], // fb-3
+                answers: { equipment: dumbbellsOnly, experience: 'intermediate', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool,
+            }),
+        );
+        for (const s of bp.schedule) {
+            const patterns = sessionIds(bp, s.workout_type, s.variant).map((id) => patternOf.get(id)!);
+            expect(patterns.length).toBeGreaterThan(4); // fuller than the lean coverage-first 4
+            expect(patterns.some((p) => p.endsWith('_iso') || p === 'calf' || p === 'core')).toBe(true);
+            expect(patterns.some((p) => LOWER.includes(p))).toBe(true);
+            expect(patterns.some((p) => PUSH.includes(p))).toBe(true);
+            expect(patterns.some((p) => PULL.includes(p))).toBe(true);
+        }
+    });
+
     it('a full-body week never trains zero pulls across the whole week', () => {
         const pool = deepPool();
         const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
@@ -833,7 +882,7 @@ describe('supersets', () => {
 // ── 7. Rep ranges in a generated routine ─────────────────────────────────────
 
 describe('rep ranges in generation', () => {
-    it('a strength-bias full-body compound gets 3-6; a pump-bias day uses the pump table', () => {
+    it('a strength-bias full-body compound gets 6-8 for build_muscle; a pump-bias day uses the pump table', () => {
         // fb-hmhp-4: day A strength, day D pump.
         const bp = generateRoutine(
             input({
@@ -841,7 +890,8 @@ describe('rep ranges in generation', () => {
             }),
         );
         const dayA = bp.exercises.filter((e) => e.variant === 'A');
-        expect(dayA.some((e) => e.reps === '3-6')).toBe(true); // strength compound
+        expect(dayA.some((e) => e.reps === '6-8')).toBe(true); // full-body heavy day: hypertrophy-heavy, not a 3-6 power day
+        expect(dayA.some((e) => e.reps === '3-6')).toBe(false);
         const dayD = bp.exercises.filter((e) => e.variant === 'D');
         // pump table: compound 12-15, isolation 15-20.
         expect(dayD.every((e) => e.reps === '12-15' || e.reps === '15-20')).toBe(true);
@@ -2560,6 +2610,92 @@ describe('generation engine bug fixes (2026-06-10)', () => {
         });
     });
 
+    // ── #3: isolation-quality ranking ─────────────────────────────────────────
+    // ISOLATION_QUALITY (science review, 2026-06-16) is wired into byPattern ABOVE
+    // the fatigue tiebreak, on non-anchor (isolation) patterns only, so the engine
+    // stops defaulting to low-fatigue-but-poor isolations (Kickback / Concentration
+    // Curl / Front Raise) on the real catalogue. Name-keyed (mirrors CANONICAL_ANCHORS).
+    describe('#3: isolation quality outranks the fatigue tiebreak on the real catalogue', () => {
+        it('picks the higher-quality Cable Curl over Concentration Curl for a biceps_iso slot', () => {
+            // Both biceps_iso isolation. Concentration Curl has the LOWER fatigue (1),
+            // which the accessory fatigue tiebreak prefers, and the alphabetically
+            // earlier id, so it won before #3. Quality (Cable Curl 1.0 > Concentration
+            // Curl 0.70) now decides first.
+            const pool = deepPool()
+                .filter((e) => e.movement_pattern !== 'biceps_iso')
+                .concat([
+                    meta('aaa-conc', 'biceps_iso', ['dumbbells'], false, {
+                        fatigue: 1,
+                        substitution_class: 'biceps_isolation',
+                        name: 'Concentration Curl',
+                    }),
+                    meta('zzz-cable', 'biceps_iso', ['dumbbells'], false, {
+                        fatigue: 2,
+                        substitution_class: 'biceps_isolation',
+                        name: 'Cable Curl',
+                    }),
+                ]);
+            const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+            const pull = sessionIds(bp, 'pull', null);
+            expect(pull).toContain('zzz-cable'); // quality wins despite higher fatigue + later id
+            expect(pull).not.toContain('aaa-conc');
+        });
+
+        it('an explicitly poor isolation is left out, beaten even by an unscored option (Tricep Kickback sinks)', () => {
+            // ppl-3 push has two triceps_iso slots (the deliberate 6th), both non-anchor,
+            // so quality ranks BOTH picks. Of the three candidates the two higher-quality
+            // fill in quality order -- the scored Skull Crusher (0.90) then the UNSCORED
+            // Single-Arm Tricep Pushdown (NEUTRAL 0.80) -- and the explicitly poor Tricep
+            // Kickback (0.55) is left out, even though its lower fatigue won it the
+            // accessory tiebreak before #3.
+            const pool = deepPool()
+                .filter((e) => e.movement_pattern !== 'triceps_iso')
+                .concat([
+                    meta('aaa-kick', 'triceps_iso', ['dumbbells'], false, {
+                        fatigue: 1,
+                        substitution_class: 'triceps_isolation',
+                        name: 'Tricep Kickback',
+                    }),
+                    meta('mmm-push', 'triceps_iso', ['dumbbells'], false, {
+                        fatigue: 3,
+                        substitution_class: 'triceps_isolation',
+                        name: 'Single-Arm Tricep Pushdown', // unscored -> NEUTRAL_QUALITY
+                    }),
+                    meta('zzz-skull', 'triceps_iso', ['dumbbells'], false, {
+                        fatigue: 2,
+                        substitution_class: 'triceps_isolation',
+                        name: 'Skull Crusher',
+                    }),
+                ]);
+            const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+            const push = sessionIds(bp, 'push', null);
+            expect(push).toContain('zzz-skull'); // 0.90
+            expect(push).toContain('mmm-push'); // unscored 0.80 beats the poor kickback
+            expect(push).not.toContain('aaa-kick'); // 0.55, excluded
+        });
+
+        it('every ISOLATION_QUALITY exercise name exists verbatim in the metadata seed', () => {
+            // Same name-key fragility guard as CANONICAL_ANCHORS: a renamed seed
+            // exercise silently degrades its quality to NEUTRAL_QUALITY.
+            const seed = readFileSync(
+                resolve(process.cwd(), 'docs/migrations/2026-06-06-11-28-49-exercise-metadata-fields-seed.sql'),
+                'utf8',
+            );
+            for (const n of Object.keys(ISOLATION_QUALITY)) expect(seed).toContain(`name = '${n}'`);
+        });
+
+        it('is a no-op for synthetic (nameless) pools: byte-identical to base', () => {
+            for (const config of [{ days: [1, 3, 5] }, { days: [1, 2, 4, 5] }, { days: [1, 2, 3, 4, 5, 6] }]) {
+                const style = STYLES[config.days.length][0] as ProgramStyle;
+                const base = JSON.stringify(generateRoutine(input({ style, trainingDays: config.days })));
+                const again = JSON.stringify(generateRoutine(input({ style, trainingDays: config.days })));
+                expect(again).toBe(base);
+            }
+        });
+    });
+
     // ── Bug 3: strength rep ranges ────────────────────────────────────────────
     it('Bug 3: a strength-style routine produces 3-6 on compounds, not 6-10', () => {
         const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
@@ -3689,11 +3825,11 @@ describe('PHUL (#18): byte-identity guards for the other 4-day styles', () => {
         expect(flatten('fb-hmhp-4', [1, 2, 4, 5])).toEqual({
             schedule: ['1:full_body:A', '2:full_body:B', '4:full_body:C', '5:full_body:D'],
             exercises: [
-                'full_body:A:squat-1:4x3-6',
-                'full_body:A:horizontal_push-1:3x3-6',
-                'full_body:A:hinge-1:3x3-6',
-                'full_body:A:vertical_push-1:3x3-6',
-                'full_body:A:horizontal_pull-1:3x3-6',
+                'full_body:A:squat-1:4x6-8',
+                'full_body:A:horizontal_push-1:3x6-8',
+                'full_body:A:hinge-1:3x6-8',
+                'full_body:A:vertical_push-1:3x6-8',
+                'full_body:A:horizontal_pull-1:3x6-8',
                 'full_body:A:biceps_iso-1:3x10-15',
                 'full_body:B:squat-2:3x8-12',
                 'full_body:B:horizontal_push-2:3x8-12',

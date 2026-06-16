@@ -28,6 +28,7 @@ import type {
     VarietyPreference,
     LoadingPreference,
     RestrictionFlag,
+    Muscle,
 } from '@/lib/pulse/types';
 import { assertUuid, assertOwnsRoutine, assertOwnsRoutineExercise } from './_shared';
 import { loadHiddenExerciseIds, loadSwapHistory } from '@/lib/pulse/queries';
@@ -404,6 +405,8 @@ interface ExercisePoolRow {
     unilateral: boolean | null;
     contraindications: RestrictionFlag[] | null;
     difficulty: ExerciseMeta['difficulty'] | null;
+    primary_muscle: ExerciseMeta['primary_muscle'] | null;
+    secondary_muscle_groups: Muscle[] | null;
 }
 
 export async function generateAndSaveRoutine(
@@ -462,7 +465,7 @@ export async function generateAndSaveRoutine(
     const { data: poolData } = await supabase
         .from('exercises')
         .select(
-            'id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications, difficulty',
+            'id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications, difficulty, primary_muscle, secondary_muscle_groups',
         )
         .is('user_id', null);
 
@@ -510,6 +513,8 @@ export async function generateAndSaveRoutine(
             contraindications: row.contraindications ?? [],
             ...(row.fatigue !== null ? { fatigue: row.fatigue } : {}),
             ...(row.difficulty !== null ? { difficulty: row.difficulty } : {}),
+            ...(row.primary_muscle ? { primary_muscle: row.primary_muscle } : {}),
+            secondary_muscle_groups: row.secondary_muscle_groups ?? [],
         }));
 
     // Behavior-driven adaptation (#7): learn from recent repeated swaps and
