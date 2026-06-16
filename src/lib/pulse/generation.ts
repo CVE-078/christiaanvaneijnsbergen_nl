@@ -770,6 +770,34 @@ export function floorRepRangeForLoad(reps: string, ex: ExerciseMeta): string {
     return '10-15';
 }
 
+/** The exercise's preferred rep window as [lo, hi], or null when it has none. A one-sided
+ *  seed is widened (missing min -> 1, missing max -> 999). */
+export function repWindow(ex: ExerciseMeta): [number, number] | null {
+    if (ex.rep_min == null && ex.rep_max == null) return null;
+    return [ex.rep_min ?? 1, ex.rep_max ?? 999];
+}
+
+/** True when a rep band [lo, hi] overlaps the window [wlo, whi]. */
+export function bandOverlapsWindow(band: [number, number], window: [number, number]): boolean {
+    return band[0] <= window[1] && window[0] <= band[1];
+}
+
+/** Clamp an assigned rep band into the exercise's preferred window (spec section 4).
+ *  No window -> unchanged. Overlap -> intersect. No overlap (a thin pool forced a misfit
+ *  in) -> the exercise's own window, so a power lift shows its low band, not the day's.
+ *  No-op on a nameless/unwindowed exercise, so the goldens hold. Pure. */
+export function clampRepsToWindow(reps: string, ex: ExerciseMeta): string {
+    const window = repWindow(ex);
+    if (!window) return reps;
+    const lo = Number(reps.split('-')[0]);
+    const hi = Number(reps.split('-')[1] ?? reps.split('-')[0]);
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) return reps;
+    if (bandOverlapsWindow([lo, hi], window)) {
+        return `${Math.max(lo, window[0])}-${Math.min(hi, window[1])}`;
+    }
+    return `${window[0]}-${window[1]}`;
+}
+
 const FOCUS_TYPE: Record<Focus, WorkoutType> = {
     full_body: 'full_body',
     upper: 'upper',
@@ -816,6 +844,17 @@ export interface ExerciseMeta {
     /** Fine secondary muscles (same Muscle taxonomy), feeding the diagnostic-only
      *  effective-set estimate. Optional / may be empty. */
     secondary_muscle_groups?: Muscle[];
+    /** Base hypertrophy quality (0-1), migrated from ISOLATION_QUALITY. Optional:
+     *  absent -> NEUTRAL_QUALITY, so nameless/synthetic pools score neutrally and the
+     *  goldens stay byte-identical. */
+    quality?: number;
+    /** Preferred rep window. Optional: absent -> no per-exercise constraint (the
+     *  bias/goal range governs). Drives both a selection penalty and an assignment clamp. */
+    rep_min?: number;
+    rep_max?: number;
+    /** Objective semantic properties (e.g. 'incline', 'lengthened_bias', 'explosive'),
+     *  consumed by the style affinity. NOT style labels. Optional/absent = none. */
+    attributes?: string[];
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
@@ -1058,11 +1097,13 @@ export const CANONICAL_ANCHORS: Partial<Record<MovementPattern, string[]>> = {
     hinge: ['Romanian Deadlift', 'Dumbbell Romanian Deadlift', 'Deadlift', 'Rack Pull', 'Sumo Deadlift'],
 };
 
-/** Canonical-anchor rank for an exercise within a pattern (lower = more canonical).
- *  Infinity when the pattern has no list or the exercise has no matching name, so it
- *  is a pure tiebreak that leaves nameless / unlisted exercises in their prior order. */
-function anchorRank(ex: ExerciseMeta, pattern: MovementPattern): number {
-    const order = CANONICAL_ANCHORS[pattern];
+/** Canonical-anchor rank for an exercise within a pattern (lower = more canonical). When the
+ *  active style supplies a `canonicalReorder` for the pattern, that name order is used;
+ *  otherwise CANONICAL_ANCHORS. Infinity when neither lists the exercise (or it is nameless),
+ *  so it is a pure tiebreak that leaves nameless/unlisted exercises in their prior order, and
+ *  Balanced (no reorder) is byte-identical. */
+export function anchorRank(ex: ExerciseMeta, pattern: MovementPattern, profile?: StyleProfile): number {
+    const order = profile?.canonicalReorder?.[pattern] ?? CANONICAL_ANCHORS[pattern];
     if (!order || !ex.name) return Infinity;
     const i = order.indexOf(ex.name);
     return i === -1 ? Infinity : i;
@@ -1133,10 +1174,133 @@ export const ISOLATION_QUALITY: Record<string, number> = {
 // nameless synthetic pools all tie on this key and stay byte-identical to base.
 const NEUTRAL_QUALITY = 0.8;
 
-/** Isolation-quality score for an exercise (higher = better). Unlisted / nameless ->
- *  NEUTRAL_QUALITY, so the layer is a no-op for synthetic pools and a pure tiebreak. */
+/** Isolation-quality score for an exercise (higher = better). Reads the seeded `quality`
+ *  column; absent -> NEUTRAL_QUALITY, so synthetic/nameless pools score neutrally and the
+ *  layer is a no-op for them. ISOLATION_QUALITY (the constant) is retained only as the
+ *  migration seed source + a parity test-oracle. */
 export function isolationQuality(ex: ExerciseMeta): number {
-    return ex.name ? (ISOLATION_QUALITY[ex.name] ?? NEUTRAL_QUALITY) : NEUTRAL_QUALITY;
+    return ex.quality ?? NEUTRAL_QUALITY;
+}
+
+// ── Context score tunables (spec 2026-06-16-14-57-31, section 7) ─────────────────────
+// Magnitude-banded so precedence is unambiguous; locked by ordering-invariant tests.
+export const STYLE_AFFINITY_MAX = 0.25; // cap on the accessory style bump
+export const ATTRIBUTE_BUMP = 0.1; // per matched preferred attribute
+export const REP_FIT_BONUS_MAX = 0.1; // graded overlap tiebreak, below quality/style
+// Saturating weekly-repeat penalty by prior-selection count (index = prior count, capped).
+export const REPEAT_PENALTY = [0, -0.5, -0.75, -0.85] as const;
+
+export function repeatPenaltyFor(priorCount: number): number {
+    if (priorCount <= 0) return 0;
+    return REPEAT_PENALTY[Math.min(priorCount, REPEAT_PENALTY.length - 1)];
+}
+
+export interface StyleProfile {
+    preferredAttributes: ReadonlySet<string>;
+    equipmentBias: Partial<Record<EquipmentKey, number>>;
+    compoundBias: number; // + favours compounds, - favours isolation density
+    canonicalReorder?: Partial<Record<MovementPattern, string[]>>;
+}
+
+// Balanced is the neutral identity: every term zero, no reorder, so a Balanced routine is
+// byte-identical (the golden invariant). Powerbuilding/Strength lean barbell + compound but
+// their reorder largely matches the canonical default (which already leads with barbell), so
+// their primaries stay heavy-barbell on purpose; they diverge from Balanced via reps, not
+// exercises. Bodybuilding is the style that visibly diverges (machine/cable/incline primaries).
+export const STYLE_PROFILES: Record<TrainingStyle, StyleProfile> = {
+    balanced: { preferredAttributes: new Set(), equipmentBias: {}, compoundBias: 0 },
+    strength: {
+        preferredAttributes: new Set(),
+        equipmentBias: { barbell: 0.1 },
+        compoundBias: 0.1,
+    },
+    powerbuilding: {
+        preferredAttributes: new Set(),
+        equipmentBias: { barbell: 0.1 },
+        compoundBias: 0.1,
+    },
+    bodybuilding: {
+        preferredAttributes: new Set(['incline', 'lengthened_bias']),
+        equipmentBias: { machines: 0.1, cables: 0.1 },
+        compoundBias: -0.05,
+        canonicalReorder: {
+            horizontal_push: [
+                'Incline Dumbbell Press',
+                'Incline Barbell Press',
+                'Dumbbell Bench Press',
+                'Machine Chest Press',
+                'Barbell Bench Press',
+            ],
+            horizontal_pull: [
+                'Seated Cable Row',
+                'Chest-Supported Row',
+                'Dumbbell Single-Arm Row',
+                'T-Bar Row',
+                'Barbell Row',
+            ],
+            squat: ['Hack Squat', 'Leg Press', 'Barbell Squat'],
+        },
+    },
+};
+
+export interface ScoreContext {
+    goal?: Goal;
+    style: TrainingStyle;
+    focus: Focus;
+    repBand: [number, number];
+    priorCount: number; // routine-wide prior selections of this exercise
+    sessionMode?: 'short' | 'normal'; // ~30 min sessions favour compounds slightly
+}
+
+export interface ScoreBreakdown {
+    total: number;
+    quality: number;
+    styleAffinity: number;
+    repFitBonus: number;
+    repeatPenalty: number;
+}
+
+const NEUTRAL_BREAKDOWN: ScoreBreakdown = {
+    total: NEUTRAL_QUALITY,
+    quality: NEUTRAL_QUALITY,
+    styleAffinity: 0,
+    repFitBonus: 0,
+    repeatPenalty: 0,
+};
+
+/** Style affinity for an exercise under a profile, clamped to [0, STYLE_AFFINITY_MAX]. */
+function styleAffinity(ex: ExerciseMeta, profile: StyleProfile, sessionMode?: 'short' | 'normal'): number {
+    let a = 0;
+    for (const attr of ex.attributes ?? []) if (profile.preferredAttributes.has(attr)) a += ATTRIBUTE_BUMP;
+    for (const eq of ex.equipment) a += profile.equipmentBias[eq] ?? 0;
+    if (ex.is_compound) a += profile.compoundBias;
+    if (sessionMode === 'short' && ex.is_compound) a += 0.05; // time-crunch overlay
+    return Math.max(0, Math.min(STYLE_AFFINITY_MAX, a));
+}
+
+/** Graded rep-fit bonus for an overlapping window: tighter + better-centred windows score
+ *  higher, capped at REP_FIT_BONUS_MAX. No window or no overlap -> 0 (overlap is the gross
+ *  layer's job, not this one). */
+function repFitBonus(ex: ExerciseMeta, band: [number, number]): number {
+    const window = repWindow(ex);
+    if (!window || !bandOverlapsWindow(band, window)) return 0;
+    const overlap = Math.min(band[1], window[1]) - Math.max(band[0], window[0]);
+    const span = Math.max(1, band[1] - band[0]);
+    return REP_FIT_BONUS_MAX * Math.max(0, Math.min(1, (overlap + 1) / (span + 1)));
+}
+
+/** Context-sensitive selection score (spec section 2). Nameless/metadata-absent ->
+ *  NEUTRAL_BREAKDOWN, so synthetic pools score uniformly and the comparator falls through
+ *  exactly as the old ISOLATION_QUALITY layer did (the load-bearing golden guard: an
+ *  ungated repeat penalty would reorder a nameless pool that repeats an id). Pure. */
+export function contextScore(ex: ExerciseMeta, ctx: ScoreContext): ScoreBreakdown {
+    if (!ex.name) return NEUTRAL_BREAKDOWN;
+    const profile = STYLE_PROFILES[ctx.style];
+    const quality = ex.quality ?? NEUTRAL_QUALITY;
+    const sa = styleAffinity(ex, profile, ctx.sessionMode);
+    const rf = repFitBonus(ex, ctx.repBand);
+    const rp = repeatPenaltyFor(ctx.priorCount);
+    return { total: quality + sa + rf + rp, quality, styleAffinity: sa, repFitBonus: rf, repeatPenalty: rp };
 }
 
 // ── Slot selection (cross-session avoid-set) ─────────────────────────────────
@@ -1167,8 +1331,26 @@ function selectForSession(
     loadingLean?: LoadingPreference | null,
     behavior: BehaviorSignal = EMPTY_BEHAVIOR,
     experience?: ExperienceLevel,
+    bias: Bias = 'balanced',
+    goal?: Goal,
+    style: TrainingStyle = 'balanced',
+    usedCount: Map<string, number> = new Map(),
+    sessionMode: 'short' | 'normal' = 'normal',
 ): { selected: Selected[]; floorUnmet: boolean } {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
+    // Resolved once per session so the byPattern comparator can use it for style-aware
+    // anchorRank without re-indexing. Balanced has no canonicalReorder, so it is a no-op
+    // for the golden tests and the byte-identity invariant holds.
+    const styleProfile = STYLE_PROFILES[style];
+    // The prescribed rep band for a candidate in slot `p` (mirrors the assignment-time
+    // call, minus floorRepRangeForLoad which never widens past a window). Used by the
+    // gross rep-mismatch layer. Pure of side effects.
+    const bandFor = (ex: ExerciseMeta, p: MovementPattern): [number, number] => {
+        const r = resolveRepRange(bias, p, ex.is_compound, goal, style, experience, focus);
+        const lo = Number(r.split('-')[0]);
+        const hi = Number(r.split('-')[1] ?? r.split('-')[0]);
+        return [Number.isFinite(lo) ? lo : 1, Number.isFinite(hi) ? hi : 999];
+    };
     // Behavior demote (#7): O(1) membership for the sort layer below.
     const demoteSet = new Set(behavior.demote);
 
@@ -1249,6 +1431,15 @@ function selectForSession(
                 const aFrontRaise = verticalPushFilled && a.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
                 const bFrontRaise = verticalPushFilled && b.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
                 if (aFrontRaise !== bFrontRaise) return aFrontRaise - bFrontRaise;
+                // Gross rep-mismatch (context-scoring spec, all patterns): a candidate
+                // whose window does not overlap its prescribed band sorts last. Dominant,
+                // above the canonical-anchor rank. No window -> never a mismatch, so
+                // nameless pools are unaffected and the goldens stay byte-identical.
+                const aWin = repWindow(a);
+                const bWin = repWindow(b);
+                const aMiss = aWin && !bandOverlapsWindow(bandFor(a, p), aWin) ? 1 : 0;
+                const bMiss = bWin && !bandOverlapsWindow(bandFor(b, p), bWin) ? 1 : 0;
+                if (aMiss !== bMiss) return aMiss - bMiss;
                 // (5) Canonical-anchor rank (Bug 2): for explicitly named anchors the
                 // canonical primary compound is authoritative and is applied BEFORE the
                 // fatigue heuristic (2026-06-10). This lets Romanian Deadlift anchor hinge
@@ -1256,8 +1447,8 @@ function selectForSession(
                 // of Close-Grip Bench Press. Infinity for nameless / unlisted exercises
                 // (Infinity !== Infinity is false -> falls through to fatigue), so synthetic
                 // pools stay byte-identical to base.
-                const aRank = anchorRank(a, p);
-                const bRank = anchorRank(b, p);
+                const aRank = anchorRank(a, p, styleProfile);
+                const bRank = anchorRank(b, p, styleProfile);
                 if (aRank !== bRank) return aRank - bRank;
                 // (P0 3.1) Compound-first, below the named-anchor rank and above
                 // fatigue (anchor > compound > fatigue): a compound beats an
@@ -1274,19 +1465,23 @@ function selectForSession(
                 const aComp = a.is_compound ? 0 : 1;
                 const bComp = b.is_compound ? 0 : 1;
                 if (aComp !== bComp) return aComp - bComp;
-                // (#3) Isolation-quality, ABOVE the fatigue tiebreak and on non-anchor
-                // (isolation / accessory) patterns only -- the isolation analog of the
-                // canonical-anchor rank above. Higher ISOLATION_QUALITY wins, so the
-                // engine stops defaulting to a low-fatigue-but-poor isolation (Tricep
-                // Kickback / Concentration Curl / Front Raise) just because the accessory
-                // fatigue tiebreak below prefers lower fatigue. Unlisted / nameless
-                // exercises share NEUTRAL_QUALITY (both equal -> falls through), so
-                // synthetic pools stay byte-identical to base. Anchor patterns are gated
-                // off here (they keep CANONICAL_ANCHORS).
+                // (context-scoring spec 2026-06-16): replace the flat ISOLATION_QUALITY
+                // layer with contextScore, which adds style affinity, rep-fit bonus, and
+                // a saturating weekly-repeat penalty. Nameless/metadata-absent exercises
+                // score NEUTRAL_QUALITY uniformly, so synthetic pools stay byte-identical
+                // to base. Anchor patterns are gated off (they keep CANONICAL_ANCHORS).
                 if (!anchorPattern) {
-                    const aQuality = isolationQuality(a);
-                    const bQuality = isolationQuality(b);
-                    if (aQuality !== bQuality) return bQuality - aQuality;
+                    const aScore = contextScore(a, {
+                        goal, style, focus, repBand: bandFor(a, p),
+                        priorCount: usedCount.get(a.id) ?? 0,
+                        sessionMode,
+                    }).total;
+                    const bScore = contextScore(b, {
+                        goal, style, focus, repBand: bandFor(b, p),
+                        priorCount: usedCount.get(b.id) ?? 0,
+                        sessionMode,
+                    }).total;
+                    if (aScore !== bScore) return bScore - aScore;
                 }
                 // (6) Role-aware fatigue tiebreak, below canonical now. Anchor patterns
                 // prefer the higher-fatigue primary lift (fatigue tracks mechanical stimulus
@@ -1322,6 +1517,7 @@ function selectForSession(
         chosen.push({ ex, pattern: slot });
         chosenIds.add(ex.id);
         used.add(ex.id);
+        usedCount.set(ex.id, (usedCount.get(ex.id) ?? 0) + 1);
         if (ex.substitution_class !== null) usedSubstitutionClasses.add(ex.substitution_class);
         // Only a unilateral COMPOUND consumes the cap (see unilateralCapApplies): a
         // unilateral isolation accessory must not block the session's primary lunge.
@@ -1911,6 +2107,11 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const usable = usablePool(pool, answers.equipment, restrictions);
     const poolById = new Map(pool.map((e) => [e.id, e]));
     const used = new Set<string>();
+    // Routine-wide selection count map: tracks how many times each exercise has been
+    // chosen across all sessions so far this routine. Used by contextScore's repeat
+    // penalty to rotate variety across the week. Lives beside `used` so both persist
+    // across sessions the same way.
+    const usedCount = new Map<string, number>();
     // Routine-wide record of substitution_class values already selected, so
     // selectForSession can soft-deprioritize functionally-identical lifts that
     // resurface under a different name/equipment (e.g. Romanian Deadlift on
@@ -1985,6 +2186,11 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             input.loadingLean,
             input.behavior ?? EMPTY_BEHAVIOR,
             answers.experience,
+            effectiveBias,
+            answers.goal,
+            styleForBias,
+            usedCount,
+            isSuperset ? 'short' : 'normal',
         );
 
         // Live-test Issue 1: an unmet compound floor (some compounds, fewer
@@ -2081,15 +2287,18 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            const reps = floorRepRangeForLoad(
-                resolveRepRange(
-                    effectiveBias,
-                    pattern,
-                    ex.is_compound,
-                    answers.goal,
-                    styleForBias,
-                    answers.experience,
-                    session.focus,
+            const reps = clampRepsToWindow(
+                floorRepRangeForLoad(
+                    resolveRepRange(
+                        effectiveBias,
+                        pattern,
+                        ex.is_compound,
+                        answers.goal,
+                        styleForBias,
+                        answers.experience,
+                        session.focus,
+                    ),
+                    ex,
                 ),
                 ex,
             );

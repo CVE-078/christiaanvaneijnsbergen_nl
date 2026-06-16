@@ -407,6 +407,10 @@ interface ExercisePoolRow {
     difficulty: ExerciseMeta['difficulty'] | null;
     primary_muscle: ExerciseMeta['primary_muscle'] | null;
     secondary_muscle_groups: Muscle[] | null;
+    quality: number | null;
+    rep_min: number | null;
+    rep_max: number | null;
+    attributes: string[] | null;
 }
 
 export async function generateAndSaveRoutine(
@@ -465,7 +469,7 @@ export async function generateAndSaveRoutine(
     const { data: poolData } = await supabase
         .from('exercises')
         .select(
-            'id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications, difficulty, primary_muscle, secondary_muscle_groups',
+            'id, name, category, equipment, movement_pattern, is_compound, fatigue, substitution_class, unilateral, contraindications, difficulty, primary_muscle, secondary_muscle_groups, quality, rep_min, rep_max, attributes',
         )
         .is('user_id', null);
 
@@ -515,6 +519,10 @@ export async function generateAndSaveRoutine(
             ...(row.difficulty !== null ? { difficulty: row.difficulty } : {}),
             ...(row.primary_muscle ? { primary_muscle: row.primary_muscle } : {}),
             secondary_muscle_groups: row.secondary_muscle_groups ?? [],
+            ...(row.quality !== null ? { quality: row.quality } : {}),
+            ...(row.rep_min !== null ? { rep_min: row.rep_min } : {}),
+            ...(row.rep_max !== null ? { rep_max: row.rep_max } : {}),
+            attributes: row.attributes ?? [],
         }));
 
     // Behavior-driven adaptation (#7): learn from recent repeated swaps and
