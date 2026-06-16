@@ -90,7 +90,10 @@ export function pickIsolationForMuscle(
     excludeIds: Set<string>,
     qualityOf: (ex: ExerciseMeta) => number,
 ): ExerciseMeta | null {
-    const candidates = usable.filter((e) => e.primary_muscle === muscle && !excludeIds.has(e.id));
+    // Isolation-only: never seat a compound as gap-fill (the contract). Matters for
+    // chest/hamstrings/glutes, whose primary_muscle also rides on compounds (bench, RDL,
+    // hip thrust); mirrors poolCanTrainMuscle's `!is_compound` gate.
+    const candidates = usable.filter((e) => e.primary_muscle === muscle && !e.is_compound && !excludeIds.has(e.id));
     if (candidates.length === 0) return null;
     candidates.sort((a, b) => {
         const q = qualityOf(b) - qualityOf(a);

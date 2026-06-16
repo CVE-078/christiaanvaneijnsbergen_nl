@@ -196,6 +196,32 @@ describe('chest is a gap-fill target (Change C)', () => {
     });
 });
 
+describe('chest gap-fill inserts an isolation, never a compound (Change C safety)', () => {
+    it('seats a chest isolation for a zero-chest session even when a higher-quality chest compound exists', () => {
+        const benchCompound: ExerciseMeta = {
+            id: 'bench',
+            name: 'Good', // quality 1 via the stub, so it would outrank the fly if not filtered
+            movement_pattern: 'horizontal_push',
+            equipment: ['barbell'],
+            is_compound: true,
+            category: 'chest' as ExerciseMeta['category'],
+            substitution_class: 'horizontal_press',
+            unilateral: false,
+            contraindications: [],
+            primary_muscle: 'chest',
+        };
+        const fly = iso('fly', 'chest', 'chest_iso'); // non-compound, neutral quality 0.8
+        const pool = [benchCompound, fly, iso('bi', 'biceps', 'biceps_iso')];
+        const sessionCtx = new Map([['push:', { focus: 'push' as const, isoReps: '12-15', baseSets: 3 }]]);
+        const schedule = [{ day_of_week: 1, workout_type: 'push' as const, variant: null, label: null }];
+        const exercises = [{ exercise_id: 'bi', workout_type: 'push' as const, variant: null, order: 0, sets: '3', reps: '12-15', superset_group_id: null }];
+        const out = applyCoverageGapFill({ exercises, schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
+        const ids = out.map((e) => e.exercise_id);
+        expect(ids).toContain('fly'); // the chest isolation was added
+        expect(ids).not.toContain('bench'); // never the compound, despite its higher quality
+    });
+});
+
 describe('Phase 2 session balancing + contribution cap (Change D)', () => {
     it('distributes a side-delt gap across two eligible sessions instead of piling on one', () => {
         // 4-day plan => side_delts floor 8. push:A starts with a side-delt iso at 3; push:B
