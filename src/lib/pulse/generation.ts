@@ -1771,7 +1771,19 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     // on/after the anchor. Default Monday (1) keeps the conventional week start
     // for callers that don't pass an anchor.
     const days = orderTrainingDays(trainingDays, input.anchorDow ?? 1);
-    const { exercises: exCount, sets } = volumeFor(sessionTime, answers.experience);
+    const { exercises: baseExCount, sets } = volumeFor(sessionTime, answers.experience);
+    // Hypertrophy full-body short sessions earn the fuller exercise budget so they
+    // reach their isolation slots instead of collapsing to all compounds. Scoped to
+    // PURE full-body styles + intermediate/advanced build-muscle (review consensus):
+    // other splits and beginners keep the lean, coverage-first short session, and the
+    // fuller session may run a little over 30 min (the supersetted hypertrophy trade).
+    const exCount =
+        answers.goal === 'build_muscle' &&
+        sessionTime === '~30 min' &&
+        answers.experience !== 'beginner' &&
+        style.sessions.every((s) => s.focus === 'full_body')
+            ? volumeFor('45–60 min', answers.experience).exercises
+            : baseExCount;
     const isSuperset = sessionTime === '~30 min';
 
     const restrictions = new Set(input.restrictions ?? []);

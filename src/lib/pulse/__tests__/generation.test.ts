@@ -656,6 +656,31 @@ describe('essential movement coverage (P1.1)', () => {
         }
     });
 
+    it('a 30-min build-muscle full-body session earns isolation while keeping its compounds (intermediate+)', () => {
+        // A 30-min full-body day used to truncate to 4 compounds + 0 isolation. The
+        // scoped fix gives build-muscle full-body short sessions the fuller budget so
+        // an isolation slot is reached, without dropping a compound (review consensus).
+        const pool = deepPool();
+        const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
+        const bp = generateRoutine(
+            input({
+                style: STYLES[3][0], // fb-3
+                answers: { equipment: dumbbellsOnly, experience: 'intermediate', goal: 'build_muscle', days: 3 },
+                sessionTime: '~30 min',
+                trainingDays: [1, 3, 5],
+                pool,
+            }),
+        );
+        for (const s of bp.schedule) {
+            const patterns = sessionIds(bp, s.workout_type, s.variant).map((id) => patternOf.get(id)!);
+            expect(patterns.length).toBeGreaterThan(4); // fuller than the lean coverage-first 4
+            expect(patterns.some((p) => p.endsWith('_iso') || p === 'calf' || p === 'core')).toBe(true);
+            expect(patterns.some((p) => LOWER.includes(p))).toBe(true);
+            expect(patterns.some((p) => PUSH.includes(p))).toBe(true);
+            expect(patterns.some((p) => PULL.includes(p))).toBe(true);
+        }
+    });
+
     it('a full-body week never trains zero pulls across the whole week', () => {
         const pool = deepPool();
         const patternOf = new Map(pool.map((e) => [e.id, e.movement_pattern]));
