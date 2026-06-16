@@ -32,7 +32,9 @@ end
 where user_id is null;
 
 -- Coarse secondary seed for compounds only (feeds the diagnostic-only effective metric;
--- non-normative). Isolations keep the '{}' default. Tunable later.
+-- non-normative). Isolations keep the '{}' default. Tunable later. Order matters: the
+-- glute_pattern branch runs before hinge, so a Hip Thrust (primary glutes) gets a
+-- hamstrings secondary while a Romanian Deadlift (primary hamstrings) gets a glutes one.
 update exercises set secondary_muscle_groups = case
     when movement_pattern = 'horizontal_push' then array['front_delts', 'triceps']
     when movement_pattern = 'vertical_push' then array['triceps']
