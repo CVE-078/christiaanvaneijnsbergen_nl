@@ -12,6 +12,45 @@ import type { ExerciseMeta, RoutineBlueprint } from './generation';
  *  as a single constant so it can be tuned later without touching the data model. */
 export const SECONDARY_SET_CREDIT = 0.5;
 
+/** Warning-only compound-carryover credit (context-scoring spec, 2026-06-16). A compound
+ *  that trains a muscle as a SECONDARY gets partial credit toward that muscle in the
+ *  coverage WARNING comparison only (NOT gap-fill, NOT selection, NOT the UI). The map is
+ *  sparse and defaults to 0: only movement -> secondary pairs with genuinely strong
+ *  carryover are credited. squat / hinge / lunge credit NOTHING, so a squat-only week
+ *  still warns on a real hamstring or glute gap (the masking trap all reviewers flagged).
+ *  Isolations never carry over. */
+export const CARRYOVER_CREDITS: Partial<Record<MovementPattern, Partial<Record<Muscle, number>>>> = {
+    horizontal_push: { triceps: 0.5, front_delts: 0.5 },
+    vertical_push: { triceps: 0.5, front_delts: 0.5 },
+    horizontal_pull: { biceps: 0.5, rear_delts: 0.5 },
+    vertical_pull: { biceps: 0.5 },
+};
+
+/** Carryover-only credit per muscle (does NOT include direct sets). For each COMPOUND row,
+ *  for each of its secondary muscles, add sets * CARRYOVER_CREDITS[pattern][muscle] (0 if the
+ *  pair is unlisted). Deterministic; pure. Used only by muscleCoverageGaps. */
+export function compoundCarryover(
+    blueprint: RoutineBlueprint,
+    pool: ExerciseMeta[],
+): Record<Muscle, number> {
+    const metaById = new Map(pool.map((e) => [e.id, e]));
+    const out = {} as Record<Muscle, number>;
+    for (const m of MUSCLES) out[m] = 0;
+    for (const row of blueprint.exercises) {
+        const meta = metaById.get(row.exercise_id);
+        if (!meta || !meta.is_compound || !meta.movement_pattern) continue;
+        const credits = CARRYOVER_CREDITS[meta.movement_pattern];
+        if (!credits) continue;
+        const sets = Number(row.sets);
+        if (!Number.isFinite(sets) || sets <= 0) continue;
+        for (const sec of meta.secondary_muscle_groups ?? []) {
+            const frac = credits[sec];
+            if (frac) out[sec] += sets * frac;
+        }
+    }
+    return out;
+}
+
 export interface MuscleSetCount {
     direct: number;
     effective: number;
