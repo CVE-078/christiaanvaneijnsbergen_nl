@@ -766,6 +766,22 @@ describe('restriction degradation warning (P1.2)', () => {
         expect(bp.warnings).toContain('missing_pattern');
     });
 
+    it('Item 5: a moderate shoulder restriction de-emphasises the overhead-press slot', () => {
+        // applyShoulderModeration replaces every vertical_push slot with shoulder_iso when
+        // shoulder is restricted, so a shoulder-restricted push routine leans into lateral /
+        // rear delts instead of overhead pressing. No vertical_push lands; shoulder_iso does.
+        const base = generateRoutine(input({ style: STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle, trainingDays: [1, 3, 5] }));
+        const restricted = generateRoutine(input({ style: STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle, trainingDays: [1, 3, 5], restrictions: ['shoulder'] }));
+        const patternOf = new Map(deepPool().map((e) => [e.id, e.movement_pattern]));
+        const hasVerticalPush = (bp: ReturnType<typeof generateRoutine>) =>
+            bp.exercises.some((e) => patternOf.get(e.exercise_id) === 'vertical_push');
+        const shoulderIsoCount = (bp: ReturnType<typeof generateRoutine>) =>
+            bp.exercises.filter((e) => patternOf.get(e.exercise_id) === 'shoulder_iso').length;
+        expect(hasVerticalPush(base)).toBe(true); // baseline presses overhead
+        expect(hasVerticalPush(restricted)).toBe(false); // restricted does not
+        expect(shoulderIsoCount(restricted)).toBeGreaterThan(shoulderIsoCount(base)); // leans into delts
+    });
+
     it('does not warn when restrictions still leave a usable pull', () => {
         // Only the barbell row is contraindicated; dumbbell pulls remain, so the
         // pattern is covered and no missing-pattern warning fires.

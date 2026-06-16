@@ -357,6 +357,23 @@ export function tiltEmphasis(emphasis: Emphasis, priority: PriorityMuscle | null
     return { bias: emphasis.bias, slots: [...present, ...rest] };
 }
 
+/**
+ * Item 5 (calibration round 2): moderate shoulder restriction. The seed migration tags
+ * every free-weight overhead press contraindicated for `shoulder`; this de-emphasises the
+ * overhead-press SLOT so a shoulder-restricted routine leans into lateral / rear delts and
+ * horizontal pressing rather than seating the one remaining safe overhead (Machine
+ * Shoulder Press, left tolerated in the pool). Replaces each `vertical_push` slot with a
+ * `shoulder_iso` slot. Identity when `shoulder` is not restricted, so all no-restriction
+ * goldens stay byte-identical.
+ */
+export function applyShoulderModeration(emphasis: Emphasis, restrictions: Set<RestrictionFlag>): Emphasis {
+    if (!restrictions.has('shoulder') || !emphasis.slots.includes('vertical_push')) return emphasis;
+    return {
+        bias: emphasis.bias,
+        slots: emphasis.slots.map((s) => (s === 'vertical_push' ? 'shoulder_iso' : s)),
+    };
+}
+
 // ── Program style catalog ──────────────────────────────────────────────────
 // Keyed by session count (= trainingDays.length). Variant letters are unique
 // per distinct same-focus session (two upper → A,B; three full_body → A,B,C);
@@ -2178,7 +2195,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             label: focusLabelForEmphasis(session.emphasis),
         });
 
-        const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
+        const emphasis = applyShoulderModeration(
+            tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null),
+            restrictions,
+        );
         const trainingStyle = input.trainingStyle ?? 'balanced';
         // Split identity outranks training style (P1.5). PHUL's identity IS its
         // power-vs-hypertrophy day contrast, encoded in the per-day emphasis biases
