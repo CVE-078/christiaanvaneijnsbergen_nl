@@ -592,6 +592,18 @@ describe('measurable priority muscle (P3.2)', () => {
         // running-count gate violated this (it reached baseline + bumps).
         expect(chestSets(prioritized, patternOf)).toBeLessThanOrEqual(Math.max(baseChest, PRIORITY_MUSCLE_SET_CEILING));
     });
+
+    it('Item 3: priority chest reaches its target band minimum on an attributed pool', () => {
+        // The flat +4 dose left priority chest at ~8 of its 10-set band minimum (R6 in the
+        // 20-routine review). On an ATTRIBUTED pool the reach-target dose deepens chest to
+        // its band (10-16); on synthetic pools (the tests above) the flat +4 still applies.
+        const pool = attributedDumbbellPool();
+        const style = STYLES[4].find((s) => s.key === 'ul-aesthetic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool, priority: 'chest' }));
+        const chest = weeklyMuscleSets(bp, pool).chest.direct;
+        expect(chest).toBeGreaterThanOrEqual(10); // chest band minimum
+        expect(chest).toBeLessThanOrEqual(16); // never past the band maximum
+    });
 });
 
 // ── Heavy-work limit warning (P2.2) ──────────────────────────────────────────
@@ -752,6 +764,22 @@ describe('restriction degradation warning (P1.2)', () => {
         expect(bp.exercises.every((e) => !PULL.includes(patternOf.get(e.exercise_id)!))).toBe(true);
         // ...and the routine flags the missing pattern.
         expect(bp.warnings).toContain('missing_pattern');
+    });
+
+    it('Item 5: a moderate shoulder restriction de-emphasises the overhead-press slot', () => {
+        // applyShoulderModeration replaces every vertical_push slot with shoulder_iso when
+        // shoulder is restricted, so a shoulder-restricted push routine leans into lateral /
+        // rear delts instead of overhead pressing. No vertical_push lands; shoulder_iso does.
+        const base = generateRoutine(input({ style: STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle, trainingDays: [1, 3, 5] }));
+        const restricted = generateRoutine(input({ style: STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle, trainingDays: [1, 3, 5], restrictions: ['shoulder'] }));
+        const patternOf = new Map(deepPool().map((e) => [e.id, e.movement_pattern]));
+        const hasVerticalPush = (bp: ReturnType<typeof generateRoutine>) =>
+            bp.exercises.some((e) => patternOf.get(e.exercise_id) === 'vertical_push');
+        const shoulderIsoCount = (bp: ReturnType<typeof generateRoutine>) =>
+            bp.exercises.filter((e) => patternOf.get(e.exercise_id) === 'shoulder_iso').length;
+        expect(hasVerticalPush(base)).toBe(true); // baseline presses overhead
+        expect(hasVerticalPush(restricted)).toBe(false); // restricted does not
+        expect(shoulderIsoCount(restricted)).toBeGreaterThan(shoulderIsoCount(base)); // leans into delts
     });
 
     it('does not warn when restrictions still leave a usable pull', () => {

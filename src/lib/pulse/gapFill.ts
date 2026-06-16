@@ -1,6 +1,6 @@
 import type { Muscle, MovementPattern, Focus } from './types';
 import type { ExerciseMeta, RoutineBlueprint } from './generation';
-import { weeklyMuscleSets } from './muscleVolume';
+import { weeklyMuscleSets, MUSCLE_SET_TARGETS, type MuscleTarget } from './muscleVolume';
 import { estimateSessionMinutes } from './utils';
 
 // Minimum-coverage gap-fill (Tier-2 Spec 3). A deterministic, capped, post-generation
@@ -143,7 +143,6 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
         return out;
     };
     const usedIds = new Set(exercises.map((e) => e.exercise_id));
-    let added = 0;
 
     const sessionRowsFor = (key: string) =>
         exercises.filter((e) => sessionKey(e.workout_type, e.variant) === key);
@@ -156,10 +155,28 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
                 supersetGroupId: e.superset_group_id,
             })),
         );
+    // The highest set count among the session's compounds (0 when it has none).
+    const topCompoundSets = (key: string): number => {
+        const sets = sessionRowsFor(key)
+            .filter((e) => metaById.get(e.exercise_id)?.is_compound)
+            .map((e) => Number(e.sets));
+        return sets.length ? Math.max(...sets) : 0;
+    };
+    // Item 1 (set-inflation cap): a gap-fill-touched isolation may not out-set its
+    // session's top compound, so a Face Pull can no longer sit at 6 while the day's press
+    // sits at 3. Side / rear delts are EXEMPT (no compound trains them, so the
+    // top-compound reference does not apply) and keep the 2*base per-exercise contribution
+    // cap; a session with no compound also falls back to 2*base.
+    const ISO_ONLY_MUSCLES = new Set<GapFillTarget>(['side_delts', 'rear_delts']);
+    const isoSetCap = (muscle: GapFillTarget, key: string, base: number): number => {
+        if (ISO_ONLY_MUSCLES.has(muscle)) return 2 * base;
+        const top = topCompoundSets(key);
+        return top > 0 ? Math.min(top, 2 * base) : 2 * base;
+    };
     const sessionAddCount = new Map<string, number>(); // gap-fill inserts per session
 
     // Sessions eligible for a muscle, best-placement first.
-    const pickSession = (muscle: GapFillTarget, allowOverTime: boolean): string | null => {
+    const pickSession = (muscle: GapFillTarget, allowOverTime: boolean, maxPerSession: number = PER_SESSION_ADD_CAP): string | null => {
         const region = MUSCLE_REGION[muscle];
         const isoPattern = ISO_PATTERN_FOR[muscle];
         const keys = schedule
@@ -170,7 +187,7 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
             sessionRowsFor(s.key).some((e) => metaById.get(e.exercise_id)?.primary_muscle === muscle),
         );
         const eligible = (key: string): boolean => {
-            if ((sessionAddCount.get(key) ?? 0) >= PER_SESSION_ADD_CAP) return false;
+            if ((sessionAddCount.get(key) ?? 0) >= maxPerSession) return false;
             const patternCount = sessionRowsFor(key).filter(
                 (e) => metaById.get(e.exercise_id)?.movement_pattern === isoPattern,
             ).length;
@@ -214,18 +231,27 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
         });
         usedIds.add(ex.id);
         sessionAddCount.set(key, (sessionAddCount.get(key) ?? 0) + 1);
-        added += 1;
         return true;
     };
 
     // ---- Phase 1: eliminate zeros (trainable) ----
-    // Snapshot is taken once; safe because seating an isolation for one muscle never
-    // un-zeros a different muscle (the isolation pool is single-muscle).
+    // Item 2: a trainable-zero of a target muscle is the floor invariant, so clearing it
+    // takes precedence over the tidy per-session insert cap that bounds Phase 2. On a
+    // low-frequency plan (2-3 day) one insert per session cannot reach every zero, so
+    // zero-kill may place up to 2 per session there; 4+ day plans have enough sessions to
+    // spread at the normal cap. Bounded by its own routine cap so a thin 2-day plan fills
+    // the worst zeros without overstuffing every muscle (some accessory zeros stay, by
+    // design). Still allowed to overflow the time band (zero coverage is worse than a
+    // long session). Snapshot is taken once; safe because seating an isolation for one
+    // muscle never un-zeros a different muscle (the isolation pool is single-muscle).
+    const zeroKillPerSession = dayCount === 2 || dayCount === 3 ? 2 : PER_SESSION_ADD_CAP;
+    const zeroKillRoutineCap = Math.min(8, 2 * dayCount);
     const zeroTargets = GAP_FILL_TARGETS.filter((m) => direct()[m] === 0 && poolCanTrainMuscle(m, usable));
+    let zeroKilled = 0;
     for (const muscle of zeroTargets) {
-        if (added >= ROUTINE_ADD_CAP) break;
-        const key = pickSession(muscle, true); // zero-kill may overflow time
-        if (key) seat(muscle, key);
+        if (zeroKilled >= zeroKillRoutineCap) break;
+        const key = pickSession(muscle, true, zeroKillPerSession); // zero-kill may overflow time
+        if (key && seat(muscle, key)) zeroKilled += 1;
     }
 
     // ---- Phase 2: distribute below-floor partials, balanced across sessions ----
@@ -241,6 +267,7 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
         sessionRowsFor(key)
             .filter((e) => metaById.get(e.exercise_id)?.primary_muscle === muscle)
             .reduce((n, e) => n + Number(e.sets), 0);
+    let partialInserted = 0; // Phase 2 inserts, bounded independently of Phase 1 zero-kills
     for (const muscle of ordered) {
         let guard = 0;
         while (guard++ < 80) {
@@ -254,37 +281,104 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
                     return f && region.includes(f);
                 })
                 .sort((a, b) => muscleSetsInSession(muscle, a) - muscleSetsInSession(muscle, b));
-            let acted = false;
-            for (const key of keys) {
-                const base = sessionCtx.get(key)?.baseSets ?? 3;
-                // bump an existing isolation here if it is under BOTH the per-exercise
-                // contribution cap (2*base) and the weekly ceiling.
+            // Bump an existing isolation in `key` if it is under `capForKey` and the
+            // weekly ceiling.
+            const tryBump = (key: string, capForKey: number): boolean => {
                 const bumpable = sessionRowsFor(key)
                     .filter(
                         (e) =>
                             metaById.get(e.exercise_id)?.primary_muscle === muscle &&
-                            Number(e.sets) < 2 * base &&
+                            Number(e.sets) < capForKey &&
                             Number(e.sets) < GAP_FILL_SET_CEILING,
                     )
                     .sort((a, b) => Number(a.sets) - Number(b.sets))[0];
                 if (bumpable && direct()[muscle] < GAP_FILL_SET_CEILING) {
                     bumpable.sets = String(Number(bumpable.sets) + 1);
-                    acted = true;
-                    break;
+                    return true;
                 }
-                // else try to insert one here (budget + time + pool gated by seat/eligibility).
+                return false;
+            };
+            // Insert a fresh isolation in `key` (budget + per-session cap + pattern cap +
+            // time + pool gated).
+            const tryInsert = (key: string): boolean => {
                 if (
-                    added < ROUTINE_ADD_CAP &&
+                    partialInserted < ROUTINE_ADD_CAP &&
                     (sessionAddCount.get(key) ?? 0) < PER_SESSION_ADD_CAP &&
                     sessionRowsFor(key).filter((e) => metaById.get(e.exercise_id)?.movement_pattern === ISO_PATTERN_FOR[muscle]).length < PATTERN_CAP &&
                     (bandMaxMin === null || sessionMinutes(key) < bandMaxMin) &&
                     seat(muscle, key)
                 ) {
+                    partialInserted += 1;
+                    return true;
+                }
+                return false;
+            };
+            let acted = false;
+            // Pass A (Item 1): keep isolations at/under the session's top compound,
+            // preferring to spread to a fresh isolation over piling sets onto one.
+            for (const key of keys) {
+                const base = sessionCtx.get(key)?.baseSets ?? 3;
+                if (tryBump(key, isoSetCap(muscle, key, base)) || tryInsert(key)) {
                     acted = true;
                     break;
                 }
             }
+            // Pass B: last resort, pile onto an existing isolation up to the 2*base
+            // contribution cap so the floor stays reachable when no spread is possible
+            // (e.g. a 30-min session with one low-set compound and a single isolation).
+            if (!acted) {
+                for (const key of keys) {
+                    const base = sessionCtx.get(key)?.baseSets ?? 3;
+                    if (tryBump(key, 2 * base)) {
+                        acted = true;
+                        break;
+                    }
+                }
+            }
             if (!acted) break; // no eligible session can take more for this muscle
+        }
+    }
+    return exercises;
+}
+
+/** Item 4: soft MRV ceiling. Returns a new exercises array with ACCESSORY (isolation)
+ *  sets trimmed for any target muscle whose weekly direct volume exceeds its band max,
+ *  one set at a time from the highest-set isolation down to a 2-set floor. Compounds are
+ *  never trimmed (a split's structural compound volume is left to training-time deloads),
+ *  so a muscle whose excess is all compound work simply stays over max (soft). No-op when
+ *  no exercise carries a primary_muscle (synthetic / unattributed pool). Pure. */
+export function trimToMrv(input: {
+    exercises: Row[];
+    schedule: RoutineBlueprint['schedule'];
+    pool: ExerciseMeta[];
+}): Row[] {
+    const { schedule, pool } = input;
+    const metaById = new Map(pool.map((e) => [e.id, e]));
+    const exercises = input.exercises.map((e) => ({ ...e }));
+    if (!exercises.some((e) => metaById.get(e.exercise_id)?.primary_muscle)) return exercises;
+    const MIN_ISO_SETS = 2;
+    const counts = weeklyMuscleSets({ schedule, exercises, warnings: [] }, pool);
+    for (const target of Object.keys(MUSCLE_SET_TARGETS) as MuscleTarget[]) {
+        const max = MUSCLE_SET_TARGETS[target].max;
+        const underlying: Muscle[] = target === 'back' ? ['lats', 'upper_back'] : [target as Muscle];
+        let current = underlying.reduce((n, m) => n + counts[m].direct, 0);
+        let guard = 0;
+        while (current > max && guard++ < 100) {
+            const row = exercises
+                .filter((e) => {
+                    const m = metaById.get(e.exercise_id);
+                    return (
+                        m &&
+                        !m.is_compound &&
+                        m.primary_muscle != null &&
+                        underlying.includes(m.primary_muscle) &&
+                        Number(e.sets) > MIN_ISO_SETS
+                    );
+                })
+                .sort((a, b) => Number(b.sets) - Number(a.sets) || a.exercise_id.localeCompare(b.exercise_id))[0];
+            if (!row) break; // nothing left to trim safely (compounds carry the rest)
+            row.sets = String(Number(row.sets) - 1);
+            current -= 1;
         }
     }
     return exercises;

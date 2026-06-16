@@ -37,6 +37,7 @@ import {
     weeklyMuscleSets,
     muscleCoverageGaps,
     deriveSeedPrimaryMuscle,
+    targetDirectSets,
     MUSCLE_SET_TARGETS,
 } from '@/lib/pulse/muscleVolume';
 import { MUSCLES } from '@/lib/pulse/types';
@@ -189,13 +190,22 @@ const warnings = [...blueprint.warnings, ...validateProgram(blueprint, usable).f
 console.log(`\n=== warnings: ${warnings.length ? warnings.join(', ') : '(none)'} ===`);
 
 const muscleCounts = weeklyMuscleSets(blueprint, pool);
+// Direct + EFFECTIVE (direct + 0.5/secondary) so the readout shows the indirect work
+// compounds carry (e.g. bench -> triceps/front delts), not just the literal primary tally.
 const fmtMuscle = (m: (typeof MUSCLES)[number]) => {
     const d = muscleCounts[m].direct;
+    const eff = Math.round(muscleCounts[m].effective * 10) / 10;
     const t = (MUSCLE_SET_TARGETS as Record<string, { min: number; max: number }>)[m];
-    return t ? `${m} ${d}/${t.min} (${Math.round((d / t.min) * 100)}%)` : `${m} ${d}`;
+    return t ? `${m} ${d} dir/${eff} eff /${t.min} (${Math.round((d / t.min) * 100)}%)` : `${m} ${d} dir/${eff} eff`;
 };
-console.log('\n=== weekly muscle volume (direct sets · target) ===');
+console.log('\n=== weekly muscle volume (direct/effective sets · target-min) ===');
 console.log('  ' + MUSCLES.map(fmtMuscle).join(' · '));
+// `back` is the aggregate the gap logic actually uses (lats + upper_back); rows seed to
+// upper_back, so the per-muscle "lats 0" line is not a coverage gap on its own.
+const directRec = Object.fromEntries(MUSCLES.map((m) => [m, muscleCounts[m].direct])) as Record<(typeof MUSCLES)[number], number>;
+const backDirect = targetDirectSets(directRec, 'back');
+const backMin = MUSCLE_SET_TARGETS.back.min;
+console.log(`  back aggregate (lats + upper_back): ${backDirect}/${backMin} (${Math.round((backDirect / backMin) * 100)}%)`);
 const muscleGaps = muscleCoverageGaps(blueprint, pool);
 console.log(
     `=== potential gaps (worst first): ${

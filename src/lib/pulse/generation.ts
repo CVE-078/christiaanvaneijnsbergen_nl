@@ -21,7 +21,8 @@ import type {
 import type { ExperienceLevel, Goal, OnboardingAnswers } from './recommendation';
 import { EMPTY_BEHAVIOR, type BehaviorSignal } from './behavior';
 import { estimateSessionMinutes } from './utils';
-import { applyCoverageGapFill } from './gapFill';
+import { applyCoverageGapFill, trimToMrv } from './gapFill';
+import { weeklyMuscleSets, MUSCLE_SET_TARGETS, type MuscleTarget } from './muscleVolume';
 
 export type { Focus };
 
@@ -312,6 +313,22 @@ const PRIORITY_EXTRA_SETS_PER_WEEK = 4;
 // ~20 sets/muscle/week is the natural ceiling for an intermediate).
 export const PRIORITY_MUSCLE_SET_CEILING = 20;
 
+// Item 3 (calibration round 2): on an attributed pool, a priority muscle is deepened
+// until its weekly DIRECT sets reach its target band MINIMUM (not a flat +4 that fell
+// short on high-target muscles like chest, which left priority chest at 8 of 10), capped
+// at the band MAXIMUM and at +2 per lift so no single exercise inflates. Multi-muscle
+// priorities sum their bands. Gated on attribution, so unattributed / synthetic pools
+// keep the legacy flat +4 dose and stay byte-identical.
+const PRIORITY_TARGET_MUSCLES: Record<PriorityMuscle, MuscleTarget[]> = {
+    chest: ['chest'],
+    back: ['back'],
+    shoulders: ['side_delts'],
+    arms: ['biceps', 'triceps'],
+    glutes: ['glutes'],
+    legs: ['quads', 'hamstrings'],
+};
+const PRIORITY_MAX_EXTRA_PER_LIFT = 2;
+
 /** Default priority seeded from gender (UI only): female → glutes, else balanced. */
 export function genderDefault(gender: Gender | null): PriorityMuscle | 'balanced' {
     return gender === 'female' ? 'glutes' : 'balanced';
@@ -338,6 +355,23 @@ export function tiltEmphasis(emphasis: Emphasis, priority: PriorityMuscle | null
     if (present.length === 0) return emphasis;
     const rest = emphasis.slots.filter((s) => !present.includes(s));
     return { bias: emphasis.bias, slots: [...present, ...rest] };
+}
+
+/**
+ * Item 5 (calibration round 2): moderate shoulder restriction. The seed migration tags
+ * every free-weight overhead press contraindicated for `shoulder`; this de-emphasises the
+ * overhead-press SLOT so a shoulder-restricted routine leans into lateral / rear delts and
+ * horizontal pressing rather than seating the one remaining safe overhead (Machine
+ * Shoulder Press, left tolerated in the pool). Replaces each `vertical_push` slot with a
+ * `shoulder_iso` slot. Identity when `shoulder` is not restricted, so all no-restriction
+ * goldens stay byte-identical.
+ */
+export function applyShoulderModeration(emphasis: Emphasis, restrictions: Set<RestrictionFlag>): Emphasis {
+    if (!restrictions.has('shoulder') || !emphasis.slots.includes('vertical_push')) return emphasis;
+    return {
+        bias: emphasis.bias,
+        slots: emphasis.slots.map((s) => (s === 'vertical_push' ? 'shoulder_iso' : s)),
+    };
 }
 
 // ── Program style catalog ──────────────────────────────────────────────────
@@ -2141,7 +2175,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     // We accumulate the baseline (pre-bump) priority-pattern set total and a list of
     // the rows eligible for a +1, then distribute the budget once the total is known.
     let baselinePrioritySets = 0;
-    const priorityBumpables: Array<{ row: { sets: number }; ex: { sets: string } }> = [];
+    const priorityBumpables: Array<{ row: { sets: number }; ex: { sets: string; exercise_id: string } }> = [];
     // Each session's rows, kept so the over-time estimate runs AFTER the priority
     // bump (it must reflect the final set counts, not the pre-bump ones).
     const perSessionRows: Array<
@@ -2161,7 +2195,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             label: focusLabelForEmphasis(session.emphasis),
         });
 
-        const emphasis = tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null);
+        const emphasis = applyShoulderModeration(
+            tiltEmphasis(emphasisFor(session.emphasis), input.priority ?? null),
+            restrictions,
+        );
         const trainingStyle = input.trainingStyle ?? 'balanced';
         // Split identity outranks training style (P1.5). PHUL's identity IS its
         // power-vs-hypertrophy day contrast, encoded in the per-day emphasis biases
@@ -2335,7 +2372,50 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     // is the true week total, so the ceiling is enforced against it (not a mid-stream
     // count). Additive; never reduces other work. Null priority leaves this empty, so
     // the no-priority path stays byte-identical.
-    {
+    if (input.priority && usable.some((e) => e.primary_muscle)) {
+        // Item 3: reach-target dose on an attributed pool. Deepen the priority muscle's
+        // OWN lifts (rows whose primary_muscle is the priority's) until the muscle's
+        // weekly direct sets reach its band minimum, never exceeding the band maximum and
+        // never adding more than +2 to one lift.
+        const targets = PRIORITY_TARGET_MUSCLES[input.priority];
+        const targetMin = targets.reduce((n, t) => n + MUSCLE_SET_TARGETS[t].min, 0);
+        const targetMax = targets.reduce((n, t) => n + MUSCLE_SET_TARGETS[t].max, 0);
+        const underlying = new Set<Muscle>();
+        for (const t of targets) {
+            if (t === 'back') {
+                underlying.add('lats');
+                underlying.add('upper_back');
+            } else underlying.add(t as Muscle);
+        }
+        const measure = () => {
+            const counts = weeklyMuscleSets({ schedule, exercises, warnings: [] }, pool);
+            return targets.reduce(
+                (n, t) => n + (t === 'back' ? counts.lats.direct + counts.upper_back.direct : counts[t as Muscle].direct),
+                0,
+            );
+        };
+        const eligible = priorityBumpables
+            .filter((b) => {
+                const pm = poolById.get(b.ex.exercise_id)?.primary_muscle;
+                return pm != null && underlying.has(pm);
+            })
+            .map((b) => ({ b, base: b.row.sets }));
+        let progressed = true;
+        while (progressed) {
+            progressed = false;
+            for (const { b, base } of eligible) {
+                const m = measure();
+                if (m >= targetMin || m >= targetMax) break;
+                if (b.row.sets - base >= PRIORITY_MAX_EXTRA_PER_LIFT) continue;
+                b.row.sets += 1;
+                b.ex.sets = String(b.row.sets);
+                progressed = true;
+            }
+        }
+    } else {
+        // Legacy flat +4 dose (P3.2): one set per priority-pattern lift up to the weekly
+        // budget and the recoverable ceiling. Byte-identical for unattributed / synthetic
+        // pools (and the null-priority path, where priorityBumpables is empty).
         let budget = PRIORITY_EXTRA_SETS_PER_WEEK;
         let total = baselinePrioritySets;
         for (const b of priorityBumpables) {
@@ -2364,6 +2444,15 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // Replace the exercises list in place with the gap-filled one.
         exercises.length = 0;
         exercises.push(...filled);
+
+        // Item 4: soft MRV ceiling (see trimToMrv). Trim the lowest-value ACCESSORY
+        // (isolation) sets of any target muscle over its band max; compounds are never
+        // trimmed (a split's structural compound volume is left to training-time deloads).
+        // The priority dose caps at the band max, so this never undoes a priority.
+        // Attributed-pool only (no-op on synthetic pools), so the goldens are unchanged.
+        const trimmed = trimToMrv({ exercises, schedule, pool });
+        exercises.length = 0;
+        exercises.push(...trimmed);
         // Rebuild perSessionRows from the final exercises so the duration guard sees
         // the additions (group by session, derive is_compound from the pool).
         const bySession = new Map<string, Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }>>();

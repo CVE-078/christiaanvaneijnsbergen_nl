@@ -69,7 +69,7 @@ describe('pickIsolationForMuscle', () => {
     });
 });
 
-import { applyCoverageGapFill } from '@/lib/pulse/gapFill';
+import { applyCoverageGapFill, trimToMrv } from '@/lib/pulse/gapFill';
 import type { RoutineBlueprint } from '@/lib/pulse/generation';
 
 type Row = RoutineBlueprint['exercises'][number];
@@ -266,5 +266,135 @@ describe('Phase 2 session balancing + contribution cap (Change D)', () => {
         const exercises = [{ exercise_id: 'bi', workout_type: 'pull' as const, variant: 'A' as const, order: 0, sets: '3', reps: '12-15', superset_group_id: null }];
         const out = applyCoverageGapFill({ exercises, schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
         expect(Number(out.find((e) => e.exercise_id === 'bi')!.sets)).toBe(6);
+    });
+});
+
+describe('Item 1: set-inflation cap (iso never out-sets the session top compound)', () => {
+    const bench: ExerciseMeta = {
+        id: 'bench', name: undefined, movement_pattern: 'horizontal_push', equipment: ['barbell'],
+        is_compound: true, category: 'chest' as ExerciseMeta['category'], substitution_class: 'horizontal_press',
+        unilateral: false, contraindications: [], primary_muscle: 'chest',
+    };
+    it('spreads triceps to a 2nd isolation rather than piling one past the top compound', () => {
+        // 4-day => triceps floor 8. Two push sessions, each with a bench at 4 sets; push:A
+        // also has one triceps iso at 3, and the pool has a 2nd triceps iso. The OLD Phase 2
+        // piled the lone iso to 6 (2*base, out-setting the 4-set press); Item 1 prefers to
+        // insert the 2nd iso and keep both at/under the top compound (4+4 = floor 8).
+        const triA = iso('triA', 'triceps', 'triceps_iso');
+        const triB = iso('triB', 'triceps', 'triceps_iso');
+        const pool = [bench, triA, triB];
+        const sessionCtx = new Map([
+            ['push:A', { focus: 'push' as const, isoReps: '12-15', baseSets: 3 }],
+            ['push:B', { focus: 'push' as const, isoReps: '12-15', baseSets: 3 }],
+            ['push:C', { focus: 'push' as const, isoReps: '12-15', baseSets: 3 }],
+            ['push:D', { focus: 'push' as const, isoReps: '12-15', baseSets: 3 }],
+        ]);
+        const schedule = [
+            { day_of_week: 1, workout_type: 'push' as const, variant: 'A' as const, label: null },
+            { day_of_week: 2, workout_type: 'push' as const, variant: 'B' as const, label: null },
+            { day_of_week: 3, workout_type: 'push' as const, variant: 'C' as const, label: null },
+            { day_of_week: 4, workout_type: 'push' as const, variant: 'D' as const, label: null },
+        ];
+        const exercises = [
+            { exercise_id: 'bench', workout_type: 'push' as const, variant: 'A' as const, order: 0, sets: '4', reps: '6-8', superset_group_id: null },
+            { exercise_id: 'triA', workout_type: 'push' as const, variant: 'A' as const, order: 1, sets: '3', reps: '12-15', superset_group_id: null },
+            { exercise_id: 'bench', workout_type: 'push' as const, variant: 'B' as const, order: 0, sets: '4', reps: '6-8', superset_group_id: null },
+        ];
+        const out = applyCoverageGapFill({ exercises, schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
+        const triSets = out.filter((e) => e.exercise_id === 'triA' || e.exercise_id === 'triB').map((e) => Number(e.sets));
+        expect(triSets.length).toBe(2); // spread to a 2nd isolation, not piled onto one
+        expect(Math.max(...triSets)).toBeLessThanOrEqual(4); // neither out-sets the 4-set press
+    });
+    it('side delts are EXEMPT from the top-compound cap (no compound trains them)', () => {
+        // 4-day => side_delts floor 8. push:A has a bench at 4 and one side-delt iso at 3,
+        // no second side-delt iso to insert. Side delts are isolation-only, so the 2*base
+        // (6) contribution cap applies, NOT the top compound (4): the iso reaches 6.
+        const sd = iso('sd', 'side_delts', 'shoulder_iso');
+        const pool = [bench, sd];
+        const sessionCtx = new Map([['push:A', { focus: 'push' as const, isoReps: '12-15', baseSets: 3 }]]);
+        const schedule = [
+            { day_of_week: 1, workout_type: 'push' as const, variant: 'A' as const, label: null },
+            { day_of_week: 2, workout_type: 'push' as const, variant: 'B' as const, label: null },
+            { day_of_week: 3, workout_type: 'push' as const, variant: 'C' as const, label: null },
+            { day_of_week: 4, workout_type: 'push' as const, variant: 'D' as const, label: null },
+        ];
+        const exercises = [
+            { exercise_id: 'bench', workout_type: 'push' as const, variant: 'A' as const, order: 0, sets: '4', reps: '6-8', superset_group_id: null },
+            { exercise_id: 'sd', workout_type: 'push' as const, variant: 'A' as const, order: 1, sets: '3', reps: '12-15', superset_group_id: null },
+        ];
+        const out = applyCoverageGapFill({ exercises, schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
+        expect(Number(out.find((e) => e.exercise_id === 'sd')!.sets)).toBe(6);
+    });
+});
+
+describe('Item 4: trimToMrv (soft MRV ceiling)', () => {
+    const schedule = [{ day_of_week: 1, workout_type: 'push' as const, variant: null, label: null }];
+    it('trims isolation sets when a muscle exceeds its band max, down to a 2-set floor', () => {
+        // triceps max is 12. Two triceps isolations at 8 each = 16 direct (over max). Trim
+        // accessory sets back toward 12.
+        const pool = [iso('t1', 'triceps', 'triceps_iso'), iso('t2', 'triceps', 'triceps_iso')];
+        const exercises = [
+            { exercise_id: 't1', workout_type: 'push' as const, variant: null, order: 0, sets: '8', reps: '12-15', superset_group_id: null },
+            { exercise_id: 't2', workout_type: 'push' as const, variant: null, order: 1, sets: '8', reps: '12-15', superset_group_id: null },
+        ];
+        const out = trimToMrv({ exercises, schedule, pool });
+        const total = out.reduce((n, e) => n + Number(e.sets), 0);
+        expect(total).toBe(12); // trimmed from 16 to the band max
+        for (const e of out) expect(Number(e.sets)).toBeGreaterThanOrEqual(2); // never below the floor
+    });
+    it('never trims compounds; a compound-driven excess stays over max (soft)', () => {
+        // Three quad compounds at 6 each = 18 direct, max 16. No isolations to trim, so the
+        // excess is left to deloads (compounds are never cut).
+        const squat: ExerciseMeta = {
+            id: 's', name: undefined, movement_pattern: 'squat', equipment: ['barbell'], is_compound: true,
+            category: 'legs' as ExerciseMeta['category'], substitution_class: null, unilateral: false,
+            contraindications: [], primary_muscle: 'quads',
+        };
+        const exercises = [0, 1, 2].map((i) => ({
+            exercise_id: 's', workout_type: 'push' as const, variant: null, order: i, sets: '6', reps: '6-8', superset_group_id: null,
+        }));
+        const out = trimToMrv({ exercises, schedule, pool: [squat] });
+        expect(out.reduce((n, e) => n + Number(e.sets), 0)).toBe(18); // unchanged: compounds untouched
+    });
+    it('no-op on an unattributed (synthetic) pool', () => {
+        const out = trimToMrv({ exercises: [row('x', 0, 9)], schedule, pool: [] });
+        expect(Number(out[0].sets)).toBe(9);
+    });
+});
+
+describe('Item 2: trainable-zero override on low-frequency plans', () => {
+    it('fills triceps on a 2-day full-body even when other zeros take the first inserts', () => {
+        // 2 full_body sessions; side/rear delts, biceps, triceps all trainable zeros. The
+        // OLD per-session cap (1) killed only 2 zeros (one per session), leaving triceps at
+        // 0 (4th in order). The relaxed 2-day cap (2 per session) reaches triceps.
+        const squat: ExerciseMeta = {
+            id: 'sq', name: undefined, movement_pattern: 'squat', equipment: ['barbell'],
+            is_compound: true, category: 'legs' as ExerciseMeta['category'], substitution_class: null,
+            unilateral: false, contraindications: [], primary_muscle: 'quads',
+        };
+        const pool = [
+            squat,
+            iso('sd', 'side_delts', 'shoulder_iso'),
+            iso('rd', 'rear_delts', 'shoulder_iso'),
+            iso('bi', 'biceps', 'biceps_iso'),
+            iso('tri', 'triceps', 'triceps_iso'),
+        ];
+        const sessionCtx = new Map([
+            ['full_body:A', { focus: 'full_body' as const, isoReps: '12-15', baseSets: 3 }],
+            ['full_body:B', { focus: 'full_body' as const, isoReps: '12-15', baseSets: 3 }],
+        ]);
+        const schedule = [
+            { day_of_week: 1, workout_type: 'full_body' as const, variant: 'A' as const, label: null },
+            { day_of_week: 3, workout_type: 'full_body' as const, variant: 'B' as const, label: null },
+        ];
+        // Each session carries the squat so the no-op attribution guard passes (real
+        // sessions always have a compound); the four targets stay at zero.
+        const exercises = [
+            { exercise_id: 'sq', workout_type: 'full_body' as const, variant: 'A' as const, order: 0, sets: '3', reps: '6-8', superset_group_id: null },
+            { exercise_id: 'sq', workout_type: 'full_body' as const, variant: 'B' as const, order: 0, sets: '3', reps: '6-8', superset_group_id: null },
+        ];
+        const out = applyCoverageGapFill({ exercises, schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
+        const muscles = out.map((e) => pool.find((p) => p.id === e.exercise_id)?.primary_muscle);
+        expect(muscles).toContain('triceps');
     });
 });
