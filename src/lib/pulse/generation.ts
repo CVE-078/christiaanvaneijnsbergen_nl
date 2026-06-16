@@ -1108,7 +1108,7 @@ const NEUTRAL_QUALITY = 0.8;
 
 /** Isolation-quality score for an exercise (higher = better). Unlisted / nameless ->
  *  NEUTRAL_QUALITY, so the layer is a no-op for synthetic pools and a pure tiebreak. */
-function isolationQuality(ex: ExerciseMeta): number {
+export function isolationQuality(ex: ExerciseMeta): number {
     return ex.name ? (ISOLATION_QUALITY[ex.name] ?? NEUTRAL_QUALITY) : NEUTRAL_QUALITY;
 }
 
