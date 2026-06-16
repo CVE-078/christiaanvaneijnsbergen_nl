@@ -4016,6 +4016,37 @@ describe('ExerciseMeta scoring fields', () => {
     });
 });
 
+describe('clampRepsToWindow', () => {
+    const base = meta('x', 'vertical_push', ['barbell'], true, { name: 'Push Press' });
+    it('returns reps unchanged when the exercise has no window', () => {
+        expect(clampRepsToWindow('8-12', base)).toBe('8-12');
+    });
+    it('uses the exercise window when the band does not overlap it', () => {
+        const pp = { ...base, rep_min: 3, rep_max: 5 };
+        expect(clampRepsToWindow('8-12', pp)).toBe('3-5'); // power lift on a hypertrophy day
+    });
+    it('intersects when the band overlaps the window', () => {
+        const step = { ...base, rep_min: 8, rep_max: 15 };
+        expect(clampRepsToWindow('8-12', step)).toBe('8-12');
+        expect(clampRepsToWindow('3-6', step)).toBe('8-15'); // no overlap -> window
+        expect(clampRepsToWindow('12-20', step)).toBe('12-15'); // overlap -> intersect
+    });
+});
+
+describe('rep windows in generation', () => {
+    it('clamps Push Press to its window if it lands on a hypertrophy session', () => {
+        const pool = deepPool().concat([
+            meta('pp', 'vertical_push', ['barbell'], true, { name: 'Push Press', rep_min: 3, rep_max: 5 }),
+        ]);
+        // Remove other vertical_push so Push Press is forced in (thin pool).
+        const thin = pool.filter((e) => e.movement_pattern !== 'vertical_push' || e.id === 'pp');
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool: thin }));
+        const ppRow = bp.exercises.find((e) => e.exercise_id === 'pp');
+        if (ppRow) expect(['3-5']).toContain(ppRow.reps);
+    });
+});
+
 describe('isolationQuality reads the column', () => {
     it('uses ex.quality when present, NEUTRAL_QUALITY when absent', () => {
         const scored = meta('a', 'biceps_iso', ['dumbbells'], false, { name: 'Cable Curl' });

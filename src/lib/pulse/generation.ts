@@ -770,6 +770,34 @@ export function floorRepRangeForLoad(reps: string, ex: ExerciseMeta): string {
     return '10-15';
 }
 
+/** The exercise's preferred rep window as [lo, hi], or null when it has none. A one-sided
+ *  seed is widened (missing min -> 1, missing max -> 999). */
+export function repWindow(ex: ExerciseMeta): [number, number] | null {
+    if (ex.rep_min == null && ex.rep_max == null) return null;
+    return [ex.rep_min ?? 1, ex.rep_max ?? 999];
+}
+
+/** True when a rep band [lo, hi] overlaps the window [wlo, whi]. */
+export function bandOverlapsWindow(band: [number, number], window: [number, number]): boolean {
+    return band[0] <= window[1] && window[0] <= band[1];
+}
+
+/** Clamp an assigned rep band into the exercise's preferred window (spec section 4).
+ *  No window -> unchanged. Overlap -> intersect. No overlap (a thin pool forced a misfit
+ *  in) -> the exercise's own window, so a power lift shows its low band, not the day's.
+ *  No-op on a nameless/unwindowed exercise, so the goldens hold. Pure. */
+export function clampRepsToWindow(reps: string, ex: ExerciseMeta): string {
+    const window = repWindow(ex);
+    if (!window) return reps;
+    const lo = Number(reps.split('-')[0]);
+    const hi = Number(reps.split('-')[1] ?? reps.split('-')[0]);
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) return reps;
+    if (bandOverlapsWindow([lo, hi], window)) {
+        return `${Math.max(lo, window[0])}-${Math.min(hi, window[1])}`;
+    }
+    return `${window[0]}-${window[1]}`;
+}
+
 const FOCUS_TYPE: Record<Focus, WorkoutType> = {
     full_body: 'full_body',
     upper: 'upper',
@@ -2094,15 +2122,18 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            const reps = floorRepRangeForLoad(
-                resolveRepRange(
-                    effectiveBias,
-                    pattern,
-                    ex.is_compound,
-                    answers.goal,
-                    styleForBias,
-                    answers.experience,
-                    session.focus,
+            const reps = clampRepsToWindow(
+                floorRepRangeForLoad(
+                    resolveRepRange(
+                        effectiveBias,
+                        pattern,
+                        ex.is_compound,
+                        answers.goal,
+                        styleForBias,
+                        answers.experience,
+                        session.focus,
+                    ),
+                    ex,
                 ),
                 ex,
             );
