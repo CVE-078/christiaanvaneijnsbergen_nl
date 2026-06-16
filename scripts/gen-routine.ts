@@ -33,6 +33,13 @@ import {
     type ExerciseMeta,
 } from '@/lib/pulse/generation';
 import { validateProgram } from '@/lib/pulse/programValidation';
+import {
+    weeklyMuscleSets,
+    muscleCoverageGaps,
+    deriveSeedPrimaryMuscle,
+    MUSCLE_SET_TARGETS,
+} from '@/lib/pulse/muscleVolume';
+import { MUSCLES } from '@/lib/pulse/types';
 import type { OnboardingAnswers } from '@/lib/pulse/recommendation';
 
 const argv = process.argv.slice(2);
@@ -116,6 +123,13 @@ if (existsSync(cachePath) && !args.refresh) {
     writeFileSync(cachePath, JSON.stringify(pool));
 }
 
+// Backfill primary_muscle so the muscle readout works even against a pre-migration
+// cache: the select above does not pull primary_muscle, and deriveSeedPrimaryMuscle
+// mirrors the migration's seed CASE, so the derived value matches the stored one.
+for (const e of pool) {
+    if (!e.primary_muscle) e.primary_muscle = deriveSeedPrimaryMuscle(e.movement_pattern, e.substitution_class, e.name ?? '');
+}
+
 const answers: OnboardingAnswers = { equipment, experience, goal, days: count as OnboardingAnswers['days'], gender: null };
 let n = 0;
 const blueprint = generateRoutine({
@@ -166,3 +180,18 @@ for (const s of blueprint.schedule) {
 const usable = usablePool(pool, equipment, new Set(restrictions));
 const warnings = [...blueprint.warnings, ...validateProgram(blueprint, usable).filter((w) => !blueprint.warnings.includes(w))];
 console.log(`\n=== warnings: ${warnings.length ? warnings.join(', ') : '(none)'} ===`);
+
+const muscleCounts = weeklyMuscleSets(blueprint, pool);
+const fmtMuscle = (m: (typeof MUSCLES)[number]) => {
+    const d = muscleCounts[m].direct;
+    const t = (MUSCLE_SET_TARGETS as Record<string, { min: number; max: number }>)[m];
+    return t ? `${m} ${d}/${t.min} (${Math.round((d / t.min) * 100)}%)` : `${m} ${d}`;
+};
+console.log('\n=== weekly muscle volume (direct sets · target) ===');
+console.log('  ' + MUSCLES.map(fmtMuscle).join(' · '));
+const muscleGaps = muscleCoverageGaps(blueprint, pool);
+console.log(
+    `=== potential gaps (worst first): ${
+        muscleGaps.length ? muscleGaps.map((g) => `${g.target} ${Math.round(g.ratio * 100)}%`).join(', ') : '(none)'
+    } ===`,
+);
