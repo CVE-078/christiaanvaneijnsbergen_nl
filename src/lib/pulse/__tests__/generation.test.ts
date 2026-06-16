@@ -18,6 +18,7 @@ import {
     tiltEmphasis,
     resolveBias,
     resolveRepRange,
+    floorRepRangeForLoad,
     POWERBUILDING_HEAVY_PATTERNS,
     COMPOUND_ANCHOR_PATTERNS,
     CANONICAL_ANCHORS,
@@ -3946,5 +3947,41 @@ describe('gap-fill: no-op on synthetic (unattributed) pools', () => {
             const b = JSON.stringify(generateRoutine(input({ style, trainingDays: config.days })));
             expect(a).toBe(b);
         }
+    });
+});
+
+describe('floorRepRangeForLoad (Change A: load-limited dumbbell compounds)', () => {
+    const ex = (pattern: MovementPattern, equipment: EquipmentKey[], compound: boolean): ExerciseMeta => ({
+        id: 'x',
+        name: 'Dumbbell Test Lift',
+        movement_pattern: pattern,
+        equipment,
+        is_compound: compound,
+        category: 'legs' as ExerciseCategory,
+        substitution_class: null,
+        unilateral: false,
+        contraindications: [],
+    });
+    it('floors a dumbbell-only lower compound below 10 reps to 10-15', () => {
+        expect(floorRepRangeForLoad('6-8', ex('squat', ['dumbbells'], true))).toBe('10-15');
+        expect(floorRepRangeForLoad('3-6', ex('hinge', ['dumbbells'], true))).toBe('10-15');
+        expect(floorRepRangeForLoad('6-8', ex('lunge', ['dumbbells'], true))).toBe('10-15');
+    });
+    it('leaves it alone when already at/above 10 reps', () => {
+        expect(floorRepRangeForLoad('10-15', ex('squat', ['dumbbells'], true))).toBe('10-15');
+        expect(floorRepRangeForLoad('12-15', ex('squat', ['dumbbells'], true))).toBe('12-15');
+    });
+    it('does NOT touch barbell/machine/cable lower compounds', () => {
+        expect(floorRepRangeForLoad('6-8', ex('squat', ['barbell'], true))).toBe('6-8');
+        expect(floorRepRangeForLoad('6-8', ex('squat', ['dumbbells', 'machines'], true))).toBe('6-8');
+    });
+    it('does NOT touch isolations or upper-body dumbbell compounds (narrowed predicate)', () => {
+        expect(floorRepRangeForLoad('6-8', ex('biceps_iso', ['dumbbells'], false))).toBe('6-8');
+        expect(floorRepRangeForLoad('8-10', ex('shoulder_iso', ['dumbbells'], false))).toBe('8-10');
+        expect(floorRepRangeForLoad('6-8', ex('horizontal_push', ['dumbbells'], true))).toBe('6-8');
+    });
+    it('no-ops on a nameless exercise (synthetic-golden safety)', () => {
+        const nameless = { ...ex('squat', ['dumbbells'], true), name: undefined };
+        expect(floorRepRangeForLoad('6-8', nameless)).toBe('6-8');
     });
 });

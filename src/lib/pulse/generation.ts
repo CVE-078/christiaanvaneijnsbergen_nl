@@ -744,6 +744,32 @@ export function resolveRepRange(
     return base;
 }
 
+const LOAD_LIMITED_LOWER_PATTERNS: ReadonlySet<MovementPattern> = new Set(['squat', 'hinge', 'lunge']);
+
+/** Raise the rep range of a load-limited lift to 10-15. A "load-limited" lift is a
+ *  dumbbell-only LOWER-BODY COMPOUND (goblet squat, dumbbell RDL, dumbbell split squat):
+ *  it cannot be loaded heavily enough for low reps to be a strong stimulus. Narrowed to
+ *  lower compounds only (Change A): isolations and upper-body dumbbell presses/rows are
+ *  left to their assigned ranges (and to the future context-scoring layer).
+ *
+ *  No-ops on a NAMELESS exercise (synthetic test pools have no `name`), so the
+ *  generation goldens stay byte-identical, exactly like ISOLATION_QUALITY /
+ *  CANONICAL_ANCHORS. Real catalogue exercises all carry a name, so the floor applies
+ *  there. Pure. */
+export function floorRepRangeForLoad(reps: string, ex: ExerciseMeta): string {
+    if (!ex.name) return reps;
+    const dumbbellOnly =
+        ex.equipment.includes('dumbbells') &&
+        !ex.equipment.includes('barbell') &&
+        !ex.equipment.includes('machines') &&
+        !ex.equipment.includes('cables');
+    if (!dumbbellOnly || !ex.is_compound || ex.movement_pattern === null) return reps;
+    if (!LOAD_LIMITED_LOWER_PATTERNS.has(ex.movement_pattern)) return reps;
+    const low = Number(reps.split('-')[0]);
+    if (!Number.isFinite(low) || low >= 10) return reps;
+    return '10-15';
+}
+
 const FOCUS_TYPE: Record<Focus, WorkoutType> = {
     full_body: 'full_body',
     upper: 'upper',
@@ -2055,14 +2081,17 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
                 exSets = baseSets + 1;
                 firstCompoundBumped = true;
             }
-            const reps = resolveRepRange(
-                effectiveBias,
-                pattern,
-                ex.is_compound,
-                answers.goal,
-                styleForBias,
-                answers.experience,
-                session.focus,
+            const reps = floorRepRangeForLoad(
+                resolveRepRange(
+                    effectiveBias,
+                    pattern,
+                    ex.is_compound,
+                    answers.goal,
+                    styleForBias,
+                    answers.experience,
+                    session.focus,
+                ),
+                ex,
             );
             const rowObj = { sets: exSets, is_compound: ex.is_compound, reps, supersetGroupId: groupId };
             sessionRows.push(rowObj);
