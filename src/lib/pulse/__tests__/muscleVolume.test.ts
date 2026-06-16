@@ -124,6 +124,33 @@ describe('muscleCoverageGaps', () => {
     });
 });
 
+describe('muscleCoverageGaps with carryover', () => {
+    it('suppresses a triceps warning when pressing covers it indirectly', () => {
+        // 12 direct chest sets from a press that secondaries triceps; 0 direct triceps.
+        const bench = ex('bench', 'chest', ['triceps']); // horizontal_push compound
+        const tri = ex('tri', 'triceps'); // makes triceps in-scope for the pool
+        tri.movement_pattern = 'triceps_iso';
+        tri.is_compound = false;
+        const gaps = muscleCoverageGaps(bp([{ id: 'bench', sets: 12 }]), [bench, tri]);
+        // triceps min is 8; carryover = 12*0.5 = 6 < 8, so it STILL warns here...
+        const tris = gaps.find((g) => g.target === 'triceps');
+        expect(tris).toBeDefined();
+        // ...but at 16 press sets, carryover = 8 >= 8, warning suppressed:
+        const gaps2 = muscleCoverageGaps(bp([{ id: 'bench', sets: 16 }]), [bench, tri]);
+        expect(gaps2.find((g) => g.target === 'triceps')).toBeUndefined();
+    });
+
+    it('still warns on hamstrings under a heavy squat week (no squat->hamstring credit)', () => {
+        const squat = ex('squat', 'quads', ['hamstrings']);
+        squat.movement_pattern = 'squat';
+        const ham = ex('ham', 'hamstrings');
+        ham.movement_pattern = 'hamstring_iso';
+        ham.is_compound = false;
+        const gaps = muscleCoverageGaps(bp([{ id: 'squat', sets: 20 }]), [squat, ham]);
+        expect(gaps.find((g) => g.target === 'hamstrings')).toBeDefined();
+    });
+});
+
 describe('compoundCarryover', () => {
     it('credits triceps and front_delts from a horizontal_push compound at 0.5/set', () => {
         const pool = [ex('bench', 'chest', ['front_delts', 'triceps'])]; // ex() defaults movement_pattern horizontal_push, is_compound true

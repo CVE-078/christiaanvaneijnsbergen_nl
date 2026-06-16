@@ -143,6 +143,9 @@ export function muscleCoverageGaps(blueprint: RoutineBlueprint, pool: ExerciseMe
     const counts = weeklyMuscleSets(blueprint, pool);
     const direct = {} as Record<Muscle, number>;
     for (const m of MUSCLES) direct[m] = counts[m].direct;
+    // Warning-only: a compound's indirect work counts toward whether to NAG, never toward
+    // gap-fill (which stays direct-only) or the reported `direct` number below.
+    const carryover = compoundCarryover(blueprint, pool);
 
     // Build the set of muscles represented in the pool (any exercise targeting them).
     const poolMuscles = new Set<Muscle>();
@@ -160,7 +163,11 @@ export function muscleCoverageGaps(blueprint: RoutineBlueprint, pool: ExerciseMe
         if (!inScope) continue;
         const { min } = MUSCLE_SET_TARGETS[target];
         const d = targetDirectSets(direct, target);
-        if (d < min) gaps.push({ target, direct: d, min, ratio: d / min });
+        // `back` is an aggregate (lats + upper_back); no carryover pair targets it, so its
+        // coverage equals direct. For the single-muscle targets, add the carryover credit.
+        const credited = target === 'back' ? 0 : carryover[target as Muscle];
+        const coverage = d + credited;
+        if (coverage < min) gaps.push({ target, direct: d, min, ratio: d / min });
     }
     gaps.sort((a, b) => a.ratio - b.ratio || a.target.localeCompare(b.target));
     return gaps;
