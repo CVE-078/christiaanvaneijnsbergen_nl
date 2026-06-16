@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     GAP_FILL_TARGETS,
     GAP_FILL_SET_CEILING,
-    MUSCLE_COVERAGE_FLOOR,
+    coverageFloor,
     ISO_PATTERN_FOR,
     PER_SESSION_ADD_CAP,
     poolCanTrainMuscle,
@@ -30,13 +30,12 @@ function iso(id: string, muscle: Muscle, pattern: MovementPattern, name?: string
 const qualityOf = (e: ExerciseMeta) => (e.name === 'Good' ? 1 : e.name === 'Bad' ? 0.2 : 0.8);
 
 describe('gapFill constants', () => {
-    it('targets exactly the six accessory muscles (chest/back/quads excluded)', () => {
+    it('targets the seven gap-fill muscles incl. chest (back/quads excluded)', () => {
         expect([...GAP_FILL_TARGETS].sort()).toEqual(
-            ['biceps', 'glutes', 'hamstrings', 'rear_delts', 'side_delts', 'triceps'].sort(),
+            ['biceps', 'chest', 'glutes', 'hamstrings', 'rear_delts', 'side_delts', 'triceps'].sort(),
         );
-        expect(MUSCLE_COVERAGE_FLOOR).not.toHaveProperty('chest');
-        expect(MUSCLE_COVERAGE_FLOOR).not.toHaveProperty('back');
-        expect(MUSCLE_COVERAGE_FLOOR).not.toHaveProperty('quads');
+        expect(GAP_FILL_TARGETS).not.toContain('back');
+        expect(GAP_FILL_TARGETS).not.toContain('quads');
     });
     it('maps each target to its isolation pattern (never a compound anchor)', () => {
         expect(ISO_PATTERN_FOR.side_delts).toBe('shoulder_iso');
@@ -130,7 +129,7 @@ describe('applyCoverageGapFill', () => {
         const pool = [iso('bi', 'biceps', 'biceps_iso')];
         const out = applyCoverageGapFill(input({ exercises: [row('bi', 0, 3)], pool, usable: pool }) as never);
         expect(out).toHaveLength(1);
-        expect(Number(out[0].sets)).toBe(MUSCLE_COVERAGE_FLOOR.biceps); // 6
+        expect(Number(out[0].sets)).toBe(coverageFloor('biceps', 1)); // 6 at 1 day
     });
 
     it('respects ROUTINE_ADD_CAP across many zeros', () => {
@@ -169,5 +168,30 @@ describe('applyCoverageGapFill', () => {
         // Sets never exceed the ceiling.
         expect(Number(out[0].sets)).toBeLessThanOrEqual(GAP_FILL_SET_CEILING);
         expect(Number(out[0].sets)).toBe(atCeiling);
+    });
+});
+
+describe('coverageFloor (Change B: frequency-scaled)', () => {
+    it('keeps low-frequency floors and raises 4-6 day accessory floors', () => {
+        expect(coverageFloor('side_delts', 3)).toBe(6);
+        expect(coverageFloor('side_delts', 4)).toBe(8);
+        expect(coverageFloor('side_delts', 6)).toBe(8);
+        expect(coverageFloor('rear_delts', 3)).toBe(4);
+        expect(coverageFloor('rear_delts', 5)).toBe(6);
+        expect(coverageFloor('glutes', 4)).toBe(8); // raised to match hamstrings
+        expect(coverageFloor('hamstrings', 4)).toBe(8);
+    });
+    it('chest floor is a flat 6 at every frequency (Change C)', () => {
+        expect(coverageFloor('chest', 2)).toBe(6);
+        expect(coverageFloor('chest', 4)).toBe(6);
+        expect(coverageFloor('chest', 6)).toBe(6);
+    });
+});
+
+describe('chest is a gap-fill target (Change C)', () => {
+    it('GAP_FILL_TARGETS includes chest; back and quads are absent', () => {
+        expect(GAP_FILL_TARGETS).toContain('chest');
+        expect(GAP_FILL_TARGETS).not.toContain('back');
+        expect(GAP_FILL_TARGETS).not.toContain('quads');
     });
 });
