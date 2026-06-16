@@ -21,6 +21,7 @@ import type {
 import type { ExperienceLevel, Goal, OnboardingAnswers } from './recommendation';
 import { EMPTY_BEHAVIOR, type BehaviorSignal } from './behavior';
 import { estimateSessionMinutes } from './utils';
+import { applyCoverageGapFill } from './gapFill';
 
 export type { Focus };
 
@@ -1108,7 +1109,7 @@ const NEUTRAL_QUALITY = 0.8;
 
 /** Isolation-quality score for an exercise (higher = better). Unlisted / nameless ->
  *  NEUTRAL_QUALITY, so the layer is a no-op for synthetic pools and a pure tiebreak. */
-function isolationQuality(ex: ExerciseMeta): number {
+export function isolationQuality(ex: ExerciseMeta): number {
     return ex.name ? (ISOLATION_QUALITY[ex.name] ?? NEUTRAL_QUALITY) : NEUTRAL_QUALITY;
 }
 
@@ -1882,6 +1883,7 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
 
     const restrictions = new Set(input.restrictions ?? []);
     const usable = usablePool(pool, answers.equipment, restrictions);
+    const poolById = new Map(pool.map((e) => [e.id, e]));
     const used = new Set<string>();
     // Routine-wide record of substitution_class values already selected, so
     // selectForSession can soft-deprioritize functionally-identical lifts that
@@ -1918,6 +1920,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const perSessionRows: Array<
         Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }>
     > = [];
+    // Per-session context for gap-fill: keyed `${workout_type}:${variant ?? ''}`.
+    const sessionCtx = new Map<string, { focus: Focus; isoReps: string; baseSets: number }>();
 
     style.sessions.forEach((session, i) => {
         if (i >= days.length) return;
@@ -2029,6 +2033,14 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         // Sets: 3 normally; 4 for the first compound of a strength-bias session.
         let firstCompoundBumped = false;
         const baseSets = Math.max(3, sets);
+        // Context gap-fill needs to add an isolation to this session later: an
+        // isolation's reps depend on (bias, goal, style, focus), not the specific iso
+        // pattern, so one resolved value per session is correct.
+        sessionCtx.set(`${workout_type}:${variant ?? ''}`, {
+            focus: session.focus,
+            isoReps: resolveRepRange(effectiveBias, 'biceps_iso', false, answers.goal, styleForBias, answers.experience, session.focus),
+            baseSets,
+        });
         const sessionRows: Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }> =
             [];
 
@@ -2095,6 +2107,40 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             total += 1;
             budget -= 1;
         }
+    }
+
+    // Tier-2 Spec 3: minimum-coverage gap-fill. Gated on muscle attribution, so on a
+    // synthetic pool (no primary_muscle) nothing runs and the goldens stay byte-
+    // identical. Runs AFTER the priority bump and BEFORE the duration guard so any
+    // added work is reflected in the over_time estimate.
+    if (usable.some((e) => e.primary_muscle)) {
+        const filled = applyCoverageGapFill({
+            exercises,
+            schedule,
+            pool,
+            usable,
+            sessionCtx,
+            qualityOf: isolationQuality,
+            bandMaxMin: SESSION_TIME_MAX_MIN[sessionTime],
+        });
+        // Replace the exercises list in place with the gap-filled one.
+        exercises.length = 0;
+        exercises.push(...filled);
+        // Rebuild perSessionRows from the final exercises so the duration guard sees
+        // the additions (group by session, derive is_compound from the pool).
+        const bySession = new Map<string, Array<{ sets: number; is_compound: boolean; reps: string; supersetGroupId: string | null }>>();
+        for (const s of schedule) bySession.set(`${s.workout_type}:${s.variant ?? ''}`, []);
+        for (const e of exercises) {
+            const key = `${e.workout_type}:${e.variant ?? ''}`;
+            bySession.get(key)?.push({
+                sets: Number(e.sets),
+                is_compound: poolById.get(e.exercise_id)?.is_compound ?? false,
+                reps: e.reps,
+                supersetGroupId: e.superset_group_id,
+            });
+        }
+        perSessionRows.length = 0;
+        perSessionRows.push(...bySession.values());
     }
 
     // Duration guard (P1.4): flag (never trim) a session whose estimate exceeds its
