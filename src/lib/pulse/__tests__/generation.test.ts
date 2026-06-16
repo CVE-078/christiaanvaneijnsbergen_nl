@@ -4154,3 +4154,32 @@ describe('style-aware anchorRank', () => {
         );
     });
 });
+
+describe('weekly isolation-repetition cap', () => {
+    it('rotates a fresh back_iso in over a repeated higher-quality one across sessions', () => {
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'back_iso')
+            .concat([
+                meta('pull', 'back_iso', ['dumbbells'], false, { name: 'Dumbbell Pullover', quality: 0.72 } as Partial<ExerciseMeta>),
+                meta('saw', 'back_iso', ['cables'], false, { name: 'Straight-Arm Pulldown', quality: 0.95 } as Partial<ExerciseMeta>),
+            ]);
+        // A multi-session split with >=2 back_iso slots across the week.
+        const style = STYLES[4].find((s) => s.key === 'ul-classic-4') as ProgramStyle;
+        // Include cables so 'saw' passes the equipment filter.
+        const bp = generateRoutine(input({
+            style,
+            trainingDays: [1, 2, 4, 5],
+            pool,
+            answers: { equipment: new Set<EquipmentKey>(['dumbbells', 'cables']), experience: 'intermediate', goal: 'build_muscle', days: 4 },
+        }));
+        const backIsoIds = bp.exercises
+            .filter((e) => pool.find((p) => p.id === e.exercise_id)?.movement_pattern === 'back_iso')
+            .map((e) => e.exercise_id);
+        // Both appear across the week rather than the same one twice (soft cap + quality).
+        expect(new Set(backIsoIds).size).toBeGreaterThanOrEqual(Math.min(2, backIsoIds.length));
+        // The higher-quality Straight-Arm is selected at least as often as Pullover.
+        const saw = backIsoIds.filter((id) => id === 'saw').length;
+        const pull = backIsoIds.filter((id) => id === 'pull').length;
+        expect(saw).toBeGreaterThanOrEqual(pull);
+    });
+});

@@ -1334,6 +1334,8 @@ function selectForSession(
     bias: Bias = 'balanced',
     goal?: Goal,
     style: TrainingStyle = 'balanced',
+    usedCount: Map<string, number> = new Map(),
+    sessionMode: 'short' | 'normal' = 'normal',
 ): { selected: Selected[]; floorUnmet: boolean } {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
     // Resolved once per session so the byPattern comparator can use it for style-aware
@@ -1463,19 +1465,23 @@ function selectForSession(
                 const aComp = a.is_compound ? 0 : 1;
                 const bComp = b.is_compound ? 0 : 1;
                 if (aComp !== bComp) return aComp - bComp;
-                // (#3) Isolation-quality, ABOVE the fatigue tiebreak and on non-anchor
-                // (isolation / accessory) patterns only -- the isolation analog of the
-                // canonical-anchor rank above. Higher ISOLATION_QUALITY wins, so the
-                // engine stops defaulting to a low-fatigue-but-poor isolation (Tricep
-                // Kickback / Concentration Curl / Front Raise) just because the accessory
-                // fatigue tiebreak below prefers lower fatigue. Unlisted / nameless
-                // exercises share NEUTRAL_QUALITY (both equal -> falls through), so
-                // synthetic pools stay byte-identical to base. Anchor patterns are gated
-                // off here (they keep CANONICAL_ANCHORS).
+                // (context-scoring spec 2026-06-16): replace the flat ISOLATION_QUALITY
+                // layer with contextScore, which adds style affinity, rep-fit bonus, and
+                // a saturating weekly-repeat penalty. Nameless/metadata-absent exercises
+                // score NEUTRAL_QUALITY uniformly, so synthetic pools stay byte-identical
+                // to base. Anchor patterns are gated off (they keep CANONICAL_ANCHORS).
                 if (!anchorPattern) {
-                    const aQuality = isolationQuality(a);
-                    const bQuality = isolationQuality(b);
-                    if (aQuality !== bQuality) return bQuality - aQuality;
+                    const aScore = contextScore(a, {
+                        goal, style, focus, repBand: bandFor(a, p),
+                        priorCount: usedCount.get(a.id) ?? 0,
+                        sessionMode,
+                    }).total;
+                    const bScore = contextScore(b, {
+                        goal, style, focus, repBand: bandFor(b, p),
+                        priorCount: usedCount.get(b.id) ?? 0,
+                        sessionMode,
+                    }).total;
+                    if (aScore !== bScore) return bScore - aScore;
                 }
                 // (6) Role-aware fatigue tiebreak, below canonical now. Anchor patterns
                 // prefer the higher-fatigue primary lift (fatigue tracks mechanical stimulus
@@ -1511,6 +1517,7 @@ function selectForSession(
         chosen.push({ ex, pattern: slot });
         chosenIds.add(ex.id);
         used.add(ex.id);
+        usedCount.set(ex.id, (usedCount.get(ex.id) ?? 0) + 1);
         if (ex.substitution_class !== null) usedSubstitutionClasses.add(ex.substitution_class);
         // Only a unilateral COMPOUND consumes the cap (see unilateralCapApplies): a
         // unilateral isolation accessory must not block the session's primary lunge.
@@ -2100,6 +2107,11 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
     const usable = usablePool(pool, answers.equipment, restrictions);
     const poolById = new Map(pool.map((e) => [e.id, e]));
     const used = new Set<string>();
+    // Routine-wide selection count map: tracks how many times each exercise has been
+    // chosen across all sessions so far this routine. Used by contextScore's repeat
+    // penalty to rotate variety across the week. Lives beside `used` so both persist
+    // across sessions the same way.
+    const usedCount = new Map<string, number>();
     // Routine-wide record of substitution_class values already selected, so
     // selectForSession can soft-deprioritize functionally-identical lifts that
     // resurface under a different name/equipment (e.g. Romanian Deadlift on
@@ -2177,6 +2189,8 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             effectiveBias,
             answers.goal,
             styleForBias,
+            usedCount,
+            isSuperset ? 'short' : 'normal',
         );
 
         // Live-test Issue 1: an unmet compound floor (some compounds, fewer
