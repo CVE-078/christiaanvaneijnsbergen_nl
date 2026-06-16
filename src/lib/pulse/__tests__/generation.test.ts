@@ -21,6 +21,7 @@ import {
     POWERBUILDING_HEAVY_PATTERNS,
     COMPOUND_ANCHOR_PATTERNS,
     CANONICAL_ANCHORS,
+    ISOLATION_QUALITY,
     assignRole,
     focusLabelForEmphasis,
     PRIORITY_MUSCLE_SET_CEILING,
@@ -2597,6 +2598,92 @@ describe('generation engine bug fixes (2026-06-10)', () => {
             for (const names of Object.values(CANONICAL_ANCHORS)) {
                 for (const n of names ?? []) expect(seed).toContain(`name = '${n}'`);
             }
+        });
+
+        it('is a no-op for synthetic (nameless) pools: byte-identical to base', () => {
+            for (const config of [{ days: [1, 3, 5] }, { days: [1, 2, 4, 5] }, { days: [1, 2, 3, 4, 5, 6] }]) {
+                const style = STYLES[config.days.length][0] as ProgramStyle;
+                const base = JSON.stringify(generateRoutine(input({ style, trainingDays: config.days })));
+                const again = JSON.stringify(generateRoutine(input({ style, trainingDays: config.days })));
+                expect(again).toBe(base);
+            }
+        });
+    });
+
+    // ── #3: isolation-quality ranking ─────────────────────────────────────────
+    // ISOLATION_QUALITY (science review, 2026-06-16) is wired into byPattern ABOVE
+    // the fatigue tiebreak, on non-anchor (isolation) patterns only, so the engine
+    // stops defaulting to low-fatigue-but-poor isolations (Kickback / Concentration
+    // Curl / Front Raise) on the real catalogue. Name-keyed (mirrors CANONICAL_ANCHORS).
+    describe('#3: isolation quality outranks the fatigue tiebreak on the real catalogue', () => {
+        it('picks the higher-quality Cable Curl over Concentration Curl for a biceps_iso slot', () => {
+            // Both biceps_iso isolation. Concentration Curl has the LOWER fatigue (1),
+            // which the accessory fatigue tiebreak prefers, and the alphabetically
+            // earlier id, so it won before #3. Quality (Cable Curl 1.0 > Concentration
+            // Curl 0.70) now decides first.
+            const pool = deepPool()
+                .filter((e) => e.movement_pattern !== 'biceps_iso')
+                .concat([
+                    meta('aaa-conc', 'biceps_iso', ['dumbbells'], false, {
+                        fatigue: 1,
+                        substitution_class: 'biceps_isolation',
+                        name: 'Concentration Curl',
+                    }),
+                    meta('zzz-cable', 'biceps_iso', ['dumbbells'], false, {
+                        fatigue: 2,
+                        substitution_class: 'biceps_isolation',
+                        name: 'Cable Curl',
+                    }),
+                ]);
+            const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+            const pull = sessionIds(bp, 'pull', null);
+            expect(pull).toContain('zzz-cable'); // quality wins despite higher fatigue + later id
+            expect(pull).not.toContain('aaa-conc');
+        });
+
+        it('an explicitly poor isolation is left out, beaten even by an unscored option (Tricep Kickback sinks)', () => {
+            // ppl-3 push has two triceps_iso slots (the deliberate 6th), both non-anchor,
+            // so quality ranks BOTH picks. Of the three candidates the two higher-quality
+            // fill in quality order -- the scored Skull Crusher (0.90) then the UNSCORED
+            // Single-Arm Tricep Pushdown (NEUTRAL 0.80) -- and the explicitly poor Tricep
+            // Kickback (0.55) is left out, even though its lower fatigue won it the
+            // accessory tiebreak before #3.
+            const pool = deepPool()
+                .filter((e) => e.movement_pattern !== 'triceps_iso')
+                .concat([
+                    meta('aaa-kick', 'triceps_iso', ['dumbbells'], false, {
+                        fatigue: 1,
+                        substitution_class: 'triceps_isolation',
+                        name: 'Tricep Kickback',
+                    }),
+                    meta('mmm-push', 'triceps_iso', ['dumbbells'], false, {
+                        fatigue: 3,
+                        substitution_class: 'triceps_isolation',
+                        name: 'Single-Arm Tricep Pushdown', // unscored -> NEUTRAL_QUALITY
+                    }),
+                    meta('zzz-skull', 'triceps_iso', ['dumbbells'], false, {
+                        fatigue: 2,
+                        substitution_class: 'triceps_isolation',
+                        name: 'Skull Crusher',
+                    }),
+                ]);
+            const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+            const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+            const push = sessionIds(bp, 'push', null);
+            expect(push).toContain('zzz-skull'); // 0.90
+            expect(push).toContain('mmm-push'); // unscored 0.80 beats the poor kickback
+            expect(push).not.toContain('aaa-kick'); // 0.55, excluded
+        });
+
+        it('every ISOLATION_QUALITY exercise name exists verbatim in the metadata seed', () => {
+            // Same name-key fragility guard as CANONICAL_ANCHORS: a renamed seed
+            // exercise silently degrades its quality to NEUTRAL_QUALITY.
+            const seed = readFileSync(
+                resolve(process.cwd(), 'docs/migrations/2026-06-06-11-28-49-exercise-metadata-fields-seed.sql'),
+                'utf8',
+            );
+            for (const n of Object.keys(ISOLATION_QUALITY)) expect(seed).toContain(`name = '${n}'`);
         });
 
         it('is a no-op for synthetic (nameless) pools: byte-identical to base', () => {

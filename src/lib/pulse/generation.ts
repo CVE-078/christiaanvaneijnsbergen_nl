@@ -1032,6 +1032,77 @@ function anchorRank(ex: ExerciseMeta, pattern: MovementPattern): number {
     return i === -1 ? Infinity : i;
 }
 
+// Isolation-quality scores (0-1, higher = better hypertrophy default): loadability,
+// resistance curve, stability, lengthened-position bias. From the ChatGPT + Perplexity
+// science review over real-catalog outputs (2026-06-16). The isolation analog of
+// CANONICAL_ANCHORS: it is wired into byPattern ABOVE the fatigue tiebreak, but ONLY on
+// non-anchor (isolation / accessory) patterns -- the six COMPOUND_ANCHOR_PATTERNS keep
+// CANONICAL_ANCHORS. Before #3 the accessory fatigue tiebreak (lower fatigue first)
+// systematically defaulted to low-fatigue-but-poor isolations (Tricep Kickback,
+// Concentration Curl, Front Raise); quality now decides first.
+//
+// FRAGILITY: keyed by exercise NAME (ids are UUIDs, not stable across environments).
+// A renamed seed exercise silently degrades its quality to NEUTRAL_QUALITY. A
+// catalog-consistency test (generation.test.ts) asserts every name here exists in the
+// metadata seed. Longer term this wants a `quality` column next to `fatigue` (mirrors
+// the anchor_rank follow-up). Only exercises that live on an ISOLATION pattern are
+// listed: Straight-Arm Pulldown scored 1.0 in the review but the catalog tags it
+// vertical_pull / compound (an anchor pattern), so CANONICAL_ANCHORS governs it, not
+// quality, and it is omitted here.
+export const ISOLATION_QUALITY: Record<string, number> = {
+    // Biceps (biceps_iso)
+    'Cable Curl': 1.0,
+    'Incline Dumbbell Curl': 0.95,
+    'Preacher Curl': 0.95,
+    'Dumbbell Curl': 0.9,
+    'Dumbbell Bicep Curl': 0.9,
+    'Dumbbell Hammer Curl': 0.9,
+    'Spider Curl': 0.85,
+    'Concentration Curl': 0.7,
+    // Triceps (triceps_iso). The review's "Cable Pushdown" maps to the catalogue's
+    // Tricep Pushdown; the kickback it scored lowest is the catalogue's Tricep Kickback
+    // (the catalogue's "Cable Kickback" is a glute movement, deliberately not listed).
+    'Tricep Pushdown': 1.0,
+    'Cable Overhead Tricep Extension': 0.95,
+    'Dumbbell Tricep Overhead Extension': 0.95,
+    Dips: 0.95,
+    'Skull Crusher': 0.9,
+    'Diamond / Close-Grip Push-Up': 0.8,
+    'Tricep Kickback': 0.55,
+    // Side / rear delt (shoulder_iso)
+    'Lateral Raise': 1.0,
+    'Dumbbell Lateral Raise': 1.0,
+    'Face Pull': 0.95,
+    'Dumbbell Face Pull (Bent-Over)': 0.95,
+    'Rear Delt Fly': 0.95,
+    'Dumbbell Reverse Fly': 0.9,
+    'Upright Row': 0.85,
+    // Arnold Press is tagged shoulder_iso / non-compound in the catalogue (it competes
+    // for a shoulder_iso slot, not a vertical_push anchor), so its review score applies
+    // here: a passable but low side/rear-delt isolation, below the lateral raises.
+    'Arnold Press': 0.75,
+    'Front Raise': 0.6,
+    // Chest (chest_iso)
+    'Cable Fly': 1.0,
+    'Chest Fly': 0.9,
+    // Back (back_iso)
+    'Dumbbell Pullover': 0.85,
+    'Dumbbell Shrug': 0.8,
+};
+
+// Quality for an unlisted isolation: above the explicitly poor scores (Tricep Kickback
+// 0.55, Front Raise 0.60, Concentration Curl 0.70, Arnold Press 0.75) and below the
+// good defaults, so a solid unscored option (Barbell Curl, Pec Deck) still beats the
+// poor ones while the top-scored picks lead. Identical for every unlisted exercise, so
+// nameless synthetic pools all tie on this key and stay byte-identical to base.
+const NEUTRAL_QUALITY = 0.8;
+
+/** Isolation-quality score for an exercise (higher = better). Unlisted / nameless ->
+ *  NEUTRAL_QUALITY, so the layer is a no-op for synthetic pools and a pure tiebreak. */
+function isolationQuality(ex: ExerciseMeta): number {
+    return ex.name ? (ISOLATION_QUALITY[ex.name] ?? NEUTRAL_QUALITY) : NEUTRAL_QUALITY;
+}
+
 // ── Slot selection (cross-session avoid-set) ─────────────────────────────────
 
 interface Selected {
@@ -1167,6 +1238,20 @@ function selectForSession(
                 const aComp = a.is_compound ? 0 : 1;
                 const bComp = b.is_compound ? 0 : 1;
                 if (aComp !== bComp) return aComp - bComp;
+                // (#3) Isolation-quality, ABOVE the fatigue tiebreak and on non-anchor
+                // (isolation / accessory) patterns only -- the isolation analog of the
+                // canonical-anchor rank above. Higher ISOLATION_QUALITY wins, so the
+                // engine stops defaulting to a low-fatigue-but-poor isolation (Tricep
+                // Kickback / Concentration Curl / Front Raise) just because the accessory
+                // fatigue tiebreak below prefers lower fatigue. Unlisted / nameless
+                // exercises share NEUTRAL_QUALITY (both equal -> falls through), so
+                // synthetic pools stay byte-identical to base. Anchor patterns are gated
+                // off here (they keep CANONICAL_ANCHORS).
+                if (!anchorPattern) {
+                    const aQuality = isolationQuality(a);
+                    const bQuality = isolationQuality(b);
+                    if (aQuality !== bQuality) return bQuality - aQuality;
+                }
                 // (6) Role-aware fatigue tiebreak, below canonical now. Anchor patterns
                 // prefer the higher-fatigue primary lift (fatigue tracks mechanical stimulus
                 // for main compounds); accessories prefer the lower-fatigue option. Untagged
