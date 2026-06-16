@@ -4033,6 +4033,22 @@ describe('clampRepsToWindow', () => {
     });
 });
 
+describe('gross rep-mismatch selection', () => {
+    it('prefers a real OHP over Push Press on a hypertrophy day when both exist', () => {
+        const pool = deepPool()
+            .filter((e) => e.movement_pattern !== 'vertical_push')
+            .concat([
+                meta('ohp', 'vertical_push', ['dumbbells'], true, { name: 'Dumbbell Overhead Press' }),
+                meta('pp', 'vertical_push', ['dumbbells'], true, { name: 'Push Press', rep_min: 3, rep_max: 5 }),
+            ]);
+        const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 3, 5], pool }));
+        const push = sessionIds(bp, 'push', null);
+        expect(push).toContain('ohp');
+        expect(push).not.toContain('pp');
+    });
+});
+
 describe('rep windows in generation', () => {
     it('clamps Push Press to its window if it lands on a hypertrophy session', () => {
         const pool = deepPool().concat([

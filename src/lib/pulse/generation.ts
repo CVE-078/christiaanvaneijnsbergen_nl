@@ -1208,8 +1208,20 @@ function selectForSession(
     loadingLean?: LoadingPreference | null,
     behavior: BehaviorSignal = EMPTY_BEHAVIOR,
     experience?: ExperienceLevel,
+    bias: Bias = 'balanced',
+    goal?: Goal,
+    style: TrainingStyle = 'balanced',
 ): { selected: Selected[]; floorUnmet: boolean } {
     const preferredKey = loadingLean ? LOADING_TO_EQUIPMENT[loadingLean] : null;
+    // The prescribed rep band for a candidate in slot `p` (mirrors the assignment-time
+    // call, minus floorRepRangeForLoad which never widens past a window). Used by the
+    // gross rep-mismatch layer. Pure of side effects.
+    const bandFor = (ex: ExerciseMeta, p: MovementPattern): [number, number] => {
+        const r = resolveRepRange(bias, p, ex.is_compound, goal, style, experience, focus);
+        const lo = Number(r.split('-')[0]);
+        const hi = Number(r.split('-')[1] ?? r.split('-')[0]);
+        return [Number.isFinite(lo) ? lo : 1, Number.isFinite(hi) ? hi : 999];
+    };
     // Behavior demote (#7): O(1) membership for the sort layer below.
     const demoteSet = new Set(behavior.demote);
 
@@ -1290,6 +1302,15 @@ function selectForSession(
                 const aFrontRaise = verticalPushFilled && a.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
                 const bFrontRaise = verticalPushFilled && b.substitution_class === FRONT_DELT_ISOLATION ? 1 : 0;
                 if (aFrontRaise !== bFrontRaise) return aFrontRaise - bFrontRaise;
+                // Gross rep-mismatch (context-scoring spec, all patterns): a candidate
+                // whose window does not overlap its prescribed band sorts last. Dominant,
+                // above the canonical-anchor rank. No window -> never a mismatch, so
+                // nameless pools are unaffected and the goldens stay byte-identical.
+                const aWin = repWindow(a);
+                const bWin = repWindow(b);
+                const aMiss = aWin && !bandOverlapsWindow(bandFor(a, p), aWin) ? 1 : 0;
+                const bMiss = bWin && !bandOverlapsWindow(bandFor(b, p), bWin) ? 1 : 0;
+                if (aMiss !== bMiss) return aMiss - bMiss;
                 // (5) Canonical-anchor rank (Bug 2): for explicitly named anchors the
                 // canonical primary compound is authoritative and is applied BEFORE the
                 // fatigue heuristic (2026-06-10). This lets Romanian Deadlift anchor hinge
@@ -2026,6 +2047,9 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
             input.loadingLean,
             input.behavior ?? EMPTY_BEHAVIOR,
             answers.experience,
+            effectiveBias,
+            answers.goal,
+            styleForBias,
         );
 
         // Live-test Issue 1: an unmet compound floor (some compounds, fewer
