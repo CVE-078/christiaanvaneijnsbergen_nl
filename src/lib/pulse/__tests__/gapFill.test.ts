@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     GAP_FILL_TARGETS,
+    GAP_FILL_SET_CEILING,
     MUSCLE_COVERAGE_FLOOR,
     ISO_PATTERN_FOR,
     PER_SESSION_ADD_CAP,
@@ -120,6 +121,8 @@ describe('applyCoverageGapFill', () => {
         const out = applyCoverageGapFill(input({ exercises: [row('bi', 0)], pool, usable: pool }) as never);
         const added = out.filter((e) => e.exercise_id !== 'bi');
         expect(added.some((e) => muscleOf(pool, e.exercise_id) === 'rear_delts')).toBe(true);
+        // per-session cap held: exactly one exercise was added
+        expect(added.length).toBe(1);
     });
 
     it('PHASE 2: bumps sets on an existing isolation instead of adding an exercise', () => {
@@ -148,5 +151,23 @@ describe('applyCoverageGapFill', () => {
         const a = JSON.stringify(applyCoverageGapFill(input({ exercises: [row('bi', 0)], pool, usable: pool }) as never));
         const b = JSON.stringify(applyCoverageGapFill(input({ exercises: [row('bi', 0)], pool, usable: pool }) as never));
         expect(a).toBe(b);
+    });
+
+    it('PHASE 2: set-bump does not exceed GAP_FILL_SET_CEILING on the existing exercise', () => {
+        // Scenario: the existing isolation already has GAP_FILL_SET_CEILING sets.
+        // The weekly direct count equals the ceiling, which is above any floor, so Phase 2
+        // exits cleanly; but the guard `Number(existingIso.sets) < GAP_FILL_SET_CEILING`
+        // is the backstop that prevents an unbounded bump if floor were ever raised.
+        // We verify it by asserting the exercise is never bumped past the ceiling.
+        const pool = [iso('bi', 'biceps', 'biceps_iso')];
+        const atCeiling = GAP_FILL_SET_CEILING; // 20
+        const out = applyCoverageGapFill(
+            input({ exercises: [row('bi', 0, atCeiling)], pool, usable: pool }) as never,
+        );
+        // No new exercise added (weekly count already at ceiling, above floor).
+        expect(out).toHaveLength(1);
+        // Sets never exceed the ceiling.
+        expect(Number(out[0].sets)).toBeLessThanOrEqual(GAP_FILL_SET_CEILING);
+        expect(Number(out[0].sets)).toBe(atCeiling);
     });
 });

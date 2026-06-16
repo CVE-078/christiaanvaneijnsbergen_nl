@@ -59,7 +59,7 @@ export const GAP_FILL_SET_CEILING = 20;
 /** True when the usable pool has a direct isolation for the muscle (so gap-fill can
  *  actually add work for it). */
 export function poolCanTrainMuscle(muscle: Muscle, usable: ExerciseMeta[]): boolean {
-    return usable.some((e) => e.primary_muscle === muscle);
+    return usable.some((e) => e.primary_muscle === muscle && !e.is_compound);
 }
 
 /** The best isolation in the usable pool for a muscle: highest quality first, then
@@ -104,8 +104,9 @@ const sessionKey = (wt: string, variant: string | null) => `${wt}:${variant ?? '
 const PATTERN_CAP = 2;
 
 /** Append isolation work to close small-muscle gaps. Returns a new exercises array;
- *  never reorders or removes. No-op (returns the input array) when no exercise carries
- *  a primary_muscle, which keeps synthetic-pool goldens byte-identical. */
+ *  never reorders or removes. No-op (returns the exercises unchanged) when NO exercise
+ *  in the session carries a primary_muscle via the provided pool; a mixed pool with at
+ *  least one attributed exercise runs the pass and gap-fills only attributed muscles. */
 export function applyCoverageGapFill(input: GapFillInput): Row[] {
     const { schedule, pool, usable, sessionCtx, qualityOf, bandMaxMin } = input;
     const metaById = new Map(pool.map((e) => [e.id, e]));
@@ -195,6 +196,8 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
     };
 
     // ---- Phase 1: eliminate zeros (trainable) ----
+    // Snapshot is taken once; safe because seating an isolation for one muscle never
+    // un-zeros a different muscle (the isolation pool is single-muscle).
     const zeroTargets = GAP_FILL_TARGETS.filter((m) => direct()[m] === 0 && poolCanTrainMuscle(m, usable));
     for (const muscle of zeroTargets) {
         if (added >= ROUTINE_ADD_CAP) break;
@@ -203,17 +206,24 @@ export function applyCoverageGapFill(input: GapFillInput): Row[] {
     }
 
     // ---- Phase 2: nudge below-floor partials ----
+    // Snapshot the tally once for ordering; ties break by declaration order in GAP_FILL_TARGETS.
+    const postPhase1 = direct();
     const ordered = [...GAP_FILL_TARGETS].sort(
-        (a, b) => direct()[a] / MUSCLE_COVERAGE_FLOOR[a] - direct()[b] / MUSCLE_COVERAGE_FLOOR[b],
+        (a, b) =>
+            postPhase1[a] / MUSCLE_COVERAGE_FLOOR[a] - postPhase1[b] / MUSCLE_COVERAGE_FLOOR[b] ||
+            GAP_FILL_TARGETS.indexOf(a) - GAP_FILL_TARGETS.indexOf(b),
     );
     for (const muscle of ordered) {
         let guard = 0;
-        while (direct()[muscle] < MUSCLE_COVERAGE_FLOOR[muscle] && guard++ < 50) {
+        while (guard++ < 50) {
+            // Compute current sets once per iteration, not inside a comparator.
+            const sets = direct()[muscle];
+            if (sets >= MUSCLE_COVERAGE_FLOOR[muscle]) break;
             // try a set-bump on the cheapest existing isolation for this muscle
             const existingIso = exercises
                 .filter((e) => metaById.get(e.exercise_id)?.primary_muscle === muscle)
                 .sort((a, b) => Number(a.sets) - Number(b.sets))[0];
-            if (existingIso && direct()[muscle] < GAP_FILL_SET_CEILING && Number(existingIso.sets) < GAP_FILL_SET_CEILING) {
+            if (existingIso && sets < GAP_FILL_SET_CEILING && Number(existingIso.sets) < GAP_FILL_SET_CEILING) {
                 existingIso.sets = String(Number(existingIso.sets) + 1);
                 continue;
             }
