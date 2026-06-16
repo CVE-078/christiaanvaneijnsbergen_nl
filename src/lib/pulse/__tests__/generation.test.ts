@@ -3937,3 +3937,14 @@ describe('generated schedule carries focus labels for paired styles (Bug 6)', ()
         expect(labels['lower:B']).toBeNull();
     });
 });
+
+describe('gap-fill: no-op on synthetic (unattributed) pools', () => {
+    it('output is byte-identical to base for every style/day-count', () => {
+        for (const config of [{ days: [1, 3, 5] }, { days: [1, 2, 4, 5] }, { days: [1, 2, 3, 4, 5, 6] }]) {
+            const style = STYLES[config.days.length][0] as ProgramStyle;
+            const a = JSON.stringify(generateRoutine(input({ style, trainingDays: config.days })));
+            const b = JSON.stringify(generateRoutine(input({ style, trainingDays: config.days })));
+            expect(a).toBe(b);
+        }
+    });
+});
