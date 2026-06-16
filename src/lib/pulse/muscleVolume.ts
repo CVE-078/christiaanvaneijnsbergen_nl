@@ -124,3 +124,56 @@ export function muscleCoverageGaps(blueprint: RoutineBlueprint, pool: ExerciseMe
     gaps.sort((a, b) => a.ratio - b.ratio || a.target.localeCompare(b.target));
     return gaps;
 }
+
+/** The seed derivation for primary_muscle, mirrored from the migration's SQL CASE.
+ *  Production reads the STORED exercises.primary_muscle column (so manual corrections
+ *  stick); this helper is used only by (a) the seed-consistency test and (b) the
+ *  gen-routine.ts diagnostic as a fallback for un-seeded rows. It is an INITIAL SEED
+ *  HEURISTIC, not biomechanical truth (the back lats/upper_back split especially), and
+ *  individual exercises are revised manually over time. Total over every MovementPattern. */
+export function deriveSeedPrimaryMuscle(
+    pattern: MovementPattern | null,
+    substitutionClass: string | null,
+    name: string,
+): Muscle {
+    // Explicit overrides for fuzzy back_iso lifts (the rest of back_iso -> upper_back).
+    if (name === 'Dumbbell Pullover') return 'lats';
+
+    // Delt heads come from substitution_class (patterns cannot resolve front/side/rear).
+    if (substitutionClass === 'lateral_raise') return 'side_delts';
+    if (substitutionClass === 'rear_delt_isolation') return 'rear_delts';
+    if (substitutionClass === 'front_delt_isolation' || substitutionClass === 'vertical_press') return 'front_delts';
+    // Glute-dominant hinges (Hip Thrust, Glute Bridge) before the hinge -> hamstrings rule.
+    if (substitutionClass === 'glute_pattern' || pattern === 'glute_iso') return 'glutes';
+
+    switch (pattern) {
+        case 'squat':
+        case 'lunge':
+        case 'quad_iso':
+            return 'quads';
+        case 'hinge':
+        case 'hamstring_iso':
+            return 'hamstrings';
+        case 'vertical_pull':
+            return 'lats';
+        case 'horizontal_pull':
+        case 'back_iso':
+            return 'upper_back';
+        case 'horizontal_push':
+        case 'chest_iso':
+            return 'chest';
+        case 'vertical_push':
+            return 'front_delts';
+        case 'shoulder_iso':
+            return 'side_delts';
+        case 'biceps_iso':
+            return 'biceps';
+        case 'triceps_iso':
+            return 'triceps';
+        case 'calf':
+            return 'calves';
+        case 'core':
+        case null:
+            return 'core';
+    }
+}

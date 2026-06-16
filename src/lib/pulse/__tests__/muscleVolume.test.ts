@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { weeklyMuscleSets, muscleCoverageGaps, targetDirectSets, MUSCLE_SET_TARGETS } from '@/lib/pulse/muscleVolume';
+import { weeklyMuscleSets, muscleCoverageGaps, targetDirectSets, MUSCLE_SET_TARGETS, deriveSeedPrimaryMuscle } from '@/lib/pulse/muscleVolume';
 import type { ExerciseMeta, RoutineBlueprint } from '@/lib/pulse/generation';
-import type { Muscle } from '@/lib/pulse/types';
+import type { Muscle, MovementPattern } from '@/lib/pulse/types';
+import { MUSCLES } from '@/lib/pulse/types';
 
 // Minimal ExerciseMeta with a programming muscle.
 function ex(id: string, primary: Muscle, secondaries: Muscle[] = []): ExerciseMeta {
@@ -113,5 +114,37 @@ describe('muscleCoverageGaps', () => {
         const unattributed: ExerciseMeta = { ...ex('x', 'chest'), primary_muscle: undefined };
         const gaps = muscleCoverageGaps(bp([{ id: 'x', sets: 1 }]), [unattributed]);
         expect(gaps).toEqual([]);
+    });
+});
+
+describe('deriveSeedPrimaryMuscle (seed mirror)', () => {
+    const ALL_PATTERNS: MovementPattern[] = [
+        'horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull', 'squat', 'hinge',
+        'lunge', 'calf', 'core', 'chest_iso', 'back_iso', 'shoulder_iso', 'biceps_iso',
+        'triceps_iso', 'glute_iso', 'quad_iso', 'hamstring_iso',
+    ];
+    const valid = new Set<string>(MUSCLES);
+
+    it('returns a valid Muscle for every movement pattern (total coverage)', () => {
+        for (const p of ALL_PATTERNS) {
+            expect(valid.has(deriveSeedPrimaryMuscle(p, null, 'X'))).toBe(true);
+        }
+    });
+
+    it('resolves delt heads from substitution_class', () => {
+        expect(deriveSeedPrimaryMuscle('shoulder_iso', 'lateral_raise', 'Lateral Raise')).toBe('side_delts');
+        expect(deriveSeedPrimaryMuscle('shoulder_iso', 'rear_delt_isolation', 'Rear Delt Fly')).toBe('rear_delts');
+        expect(deriveSeedPrimaryMuscle('shoulder_iso', 'front_delt_isolation', 'Front Raise')).toBe('front_delts');
+        expect(deriveSeedPrimaryMuscle('vertical_push', 'vertical_press', 'Arnold Press')).toBe('front_delts');
+    });
+
+    it('disambiguates glute vs hamstring on the hinge family', () => {
+        expect(deriveSeedPrimaryMuscle('hinge', 'glute_pattern', 'Hip Thrust')).toBe('glutes');
+        expect(deriveSeedPrimaryMuscle('hinge', 'hinge_pattern', 'Romanian Deadlift')).toBe('hamstrings');
+    });
+
+    it('the lat-biased back_iso override resolves Dumbbell Pullover to lats', () => {
+        expect(deriveSeedPrimaryMuscle('back_iso', null, 'Dumbbell Pullover')).toBe('lats');
+        expect(deriveSeedPrimaryMuscle('back_iso', null, 'Dumbbell Shrug')).toBe('upper_back');
     });
 });
