@@ -279,6 +279,28 @@ export const EXERCISE_CATEGORIES = [
 ] as const;
 export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
 
+// Programming muscles (Tier-2 muscle-coverage warnings). A SEPARATE, finer concept
+// from the 10 ExerciseCategory reporting buckets: it splits shoulders into front/side/
+// rear delts and legs into quads/hamstrings (glutes/calves already separate) so the
+// generator can be evaluated for per-muscle direct work. Programming coverage, not
+// biomechanical truth (see muscleVolume.ts).
+export const MUSCLES = [
+    'chest',
+    'lats',
+    'upper_back',
+    'front_delts',
+    'side_delts',
+    'rear_delts',
+    'biceps',
+    'triceps',
+    'quads',
+    'hamstrings',
+    'glutes',
+    'calves',
+    'core',
+] as const;
+export type Muscle = (typeof MUSCLES)[number];
+
 export interface VolumeTargetRow {
     category: ExerciseCategory;
     actual: number;

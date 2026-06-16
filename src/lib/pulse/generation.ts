@@ -6,6 +6,7 @@ import type {
     ExerciseCategory,
     Focus,
     MovementPattern,
+    Muscle,
     ProgramStyle,
     RestrictionFlag,
     SessionTime,
@@ -780,6 +781,14 @@ export interface ExerciseMeta {
      *  lifts in selection. Optional: absent => never deprioritised, so synthetic
      *  pools and the goldens are byte-identical. */
     difficulty?: ExperienceLevel;
+    /** Programming muscle this exercise directly trains (Tier-2 muscle-coverage
+     *  warnings). Optional: synthetic test pools omit it, so the tally treats them as
+     *  unattributed and the warning never fires on them (golden-stable). Real catalogue
+     *  exercises carry it (seeded by the primary-muscle migration). */
+    primary_muscle?: Muscle;
+    /** Fine secondary muscles (same Muscle taxonomy), feeding the diagnostic-only
+     *  effective-set estimate. Optional / may be empty. */
+    secondary_muscle_groups?: Muscle[];
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {
