@@ -115,6 +115,13 @@ describe('muscleCoverageGaps', () => {
         const gaps = muscleCoverageGaps(bp([{ id: 'x', sets: 1 }]), [unattributed]);
         expect(gaps).toEqual([]);
     });
+
+    it('flags a muscle that is in the pool but absent from the blueprint (0 sets)', () => {
+        // biceps has a pool exercise but the blueprint trains only chest -> biceps 0 < 8.
+        const pool = [...poolFor(['chest']), ...poolFor(['biceps'])];
+        const gaps = muscleCoverageGaps(bp([{ id: 'chest-0', sets: 12 }]), pool);
+        expect(gaps.some((g) => g.target === 'biceps')).toBe(true);
+    });
 });
 
 describe('deriveSeedPrimaryMuscle (seed mirror)', () => {

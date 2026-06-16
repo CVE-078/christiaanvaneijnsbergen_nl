@@ -58,7 +58,9 @@ export type MuscleTarget =
     | 'hamstrings'
     | 'glutes';
 
-/** Weekly direct-set bands (intermediate hypertrophy), the validated target table. */
+/** Weekly direct-set bands (intermediate hypertrophy), the validated target table.
+ *  `max` is stored for future and diagnostic use; it is NOT currently enforced.
+ *  The gap check is under-dose only (direct sets below `min`). */
 export const MUSCLE_SET_TARGETS: Record<MuscleTarget, { min: number; max: number }> = {
     chest: { min: 10, max: 16 },
     back: { min: 12, max: 18 },
