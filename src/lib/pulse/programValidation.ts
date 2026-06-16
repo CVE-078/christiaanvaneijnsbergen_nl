@@ -13,11 +13,17 @@ const PUSH_PULL_IMBALANCE = 'push_pull_imbalance';
 const LABEL_MISMATCH = 'label_mismatch';
 const NO_VERTICAL_PULL = 'no_vertical_pull';
 
-// Ideal push:pull is ~1:1 (slightly pull-favored is healthiest); normal programs
-// run up to ~1.5:1 press-heavy without concern, so 2:1 catches a genuine imbalance
-// with a buffer above normal (science-review consensus; 2.5 was too lenient). The
-// 6 frozen golden inputs stay below this (worst is fb-hmhp-4 ~1.83 by count).
-const PUSH_PULL_RATIO_MAX = 2.0;
+// Ideal push:pull is ~1:1, and a slight PULL favor is the healthiest per the cited
+// science. The two directions are NOT treated symmetrically (#4-refinement):
+//   - PRESS-heavy is the posture / shoulder risk the warning copy names, so it flags
+//     at 1.5:1 (tightened from the old symmetric 2.0; ~1.5:1 is the science consensus).
+//   - PULL-heavy (back-focused) is tolerated up to 2.0:1, so an intentional aesthetic
+//     back-lean (e.g. ul-aesthetic-4, ~1.89:1 pull-heavy by weighted sets) is not
+//     false-flagged; only an EXTREME pull lean past 2.0 warns.
+// All 6 frozen golden inputs stay clean under this (every one is pull-favored or ~1:1;
+// the most press-heavy, fb-hmhp-4, is ~1.01:1 by weighted sets).
+const PRESS_HEAVY_RATIO_MAX = 1.5;
+const PULL_HEAVY_RATIO_MAX = 2.0;
 
 // Push/pull balance is measured on the unambiguous contributors: chest + triceps
 // (press) vs back + biceps (pull). `shoulders` is deliberately EXCLUDED: the muscle
@@ -57,8 +63,12 @@ export function validateProgram(blueprint: RoutineBlueprint, pool: ExerciseMeta[
         for (const m of PRESS_MUSCLES) press += sets * (w[m] ?? 0);
         for (const m of PULL_MUSCLES) pull += sets * (w[m] ?? 0);
     }
-    if (press > 0 && pull > 0 && Math.max(press, pull) / Math.min(press, pull) > PUSH_PULL_RATIO_MAX) {
-        warnings.push(PUSH_PULL_IMBALANCE);
+    if (press > 0 && pull > 0) {
+        // Directional: the cap depends on which side dominates (press-heavy is the
+        // tighter, riskier direction; a pull-heavy back-lean is tolerated further).
+        const ratio = Math.max(press, pull) / Math.min(press, pull);
+        const cap = press >= pull ? PRESS_HEAVY_RATIO_MAX : PULL_HEAVY_RATIO_MAX;
+        if (ratio > cap) warnings.push(PUSH_PULL_IMBALANCE);
     }
 
     // CHECK 2: label-vs-structure. A labelled lower day must lead (lowest order) with
