@@ -154,4 +154,11 @@ describe('deriveSeedPrimaryMuscle (seed mirror)', () => {
         expect(deriveSeedPrimaryMuscle('back_iso', null, 'Dumbbell Pullover')).toBe('lats');
         expect(deriveSeedPrimaryMuscle('back_iso', null, 'Dumbbell Shrug')).toBe('upper_back');
     });
+
+    it('Dips (now horizontal_push compound) derives to chest, not triceps', () => {
+        expect(deriveSeedPrimaryMuscle('horizontal_push', 'horizontal_press', 'Dips')).toBe('chest');
+    });
+    it('Straight-Arm Pulldown (now back_iso) derives to lats', () => {
+        expect(deriveSeedPrimaryMuscle('back_iso', null, 'Straight-Arm Pulldown')).toBe('lats');
+    });
 });
