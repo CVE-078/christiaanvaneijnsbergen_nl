@@ -592,6 +592,18 @@ describe('measurable priority muscle (P3.2)', () => {
         // running-count gate violated this (it reached baseline + bumps).
         expect(chestSets(prioritized, patternOf)).toBeLessThanOrEqual(Math.max(baseChest, PRIORITY_MUSCLE_SET_CEILING));
     });
+
+    it('Item 3: priority chest reaches its target band minimum on an attributed pool', () => {
+        // The flat +4 dose left priority chest at ~8 of its 10-set band minimum (R6 in the
+        // 20-routine review). On an ATTRIBUTED pool the reach-target dose deepens chest to
+        // its band (10-16); on synthetic pools (the tests above) the flat +4 still applies.
+        const pool = attributedDumbbellPool();
+        const style = STYLES[4].find((s) => s.key === 'ul-aesthetic-4') as ProgramStyle;
+        const bp = generateRoutine(input({ style, trainingDays: [1, 2, 4, 5], pool, priority: 'chest' }));
+        const chest = weeklyMuscleSets(bp, pool).chest.direct;
+        expect(chest).toBeGreaterThanOrEqual(10); // chest band minimum
+        expect(chest).toBeLessThanOrEqual(16); // never past the band maximum
+    });
 });
 
 // ── Heavy-work limit warning (P2.2) ──────────────────────────────────────────
