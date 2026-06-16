@@ -816,6 +816,17 @@ export interface ExerciseMeta {
     /** Fine secondary muscles (same Muscle taxonomy), feeding the diagnostic-only
      *  effective-set estimate. Optional / may be empty. */
     secondary_muscle_groups?: Muscle[];
+    /** Base hypertrophy quality (0-1), migrated from ISOLATION_QUALITY. Optional:
+     *  absent -> NEUTRAL_QUALITY, so nameless/synthetic pools score neutrally and the
+     *  goldens stay byte-identical. */
+    quality?: number;
+    /** Preferred rep window. Optional: absent -> no per-exercise constraint (the
+     *  bias/goal range governs). Drives both a selection penalty and an assignment clamp. */
+    rep_min?: number;
+    rep_max?: number;
+    /** Objective semantic properties (e.g. 'incline', 'lengthened_bias', 'explosive'),
+     *  consumed by the style affinity. NOT style labels. Optional/absent = none. */
+    attributes?: string[];
 }
 
 function hasEquipment(ex: ExerciseMeta, have: Set<EquipmentKey>): boolean {

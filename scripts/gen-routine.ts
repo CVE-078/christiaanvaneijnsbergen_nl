@@ -104,7 +104,8 @@ if (existsSync(cachePath) && !args.refresh) {
     const sql = new SQL(url);
     const rows = (await sql`
         select id, name, category, equipment, movement_pattern, is_compound, fatigue,
-               substitution_class, unilateral, contraindications, difficulty
+               substitution_class, unilateral, contraindications, difficulty,
+               primary_muscle, secondary_muscle_groups, quality, rep_min, rep_max, attributes
         from exercises where user_id is null`) as Array<Record<string, unknown>>;
     await sql.end();
     pool = rows.map((row) => ({
@@ -119,6 +120,12 @@ if (existsSync(cachePath) && !args.refresh) {
         contraindications: (row.contraindications as ExerciseMeta['contraindications']) ?? [],
         ...(row.fatigue !== null ? { fatigue: row.fatigue as number } : {}),
         ...(row.difficulty !== null ? { difficulty: row.difficulty as ExerciseMeta['difficulty'] } : {}),
+        ...(row.primary_muscle ? { primary_muscle: row.primary_muscle as ExerciseMeta['primary_muscle'] } : {}),
+        secondary_muscle_groups: (row.secondary_muscle_groups as ExerciseMeta['secondary_muscle_groups']) ?? [],
+        ...(row.quality !== null ? { quality: row.quality as number } : {}),
+        ...(row.rep_min !== null ? { rep_min: row.rep_min as number } : {}),
+        ...(row.rep_max !== null ? { rep_max: row.rep_max as number } : {}),
+        attributes: (row.attributes as string[] | null) ?? [],
     }));
     writeFileSync(cachePath, JSON.stringify(pool));
 }

@@ -3997,6 +3997,17 @@ describe('floorRepRangeForLoad (Change A: load-limited dumbbell compounds)', () 
     });
 });
 
+describe('ExerciseMeta scoring fields', () => {
+    it('accepts quality / rep_min / rep_max / attributes and defaults them absent', () => {
+        const m = meta('x', 'biceps_iso', ['dumbbells'], false, { name: 'Cable Curl' });
+        expect(m.quality).toBeUndefined();
+        expect(m.rep_min).toBeUndefined();
+        expect(m.attributes).toBeUndefined();
+        const scored: ExerciseMeta = { ...m, quality: 0.9, rep_min: 8, rep_max: 12, attributes: ['incline'] };
+        expect(scored.quality).toBe(0.9);
+    });
+});
+
 describe('major-muscle minimums on an attributed pool (Change C/D integration)', () => {
     it('a 30-min 4-day routine keeps chest/back/quads >= 6 (no accessory-filled-while-major-collapses)', () => {
         // Attributed pool: the dumbbell deepPool with primary_muscle set, so gap-fill runs.
