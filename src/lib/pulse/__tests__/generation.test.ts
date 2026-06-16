@@ -23,6 +23,10 @@ import {
     COMPOUND_ANCHOR_PATTERNS,
     CANONICAL_ANCHORS,
     ISOLATION_QUALITY,
+    isolationQuality,
+    clampRepsToWindow,
+    repWindow,
+    bandOverlapsWindow,
     assignRole,
     focusLabelForEmphasis,
     PRIORITY_MUSCLE_SET_CEILING,
@@ -273,7 +277,7 @@ function meta(
     equipment: EquipmentKey[] = ['dumbbells'],
     compound = true,
     role: Partial<
-        Pick<ExerciseMeta, 'substitution_class' | 'unilateral' | 'fatigue' | 'contraindications' | 'name'>
+        Pick<ExerciseMeta, 'substitution_class' | 'unilateral' | 'fatigue' | 'contraindications' | 'name' | 'quality' | 'rep_min' | 'rep_max' | 'attributes'>
     > = {},
 ): ExerciseMeta {
     return {
@@ -2632,7 +2636,7 @@ describe('generation engine bug fixes (2026-06-10)', () => {
             // Both biceps_iso isolation. Concentration Curl has the LOWER fatigue (1),
             // which the accessory fatigue tiebreak prefers, and the alphabetically
             // earlier id, so it won before #3. Quality (Cable Curl 1.0 > Concentration
-            // Curl 0.70) now decides first.
+            // Curl 0.70) now decides first. quality set on the exercises (column-read path).
             const pool = deepPool()
                 .filter((e) => e.movement_pattern !== 'biceps_iso')
                 .concat([
@@ -2640,11 +2644,13 @@ describe('generation engine bug fixes (2026-06-10)', () => {
                         fatigue: 1,
                         substitution_class: 'biceps_isolation',
                         name: 'Concentration Curl',
+                        quality: 0.7,
                     }),
                     meta('zzz-cable', 'biceps_iso', ['dumbbells'], false, {
                         fatigue: 2,
                         substitution_class: 'biceps_isolation',
                         name: 'Cable Curl',
+                        quality: 1.0,
                     }),
                 ]);
             const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
@@ -2660,7 +2666,7 @@ describe('generation engine bug fixes (2026-06-10)', () => {
             // fill in quality order -- the scored Skull Crusher (0.90) then the UNSCORED
             // Single-Arm Tricep Pushdown (NEUTRAL 0.80) -- and the explicitly poor Tricep
             // Kickback (0.55) is left out, even though its lower fatigue won it the
-            // accessory tiebreak before #3.
+            // accessory tiebreak before #3. quality set on the exercises (column-read path).
             const pool = deepPool()
                 .filter((e) => e.movement_pattern !== 'triceps_iso')
                 .concat([
@@ -2668,16 +2674,18 @@ describe('generation engine bug fixes (2026-06-10)', () => {
                         fatigue: 1,
                         substitution_class: 'triceps_isolation',
                         name: 'Tricep Kickback',
+                        quality: 0.55,
                     }),
                     meta('mmm-push', 'triceps_iso', ['dumbbells'], false, {
                         fatigue: 3,
                         substitution_class: 'triceps_isolation',
-                        name: 'Single-Arm Tricep Pushdown', // unscored -> NEUTRAL_QUALITY
+                        name: 'Single-Arm Tricep Pushdown', // unscored -> NEUTRAL_QUALITY (no quality set)
                     }),
                     meta('zzz-skull', 'triceps_iso', ['dumbbells'], false, {
                         fatigue: 2,
                         substitution_class: 'triceps_isolation',
                         name: 'Skull Crusher',
+                        quality: 0.9,
                     }),
                 ]);
             const style = STYLES[3].find((s) => s.key === 'ppl-3') as ProgramStyle;
@@ -4005,6 +4013,16 @@ describe('ExerciseMeta scoring fields', () => {
         expect(m.attributes).toBeUndefined();
         const scored: ExerciseMeta = { ...m, quality: 0.9, rep_min: 8, rep_max: 12, attributes: ['incline'] };
         expect(scored.quality).toBe(0.9);
+    });
+});
+
+describe('isolationQuality reads the column', () => {
+    it('uses ex.quality when present, NEUTRAL_QUALITY when absent', () => {
+        const scored = meta('a', 'biceps_iso', ['dumbbells'], false, { name: 'Cable Curl' });
+        expect(isolationQuality({ ...scored, quality: 0.95 })).toBe(0.95);
+        expect(isolationQuality(scored)).toBe(0.8); // NEUTRAL_QUALITY, no column value
+        const nameless = meta('b', 'biceps_iso', ['dumbbells'], false);
+        expect(isolationQuality(nameless)).toBe(0.8); // nameless stays neutral
     });
 });
 

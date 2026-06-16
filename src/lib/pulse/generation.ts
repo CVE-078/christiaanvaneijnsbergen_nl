@@ -1144,10 +1144,12 @@ export const ISOLATION_QUALITY: Record<string, number> = {
 // nameless synthetic pools all tie on this key and stay byte-identical to base.
 const NEUTRAL_QUALITY = 0.8;
 
-/** Isolation-quality score for an exercise (higher = better). Unlisted / nameless ->
- *  NEUTRAL_QUALITY, so the layer is a no-op for synthetic pools and a pure tiebreak. */
+/** Isolation-quality score for an exercise (higher = better). Reads the seeded `quality`
+ *  column; absent -> NEUTRAL_QUALITY, so synthetic/nameless pools score neutrally and the
+ *  layer is a no-op for them. ISOLATION_QUALITY (the constant) is retained only as the
+ *  migration seed source + a parity test-oracle. */
 export function isolationQuality(ex: ExerciseMeta): number {
-    return ex.name ? (ISOLATION_QUALITY[ex.name] ?? NEUTRAL_QUALITY) : NEUTRAL_QUALITY;
+    return ex.quality ?? NEUTRAL_QUALITY;
 }
 
 // ── Slot selection (cross-session avoid-set) ─────────────────────────────────
