@@ -83,12 +83,15 @@ export function weeklyMuscleSets(
     return out;
 }
 
-/** A warning-target key: a Muscle, or the aggregate 'back' (= lats + upper_back). The
- *  9 keys here are exactly the muscles in the validated science table; front_delts /
- *  calves / core are deliberately absent (informational-only). */
+/** A warning-target key. `lats` and `upper_back` are tracked SEPARATELY (calibration round
+ *  3): the old single `back` aggregate let a row-only routine satisfy `back` while lats sat
+ *  at 0, masking a real lat deficit. `back` survives only as a derived reporting roll-up
+ *  (see `backAggregate` / `targetDirectSets(_, 'back')` for the diagnostic + UI), never as a
+ *  planning target. front_delts / calves / core remain informational-only. */
 export type MuscleTarget =
     | 'chest'
-    | 'back'
+    | 'lats'
+    | 'upper_back'
     | 'side_delts'
     | 'rear_delts'
     | 'biceps'
@@ -98,11 +101,15 @@ export type MuscleTarget =
     | 'glutes';
 
 /** Weekly direct-set bands (intermediate hypertrophy), the validated target table.
- *  `max` is stored for future and diagnostic use; it is NOT currently enforced.
- *  The gap check is under-dose only (direct sets below `min`). */
+ *  `max` is the MRV ceiling enforced by `trimToMrv`. The gap check is under-dose only
+ *  (direct sets below `min`). lats/upper_back mins (6/8) are PROVISIONAL pending a
+ *  literature pass (TODO: route lat vs upper-back floors to Perplexity); their sum (14)
+ *  slightly exceeds the old `back` floor (12) but the per-muscle split is what surfaces a
+ *  lat deficit. */
 export const MUSCLE_SET_TARGETS: Record<MuscleTarget, { min: number; max: number }> = {
     chest: { min: 10, max: 16 },
-    back: { min: 12, max: 18 },
+    lats: { min: 6, max: 12 },
+    upper_back: { min: 8, max: 18 },
     side_delts: { min: 8, max: 14 },
     rear_delts: { min: 6, max: 12 },
     biceps: { min: 8, max: 12 },
@@ -112,13 +119,16 @@ export const MUSCLE_SET_TARGETS: Record<MuscleTarget, { min: number; max: number
     glutes: { min: 8, max: 14 },
 };
 
-/** Direct sets attributed to a target. Owns the back roll-up (lats + upper_back) so the
- *  taxonomy and the target definitions cannot drift apart. NOTE: the back aggregate is a
- *  v1 simplification (a lats-2 / upper_back-15 program passes back-17 while being
- *  one-dimensional); the lats-vs-upper-back split is what the Spec 2 variety scoring
- *  addresses. Documented, not a silent gap. */
-export function targetDirectSets(direct: Record<Muscle, number>, target: MuscleTarget): number {
-    if (target === 'back') return (direct.lats ?? 0) + (direct.upper_back ?? 0);
+/** Derived back roll-up (lats + upper_back) for reporting / the diagnostic only, never a
+ *  planning target. */
+export function backAggregate(direct: Record<Muscle, number>): number {
+    return (direct.lats ?? 0) + (direct.upper_back ?? 0);
+}
+
+/** Direct sets attributed to a target. Accepts the derived reporting key `'back'` (the
+ *  lats + upper_back roll-up) so the diagnostic + UI keep working after the split. */
+export function targetDirectSets(direct: Record<Muscle, number>, target: MuscleTarget | 'back'): number {
+    if (target === 'back') return backAggregate(direct);
     return direct[target as Muscle] ?? 0;
 }
 
@@ -155,17 +165,17 @@ export function muscleCoverageGaps(blueprint: RoutineBlueprint, pool: ExerciseMe
 
     const gaps: MuscleGap[] = [];
     for (const target of Object.keys(MUSCLE_SET_TARGETS) as MuscleTarget[]) {
-        // Only evaluate targets that have at least one pool exercise.
-        const inScope =
-            target === 'back'
-                ? poolMuscles.has('lats') || poolMuscles.has('upper_back')
-                : poolMuscles.has(target as Muscle);
-        if (!inScope) continue;
+        // Only evaluate targets that have at least one pool exercise. lats and upper_back
+        // are now first-class single-muscle targets (the back split), so each is in scope
+        // only when the pool can train it: a barbell-only pool with no vertical pull and no
+        // lat-override isolation has no `lats` exercise, so lats is out-of-scope (honest),
+        // not a forced gap.
+        if (!poolMuscles.has(target as Muscle)) continue;
         const { min } = MUSCLE_SET_TARGETS[target];
         const d = targetDirectSets(direct, target);
-        // `back` is an aggregate (lats + upper_back); no carryover pair targets it, so its
-        // coverage equals direct. For the single-muscle targets, add the carryover credit.
-        const credited = target === 'back' ? 0 : carryover[target as Muscle];
+        // Add the compound-carryover credit (0 for muscles with no carryover pair, incl.
+        // lats / upper_back, which are primaries rather than carryover recipients).
+        const credited = carryover[target as Muscle] ?? 0;
         const coverage = d + credited;
         if (coverage < min) gaps.push({ target, direct: d, min, ratio: d / min });
     }

@@ -79,15 +79,17 @@ describe('muscleCoverageGaps', () => {
         expect(gaps.some((g) => g.target === 'biceps')).toBe(false);
     });
 
-    it('aggregates lats + upper_back into the back target (roll-up)', () => {
+    it('tracks lats and upper_back as separate targets (round-3 split); back stays a reporting roll-up', () => {
         const pool = poolFor(['lats', 'upper_back']);
-        // lats 4 + upper_back 9 = 13 >= back min 12 -> back NOT flagged.
+        // lats 4 < min 6 -> lats flagged; upper_back 9 >= min 8 -> not flagged. The OLD single
+        // back aggregate (min 12) passed at 13 and masked this lat deficit.
         const gaps = muscleCoverageGaps(
             bp([{ id: 'lats-0', sets: 4 }, { id: 'upper_back-1', sets: 9 }]),
             pool,
         );
-        expect(gaps.some((g) => g.target === 'back')).toBe(false);
-        // targetDirectSets owns the roll-up.
+        expect(gaps.some((g) => g.target === 'lats')).toBe(true);
+        expect(gaps.some((g) => g.target === 'upper_back')).toBe(false);
+        // back survives only as the derived reporting roll-up.
         expect(targetDirectSets({ lats: 4, upper_back: 9 } as Record<Muscle, number>, 'back')).toBe(13);
     });
 

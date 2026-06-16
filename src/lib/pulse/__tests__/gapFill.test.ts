@@ -30,18 +30,38 @@ function iso(id: string, muscle: Muscle, pattern: MovementPattern, name?: string
 const qualityOf = (e: ExerciseMeta) => (e.name === 'Good' ? 1 : e.name === 'Bad' ? 0.2 : 0.8);
 
 describe('gapFill constants', () => {
-    it('targets the seven gap-fill muscles incl. chest (back/quads excluded)', () => {
+    it('targets the eight gap-fill muscles incl. chest + lats (back aggregate/quads excluded)', () => {
         expect([...GAP_FILL_TARGETS].sort()).toEqual(
-            ['biceps', 'chest', 'glutes', 'hamstrings', 'rear_delts', 'side_delts', 'triceps'].sort(),
+            ['biceps', 'chest', 'glutes', 'hamstrings', 'lats', 'rear_delts', 'side_delts', 'triceps'].sort(),
         );
+        // `lats` is a first-class target now (round-3 split); the `back` aggregate and quads
+        // (compound-covered) are not gap-fill targets.
         expect(GAP_FILL_TARGETS).not.toContain('back');
         expect(GAP_FILL_TARGETS).not.toContain('quads');
+        expect(GAP_FILL_TARGETS).not.toContain('upper_back');
     });
     it('maps each target to its isolation pattern (never a compound anchor)', () => {
         expect(ISO_PATTERN_FOR.side_delts).toBe('shoulder_iso');
         expect(ISO_PATTERN_FOR.rear_delts).toBe('shoulder_iso');
         expect(ISO_PATTERN_FOR.biceps).toBe('biceps_iso');
         expect(ISO_PATTERN_FOR.hamstrings).toBe('hamstring_iso');
+    });
+});
+
+describe('Item A: lats is a gap-fill target', () => {
+    const schedule = [{ day_of_week: 1, workout_type: 'pull' as const, variant: null, label: null }];
+    const sessionCtx = new Map([['pull:', { focus: 'pull' as const, isoReps: '12-15', baseSets: 3 }]]);
+    const biRow = { exercise_id: 'bi', workout_type: 'pull' as const, variant: null, order: 0, sets: '3', reps: '12-15', superset_group_id: null };
+    it('seats a lat isolation (Pullover / Straight-Arm) for a zero-lats session when the pool has one', () => {
+        const pool = [iso('bi', 'biceps', 'biceps_iso'), iso('pullover', 'lats', 'back_iso')];
+        const out = applyCoverageGapFill({ exercises: [biRow], schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
+        expect(out.some((e) => pool.find((p) => p.id === e.exercise_id)?.primary_muscle === 'lats')).toBe(true);
+    });
+    it('stays honest-zero (no invented lat work) when the pool has no lat-capable isolation', () => {
+        const pool = [iso('bi', 'biceps', 'biceps_iso')]; // barbell-only-style pool: no lat isolation
+        expect(poolCanTrainMuscle('lats', pool)).toBe(false);
+        const out = applyCoverageGapFill({ exercises: [biRow], schedule, pool, usable: pool, sessionCtx, qualityOf, bandMaxMin: null });
+        expect(out.some((e) => pool.find((p) => p.id === e.exercise_id)?.primary_muscle === 'lats')).toBe(false);
     });
 });
 

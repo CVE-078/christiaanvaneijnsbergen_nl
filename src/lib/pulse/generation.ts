@@ -321,7 +321,7 @@ export const PRIORITY_MUSCLE_SET_CEILING = 20;
 // keep the legacy flat +4 dose and stay byte-identical.
 const PRIORITY_TARGET_MUSCLES: Record<PriorityMuscle, MuscleTarget[]> = {
     chest: ['chest'],
-    back: ['back'],
+    back: ['lats', 'upper_back'],
     shoulders: ['side_delts'],
     arms: ['biceps', 'triceps'],
     glutes: ['glutes'],
@@ -2381,18 +2381,10 @@ export function generateRoutine(input: GenerationInput): RoutineBlueprint {
         const targetMin = targets.reduce((n, t) => n + MUSCLE_SET_TARGETS[t].min, 0);
         const targetMax = targets.reduce((n, t) => n + MUSCLE_SET_TARGETS[t].max, 0);
         const underlying = new Set<Muscle>();
-        for (const t of targets) {
-            if (t === 'back') {
-                underlying.add('lats');
-                underlying.add('upper_back');
-            } else underlying.add(t as Muscle);
-        }
+        for (const t of targets) underlying.add(t as Muscle); // lats / upper_back are first-class targets now
         const measure = () => {
             const counts = weeklyMuscleSets({ schedule, exercises, warnings: [] }, pool);
-            return targets.reduce(
-                (n, t) => n + (t === 'back' ? counts.lats.direct + counts.upper_back.direct : counts[t as Muscle].direct),
-                0,
-            );
+            return targets.reduce((n, t) => n + counts[t as Muscle].direct, 0);
         };
         const eligible = priorityBumpables
             .filter((b) => {

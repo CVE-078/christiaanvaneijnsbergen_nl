@@ -18,7 +18,8 @@ export type GapFillTarget =
     | 'triceps'
     | 'hamstrings'
     | 'glutes'
-    | 'chest';
+    | 'chest'
+    | 'lats';
 
 export const GAP_FILL_TARGETS: readonly GapFillTarget[] = [
     'side_delts',
@@ -28,6 +29,7 @@ export const GAP_FILL_TARGETS: readonly GapFillTarget[] = [
     'hamstrings',
     'glutes',
     'chest',
+    'lats',
 ];
 
 /** Weekly DIRECT-set floor gap-fill drives a muscle toward. A FLOOR, not a target: the
@@ -36,9 +38,12 @@ export const GAP_FILL_TARGETS: readonly GapFillTarget[] = [
  *  prevents neglect, not specialization). chest is a flat low 6 at every frequency
  *  (compounds carry it; gap-fill only catches the catastrophic lows). */
 export function coverageFloor(muscle: GapFillTarget, dayCount: number): number {
-    if (muscle === 'chest') return 6;
+    // chest + lats are flat low floors: their gap-fill isolations are limited (chest fly;
+    // lats only via Dumbbell Pullover / Straight-Arm Pulldown), so gap-fill only catches
+    // catastrophic lows; the compounds (presses / vertical pulls) carry the rest.
+    if (muscle === 'chest' || muscle === 'lats') return 6;
     const band = dayCount <= 3 ? 'low' : dayCount === 4 ? 'mid' : 'high';
-    const table: Record<Exclude<GapFillTarget, 'chest'>, Record<'low' | 'mid' | 'high', number>> = {
+    const table: Record<Exclude<GapFillTarget, 'chest' | 'lats'>, Record<'low' | 'mid' | 'high', number>> = {
         side_delts: { low: 6, mid: 8, high: 8 },
         rear_delts: { low: 4, mid: 6, high: 6 },
         biceps: { low: 6, mid: 8, high: 8 },
@@ -58,6 +63,7 @@ export const ISO_PATTERN_FOR: Record<GapFillTarget, MovementPattern> = {
     hamstrings: 'hamstring_iso',
     glutes: 'glute_iso',
     chest: 'chest_iso',
+    lats: 'back_iso', // Dumbbell Pullover / Straight-Arm Pulldown (the lat-override isos)
 };
 
 /** Session focuses each target may be added to. */
@@ -69,6 +75,7 @@ export const MUSCLE_REGION: Record<GapFillTarget, readonly Focus[]> = {
     hamstrings: ['legs', 'lower', 'full_body'],
     glutes: ['legs', 'lower', 'full_body'],
     chest: ['push', 'upper', 'full_body'],
+    lats: ['pull', 'upper', 'full_body'],
 };
 
 export const PER_SESSION_ADD_CAP = 1;
@@ -360,7 +367,7 @@ export function trimToMrv(input: {
     const counts = weeklyMuscleSets({ schedule, exercises, warnings: [] }, pool);
     for (const target of Object.keys(MUSCLE_SET_TARGETS) as MuscleTarget[]) {
         const max = MUSCLE_SET_TARGETS[target].max;
-        const underlying: Muscle[] = target === 'back' ? ['lats', 'upper_back'] : [target as Muscle];
+        const underlying: Muscle[] = [target as Muscle]; // lats / upper_back are first-class now
         let current = underlying.reduce((n, m) => n + counts[m].direct, 0);
         let guard = 0;
         while (current > max && guard++ < 100) {

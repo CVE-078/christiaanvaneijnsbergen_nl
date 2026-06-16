@@ -204,7 +204,7 @@ console.log('  ' + MUSCLES.map(fmtMuscle).join(' · '));
 // upper_back, so the per-muscle "lats 0" line is not a coverage gap on its own.
 const directRec = Object.fromEntries(MUSCLES.map((m) => [m, muscleCounts[m].direct])) as Record<(typeof MUSCLES)[number], number>;
 const backDirect = targetDirectSets(directRec, 'back');
-const backMin = MUSCLE_SET_TARGETS.back.min;
+const backMin = MUSCLE_SET_TARGETS.lats.min + MUSCLE_SET_TARGETS.upper_back.min;
 console.log(`  back aggregate (lats + upper_back): ${backDirect}/${backMin} (${Math.round((backDirect / backMin) * 100)}%)`);
 const muscleGaps = muscleCoverageGaps(blueprint, pool);
 console.log(
