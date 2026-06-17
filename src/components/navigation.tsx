@@ -1,6 +1,6 @@
 import { scrollToElement } from '@/utils';
 
-interface Navigation {
+interface NavigationProps {
     openMenu: boolean;
     setOpenMenu: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -11,7 +11,7 @@ interface NavigationItem {
     type: string;
 }
 
-const Navigation = ({ openMenu, setOpenMenu }: Navigation) => {
+const Navigation = ({ openMenu, setOpenMenu }: NavigationProps) => {
     const items: NavigationItem[] = [
         {
             name: 'about',
@@ -39,12 +39,14 @@ const Navigation = ({ openMenu, setOpenMenu }: Navigation) => {
                 {items.map((item: NavigationItem, index: number) => (
                     <li className="flex-1 basis-auto sm:text-center" key={index}>
                         <a
+                            href={`#${item.link}`}
                             className={`text-white text-xl relative sm:block sm:text-sm md:text-base group hover:text-secondary hover:sm:text-primary transition-all duration-400 cursor-pointer ${
                                 item.type === 'button'
                                     ? 'sm:py-2.5 sm:px-6 sm:border sm:border-primary sm:rounded-full overflow-hidden'
                                     : 'sm:py-1.5 sm:text-primary'
                             }`}
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.preventDefault();
                                 scrollToElement(item.link);
                                 setOpenMenu(false);
                             }}>

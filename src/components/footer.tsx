@@ -44,6 +44,7 @@ const Footer = () => (
                             <Link
                                 href="https://www.linkedin.com/in/christiaan-van-eijnsbergen/"
                                 target="_blank"
+                                rel="noopener noreferrer"
                                 className="relative text-secondary leading-snug inline-block after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:bg-secondary after:h-0.5 after:transition-all after:duration-400 hover:after:w-full">
                                 LinkedIn
                             </Link>{' '}
@@ -51,6 +52,7 @@ const Footer = () => (
                             <Link
                                 href="mailto:christiaanvaneijnsbergen@gmail.com"
                                 target="_blank"
+                                rel="noopener noreferrer"
                                 className="relative text-secondary leading-snug inline-block after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:bg-secondary after:h-0.5 after:transition-all after:duration-400 hover:after:w-full">
                                 mail
                             </Link>
